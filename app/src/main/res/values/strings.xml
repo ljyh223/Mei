@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">music</string>
+    <string name="music_player">Music Player</string>
+    <string name="error_no_internet">No network connection</string>
+    <string name="error_timeout">Timeout</string>
+    <string name="error_unknown">Unknown error</string>
+</resources>
