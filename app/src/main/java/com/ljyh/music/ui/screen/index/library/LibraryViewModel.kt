@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.music.constants.UserIdKey
+import com.ljyh.music.data.model.AlbumPhoto
 import com.ljyh.music.data.model.HomePage
 import com.ljyh.music.data.model.UserAccount
 import com.ljyh.music.data.model.UserPlaylist
@@ -42,6 +43,16 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             _playlists.value = Resource.Loading
             _playlists.value = repository.getUserPlaylist(uid)
+        }
+    }
+
+    private val _photoAlbum=MutableStateFlow<Resource<AlbumPhoto>>(Resource.Loading)
+    val photoAlbum:StateFlow<Resource<AlbumPhoto>> = _photoAlbum
+
+    fun getPhotoAlbum(id:String){
+        viewModelScope.launch {
+            _photoAlbum.value = Resource.Loading
+            _photoAlbum.value = repository.getPhotoAlbum(id)
         }
     }
 }

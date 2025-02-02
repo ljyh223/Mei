@@ -23,6 +23,7 @@ object NetworkModule {
 //    private const val BASE_URL = "http://127.0.0.1:3000/"
 
     private val BASE_URLS= listOf(
+        "http://192.168.246.127:3000/",
         "http://172.245.119.194:3000/",
         "https://neteasecloudmusicapi.ljyh.link/",
         "http://127.0.0.1:3000/",
@@ -33,15 +34,7 @@ object NetworkModule {
     @Singleton
     @Provides
     fun provideRetrofit(): Retrofit {
-        val BASE_URL = if (isServerReachable(BASE_URLS[0])) {
-            BASE_URLS[0]
-        } else if (isServerReachable(BASE_URLS[1])) {
-            BASE_URLS[1]
-        } else if (isServerReachable(BASE_URLS[2])) {
-            BASE_URLS[2]
-        } else {
-            BASE_URLS[0]
-        }
+        val BASE_URL=BASE_URLS.find { isServerReachable(it) }?: BASE_URLS.last()
 
         Log.d("BASE_URL", BASE_URL)
         val okHttpClient = OkHttpClient.Builder()

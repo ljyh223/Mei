@@ -2,6 +2,7 @@
 accompanistPager = "0.36.0"
 agp = "8.7.0"
 coilCompose = "3.0.4"
+composeColorfulSliders = "1.2.2"
 composeShimmer = "1.3.1"
 converterGson = "2.11.0"
 datastorePreferences = "1.1.2"
@@ -12,10 +13,13 @@ kotlin = "2.0.0"
 coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
+ktorClientAndroid = "3.0.3"
+ktorClientCore = "3.0.3"
+ktorServerNetty = "3.0.3"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.0"
 composeBom = "2025.01.00"
-material3Android = "1.4.0-alpha06"
+material3Android = "1.3.1"
 activityKtx = "1.10.0"
 materialKolor = "2.0.0"
 navigationRuntimeKtx = "2.8.5"
@@ -29,6 +33,8 @@ hiltNavigationCompose = "1.2.0"
 roomCompiler = "2.6.1"
 media3="1.4.0"
 workRuntimeKtx = "2.10.0"
+kmpalette = "3.1.0"
+annotations = "15.0"
 [libraries]
 accompanist-pager = { module = "com.google.accompanist:accompanist-pager", version.ref = "accompanistPager" }
 accompanist-pager-indicators = { module = "com.google.accompanist:accompanist-pager-indicators", version.ref = "accompanistPager" }
@@ -44,6 +50,7 @@ androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomComp
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilCompose" }
+compose-colorful-sliders = { module = "com.github.SmartToolFactory:Compose-Colorful-Sliders", version.ref = "composeColorfulSliders" }
 compose-shimmer = { module = "com.valentinilk.shimmer:compose-shimmer", version.ref = "composeShimmer" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
@@ -60,6 +67,8 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" ,version.ref = "material3Android"}
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorClientAndroid" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorClientCore" }
 material-icons-extended= { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
@@ -67,6 +76,8 @@ androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navig
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 material-kolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
+kmpalette-core = { module = "com.kmpalette:kmpalette-core", version.ref = "kmpalette" }
+kmpalette-extensions-network = { module = "com.kmpalette:extensions-network", version.ref = "kmpalette" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 
 desugaring = { group = "com.android.tools", name = "desugar_jdk_libs", version = "2.0.4" }
@@ -77,6 +88,8 @@ media3-session = { group = "androidx.media3", name = "media3-session", version.r
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
+
 
 
 [plugins]

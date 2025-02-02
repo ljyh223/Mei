@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
@@ -15,6 +16,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
+import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Timeline
@@ -58,6 +61,7 @@ import com.ljyh.music.di.AppDatabase
 import com.ljyh.music.di.DownloadCache
 import com.ljyh.music.di.PlayerCache
 import com.ljyh.music.extensions.SilentHandler
+import com.ljyh.music.extensions.currentMetadata
 import com.ljyh.music.playback.queue.EmptyQueue
 import com.ljyh.music.playback.queue.Queue
 import com.ljyh.music.utils.CoilBitmapLoader
@@ -107,7 +111,7 @@ class MusicService : MediaLibraryService(),
 
     private var currentQueue: Queue = EmptyQueue
     var queueTitle: String? = null
-
+    private var isAudioEffectSessionOpened = false
 
     @Inject
     lateinit var apiService: ApiService // 自动注入
@@ -193,6 +197,43 @@ class MusicService : MediaLibraryService(),
 
     }
 
+    private fun openAudioEffectSession() {
+        if (isAudioEffectSessionOpened) return
+        isAudioEffectSessionOpened = true
+        sendBroadcast(
+            Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, player.audioSessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            }
+        )
+    }
+
+    private fun closeAudioEffectSession() {
+        if (!isAudioEffectSessionOpened) return
+        isAudioEffectSessionOpened = false
+        sendBroadcast(
+            Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, player.audioSessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+            }
+        )
+    }
+
+    override fun onEvents(player: Player, events: Player.Events) {
+        if (events.containsAny(Player.EVENT_PLAYBACK_STATE_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED)) {
+            val isBufferingOrReady = player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
+            if (isBufferingOrReady && player.playWhenReady) {
+                openAudioEffectSession()
+            } else {
+                closeAudioEffectSession()
+            }
+        }
+        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+            currentMediaMetadata.value = player.currentMetadata
+        }
+    }
+
     class LibrarySessionCallback : MediaLibrarySession. Callback{
 
 
@@ -201,6 +242,12 @@ class MusicService : MediaLibraryService(),
     fun playNext(items: List<MediaItem>) {
         player.addMediaItems(if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1, items)
         player.prepare()
+    }
+
+    fun toggleLike(id:String, like: Boolean) {
+        scope.launch {
+            apiService.like(id, like)
+        }
     }
 
     fun addToQueue(items: List<MediaItem>) {

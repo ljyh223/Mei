@@ -4,10 +4,17 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
+import android.util.TypedValue
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlin.random.Random
@@ -98,3 +105,30 @@ fun <T> rearrangeArray(array: List<T>, selectedIndex: Int): List<T> {
     // 将选中的元素插入到列表的开头
     return listOf(selectedElement) + remainingElements
 }
+
+fun makeTimeString(duration: Long?): String {
+    if (duration == null || duration < 0) return ""
+    var sec = duration / 1000
+    val day = sec / 86400
+    sec %= 86400
+    val hour = sec / 3600
+    sec %= 3600
+    val minute = sec / 60
+    sec %= 60
+    return when {
+        day > 0 -> "%d:%02d:%02d:%02d".format(day, hour, minute, sec)
+        hour > 0 -> "%d:%02d:%02d".format(hour, minute, sec)
+        else -> "%d:%02d".format(minute, sec)
+    }
+}
+
+
+val Int.textDp: TextUnit
+    @Composable get() = this.textDp(density = LocalDensity.current)
+
+private fun Int.textDp(density: Density): TextUnit = with(density) {
+    this@textDp.dp.toSp()
+}
+
+fun dp2px(dp:Float) :Float=
+    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, Resources.getSystem().displayMetrics)

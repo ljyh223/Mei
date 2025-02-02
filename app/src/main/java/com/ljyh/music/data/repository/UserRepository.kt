@@ -1,5 +1,6 @@
 package com.ljyh.music.data.repository
 
+import com.ljyh.music.data.model.AlbumPhoto
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.UserAccount
 import com.ljyh.music.data.model.UserPlaylist
@@ -20,6 +21,13 @@ class UserRepository(private val apiService: ApiService) {
     suspend fun getUserPlaylist(uid:String): Resource<UserPlaylist> {
         return withContext(Dispatchers.IO) {
             safeApiCall { apiService.getUserPlaylist(uid) }
+        }
+    }
+//    getPhotoAlbum
+
+    suspend fun getPhotoAlbum(id:String): Resource<AlbumPhoto> {
+        return withContext(Dispatchers.IO) {
+            safeApiCall { apiService.getPhotoAlbum(id) }
         }
     }
 }

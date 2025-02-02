@@ -5,13 +5,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -37,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -93,6 +97,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.kmpalette.loader.rememberNetworkLoader
+import com.kmpalette.rememberDominantColorState
+import io.ktor.http.Url
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -116,7 +123,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    
+
     override fun onStart() {
         super.onStart()
         startService(Intent(this, MusicService::class.java))
@@ -145,28 +152,25 @@ class MainActivity : ComponentActivity() {
             val active by rememberSaveable {
                 mutableStateOf(false)
             }
-            var themeColor by rememberSaveable(stateSaver = ColorSaver) {
-                mutableStateOf(DefaultThemeColor)
-            }
-            LaunchedEffect (playerConnection){
+            val loader = rememberNetworkLoader()
+            val dominantColorState = rememberDominantColorState(loader)
+            LaunchedEffect(playerConnection) {
+
+
                 val playerConnection = playerConnection ?: return@LaunchedEffect
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
-                    themeColor = if (song != null) {
-                        withContext(Dispatchers.IO) {
-                            val result = imageLoader.execute(
-                                ImageRequest.Builder(this@MainActivity)
-                                    .data(song.coverUrl)
-                                    .allowHardware(false) // pixel access is not supported on Config#HARDWARE bitmaps
-                                    .build()
-                            )
-                            result.image?.toBitmap()?.asImageBitmap()?.themeColor(DefaultThemeColor)?: DefaultThemeColor
-                        }
-                    } else DefaultThemeColor
+                    if (song != null) {
+                        val demoImageUrl = Url(song.coverUrl)
+                        loader.load(demoImageUrl)
+                        dominantColorState.updateFrom(demoImageUrl)
+                    }
                 }
             }
 
 
-            MusicTheme {
+            MusicTheme(
+                seedColor = dominantColorState.color,
+            ) {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
@@ -239,7 +243,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                    LaunchedEffect(navBackStackEntry){
+                    LaunchedEffect(navBackStackEntry) {
 //                        searchBarScrollBehavior.state.resetHeightOffset()
                         topAppBarScrollBehavior.state.resetHeightOffset()
                     }
@@ -264,7 +268,8 @@ class MainActivity : ComponentActivity() {
                     }
 
                     DisposableEffect(playerConnection, playerBottomSheetState) {
-                        val player = playerConnection?.player ?: return@DisposableEffect onDispose { }
+                        val player =
+                            playerConnection?.player ?: return@DisposableEffect onDispose { }
                         val listener = object : Player.Listener {
                             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED && mediaItem != null && playerBottomSheetState.isDismissed) {
@@ -327,7 +332,7 @@ class MainActivity : ComponentActivity() {
                             Index.entries.fastForEach { screen ->
 
                                 NavigationBarItem(
-                                    selected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true ,
+                                    selected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true,
 
                                     icon = {
                                         Icon(
@@ -344,7 +349,10 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onClick = {
                                         if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                "scrollToTop",
+                                                true
+                                            )
                                         } else {
                                             navController.navigate(screen.route) {
                                                 popUpTo(navController.graph.startDestinationId) {

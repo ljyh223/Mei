@@ -1134,7 +1134,7 @@ data class HomePageResourceShow(
                                 @SerializedName("adType")
                                 val adType: Int,
                                 @SerializedName("adjustedPlayCount")
-                                val adjustedPlayCount: Int,
+                                val adjustedPlayCount: Any,
                                 @SerializedName("anonimous")
                                 val anonimous: Boolean,
                                 @SerializedName("approved")

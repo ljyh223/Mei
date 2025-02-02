@@ -1,6 +1,7 @@
 package com.ljyh.music.utils
 
 import com.ljyh.music.data.model.Lyric
+import com.ljyh.music.data.model.LyricLine
 
 object LyricUtil {
     fun getLyric(lyric: Lyric): String {
@@ -26,7 +27,7 @@ object LyricUtil {
             if (parts.size == 2) {
                 var time = parts[0].removePrefix("[") // 提取时间
                 if (countSpecificCharacter(time) > 1) {
-                    time = replaceLastOccurrenceWithStringBuilder(time,':','.')
+                    time = replaceLastOccurrenceWithStringBuilder(time, ':', '.')
                 }
                 val text = parts[1] // 提取歌词
                 tlyricMap[time] = text
@@ -47,7 +48,7 @@ object LyricUtil {
                 val text = parts[1] // 提取歌词
 
                 if (countSpecificCharacter(time) > 1) {
-                    time = replaceLastOccurrenceWithStringBuilder(time,':','.')
+                    time = replaceLastOccurrenceWithStringBuilder(time, ':', '.')
                 }
                 // 如果翻译歌词没有对应时间戳，直接添加原歌词
                 if (time !in tlyricMap) {
@@ -67,7 +68,11 @@ object LyricUtil {
         return str.count { it == ':' }
     }
 
-    private fun replaceLastOccurrenceWithStringBuilder(str: String, target: Char, replacement: Char): String {
+    private fun replaceLastOccurrenceWithStringBuilder(
+        str: String,
+        target: Char,
+        replacement: Char
+    ): String {
         val lastIndex = str.lastIndexOf(target)
         return if (lastIndex != -1) {
             StringBuilder(str).apply { setCharAt(lastIndex, replacement) }.toString()
@@ -76,4 +81,13 @@ object LyricUtil {
         }
     }
 
+
+    fun findShowLine(lyrics: List<LyricLine>, time: Long): Int {
+        return lyrics.indexOfLast { lyric ->
+            lyric.time <= time
+        }
+    }
+
 }
+
+

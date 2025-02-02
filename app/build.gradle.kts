@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.media3)
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
+    implementation(libs.annotations)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -102,7 +103,14 @@ dependencies {
 
 //    coreLibraryDesugaring(libs.desugaring)
     implementation(libs.material.kolor)
+    implementation(libs.kmpalette.core)
+    implementation(libs.kmpalette.extensions.network)
 //    implementation(projects.materialColorUtilities)
+
+    implementation (libs.compose.colorful.sliders)
+
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
 
 
 }

@@ -7,6 +7,7 @@ import com.ljyh.music.data.model.room.Song
 import com.ljyh.music.data.network.ApiService
 import com.ljyh.music.data.repository.HomeRepository
 import com.ljyh.music.data.repository.PlaylistRepository
+import com.ljyh.music.data.repository.ShareRepository
 import com.ljyh.music.data.repository.UserRepository
 import dagger.Module
 import dagger.Provides
@@ -37,6 +38,13 @@ object RepositoryModule {
     @Provides
     fun provideUserRepository(apiService: ApiService): UserRepository {
         return UserRepository(apiService)
+    }
+
+
+    @Singleton
+    @Provides
+    fun provideShareRepository(apiService: ApiService): ShareRepository {
+        return ShareRepository(apiService)
     }
 }
 

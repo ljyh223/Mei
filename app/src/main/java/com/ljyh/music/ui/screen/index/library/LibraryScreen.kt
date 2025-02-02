@@ -5,11 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,12 +33,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
@@ -43,12 +54,17 @@ import androidx.datastore.preferences.core.edit
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.size.Size
+import com.ljyh.music.constants.AppBarHeight
 import com.ljyh.music.constants.UserAvatarUrlKey
 import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.constants.UserNicknameKey
+import com.ljyh.music.constants.UserPhotoKey
 import com.ljyh.music.data.model.UserAccount
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.component.PlaylistItem
+import com.ljyh.music.ui.component.utils.fadingEdge
 import com.ljyh.music.ui.local.LocalNavController
 import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.music.ui.screen.Screen
@@ -61,7 +77,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 
-@OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel()
@@ -71,22 +86,17 @@ fun LibraryScreen(
 
     val navController = LocalNavController.current
     val userPlaylist by viewModel.playlists.collectAsState()
-    val scope = rememberCoroutineScope()
-
+    val photoAlbum by viewModel.photoAlbum.collectAsState()
+    val state= rememberLazyListState()
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
     val (userNickname, setUserNickname) = rememberPreference(UserNicknameKey, "")
     val (userAvatarUrl, setUserAvatarUrl) = rememberPreference(UserAvatarUrlKey, "")
+    var userPhoto by remember { mutableStateOf("") }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop =
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
     val scrollState = rememberScrollState()
-    val pagerState = rememberPagerState(
-        initialPage = 0,
-        pageCount = { 2 }
-    )
-
-    val tabs = listOf("创建", "收藏")
 
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
@@ -94,9 +104,30 @@ fun LibraryScreen(
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
     }
-    LaunchedEffect(key1 = Unit) {
+    LaunchedEffect(key1 = userId) {
         Log.d("libraryScreen", "userId: $userId")
-        if (userId != "") viewModel.getUserPlaylist(userId) else viewModel.getUserAccount()
+        if (userId != "") {
+            viewModel.getUserPlaylist(userId)
+            if(userPhoto=="") {
+                Log.d("photoAlbum", "没有图片，userId: $userId")
+                viewModel.getPhotoAlbum(userId)
+            }
+        } else viewModel.getUserAccount()
+    }
+    when(val result=photoAlbum){
+        is Resource.Error->{
+            Log.d("photoAlbum",result.toString())
+        }
+        Resource.Loading->{
+            Log.d("photoAlbum",result.toString())
+        }
+        is Resource.Success ->{
+            Log.d("photoAlbum",result.data.data.records[0].imageUrl)
+            Log.d("photoAlbum",result.data.data.records.toString())
+            userPhoto=result.data.data.records[0].imageUrl
+
+
+        }
     }
 
 
@@ -105,16 +136,23 @@ fun LibraryScreen(
             LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()
         )
     )
-    Column(
+    LazyColumn (
         modifier = Modifier.fillMaxSize(),
+        state=state
     ) {
         if (userId != "") {
-            User(
-                userId = userId,
-                userNickname = userNickname,
-                userAvatarUrl = userAvatarUrl
-            )
-            Spacer(Modifier.height(10.dp))
+            item {
+                User(
+                    userId = userId,
+                    userNickname = userNickname,
+                    userAvatarUrl = userAvatarUrl,
+                    userPhoto = userPhoto
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
+
+
         }
 
         when (val result = account) {
@@ -144,79 +182,23 @@ fun LibraryScreen(
             }
 
             is Resource.Success -> {
-                TabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            text = {
-                                Text(
-                                    text = title,
-                                    color = if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary // 当前页颜色
-                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), // 非选中页颜色
-                                    fontSize = if (pagerState.currentPage == index) 18.sp else 16.sp, // 可选：改变字体大小
-                                    fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal // 可选：加粗当前页字体
-                                )
-                            },
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            }
-                        )
-                    }
-                }
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    // 根据不同的页面显示不同的内容
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                    ) {
 
-                        when (page) {
-                            0 -> {
-                                result.data.playlist.filter {
-                                    it.userId.toString() == userId
-                                }
-                            }
-
-                            1 -> {
-                                result.data.playlist.filter {
-                                    it.userId.toString() != userId
-                                }
-                            }
-
-                            else -> {
-                                listOf()
-                            }
-                        }.forEach {
-                            PlaylistItem(it) {
-                                Screen.PlayList.navigate(navController) {
-                                    addPath(it.id.toString())
-                                }
-                            }
-                        }
-
-
-                    }
-
-                }
-
-
+               items(result.data.playlist, key = {it.id}){
+                   PlaylistItem(it) {
+                       Screen.PlayList.navigate(navController) {
+                           addPath(it.id.toString())
+                       }
+                   }
+               }
             }
         }
-
-        Spacer(
-            Modifier.height(
-                LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            )
-        )
     }
+
+    Spacer(
+        Modifier.height(
+            LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+        )
+    )
 
 
 }
@@ -225,27 +207,52 @@ fun LibraryScreen(
 fun User(
     userId: String,
     userNickname: String,
-    userAvatarUrl: String
+    userAvatarUrl: String,
+    userPhoto:String
 ) {
-    Row(
-        modifier = Modifier.padding(vertical = 16.dp)
-    ) {
-        Spacer(Modifier.width(20.dp))
+    val context = LocalContext.current
+    Box(
+        modifier = Modifier.fillMaxWidth()
+            .aspectRatio(7f/6)
+    ){
+        Log.d("user",userPhoto)
+        if(userPhoto!=""){
+            AsyncImage(
+                model = userPhoto,
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fadingEdge(
+                        top = WindowInsets.systemBars
+                            .asPaddingValues()
+                            .calculateTopPadding() + AppBarHeight,
+                        bottom = 64.dp
+                    ),
+                contentScale = ContentScale.Crop
+
+            )
+        }
+
+
         AsyncImage(
-            model = userAvatarUrl,
+            model =userAvatarUrl,
             contentDescription = null,
             modifier = Modifier
-                .size(100.dp)
-                .clip(RoundedCornerShape(100.dp))
+                .size(60.dp)
+                .align(Alignment.Center)
+                .clip(RoundedCornerShape(30.dp)),
         )
-
-        Spacer(Modifier.width(20.dp))
-
         Text(
             text = userNickname,
+            style = MaterialTheme.typography.displayLarge,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
             modifier = Modifier
-                .align(Alignment.CenterVertically),
-            fontSize = 20.sp
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 24.dp)
         )
     }
 }

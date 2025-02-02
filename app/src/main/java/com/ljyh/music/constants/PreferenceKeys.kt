@@ -14,7 +14,8 @@ val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val UserIdKey = stringPreferencesKey("userId")
 val UserNicknameKey = stringPreferencesKey("userNickname")
 val UserAvatarUrlKey = stringPreferencesKey("userAvatarUrl")
-
+val UserPhotoKey = stringPreferencesKey("userPhoto")
+val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 enum class SliderStyle {
     DEFAULT, SQUIGGLY
 }

@@ -1,5 +1,6 @@
 package com.ljyh.music.data.network
 
+import com.ljyh.music.data.model.AlbumPhoto
 import com.ljyh.music.data.model.HomePage
 import com.ljyh.music.data.model.HomePageResourceShow
 import com.ljyh.music.data.model.Lyric
@@ -55,4 +56,12 @@ interface ApiService {
 
     @GET("/homepage/resource/show")
     suspend fun getHomePageResourceShow(): HomePageResourceShow
+
+
+    @GET("/like")
+    suspend fun like(@Query("id") id:String, @Query("like") like:Boolean=true)
+
+
+    @GET("/photo/album/get")
+    suspend fun getPhotoAlbum(@Query("id") id:String): AlbumPhoto
 }

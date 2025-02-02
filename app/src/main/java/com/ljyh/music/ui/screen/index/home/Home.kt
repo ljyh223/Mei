@@ -1,6 +1,7 @@
 package com.ljyh.music.ui.screen.index.home
 
 import android.util.Log
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -54,113 +55,120 @@ fun HomeScreen(
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
     }
-
-    Column(
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-    ) {
-        Spacer(Modifier.height(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()))
-        when (val resource = homePageResourceShow) {
-            is Resource.Error -> {}
-            Resource.Loading -> {
-                HomeShimmer()
-            }
-
-            is Resource.Success -> {
-                val data = resource.data
-                CircularSearchBar()
-                Spacer(Modifier.height(10.dp))
-                Text(getGreeting(), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(10.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(), state = rememberLazyListState()
-                ) {
-                    val cards =
-                        data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_DAILY_RECOMMEND" }
-                    if (cards.isEmpty()) return@LazyRow
-                    items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
-                        RecommendCard(
-                            picUrl = it.coverImg,
-                            title = it.singleLineTitle,
-                            extInfo = CardExtInfo(
-                                icon = it.iconDesc.image,
-                                text = it.subTitle
-                            ),
-                            viewModel = viewModel
-                        ) {
-
-                        }
-                    }
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ){
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+        ) {
+            Spacer(Modifier.height(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()))
+            when (val resource = homePageResourceShow) {
+                is Resource.Error -> {}
+                Resource.Loading -> {
+                    HomeShimmer()
                 }
 
+                is Resource.Success -> {
+                    val data = resource.data
+                    CircularSearchBar()
+                    Spacer(Modifier.height(10.dp))
+                    Text(getGreeting(), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(10.dp))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(), state = rememberLazyListState()
+                    ) {
+                        val cards =
+                            data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_DAILY_RECOMMEND" }
+                        if (cards.isEmpty()) return@LazyRow
+                        items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
+                            RecommendCard(
+                                picUrl = it.coverImg,
+                                title = it.singleLineTitle,
+                                extInfo = CardExtInfo(
+                                    icon = it.iconDesc.image,
+                                    text = it.subTitle
+                                ),
+                                viewModel = viewModel
+                            ) {
+
+                            }
+                        }
+                    }
 
 
-                Spacer(Modifier.height(10.dp))
-                Text(text = "雷达歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(10.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    state = rememberLazyListState()
-                ) {
-                    val cards =
-                        data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_RADAR" }
-                    if (cards.isEmpty()) return@LazyRow
-                    items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
-                        PlaylistCard(
-                            id = it.resourceId,
-                            title = it.title,
-                            coverImg = it.coverImg,
-                            subTitle = it.resourceExtInfo.coverText,
-                            showPlay = true,
-                            extInfo = it.resourceInteractInfo.playCount
-                        ) {
-                            Screen.PlayList.navigate(navController) {
-                                addPath(it.resourceId)
+
+                    Spacer(Modifier.height(10.dp))
+                    Text(text = "雷达歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(10.dp))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        state = rememberLazyListState()
+                    ) {
+                        val cards =
+                            data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_RADAR" }
+                        if (cards.isEmpty()) return@LazyRow
+                        items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
+                            PlaylistCard(
+                                id = it.resourceId,
+                                title = it.title,
+                                coverImg = it.coverImg,
+                                subTitle = it.resourceExtInfo.coverText,
+                                showPlay = true,
+                                extInfo = it.resourceInteractInfo.playCount
+                            ) {
+                                Screen.PlayList.navigate(navController) {
+                                    addPath(it.resourceId)
+                                }
+                            }
+                        }
+
+
+                    }
+
+
+
+
+                    Spacer(Modifier.height(10.dp))
+                    Text(text = "推荐歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(10.dp))
+
+
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        state = rememberLazyListState()
+                    ) {
+                        val cards =
+                            data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST" }
+                        if (cards.isEmpty()) return@LazyRow
+                        items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
+                            PlaylistCard(
+                                id = it.resourceId,
+                                title = it.title,
+                                coverImg = it.coverImg,
+                                showPlay = true,
+
+                                extInfo = it.resourceInteractInfo.playCount,
+                            ) {
+                                Screen.PlayList.navigate(navController) {
+                                    addPath(it.resourceId)
+                                }
                             }
                         }
                     }
 
 
                 }
-
-
-
-
-                Spacer(Modifier.height(10.dp))
-                Text(text = "推荐歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(10.dp))
-
-
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    state = rememberLazyListState()
-                ) {
-                    val cards =
-                        data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST" }
-                    if (cards.isEmpty()) return@LazyRow
-                    items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
-                        PlaylistCard(
-                            id = it.resourceId,
-                            title = it.title,
-                            coverImg = it.coverImg,
-                            showPlay = true,
-
-                            extInfo = it.resourceInteractInfo.playCount,
-                        ) {
-                            Screen.PlayList.navigate(navController) {
-                                addPath(it.resourceId)
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()))
             }
+            Spacer(Modifier.height(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()))
         }
-
     }
+
+
+
+
 }
 
 
