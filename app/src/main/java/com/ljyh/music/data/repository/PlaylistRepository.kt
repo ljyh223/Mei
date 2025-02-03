@@ -33,16 +33,5 @@ class PlaylistRepository(private val apiService: ApiService) {
         }
     }
 
-    fun getPlaylistTracks(id: String): Flow<PagingData<PlaylistDetail.Playlist.Track>> {
-        return Pager(
-            config = PagingConfig(
-                pageSize = 20, // 每页加载的数据量
-                prefetchDistance = 5, // 预加载距离
-                enablePlaceholders = true // 是否启用占位符
-            ),
-            pagingSourceFactory = { PlaylistTrackSource(apiService, id) }
-        ).flow
-    }
-
 
 }

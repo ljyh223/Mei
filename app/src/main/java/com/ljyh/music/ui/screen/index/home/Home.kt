@@ -1,15 +1,15 @@
 package com.ljyh.music.ui.screen.index.home
 
-import android.util.Log
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -77,15 +77,16 @@ fun HomeScreen(
                     Spacer(Modifier.height(10.dp))
                     Text(getGreeting(), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(10.dp))
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(), state = rememberLazyListState()
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .horizontalScroll( rememberScrollState()),
                     ) {
                         val cards =
                             data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_DAILY_RECOMMEND" }
-                        if (cards.isEmpty()) return@LazyRow
-                        items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
+                        if (cards.isEmpty()) return@Row
+                        cards[0].dslData.blockResource.resources.forEach {
                             RecommendCard(
-                                picUrl = it.coverImg,
+                                cover = it.coverImg,
                                 title = it.singleLineTitle,
                                 extInfo = CardExtInfo(
                                     icon = it.iconDesc.image,
@@ -96,6 +97,7 @@ fun HomeScreen(
 
                             }
                         }
+
                     }
 
 
@@ -103,14 +105,14 @@ fun HomeScreen(
                     Spacer(Modifier.height(10.dp))
                     Text(text = "雷达歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(10.dp))
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        state = rememberLazyListState()
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .horizontalScroll( rememberScrollState()),
                     ) {
                         val cards =
                             data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_RADAR" }
-                        if (cards.isEmpty()) return@LazyRow
-                        items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
+                        if (cards.isEmpty()) return@Row
+                        cards[0].dslData.blockResource.resources.forEach {
                             PlaylistCard(
                                 id = it.resourceId,
                                 title = it.title,
@@ -126,6 +128,7 @@ fun HomeScreen(
                         }
 
 
+
                     }
 
 
@@ -136,21 +139,20 @@ fun HomeScreen(
                     Spacer(Modifier.height(10.dp))
 
 
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        state = rememberLazyListState()
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                     ) {
                         val cards =
                             data.data.blocks.filter { it.positionCode == "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST" }
-                        if (cards.isEmpty()) return@LazyRow
-                        items(cards[0].dslData.blockResource.resources, key = { it.resourceId }) {
+                        if (cards.isEmpty()) return@Row
+                        cards[0].dslData.blockResource.resources.forEach {
                             PlaylistCard(
                                 id = it.resourceId,
                                 title = it.title,
                                 coverImg = it.coverImg,
                                 showPlay = true,
-
-                                extInfo = it.resourceInteractInfo.playCount,
+                                extInfo = it.resourceInteractInfo.playCount
                             ) {
                                 Screen.PlayList.navigate(navController) {
                                     addPath(it.resourceId)

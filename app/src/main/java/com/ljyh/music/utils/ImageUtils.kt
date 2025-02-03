@@ -43,16 +43,6 @@ fun String.largeImage(): String {
     return "$this?param=500y500"
 }
 
-class ImageColorRepository @Inject constructor(private val colorDao: ColorDao) {
-
-    fun getCachedColor(url: String): Color? {
-        return colorDao.getColor(url)
-    }
-
-    suspend fun cacheColor(imageColor: Color) {
-        colorDao.insertColor(imageColor)
-    }
-}
 
 class CoilImageLoader {
     companion object {
@@ -94,28 +84,6 @@ object ImageUtils {
         }
     }
 
-    suspend fun getImageDominantColor(
-        url: String,
-        context: Context,
-        repository: ColorRepository
-    ): androidx.compose.ui.graphics.Color {
-        val DEFAULT_COLOR = androidx.compose.ui.graphics.Color(0xFF000000)
-        Log.d("getImageDominantColor", "url: $url")
-        return try {
-            withContext(Dispatchers.IO) {
-                val cachedColor = repository.getColor(url)
-                if (cachedColor != null  && cachedColor.color>-16000000) {
-                    Log.d("getImageDominantColor", "url : $url,color: ${cachedColor.color}")
-                    return@withContext androidx.compose.ui.graphics.Color(cachedColor.color)
-                } else {
-                    return@withContext CoilImageLoader.loadImageDrawable(context, url)?.themeColor(DEFAULT_COLOR)?:DEFAULT_COLOR
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("getImageDominantColor", "Error processing color for URL: $url", e)
-            DEFAULT_COLOR
-        }
-    }
 
     fun pngToJpg(pngBytes: ByteArray): ByteArray? {
         return try {

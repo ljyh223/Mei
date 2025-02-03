@@ -20,10 +20,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,16 +41,18 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Size
+import com.kmpalette.loader.rememberNetworkLoader
+import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.constants.RecommendCardHeight
 import com.ljyh.music.constants.RecommendCardWidth
 import com.ljyh.music.ui.screen.index.home.HomeViewModel
-import com.ljyh.music.utils.ImageUtils.getImageDominantColor
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
+import io.ktor.http.Url
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun RecommendCard(
-    picUrl: String,
+    cover: String,
     title: String,
     extInfo: CardExtInfo,
     showPlay: Boolean = false,
@@ -60,19 +60,43 @@ fun RecommendCard(
     onClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    var colorFlow = remember(picUrl) { MutableStateFlow(Color(0xFF000000)) }
-    LaunchedEffect(picUrl) {
-        coroutineScope.launch {
-            try {
-                val newColor = getImageDominantColor(picUrl, context, viewModel.colorRepository)
-                colorFlow.value = newColor
-            } catch (e: Exception) {
-                // 处理异常
+    val loader = rememberNetworkLoader()
+    val dominantColorState = rememberDominantColorState(loader)
+    val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
+    LaunchedEffect(cover) {
+
+        withContext(Dispatchers.IO){
+            val cachedColor = viewModel.getColors(cover)
+            if (cachedColor != null) {
+                withContext(Dispatchers.Main) {
+                    dominantColorState.updateFrom(Url(cover))
+                    isColorLoaded.value = true // 颜色已加载，避免重复存储
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    val demoImageUrl = Url(cover)
+                    loader.load(demoImageUrl)
+                    dominantColorState.updateFrom(demoImageUrl)
+                    isColorLoaded.value = false // 颜色未加载，将在下一个 LaunchedEffect 存入数据库
+                }
             }
         }
+
     }
-    val color by colorFlow.collectAsState()
+    // 颜色计算完成后存入数据库
+    LaunchedEffect(dominantColorState.color) {
+        if (!isColorLoaded.value) {
+            withContext(Dispatchers.IO){
+                viewModel.addColor(
+                    com.ljyh.music.data.model.room.Color(
+                        url = cover,
+                        color = dominantColorState.color.toArgb()
+                    )
+                )
+            }
+            isColorLoaded.value = true
+        }
+    }
     Column(
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -86,7 +110,7 @@ fun RecommendCard(
             Box {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
-                        .data(picUrl)
+                        .data(cover)
                         .size(Size.ORIGINAL) // 根据需要调整大小
                         .build(),
                     modifier = Modifier
@@ -167,8 +191,8 @@ fun RecommendCard(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color((color.toArgb() and 0xFFFFFF) or 0xD1000000.toInt()), // 与一个 82% 不透明的白色，做 centerColor。注意此处位运算的改变
-                                Color(color.toArgb() or 0xFF000000.toInt()) // 确保是不透明的颜色
+                                Color((dominantColorState.color.toArgb() and 0xFFFFFF) or 0xD1000000.toInt()), // 与一个 82% 不透明的白色，做 centerColor。注意此处位运算的改变
+                                Color(dominantColorState.color.toArgb() or 0xFF000000.toInt()) // 确保是不透明的颜色
                             )
                         )
                     )

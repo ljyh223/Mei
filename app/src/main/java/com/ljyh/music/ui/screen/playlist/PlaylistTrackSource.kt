@@ -5,26 +5,45 @@ import androidx.paging.PagingState
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.network.ApiService
 
-class PlaylistTrackSource(private val apiService: ApiService, val id:String) : PagingSource<Int, PlaylistDetail.Playlist.Track>() {
+class PlaylistTrackSource(
+    private val apiService: ApiService,
+    private val firstData: List<PlaylistDetail.Playlist.Track>,
+    private val id: String
+) : PagingSource<Int, PlaylistDetail.Playlist.Track>() {
+
+    // 服务器实际分页参数（根据最新请求日志）
+    private companion object {
+        const val INITIAL_OFFSET = 0  // 第一页之后的分页起点
+        const val PAGE_SIZE = 20       // 实际观察到的分页大小
+    }
+
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PlaylistDetail.Playlist.Track> {
-        val page = params.key ?: 1
-        val pageSize = params.loadSize
+        val currentKey = params.key ?: INITIAL_OFFSET  // 直接从offset开始
+        val offset = currentKey
+
+
         return try {
-            val response = apiService.getPlaylistTracks(id, pageSize, pageSize * (page - 1))
-            val data = response.songs
+            val data = if (offset == 0) {
+                firstData
+            } else {
+                apiService.getPlaylistTracks(id, limit = PAGE_SIZE, offset = offset).songs
+            }
+
 
             LoadResult.Page(
                 data = data,
-                prevKey = if (page == 1) null else page - 1,
-                nextKey = if (data.isEmpty()) null else page + 1
+                prevKey = if (offset == INITIAL_OFFSET) null else offset - PAGE_SIZE,
+                nextKey = if (data.isEmpty()) null else offset + PAGE_SIZE
             )
         } catch (e: Exception) {
             LoadResult.Error(e)
         }
     }
+
     override fun getRefreshKey(state: PagingState<Int, PlaylistDetail.Playlist.Track>): Int? {
         return state.anchorPosition?.let { anchorPosition ->
-            state.closestPageToPosition(anchorPosition)?.prevKey?.plus(1) ?: state.closestPageToPosition(anchorPosition)?.nextKey?.minus(1)
+            state.closestPageToPosition(anchorPosition)?.prevKey?.plus(PAGE_SIZE)
+                ?: state.closestPageToPosition(anchorPosition)?.nextKey?.minus(PAGE_SIZE)
         }
     }
 }

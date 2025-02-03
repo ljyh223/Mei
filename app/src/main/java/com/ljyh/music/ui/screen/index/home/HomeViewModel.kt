@@ -18,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: HomeRepository,
-    val colorRepository: ColorRepository
+    private val colorRepository: ColorRepository
 ) : ViewModel() {
 
 

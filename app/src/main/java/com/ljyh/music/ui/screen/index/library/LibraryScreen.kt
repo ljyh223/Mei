@@ -41,8 +41,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,7 +91,6 @@ fun LibraryScreen(
     val navController = LocalNavController.current
     val userPlaylist by viewModel.playlists.collectAsState()
     val photoAlbum by viewModel.photoAlbum.collectAsState()
-    val state= rememberLazyListState()
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
     val (userNickname, setUserNickname) = rememberPreference(UserNicknameKey, "")
     val (userAvatarUrl, setUserAvatarUrl) = rememberPreference(UserAvatarUrlKey, "")
@@ -109,11 +112,11 @@ fun LibraryScreen(
         if (userId != "") {
             viewModel.getUserPlaylist(userId)
             if(userPhoto=="") {
-                Log.d("photoAlbum", "没有图片，userId: $userId")
                 viewModel.getPhotoAlbum(userId)
             }
         } else viewModel.getUserAccount()
     }
+
     when(val result=photoAlbum){
         is Resource.Error->{
             Log.d("photoAlbum",result.toString())
@@ -129,19 +132,35 @@ fun LibraryScreen(
 
         }
     }
+    when (val result = account) {
+        is Resource.Error -> {
+            Log.d("libraryScreen", result.toString())
+        }
+
+        Resource.Loading -> {
+            Log.d("libraryScreen", result.toString())
+
+        }
+
+        is Resource.Success -> {
+            //异步写入datastore
+            setUserId(result.data.profile.userId.toString())
+            setUserNickname(result.data.profile.nickname)
+            setUserAvatarUrl(result.data.profile.avatarUrl)
+        }
+    }
 
 
-    Spacer(
-        Modifier.height(
-            LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()
-        )
-    )
-    LazyColumn (
-        modifier = Modifier.fillMaxSize(),
-        state=state
+    Column (
+        modifier = Modifier.fillMaxSize()
+            .verticalScroll(scrollState),
     ) {
+        Spacer(
+            Modifier.height(
+                LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()
+            )
+        )
         if (userId != "") {
-            item {
                 User(
                     userId = userId,
                     userNickname = userNickname,
@@ -149,29 +168,9 @@ fun LibraryScreen(
                     userPhoto = userPhoto
                 )
                 Spacer(Modifier.height(10.dp))
-            }
-
-
-
         }
 
-        when (val result = account) {
-            is Resource.Error -> {
-                Log.d("libraryScreen", result.toString())
-            }
 
-            Resource.Loading -> {
-                Log.d("libraryScreen", result.toString())
-
-            }
-
-            is Resource.Success -> {
-                //异步写入datastore
-                setUserId(result.data.profile.userId.toString())
-                setUserNickname(result.data.profile.nickname)
-                setUserAvatarUrl(result.data.profile.avatarUrl)
-            }
-        }
         when (val result = userPlaylist) {
             is Resource.Error -> {
                 Log.d("libraryScreen", result.toString())
@@ -182,25 +181,22 @@ fun LibraryScreen(
             }
 
             is Resource.Success -> {
+                result.data.playlist.forEach {
+                    PlaylistItem(it) {
+                        Screen.PlayList.navigate(navController) {
+                            addPath(it.id.toString())
+                        }
+                    }
+                }
 
-               items(result.data.playlist, key = {it.id}){
-                   PlaylistItem(it) {
-                       Screen.PlayList.navigate(navController) {
-                           addPath(it.id.toString())
-                       }
-                   }
-               }
             }
         }
-    }
-
-    Spacer(
-        Modifier.height(
-            LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+        Spacer(
+            Modifier.height(
+                LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            )
         )
-    )
-
-
+    }
 }
 
 @Composable
@@ -213,7 +209,7 @@ fun User(
     val context = LocalContext.current
     Box(
         modifier = Modifier.fillMaxWidth()
-            .aspectRatio(7f/6)
+            .aspectRatio(4f/3)
     ){
         Log.d("user",userPhoto)
         if(userPhoto!=""){
@@ -222,6 +218,7 @@ fun User(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .fillMaxSize()
                     .fadingEdge(
                         top = WindowInsets.systemBars
                             .asPaddingValues()
@@ -244,15 +241,23 @@ fun User(
         )
         Text(
             text = userNickname,
-            style = MaterialTheme.typography.displayLarge,
+            style = TextStyle(
+                shadow = Shadow(
+                    color = Color.Black,
+                    offset = Offset(2f, 2f),
+                    blurRadius = 8f
+                ),
+            ),
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
+            color = Color.White,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 24.dp)
+
         )
     }
 }

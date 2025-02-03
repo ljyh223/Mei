@@ -54,6 +54,7 @@ class PlayerConnection
         playWhenReady && playbackState != STATE_ENDED
     }.stateIn(scope, SharingStarted.Lazily, player.playWhenReady && player.playbackState != STATE_ENDED)
     val mediaMetadata = MutableStateFlow(player.currentMetadata)
+    @kotlin.OptIn(ExperimentalCoroutinesApi::class)
     val currentSong = mediaMetadata.flatMapLatest {
         database.songDao().getSong((it?.id ?: 0).toString())
     }

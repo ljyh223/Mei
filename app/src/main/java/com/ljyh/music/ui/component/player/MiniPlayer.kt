@@ -106,7 +106,8 @@ fun MiniPlayer(
                 Icon(
 //                    painter = painterResource(if (playbackState == Player.STATE_ENDED) R.drawable.replay else if (isPlaying) R.drawable.pause else R.drawable.play),
                     imageVector = if (playbackState == Player.STATE_ENDED) Icons.Default.Replay else if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
 
                 )
             }
@@ -117,7 +118,9 @@ fun MiniPlayer(
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
+
                 )
             }
         }

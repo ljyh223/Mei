@@ -83,6 +83,7 @@ fun Track(
                 text = track.name,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -161,7 +162,7 @@ fun Track(
             }
 
 
-            Icon(imageVector = Icons.Filled.MoreVert, contentDescription = null)
+            Icon(imageVector = Icons.Filled.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
         }
     }
 

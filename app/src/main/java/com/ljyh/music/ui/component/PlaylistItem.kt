@@ -51,6 +51,7 @@ fun PlaylistItem(
             Text(
                 text = playlist.name,
                 fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -99,6 +100,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
+import com.ljyh.music.data.model.room.Color
 import io.ktor.http.Url
 import javax.inject.Inject
 
@@ -154,16 +156,47 @@ class MainActivity : ComponentActivity() {
             }
             val loader = rememberNetworkLoader()
             val dominantColorState = rememberDominantColorState(loader)
+            val coverUrl= remember { mutableStateOf("") }
+            val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
             LaunchedEffect(playerConnection) {
-
-
                 val playerConnection = playerConnection ?: return@LaunchedEffect
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
                     if (song != null) {
-                        val demoImageUrl = Url(song.coverUrl)
-                        loader.load(demoImageUrl)
-                        dominantColorState.updateFrom(demoImageUrl)
+                        coverUrl.value = song.coverUrl
+                        withContext(Dispatchers.IO){
+                            val cachedColor = database.colorDao().getColor(song.coverUrl)
+                            if (cachedColor != null) {
+                                // 不能直接赋值 color，改用 updateFrom 触发更新
+                                withContext(Dispatchers.Main) {
+                                    dominantColorState.updateFrom(Url(song.coverUrl))
+                                    isColorLoaded.value = true // 颜色已加载，避免重复存储
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    val demoImageUrl = Url(song.coverUrl)
+                                    loader.load(demoImageUrl)
+                                    dominantColorState.updateFrom(demoImageUrl)
+                                    isColorLoaded.value = false // 颜色未加载，将在下一个 LaunchedEffect 存入数据库
+                                }
+                            }
+                        }
+
                     }
+                }
+            }
+            // 颜色计算完成后存入数据库
+            LaunchedEffect(dominantColorState.color) {
+                if (coverUrl.value.isNotEmpty() && !isColorLoaded.value) {
+                    withContext(Dispatchers.IO){
+                        database.colorDao().insertColor(
+                            Color(
+                                url = coverUrl.value,
+                                color = dominantColorState.color.toArgb()
+                            )
+                        )
+                    }
+
+                    isColorLoaded.value = true
                 }
             }
 

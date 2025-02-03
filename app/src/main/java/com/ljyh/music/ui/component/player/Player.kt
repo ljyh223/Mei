@@ -147,7 +147,10 @@ fun BottomSheetPlayer(
 
     LaunchedEffect(mediaMetadata) {
         // 在这里处理 mediaMetadata 的变化
-        viewmodel.getLyric(mediaMetadata?.id.toString())
+        lyricLine.value = listOf(LyricLine(0, "歌词加载中", ""))
+        mediaMetadata?.id?.let {
+            viewmodel.getLyric(it.toString())
+        }
         Log.d("mediaMetadata", "mediaMetadata changed: $mediaMetadata")
     }
 
@@ -189,8 +192,12 @@ fun BottomSheetPlayer(
                 },
                 colors = MaterialSliderDefaults.materialColors(
                     activeTrackColor = SliderBrushColor(
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     ),
+                    thumbColor= SliderBrushColor(
+                        color = MaterialTheme.colorScheme.tertiaryContainer
+                    ),
+
                 )
             )
             Row(
@@ -203,6 +210,7 @@ fun BottomSheetPlayer(
                 Text(
                     text = makeTimeString(position),
                     style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     lineHeight = 10.sp,
                     overflow = TextOverflow.Ellipsis,
@@ -211,6 +219,7 @@ fun BottomSheetPlayer(
                 Text(
                     text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
                     style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     lineHeight = 10.sp,
                     overflow = TextOverflow.Ellipsis,
@@ -243,8 +252,9 @@ fun BottomSheetPlayer(
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
+                        .padding(horizontal = PlayerHorizontalPadding)
                         .fillMaxSize()
-                        .padding(horizontal = PlayerHorizontalPadding),
+
                 ) { page ->
                     when (page) {
                         0 -> {

@@ -1,21 +1,54 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Please add these rules to your existing keep rules in order to suppress warnings.
+# This is generated automatically by the Android Gradle plugin.
+-dontwarn java.awt.image.BufferedImage
+-dontwarn javax.imageio.ImageIO
+-dontwarn javax.imageio.stream.ImageInputStream
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# If class has fields with `@SerializedName` annotation keep its constructors
+-if class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+-keep class <1> {
+  <init>(...);
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepclasseswithmembers class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# 保留所有带有 @SerializedName 注解的字段
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# 保留类的所有构造函数
+-keepclassmembers class * {
+    <init>(...);
+}
+
+
+-keep class * extends com.google.gson.TypeAdapter {
+  <init>();
+}
+-keep class * implements com.google.gson.TypeAdapterFactory {
+  <init>();
+}
+-keep class * implements com.google.gson.JsonSerializer {
+  <init>();
+}
+-keep class * implements com.google.gson.JsonDeserializer {
+  <init>();
+}
+
+-if class *
+-keepclasseswithmembers,allowshrinking,allowobfuscation class <1> {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+
+-if class *
+-keepclasseswithmembers class <1> {
+  <init>(...);
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+
+

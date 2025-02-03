@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.paging.LoadState
+import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import com.google.gson.Gson
@@ -85,6 +88,7 @@ import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.sharedPreferencesOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 
@@ -99,10 +103,17 @@ fun PlaylistScreen(
         viewModel.getPlaylistDetail(id.toString())
 
     }
-
-    val lazyPagingItems = remember(id) { viewModel.getPlaylistTracks(id.toString()) }.collectAsLazyPagingItems()
-
+    val userId by rememberPreference(UserIdKey, "")
     val playlistDetail by viewModel.playlistDetail.collectAsState()
+    val lazyPagingItems = remember(id, playlistDetail) {
+        if (playlistDetail is Resource.Success) {
+            viewModel.getPlaylistTracks(id.toString(), userId, playlistDetail)
+        } else {
+            flowOf(PagingData.empty()) // 详情未加载完成时返回空数据
+        }
+    }.collectAsLazyPagingItems()
+
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val lazyListState = rememberLazyListState()
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -112,7 +123,8 @@ fun PlaylistScreen(
     val navController = LocalNavController.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-
+    val title = remember { mutableStateOf("") }
+    val ids = remember { mutableStateOf(listOf<String>()) }
     val showTopBarTitle by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0
@@ -142,61 +154,42 @@ fun PlaylistScreen(
                 }
 
                 is Resource.Success -> {
+                    title.value = result.data.playlist.name
+                    ids.value = result.data.playlist.trackIds.map { it.id.toString() }
                     item {
                         PlaylistInfo(result.data, viewModel) {
                             playerConnection.playQueue(
                                 ListQueue(
                                     title = result.data.playlist.name,
-                                    items = result.data.playlist.trackIds.map { it.id.toString() }
+                                    items = ids.value
                                 )
                             )
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    when (lazyPagingItems.loadState.refresh) {
-                        is LoadState.Loading -> {
-                            item {
-                                ShimmerHost {
-                                    repeat(10) {
-                                        ListItemPlaceHolder()
-                                    }
-                                }
-                            }
-                        }
-
-                        is LoadState.Error -> {
-                            val error = lazyPagingItems.loadState.append as LoadState.Error
-                            item {
-                                Text("Error: ${error.error.message}")
-                            }
-                        }
-
-                        is LoadState.NotLoading -> {
-                            items(count = lazyPagingItems.itemCount) { index ->
-                                val track = lazyPagingItems[index]
-                                if (track != null) {
-                                    Track(viewModel, track) {
-                                        // 其实还有的优化。
-                                        //if(index<result.data.playlist.tracks.size-1)
-
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = result.data.playlist.name,
-                                                items = rearrangeArray(
-                                                    result.data.playlist.trackIds.map { it.id.toString() },
-                                                    index
-                                                )
-                                            )
+                    items(lazyPagingItems.itemCount) { index ->
+                        val track = lazyPagingItems[index]
+                        if (track != null) {
+                            Track(viewModel, track) {
+                                playerConnection.playQueue(
+                                    ListQueue(
+                                        title = result.data.playlist.name,
+                                        items = rearrangeArray(
+                                            lazyPagingItems.itemSnapshotList.items.map { it.id.toString() },
+                                            index
                                         )
-
-                                    }
-                                }
+                                    )
+                                )
                             }
                         }
                     }
+
+
                 }
+
             }
+
         }
         TopAppBar(
             title = { if (showTopBarTitle) Text("歌单详情") },
@@ -225,15 +218,13 @@ fun PlaylistScreen(
 }
 
 
-
-
 @Composable
 fun PlaylistInfo(
     playlistDetail: PlaylistDetail,
     viewModel: PlaylistViewModel,
     play: () -> Unit
 ) {
-    val userId by rememberPreference(UserIdKey,"")
+    val userId by rememberPreference(UserIdKey, "")
     val context = LocalContext.current
     val scope = CoroutineScope(Dispatchers.IO)
     val count = remember { mutableIntStateOf(0) }
@@ -263,6 +254,7 @@ fun PlaylistInfo(
                     text = playlistDetail.playlist.name,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1
                 )
                 Spacer(Modifier.height(8.dp))

@@ -26,7 +26,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -34,13 +34,15 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
+        jvmTarget = "17"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -53,7 +55,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material3.android)
     implementation(libs.androidx.activity.ktx)
@@ -78,9 +79,6 @@ dependencies {
     implementation(libs.converter.gson)
 
     implementation (libs.retrofit)
-
-
-
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.room.runtime)
@@ -88,7 +86,6 @@ dependencies {
     implementation(libs.androidx.palette)
 
     implementation(libs.material.icons.extended)
-    implementation(libs.guava)
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.paging.runtime)
@@ -101,11 +98,9 @@ dependencies {
 
     implementation(libs.compose.shimmer)
 
-//    coreLibraryDesugaring(libs.desugaring)
     implementation(libs.material.kolor)
     implementation(libs.kmpalette.core)
     implementation(libs.kmpalette.extensions.network)
-//    implementation(projects.materialColorUtilities)
 
     implementation (libs.compose.colorful.sliders)
 
