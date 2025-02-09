@@ -41,7 +41,6 @@ import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.DownloadManager
-import com.ljyh.music.utils.LyricUtil
 import com.ljyh.music.utils.SongMate
 import com.ljyh.music.utils.formatDuration
 import com.ljyh.music.utils.smallImage

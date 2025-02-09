@@ -80,7 +80,6 @@ import com.ljyh.music.ui.local.LocalNavController
 import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.DownloadManager
-import com.ljyh.music.utils.LyricUtil
 import com.ljyh.music.utils.NotificationHelper
 import com.ljyh.music.utils.checkAndRequestFilesPermissions
 import com.ljyh.music.utils.dataStore

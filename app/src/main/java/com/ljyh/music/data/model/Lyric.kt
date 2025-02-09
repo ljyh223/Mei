@@ -1,6 +1,9 @@
 package com.ljyh.music.data.model
 import com.google.gson.annotations.SerializedName
 import com.ljyh.music.data.model.LyricUtils.mergedLyric
+import com.ljyh.music.ui.component.player.LyricLine
+import com.ljyh.music.ui.component.player.LyricLineBeta
+import com.ljyh.music.ui.component.player.LyricWord
 import java.util.regex.Pattern
 
 
@@ -21,9 +24,9 @@ data class Lyric(
     @SerializedName("sgc")
     val sgc: Boolean,
     @SerializedName("tlyric")
-    val tlyric: Tlyric,
+    val tlyric: Tlyric?,
     @SerializedName("yrc")
-    val yrc: Yrc,
+    val yrc: Yrc?,
     @SerializedName("pureMusic")
     val pureMusic: Boolean?,
 ) {
@@ -128,9 +131,6 @@ object LyricUtils {
         return null
     }
 
-
-
-
     fun mergedLyric(lyric: String, tlyric: String): String {
         // 去除末尾的空白字符
         val lyricT = lyric.trim()
@@ -231,14 +231,35 @@ fun Lyric.parse(): List<LyricLine> {
 }
 
 fun Lyric.parseString(): String {
-    if (pureMusic == null || pureMusic == false) {
+    if ((pureMusic == null || pureMusic == false) && tlyric != null) {
         return mergedLyric(lrc.lyric, tlyric.lyric)
     }
 
     return lrc.lyric
 }
-data class LyricLine(
-    val time: Long,
-    val lyric: String,
-    var translation: String?
-)
+
+fun Lyric.Yrc.parse(): List<LyricLineBeta> {
+    val regex = "\\[(\\d+),(\\d+)\\](.*)".toRegex()
+    val wordRegex = "\\((\\d+),(\\d+),\\d+\\)([^\\(\\)]*)".toRegex()
+    val lines= lyric.split("\n")
+    return lines.mapNotNull { line ->
+        val matchResult = regex.matchEntire(line) ?: return@mapNotNull null
+        val (lineStart, lineDuration, wordsText) = matchResult.destructured
+
+        val words = wordRegex.findAll(wordsText.trim()).map { wordMatch ->
+            val (wordStart, wordDuration, wordText) = wordMatch.destructured
+            LyricWord(
+                startTimeMs = wordStart.toLong(),
+                durationMs = wordDuration.toLong() * 10, // 厘秒转毫秒
+                text = wordText.trim()
+            )
+        }.toList()
+
+        LyricLineBeta(
+            startTimeMs = lineStart.toLong(),
+            durationMs = lineDuration.toLong(),
+            words = words,
+//            measuredWidth =   textMeasurer.measure(line.fullText).size.width
+        )
+    }
+}

@@ -52,7 +52,7 @@ import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PlayerTextAlignmentKey
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
-import com.ljyh.music.data.model.LyricLine
+import com.ljyh.music.data.model.Lyric
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.data.model.parse
 import com.ljyh.music.data.network.Resource
@@ -71,8 +71,10 @@ import com.smarttoolfactory.slider.SliderBrushColor
 import com.smarttoolfactory.slider.ui.ActiveTrackColor
 import com.smarttoolfactory.slider.ui.InactiveTrackColor
 import com.smarttoolfactory.slider.ui.ThumbColor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 
 
 @Composable
@@ -107,7 +109,13 @@ fun BottomSheetPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val lyric by viewmodel.lyric.collectAsState()
-    val lyricLine = remember { mutableStateOf(listOf(LyricLine(0, "歌词加载中", ""))) }
+    val lyricLine = remember { mutableStateOf(
+        LyricData(
+            isVerbatim = false,
+            lyricLines = listOf(LyricLine(0, "歌词加载中", "")),
+            lyricLinesBeta = null
+        )
+    ) }
 
 
     var position by rememberSaveable(playbackState) {
@@ -119,11 +127,27 @@ fun BottomSheetPlayer(
 
     when (val result = lyric) {
         is Resource.Success -> {
-            lyricLine.value = result.data.parse()
+            if(result.data.yrc!=null)
+                lyricLine.value = LyricData(
+                    isVerbatim = true,
+                    lyricLines = result.data.parse(),
+                    lyricLinesBeta = result.data.yrc.parse()
+                )
+
+            else
+                lyricLine.value = LyricData(
+                    isVerbatim = false,
+                    lyricLines = result.data.parse(),
+                    lyricLinesBeta = null
+                )
         }
 
         is Resource.Error -> {
-            lyricLine.value = listOf(LyricLine(0, "歌词加载错误", ""))
+            lyricLine.value = LyricData(
+                isVerbatim = false,
+                lyricLines = listOf(LyricLine(0, "歌词加载失败", "")),
+                lyricLinesBeta = null
+            )
         }
 
         Resource.Loading -> {}
@@ -139,9 +163,20 @@ fun BottomSheetPlayer(
         }
     }
 
+//    LaunchedEffect(lyric) {
+//        withContext(Dispatchers.Default) {
+//            lyricLine.value.lyricLinesBeta?.forEach { word ->
+//                word.measuredWidth = measureWordWidth(word)
+//            }
+//        }
+//    }
     LaunchedEffect(mediaMetadata) {
         // 在这里处理 mediaMetadata 的变化
-        lyricLine.value = listOf(LyricLine(0, "歌词加载中", ""))
+        lyricLine.value = LyricData(
+            isVerbatim = false,
+            lyricLines = listOf(LyricLine(0, "歌词加载中", "")),
+            lyricLinesBeta = null
+        )
         mediaMetadata?.id?.let {
             viewmodel.getLyric(it.toString())
         }
@@ -267,11 +302,19 @@ fun BottomSheetPlayer(
                         }
 
                         1 -> {
-                            LyricsUI(
-                                playerConnection = playerConnection,
-                                lyricLine = lyricLine,
-                                position = position,
-                            )
+                            if(lyricLine.value.isVerbatim && lyricLine.value.lyricLinesBeta!=null){
+                                LyricScreen(
+                                    lyric =lyricLine.value.lyricLinesBeta!!,
+                                    position = position
+                                )
+                            }else{
+                                LyricsUI(
+                                    playerConnection = playerConnection,
+                                    lyricLine = lyricLine.value.lyricLines,
+                                    position = position,
+                                )
+                            }
+
                         }
                     }
                 }

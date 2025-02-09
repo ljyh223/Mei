@@ -13,7 +13,6 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
-import com.ljyh.music.data.model.Lyric.Companion.LYRICS_NOT_FOUND
 import com.ljyh.music.data.model.metadata
 import com.ljyh.music.di.AppDatabase
 import com.ljyh.music.extensions.currentMetadata
