@@ -64,6 +64,7 @@ import com.ljyh.music.AppContext
 import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.SimplePlaylist
+import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.model.toMediaItem
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.playback.queue.ListQueue
@@ -395,7 +396,7 @@ fun prepare(
                     artist = s.ar.joinToString(",") { it.name },
                     album = s.al.name,
                     picUrl = s.al.picUrl,
-                    lyric = LyricUtil.getLyric(lyric),
+                    lyric = lyric.parseString(),
                     url = ""
                 )
             }

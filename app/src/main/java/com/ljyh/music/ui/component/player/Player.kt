@@ -98,12 +98,6 @@ fun BottomSheetPlayer(
         MaterialTheme.colorScheme.surfaceContainer
     }
 
-    val playerTextAlignment by rememberEnumPreference(
-        PlayerTextAlignmentKey,
-        PlayerTextAlignment.CENTER
-    )
-
-
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()

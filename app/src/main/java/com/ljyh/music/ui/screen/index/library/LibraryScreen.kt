@@ -94,7 +94,8 @@ fun LibraryScreen(
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
     val (userNickname, setUserNickname) = rememberPreference(UserNicknameKey, "")
     val (userAvatarUrl, setUserAvatarUrl) = rememberPreference(UserAvatarUrlKey, "")
-    var userPhoto by remember { mutableStateOf("") }
+    val (userPhoto, setUserPhoto) = rememberPreference(UserPhotoKey, "")
+//    var userPhoto by remember { mutableStateOf("") }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop =
@@ -125,11 +126,7 @@ fun LibraryScreen(
             Log.d("photoAlbum",result.toString())
         }
         is Resource.Success ->{
-            Log.d("photoAlbum",result.data.data.records[0].imageUrl)
-            Log.d("photoAlbum",result.data.data.records.toString())
-            userPhoto=result.data.data.records[0].imageUrl
-
-
+            setUserPhoto(result.data.data.records[0].imageUrl)
         }
     }
     when (val result = account) {

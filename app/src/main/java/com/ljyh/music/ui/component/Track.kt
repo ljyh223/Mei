@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.music.data.model.PlaylistDetail
+import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.DownloadManager
@@ -120,7 +121,7 @@ fun Track(
                                     scope.launch {
                                         val lyric =
                                             viewModel.apiService.getLyric(track.id.toString())
-                                        val mLyric = LyricUtil.getLyric(lyric)
+                                        val mLyric = lyric.parseString()
                                         if(mLyric.isEmpty()){
                                             Toast.makeText(context, "找不到可用的歌词", Toast.LENGTH_SHORT).show()
                                             return@launch

@@ -47,7 +47,7 @@ interface ApiService {
     ): TrackAll
 
 
-    @GET("/lyric")
+    @GET("/lyric/new")
     suspend fun getLyric(@Query("id") id: String): Lyric
 
     @GET("/song/detail")
