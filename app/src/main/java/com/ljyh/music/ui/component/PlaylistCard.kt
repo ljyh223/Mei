@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -39,6 +40,7 @@ import coil3.request.ImageRequest
 import coil3.size.Size
 import com.ljyh.music.constants.PlaylistCardSize
 import com.ljyh.music.ui.local.LocalNavController
+import com.ljyh.music.utils.largeImage
 
 
 @Composable
@@ -62,7 +64,7 @@ fun PlaylistCard(
         .clickable { onClick() }) {
         Box {
             AsyncImage(
-                model = ImageRequest.Builder(context).data(coverImg).size(Size.ORIGINAL).build(),
+                model = coverImg.largeImage(),
                 modifier = Modifier
                     .size(PlaylistCardSize)
                     .clip(RoundedCornerShape(8.dp)),
@@ -106,7 +108,10 @@ fun PlaylistCard(
                     Icon(
                         imageVector = Icons.Filled.Headset,
                         contentDescription = "Headset",
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(12.dp).shadow(
+                            4.dp,
+                            RoundedCornerShape(4.dp)
+                        ),
                         tint = Color.White
                     )
                     Text(

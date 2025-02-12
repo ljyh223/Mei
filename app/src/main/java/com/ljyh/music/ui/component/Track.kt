@@ -108,7 +108,7 @@ fun Track(
                 DropdownMenuItem(
                     text = { Text("update lyric") },
                     onClick = {
-                        isMenuExpanded=false
+                        isMenuExpanded = false
                         when (val result = playlistDetail) {
                             is Resource.Success -> {
                                 val path = DownloadManager.isExist(
@@ -121,8 +121,12 @@ fun Track(
                                         val lyric =
                                             viewModel.apiService.getLyric(track.id.toString())
                                         val mLyric = lyric.parseString()
-                                        if(mLyric.isEmpty()){
-                                            Toast.makeText(context, "找不到可用的歌词", Toast.LENGTH_SHORT).show()
+                                        if (mLyric.isEmpty()) {
+                                            Toast.makeText(
+                                                context,
+                                                "找不到可用的歌词",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                             return@launch
                                         }
                                         SongMate.writeLyric(path, mLyric)
@@ -144,10 +148,24 @@ fun Track(
                 DropdownMenuItem(
                     text = { Text("copy id") },
                     onClick = {
-                        isMenuExpanded=false
+                        isMenuExpanded = false
 
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("id", track.id.toString())
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                    })
+
+
+                DropdownMenuItem(
+                    text = { Text("copy name") },
+                    onClick = {
+                        isMenuExpanded = false
+
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("name", track.name)
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
                     })
@@ -157,12 +175,16 @@ fun Track(
                     text = { Text("save cover") },
                     onClick = {
                         Toast.makeText(context, "还未实现", Toast.LENGTH_SHORT).show()
-                        isMenuExpanded=false
+                        isMenuExpanded = false
                     })
             }
 
 
-            Icon(imageVector = Icons.Filled.MoreVert, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 

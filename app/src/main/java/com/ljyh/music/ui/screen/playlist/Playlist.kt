@@ -67,6 +67,7 @@ import com.ljyh.music.data.model.SimplePlaylist
 import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.model.toMediaItem
 import com.ljyh.music.data.network.Resource
+import com.ljyh.music.extensions.mediaItems
 import com.ljyh.music.playback.queue.ListQueue
 import com.ljyh.music.ui.component.ConfirmationDialog
 import com.ljyh.music.ui.component.PopBackIcon
@@ -83,6 +84,7 @@ import com.ljyh.music.utils.DownloadManager
 import com.ljyh.music.utils.NotificationHelper
 import com.ljyh.music.utils.checkAndRequestFilesPermissions
 import com.ljyh.music.utils.dataStore
+import com.ljyh.music.utils.largeImage
 import com.ljyh.music.utils.rearrangeArray
 import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.sharedPreferencesOf
@@ -172,6 +174,14 @@ fun PlaylistScreen(
                         val track = lazyPagingItems[index]
                         if (track != null) {
                             Track(viewModel, track) {
+                                playerConnection.player.mediaItems.forEachIndexed { i, mediaItem ->
+                                    Log.d("PlaylistScreen", "index: $i, mediaId: ${mediaItem.mediaId}")
+                                    if (mediaItem.mediaId == track.id.toString()) {
+                                        playerConnection.player.seekToDefaultPosition(i)
+                                        playerConnection.player.play()
+                                        return@forEachIndexed
+                                    }
+                                }
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = result.data.playlist.name,
@@ -245,7 +255,7 @@ fun PlaylistInfo(
                 modifier = Modifier
                     .size(144.dp)
                     .clip(RoundedCornerShape(6.dp)),
-                model = playlistDetail.playlist.coverImgUrl,
+                model = playlistDetail.playlist.coverImgUrl.largeImage(),
                 contentDescription = null,
             )
             Spacer(modifier = Modifier.width(16.dp))

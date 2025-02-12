@@ -43,6 +43,9 @@ fun String.largeImage(): String {
     return "$this?param=500y500"
 }
 
+fun String.size1600():String{
+    return "$this?param=1600y1600"
+}
 
 class CoilImageLoader {
     companion object {

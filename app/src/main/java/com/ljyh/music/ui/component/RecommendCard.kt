@@ -46,6 +46,7 @@ import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.constants.RecommendCardHeight
 import com.ljyh.music.constants.RecommendCardWidth
 import com.ljyh.music.ui.screen.index.home.HomeViewModel
+import com.ljyh.music.utils.largeImage
 import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -109,10 +110,7 @@ fun RecommendCard(
         ) {
             Box {
                 AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(cover)
-                        .size(Size.ORIGINAL) // 根据需要调整大小
-                        .build(),
+                    model = cover.largeImage(),
                     modifier = Modifier
                         .size(RecommendCardWidth, RecommendCardHeight),
                     contentDescription = null,
@@ -131,8 +129,7 @@ fun RecommendCard(
                 ) {
                     extInfo.icon?.let {
                         AsyncImage(
-                            model = ImageRequest.Builder(context).data(it).size(Size.ORIGINAL)
-                                .build(),
+                            model = it,
                             modifier = Modifier
                                 .size(16.dp)
                                 .clip(RoundedCornerShape(4.dp)),

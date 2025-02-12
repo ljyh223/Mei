@@ -1,26 +1,27 @@
 package com.ljyh.music.playback
 
+import android.animation.Animator
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
 import android.util.Log
-import androidx.annotation.OptIn
+import androidx.core.animation.LinearInterpolator
+import androidx.core.animation.ValueAnimator
 import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
 import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_IDLE
-import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -48,25 +49,15 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.music.MainActivity
 import com.ljyh.music.R
-import com.ljyh.music.constants.HideExplicitKey
-import com.ljyh.music.constants.PauseListenHistoryKey
 import com.ljyh.music.data.model.MediaMetadata
-import com.ljyh.music.data.model.SongEntity
-import com.ljyh.music.data.model.SongUrl
 import com.ljyh.music.data.model.toMediaItem
 import com.ljyh.music.data.network.ApiService
-import com.ljyh.music.data.network.Resource
-import com.ljyh.music.data.repository.ShareRepository
 import com.ljyh.music.di.AppDatabase
-import com.ljyh.music.di.DownloadCache
-import com.ljyh.music.di.PlayerCache
 import com.ljyh.music.extensions.SilentHandler
 import com.ljyh.music.extensions.currentMetadata
 import com.ljyh.music.playback.queue.EmptyQueue
 import com.ljyh.music.playback.queue.Queue
 import com.ljyh.music.utils.CoilBitmapLoader
-import com.ljyh.music.utils.dataStore
-import com.ljyh.music.utils.get
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -80,10 +71,18 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.File
 import javax.inject.Inject
+import kotlin.collections.List
+import kotlin.collections.drop
+import kotlin.collections.isNotEmpty
+import kotlin.collections.joinToString
+import kotlin.collections.map
+import kotlin.collections.mutableMapOf
+import kotlin.collections.set
+import kotlin.collections.take
+import kotlin.collections.toMutableList
 
 
 @UnstableApi
@@ -95,6 +94,7 @@ class MusicService : MediaLibraryService(),
     @Inject
     lateinit var database: AppDatabase
     lateinit var player: ExoPlayer
+    private lateinit var audioPlayer :AudioPlayer
     val context=this
     private lateinit var mediaSession: MediaLibrarySession
 
@@ -102,7 +102,7 @@ class MusicService : MediaLibraryService(),
     private var scope = CoroutineScope(Dispatchers.Main) + Job()
     private lateinit var connectivityManager: ConnectivityManager
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
-    @kotlin.OptIn(ExperimentalCoroutinesApi::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val currentSong = currentMediaMetadata.flatMapLatest { mediaMetadata: MediaMetadata? ->
         database.songDao().getSong((mediaMetadata?.id ?: 0).toString())
     }.stateIn(scope, SharingStarted.Lazily, null)
@@ -170,6 +170,7 @@ class MusicService : MediaLibraryService(),
                 addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
             }
 
+        audioPlayer=AudioPlayer(player)
 
         mediaSession = MediaLibrarySession.Builder(this, player,LibrarySessionCallback())
             .setSessionActivity(
@@ -225,14 +226,17 @@ class MusicService : MediaLibraryService(),
             val isBufferingOrReady = player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
             if (isBufferingOrReady && player.playWhenReady) {
                 openAudioEffectSession()
+                audioPlayer.startSmooth()
             } else {
                 closeAudioEffectSession()
+                audioPlayer.pauseSmooth()
             }
         }
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             currentMediaMetadata.value = player.currentMetadata
         }
     }
+
 
     class LibrarySessionCallback : MediaLibrarySession. Callback{
 
@@ -318,10 +322,6 @@ class MusicService : MediaLibraryService(),
             val firstBatch = initialStatus.ids.take(batchSize)
             val remainingItems = initialStatus.ids.drop(batchSize)
 
-//            player.addMediaItems(0, initialStatus.items.subList(0, initialStatus.mediaItemIndex))
-//            player.addMediaItems(initialStatus.items.subList(initialStatus.mediaItemIndex + 1, initialStatus.items.size))
-
-
             val firstItems=apiService.getSongDetail(ids = firstBatch.joinToString(",")).songs.map{
                 it.toMediaItem()
             }
@@ -367,11 +367,7 @@ class MusicService : MediaLibraryService(),
         player.release()
         super.onDestroy()
     }
-
-
-
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
-
     override fun onPlaybackStatsReady(
         eventTime: AnalyticsListener.EventTime,
         playbackStats: PlaybackStats
@@ -448,15 +444,14 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-
-
-
-
     private fun createMediaSourceFactory() =
         DefaultMediaSourceFactory(
             createDataSourceFactory()
 
         )
+
+
+
 
     private fun createRenderersFactory() =
         object : DefaultRenderersFactory(this) {

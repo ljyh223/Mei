@@ -1,11 +1,12 @@
 package com.ljyh.music.data.model
+
 import com.google.gson.annotations.SerializedName
 import com.ljyh.music.data.model.LyricUtils.mergedLyric
 import com.ljyh.music.ui.component.player.LyricLine
-import com.ljyh.music.ui.component.player.LyricLineBeta
+import com.ljyh.music.ui.component.player.LyricLineA
 import com.ljyh.music.ui.component.player.LyricWord
 import java.util.regex.Pattern
-
+import kotlin.math.abs
 
 
 data class Lyric(
@@ -97,7 +98,7 @@ object LyricUtils {
 
     private const val MINUTE_IN_MILLIS = 60_000L
     private const val SECOND_IN_MILLIS = 1000L
-    fun parseLine(lyricsString: String): LyricLine? {
+    fun parseLine(lyricsString: String): LyricLineA? {
         var lyrics = lyricsString
         // 如果为空
         if (lyrics.isEmpty()) return null
@@ -109,7 +110,7 @@ object LyricUtils {
         }
         val times = lineMatcher.group(1) ?: ""
         val text = lineMatcher.group(3) ?: ""
-        if(text.first()=='[') return null
+        if (text.first() == '[') return null
         // [00:17.65]
         val timeMatcher = PATTERN_TIME.matcher(times)
         if (timeMatcher.find()) {
@@ -126,7 +127,10 @@ object LyricUtils {
                 6 -> mil /= 1000
             }
             val time = min * MINUTE_IN_MILLIS + sec * SECOND_IN_MILLIS + mil
-            return LyricLine(time, text, null)
+            return LyricLineA(
+                lyric = text,
+                time = time
+            )
         }
         return null
     }
@@ -200,21 +204,21 @@ object LyricUtils {
     }
 
 
-    fun findShowLine(lyrics: List<LyricLine>, time: Long): Int {
-        return lyrics.indexOfLast { lyric ->
-            lyric.time <= time
-        }
-    }
 }
 
-fun Lyric.parse(): List<LyricLine> {
+fun Lyric.parse(): MutableList<LyricLine> {
     val lines = mutableListOf<LyricLine>()
     lrc.lyric.split("\n")
         .filter {
             it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
         }.forEach {
             LyricUtils.parseLine(it)?.let { e ->
-                lines.add(e)
+                LyricLine(
+                    e.lyric,
+                    e.time,
+                    0L,
+                    emptyList(),
+                )
             }
         }
 
@@ -223,7 +227,7 @@ fun Lyric.parse(): List<LyricLine> {
         it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
     }?.forEach {
         LyricUtils.parseLine(it)?.let { e ->
-            lines.find { lyric -> lyric.time == e.time }?.translation =
+            lines.find { lyric -> lyric.startTimeMs == e.time }?.translation =
                 e.lyric
         }
     }
@@ -238,28 +242,88 @@ fun Lyric.parseString(): String {
     return lrc.lyric
 }
 
-fun Lyric.Yrc.parse(): List<LyricLineBeta> {
+fun Lyric.parseYrc(): List<LyricLine> {
+
+    if (yrc == null) {
+        val lines = mutableListOf<LyricLine>()
+        lrc.lyric.split("\n")
+            .filter {
+                it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
+            }.forEach {
+                LyricUtils.parseLine(it)?.let { e ->
+                    lines.add(
+                        LyricLine(
+                            e.lyric,
+                            e.time,
+                            0L,
+                            emptyList(),
+                        )
+                    )
+                }
+            }
+
+        // 将翻译添加到歌词中
+        tlyric?.lyric?.split("\n")?.filter {
+            it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
+        }?.forEach {
+            LyricUtils.parseLine(it)?.let { e ->
+                lines.find { lyric -> lyric.startTimeMs == e.time }?.translation =
+                    e.lyric
+            }
+        }
+        return lines
+    }
+
     val regex = "\\[(\\d+),(\\d+)\\](.*)".toRegex()
     val wordRegex = "\\((\\d+),(\\d+),\\d+\\)([^\\(\\)]*)".toRegex()
-    val lines= lyric.split("\n")
-    return lines.mapNotNull { line ->
-        val matchResult = regex.matchEntire(line) ?: return@mapNotNull null
-        val (lineStart, lineDuration, wordsText) = matchResult.destructured
 
-        val words = wordRegex.findAll(wordsText.trim()).map { wordMatch ->
-            val (wordStart, wordDuration, wordText) = wordMatch.destructured
-            LyricWord(
-                startTimeMs = wordStart.toLong(),
-                durationMs = wordDuration.toLong() * 10, // 厘秒转毫秒
-                text = wordText.trim()
+    // ✅ 解析逐字歌词
+    val mYrc = yrc.lyric.lineSequence()
+        .mapNotNull { line ->
+            val match = regex.matchEntire(line) ?: return@mapNotNull null
+            val (lineStart, lineDuration, wordsText) = match.destructured
+
+            val words = wordRegex.findAll(wordsText)
+                .map { wordMatch ->
+                    val (wordStart, wordDuration, wordText) = wordMatch.destructured
+                    LyricWord(
+                        startTimeMs = wordStart.toLong(),
+                        durationMs = wordDuration.toLong(),
+                        text = wordText.trim()
+                    )
+                }
+                .toList()
+
+            LyricLine(
+                lyric = words.joinToString("") { it.text },
+                startTimeMs = lineStart.toLong(),
+                durationMs = lineDuration.toLong(),
+                words = words
             )
-        }.toList()
+        }
+        .toList()
 
-        LyricLineBeta(
-            startTimeMs = lineStart.toLong(),
-            durationMs = lineDuration.toLong(),
-            words = words,
-//            measuredWidth =   textMeasurer.measure(line.fullText).size.width
-        )
+    // ✅ 解析翻译歌词
+    val translations = tlyric?.lyric?.lineSequence()
+        ?.mapNotNull { line -> LyricUtils.parseLine(line) }
+        ?.toList() ?: emptyList()
+    if (translations.isEmpty()) return mYrc
+    println("有翻译歌词")
+    // ✅ 用双指针优化匹配翻译歌词（O(N) 复杂度）
+    var j = 0 // 翻译歌词的索引
+    for (i in mYrc.indices) {
+        val lyricLine = mYrc[i]
+
+        while (j < translations.size - 1 &&
+            abs(translations[j].time - lyricLine.startTimeMs) > abs(translations[j + 1].time - lyricLine.startTimeMs)
+        ) {
+            j++
+        }
+
+        if (j < translations.size) {
+            lyricLine.translation = translations[j].lyric
+        }
     }
+    println(mYrc)
+    return mYrc
 }

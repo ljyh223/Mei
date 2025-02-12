@@ -37,6 +37,7 @@ import com.ljyh.music.ui.local.LocalNavController
 import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.music.ui.screen.Screen
 import com.ljyh.music.utils.DateUtils.getGreeting
+import com.ljyh.music.utils.middleImage
 
 
 @Composable

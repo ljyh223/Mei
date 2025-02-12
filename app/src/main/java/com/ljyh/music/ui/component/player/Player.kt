@@ -11,16 +11,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,7 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,17 +45,14 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import com.ljyh.music.constants.DarkModeKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
-import com.ljyh.music.constants.PlayerTextAlignmentKey
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
-import com.ljyh.music.data.model.Lyric
 import com.ljyh.music.data.model.MediaMetadata
-import com.ljyh.music.data.model.parse
+import com.ljyh.music.data.model.parseYrc
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.ShareViewModel
 import com.ljyh.music.ui.component.BottomSheet
 import com.ljyh.music.ui.component.BottomSheetState
-import com.ljyh.music.ui.component.Thumbnail
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.makeTimeString
@@ -68,13 +61,8 @@ import com.ljyh.music.utils.rememberPreference
 import com.smarttoolfactory.slider.ColorfulSlider
 import com.smarttoolfactory.slider.MaterialSliderDefaults
 import com.smarttoolfactory.slider.SliderBrushColor
-import com.smarttoolfactory.slider.ui.ActiveTrackColor
-import com.smarttoolfactory.slider.ui.InactiveTrackColor
-import com.smarttoolfactory.slider.ui.ThumbColor
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withContext
 
 
 @Composable
@@ -85,7 +73,7 @@ fun BottomSheetPlayer(
     viewmodel: ShareViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
-
+    val context= LocalContext.current
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
@@ -112,8 +100,14 @@ fun BottomSheetPlayer(
     val lyricLine = remember { mutableStateOf(
         LyricData(
             isVerbatim = false,
-            lyricLines = listOf(LyricLine(0, "歌词加载中", "")),
-            lyricLinesBeta = null
+            lyricLine = listOf(
+                LyricLine(
+                    lyric = "歌词加载错误",
+                    startTimeMs = 0,
+                    durationMs = 0,
+                    words = emptyList()
+                )
+            )
         )
     ) }
 
@@ -127,26 +121,25 @@ fun BottomSheetPlayer(
 
     when (val result = lyric) {
         is Resource.Success -> {
-            if(result.data.yrc!=null)
-                lyricLine.value = LyricData(
-                    isVerbatim = true,
-                    lyricLines = result.data.parse(),
-                    lyricLinesBeta = result.data.yrc.parse()
-                )
+            lyricLine.value = LyricData(
+                isVerbatim = true,
+                lyricLine = result.data.parseYrc()
+            )
 
-            else
-                lyricLine.value = LyricData(
-                    isVerbatim = false,
-                    lyricLines = result.data.parse(),
-                    lyricLinesBeta = null
-                )
+            println(lyricLine.value)
         }
 
         is Resource.Error -> {
             lyricLine.value = LyricData(
                 isVerbatim = false,
-                lyricLines = listOf(LyricLine(0, "歌词加载失败", "")),
-                lyricLinesBeta = null
+                lyricLine= listOf(
+                    LyricLine(
+                        lyric = "歌词加载错误",
+                        startTimeMs = 0,
+                        durationMs = 0,
+                        words = emptyList()
+                    )
+                )
             )
         }
 
@@ -172,10 +165,16 @@ fun BottomSheetPlayer(
 //    }
     LaunchedEffect(mediaMetadata) {
         // 在这里处理 mediaMetadata 的变化
-        lyricLine.value = LyricData(
+        lyricLine.value =LyricData(
             isVerbatim = false,
-            lyricLines = listOf(LyricLine(0, "歌词加载中", "")),
-            lyricLinesBeta = null
+            lyricLine = listOf(
+                LyricLine(
+                    lyric = "歌词加载中",
+                    startTimeMs = 0,
+                    durationMs = 0,
+                    words = emptyList()
+                )
+            )
         )
         mediaMetadata?.id?.let {
             viewmodel.getLyric(it.toString())
@@ -302,18 +301,11 @@ fun BottomSheetPlayer(
                         }
 
                         1 -> {
-                            if(lyricLine.value.isVerbatim && lyricLine.value.lyricLinesBeta!=null){
-                                LyricScreen(
-                                    lyric =lyricLine.value.lyricLinesBeta!!,
-                                    position = position
-                                )
-                            }else{
-                                LyricsUI(
-                                    playerConnection = playerConnection,
-                                    lyricLine = lyricLine.value.lyricLines,
-                                    position = position,
-                                )
-                            }
+                            LyricScreen(
+                                lyricLines = lyricLine.value.lyricLine,
+                                playerConnection = playerConnection,
+                                position = position
+                            )
 
                         }
                     }

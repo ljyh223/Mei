@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
     implementation(libs.annotations)
+    implementation(libs.androidx.core.animation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

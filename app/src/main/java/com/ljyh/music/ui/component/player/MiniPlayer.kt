@@ -50,6 +50,7 @@ import com.ljyh.music.constants.ThumbnailCornerRadius
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.extensions.togglePlayPause
 import com.ljyh.music.ui.local.LocalPlayerConnection
+import com.ljyh.music.utils.largeImage
 import com.ljyh.music.utils.smallImage
 
 @Composable
@@ -140,7 +141,7 @@ fun MiniMediaInfo(
     ) {
         Box(modifier = Modifier.padding(6.dp)) {
             AsyncImage(
-                model = mediaMetadata.coverUrl.smallImage(),
+                model = mediaMetadata.coverUrl.largeImage(),
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)

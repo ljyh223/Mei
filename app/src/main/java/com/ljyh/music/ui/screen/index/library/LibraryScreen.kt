@@ -74,6 +74,7 @@ import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.music.ui.screen.Screen
 import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.get
+import com.ljyh.music.utils.largeImage
 import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.sharedPreferencesOf
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -229,7 +230,7 @@ fun User(
 
 
         AsyncImage(
-            model =userAvatarUrl,
+            model =userAvatarUrl.largeImage(),
             contentDescription = null,
             modifier = Modifier
                 .size(60.dp)

@@ -32,6 +32,7 @@ media3="1.5.1"
 workRuntimeKtx = "2.10.0"
 kmpalette = "3.1.0"
 annotations = "23.0.0"
+coreAnimation = "1.0.0"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
@@ -81,6 +82,7 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
+androidx-core-animation = { group = "androidx.core", name = "core-animation", version.ref = "coreAnimation" }
 
 
 
