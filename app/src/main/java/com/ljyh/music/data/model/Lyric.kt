@@ -289,7 +289,7 @@ fun Lyric.parseYrc(): List<LyricLine> {
                     LyricWord(
                         startTimeMs = wordStart.toLong(),
                         durationMs = wordDuration.toLong(),
-                        text = wordText.trim()
+                        text = wordText
                     )
                 }
                 .toList()

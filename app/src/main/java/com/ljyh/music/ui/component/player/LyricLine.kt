@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.utils.textDp
 import kotlin.math.min
 
@@ -103,7 +104,7 @@ fun LyricLineDemo1(
     val sungTextColor = if (darkMode) Color(0xFFFFC107) else Color(0xFF0084FF) // 唱过的部分，黄色/蓝色
     val textAlpha = animateFloatAsState(if (currentTimeMs >= 0) 1F else 0.32F, label = "").value
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val maxTextWidth = with(density) { (screenWidth - 32.dp).toPx() }
+    val maxTextWidth = with(density) { (screenWidth - PlayerHorizontalPadding).toPx() }
     val mainTextStyle = TextStyle(
         fontSize = mainTextSize,
         color = mainTextColor,
