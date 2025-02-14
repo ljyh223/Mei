@@ -9,3 +9,13 @@
 - 播放列表
 - 喜欢音乐
 - 首页推荐
+
+### 界面截图
+
+<figure>
+<img src="./screenshot/player.jpg" width=200/>
+<img src="./screenshot/lyric.jpg" width=200/>
+<img src="./screenshot/home.jpg" width=200/>
+<img src="./screenshot/playlist.jpg" width=200/>
+<img src="./screenshot/me.jpg" width=200/>
+</figure>
