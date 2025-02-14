@@ -10,7 +10,10 @@ import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.core.animation.LinearInterpolator
 import androidx.core.animation.ValueAnimator
 import androidx.core.net.toUri
@@ -24,6 +27,7 @@ import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
@@ -50,9 +54,11 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.music.MainActivity
 import com.ljyh.music.R
 import com.ljyh.music.data.model.MediaMetadata
+import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.toMediaItem
 import com.ljyh.music.data.network.ApiService
 import com.ljyh.music.di.AppDatabase
+import com.ljyh.music.di.LikeRepository
 import com.ljyh.music.extensions.SilentHandler
 import com.ljyh.music.extensions.currentMetadata
 import com.ljyh.music.playback.queue.EmptyQueue
@@ -63,14 +69,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.File
 import javax.inject.Inject
@@ -94,14 +103,15 @@ class MusicService : MediaLibraryService(),
     @Inject
     lateinit var database: AppDatabase
     lateinit var player: ExoPlayer
-    private lateinit var audioPlayer :AudioPlayer
-    val context=this
+    private lateinit var audioPlayer: AudioPlayer
+    val context = this
     private lateinit var mediaSession: MediaLibrarySession
 
     private lateinit var sleepTimer: SleepTimer
     private var scope = CoroutineScope(Dispatchers.Main) + Job()
     private lateinit var connectivityManager: ConnectivityManager
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val currentSong = currentMediaMetadata.flatMapLatest { mediaMetadata: MediaMetadata? ->
         database.songDao().getSong((mediaMetadata?.id ?: 0).toString())
@@ -115,15 +125,8 @@ class MusicService : MediaLibraryService(),
 
     @Inject
     lateinit var apiService: ApiService // 自动注入
+    private val songUrlCache = mutableMapOf<String, SongCache>()
 
-//    @Inject
-//    @DownloadCache
-//    lateinit var downloadCache: SimpleCache
-//
-//
-//    @Inject
-//    @PlayerCache
-//    lateinit var playerCache: SimpleCache
 
     override fun onCreate() {
         super.onCreate()
@@ -170,9 +173,9 @@ class MusicService : MediaLibraryService(),
                 addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
             }
 
-        audioPlayer=AudioPlayer(player)
+        audioPlayer = AudioPlayer(player)
 
-        mediaSession = MediaLibrarySession.Builder(this, player,LibrarySessionCallback())
+        mediaSession = MediaLibrarySession.Builder(this, player, LibrarySessionCallback())
             .setSessionActivity(
                 //当用户在媒体通知或锁屏上点击时，可以启动指定的 MainActivity
                 PendingIntent.getActivity(
@@ -222,8 +225,13 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onEvents(player: Player, events: Player.Events) {
-        if (events.containsAny(Player.EVENT_PLAYBACK_STATE_CHANGED, Player.EVENT_PLAY_WHEN_READY_CHANGED)) {
-            val isBufferingOrReady = player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
+        if (events.containsAny(
+                Player.EVENT_PLAYBACK_STATE_CHANGED,
+                Player.EVENT_PLAY_WHEN_READY_CHANGED
+            )
+        ) {
+            val isBufferingOrReady =
+                player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
             if (isBufferingOrReady && player.playWhenReady) {
                 openAudioEffectSession()
                 audioPlayer.startSmooth()
@@ -238,30 +246,44 @@ class MusicService : MediaLibraryService(),
     }
 
 
-    class LibrarySessionCallback : MediaLibrarySession. Callback{
+    class LibrarySessionCallback : MediaLibrarySession.Callback {
 
 
     }
 
     fun playNext(items: List<MediaItem>) {
-        player.addMediaItems(if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1, items)
+        player.addMediaItems(
+            if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
+            items
+        )
         player.prepare()
     }
 
-    fun toggleLike(id:String, like: Boolean) {
+    fun toggleLike(id: String) {
         scope.launch {
-            apiService.like(id, like)
+            withContext(Dispatchers.IO) {
+                val like = database.likeDao().getLike(id) == null
+                Log.d("like", "toggleLike: $like")
+                if (!like) database.likeDao().deleteLike(id) else database.likeDao()
+                    .insertLike(Like(id))
+                apiService.like(id, like)
+            }
         }
+    }
+
+    suspend fun isLike(id: String) = withContext(Dispatchers.IO) {
+        database.likeDao().getLike(id) != null
     }
 
     fun addToQueue(items: List<MediaItem>) {
         player.addMediaItems(items)
         player.prepare()
     }
+
     private fun createCacheDataSourceFactory(): DataSource.Factory {
         val cache = SimpleCache(
             File(context.cacheDir, "media"), // 缓存目录
-            LeastRecentlyUsedCacheEvictor(50L * 1024 * 1024), // 设置缓存大小为50MB
+            LeastRecentlyUsedCacheEvictor(1024L * 1024 * 1024 * 1024), // 设置缓存大小为1G
             StandaloneDatabaseProvider(context)
         )
         return CacheDataSource.Factory()
@@ -322,9 +344,10 @@ class MusicService : MediaLibraryService(),
             val firstBatch = initialStatus.ids.take(batchSize)
             val remainingItems = initialStatus.ids.drop(batchSize)
 
-            val firstItems=apiService.getSongDetail(ids = firstBatch.joinToString(",")).songs.map{
-                it.toMediaItem()
-            }
+            val firstItems =
+                apiService.getSongDetail(ids = firstBatch.joinToString(",")).songs.map {
+                    it.toMediaItem()
+                }
             // 设置第一批歌曲
             player.setMediaItems(firstItems, 0, initialStatus.position)
             player.prepare()
@@ -347,9 +370,10 @@ class MusicService : MediaLibraryService(),
                 if (lastIndex >= totalItems - 2 && remaining.isNotEmpty()) {
                     val nextBatch = remaining.take(batchSize)
                     scope.launch {
-                        val nextItem=apiService.getSongDetail(ids = nextBatch.joinToString(",")).songs.map {
-                            it.toMediaItem()
-                        }
+                        val nextItem =
+                            apiService.getSongDetail(ids = nextBatch.joinToString(",")).songs.map {
+                                it.toMediaItem()
+                            }
                         remaining = remaining.drop(batchSize).toMutableList()
                         player.addMediaItems(nextItem)
                     }
@@ -367,23 +391,25 @@ class MusicService : MediaLibraryService(),
         player.release()
         super.onDestroy()
     }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
     override fun onPlaybackStatsReady(
         eventTime: AnalyticsListener.EventTime,
         playbackStats: PlaybackStats
     ) {
 
-        }
+    }
 
     private fun createCacheDataSource(): CacheDataSource.Factory {
-        val cacheDir = File(cacheDir, "media_cache")
-        val cache = SimpleCache(
-            cacheDir,
-            LeastRecentlyUsedCacheEvictor(100L * 1024 * 1024) // 设置缓存大小为100MB
-        )
+
+
+        val evictor = LeastRecentlyUsedCacheEvictor((100 * 1024 * 1024 * 1024L))
+        val databaseProvider: DatabaseProvider = StandaloneDatabaseProvider(context)
+
+        val simpleCache = SimpleCache(File(context.cacheDir, "media"), evictor, databaseProvider)
 
         return CacheDataSource.Factory()
-            .setCache(cache)
+            .setCache(simpleCache)
             .setUpstreamDataSourceFactory(
                 DefaultDataSource.Factory(
                     this,
@@ -412,34 +438,51 @@ class MusicService : MediaLibraryService(),
 //            .setCacheWriteDataSinkFactory(null)
 //            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun createDataSourceFactory(): DataSource.Factory {
-        val songUrlCache = mutableMapOf<String, Pair<String, Long>>() // mediaId -> (url, expiryTime)
 
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
 
-            // 检查缓存中是否有未过期的 URL
-            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
-                return@Factory dataSpec.withUri(it.first.toUri())
+            val localFilePath = runBlocking {
+                database.songDao().getSong(mediaId).firstOrNull()?.path
             }
-
-            // 同步获取媒体 URL（阻塞）
-            val playerResponse = runBlocking {
-                try {
-                    apiService.getSongUrl(mediaId)
-                } catch (e: Exception) {
-                    Log.e("ResolvingDataSource", "Failed to fetch media URL", e)
-                    error("Failed to resolve media URL for mediaId: $mediaId")
+            if (localFilePath != null) {
+                val file = File(localFilePath)
+                if (file.exists()) {
+                    Log.d("ResolvingDataSource", "Using local file for mediaId: $mediaId, filePath: ${file.path}")
+                    return@Factory dataSpec.withUri(Uri.fromFile(file))
                 }
             }
 
-            // 存储到缓存中
-            Log.d("ResolvingDataSource", playerResponse.toString())
-            val url = playerResponse.data[0].url
-            val expiryTime = System.currentTimeMillis() + 24 * 60 * 60 * 1000 // 有效期24小时
-            songUrlCache[mediaId] = url to expiryTime
+
+            // 检查缓存
+            songUrlCache[mediaId]?.takeIf { it.expiryTime > System.currentTimeMillis() }?.let {
+                Log.d("ResolvingDataSource", "Using cached URL for mediaId: $mediaId")
+                return@Factory dataSpec.withUri(it.url.toUri())
+            }
+
+            val deferredUrl = CoroutineScope(Dispatchers.IO).async {
+                try {
+                    val response = apiService.getSongUrlV1(mediaId, level = "standard")
+                    response.data.getOrNull(0)?.url
+                } catch (e: Exception) {
+                    Log.e("ResolvingDataSource", "Failed to fetch media URL", e)
+                    null
+                }
+            }
+            val url = runBlocking { deferredUrl.await() } ?: run {
+                Log.w("ResolvingDataSource", "No valid URL for mediaId: $mediaId")
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, "暂无音源", Toast.LENGTH_SHORT).show()
+                }
+                return@Factory dataSpec
+            }
+            // 存储到缓存
+            val expiryTime = System.currentTimeMillis() + 24 * 60 * 60 * 1000 // 24小时有效
+            songUrlCache[mediaId] = SongCache(url, expiryTime)
             Log.d("ResolvingDataSource", "Resolved media URL for mediaId: $mediaId, URL: $url")
-            // 返回解析后的数据规格
+
             dataSpec.withUri(Uri.parse(url))
         }
     }
@@ -449,8 +492,6 @@ class MusicService : MediaLibraryService(),
             createDataSourceFactory()
 
         )
-
-
 
 
     private fun createRenderersFactory() =
@@ -476,7 +517,11 @@ class MusicService : MediaLibraryService(),
         val service: MusicService
             get() = this@MusicService
     }
+
+    data class SongCache(val url: String, val expiryTime: Long)
+
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
+
     companion object {
         const val ROOT = "root"
         const val SONG = "song"

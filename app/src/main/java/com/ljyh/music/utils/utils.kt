@@ -86,6 +86,21 @@ fun checkAndRequestFilesPermissions(activity: Activity): Boolean {
     return true
 }
 
+
+fun checkFilesPermissions(activity: Activity): Boolean{
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        Environment.isExternalStorageManager()
+    } else {
+        val writePermission = ContextCompat.checkSelfPermission(
+            activity, Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+        val readPermission = ContextCompat.checkSelfPermission(
+            activity, Manifest.permission.READ_EXTERNAL_STORAGE
+        )
+        writePermission == PackageManager.PERMISSION_GRANTED && readPermission == PackageManager.PERMISSION_GRANTED
+    }
+}
+
 fun reportException(throwable: Throwable) {
     throwable.printStackTrace()
 }

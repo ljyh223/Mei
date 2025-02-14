@@ -308,7 +308,6 @@ fun Lyric.parseYrc(): List<LyricLine> {
         ?.mapNotNull { line -> LyricUtils.parseLine(line) }
         ?.toList() ?: emptyList()
     if (translations.isEmpty()) return mYrc
-    println("有翻译歌词")
     // ✅ 用双指针优化匹配翻译歌词（O(N) 复杂度）
     var j = 0 // 翻译歌词的索引
     for (i in mYrc.indices) {
@@ -324,6 +323,5 @@ fun Lyric.parseYrc(): List<LyricLine> {
             lyricLine.translation = translations[j].lyric
         }
     }
-    println(mYrc)
     return mYrc
 }

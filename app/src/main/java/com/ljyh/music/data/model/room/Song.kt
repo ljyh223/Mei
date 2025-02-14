@@ -16,6 +16,8 @@ data class Song(
     val album: String,
     val cover: String,
     val duration: Int,
+    val path:String,
     val lyric:String?
+
 )
 

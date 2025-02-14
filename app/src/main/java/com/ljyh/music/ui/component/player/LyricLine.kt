@@ -34,6 +34,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ljyh.music.constants.PlayerHorizontalPadding
@@ -85,10 +86,12 @@ fun LyricLineView(
     )
 }
 
+
 @Composable
 fun LyricLineDemo1(
     line: LyricLine,
     currentTimeMs: Long, // -1 表示非当前行
+    parentWidthDp: Dp,
     transitionWidth: Float = 0.3f,
     onClick: () -> Unit
 ) {
@@ -98,20 +101,24 @@ fun LyricLineDemo1(
     val textMeasurer = rememberTextMeasurer()
     val mainTextSize = textSize.textDp
     val translationTextSize = textSize.textDp * 0.8F
+
+
     val darkMode = isSystemInDarkTheme()  // 自动检测当前主题
     val mainTextColor = if (darkMode) Color.White else Color.Black
     val translationTextColor = if (darkMode) Color(0xFFAAAAAA) else Color(0xFF444444)
     val sungTextColor = if (darkMode) Color(0xFFFFC107) else Color(0xFF0084FF) // 唱过的部分，黄色/蓝色
-    val textAlpha = animateFloatAsState(if (currentTimeMs >= 0) 1F else 0.32F, label = "").value
+
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val maxTextWidth = with(density) { (screenWidth - PlayerHorizontalPadding).toPx() }
+    val maxTextWidth = with(density) { (screenWidth - PlayerHorizontalPadding * 2 - 16.dp).toPx() }
+    val textAlpha = animateFloatAsState(if (currentTimeMs >= 0) 1F else 0.32F, label = "").value
+
     val mainTextStyle = TextStyle(
         fontSize = mainTextSize,
         color = mainTextColor,
         fontWeight = FontWeight.W800,
         lineHeight = mainTextSize * 1.5F,
 
-    )
+        )
     val mainTextLayoutResult = textMeasurer.measure(
         text = line.lyric,
         style = mainTextStyle,
@@ -147,6 +154,8 @@ fun LyricLineDemo1(
         } else {
             mainTextLayoutResult.size.height
         }
+
+
         Canvas(
             modifier = Modifier
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
@@ -158,7 +167,11 @@ fun LyricLineDemo1(
             val multiParagraph = mainTextLayoutResult.multiParagraph
             val textHeight = mainTextLayoutResult.size.height.toFloat()
 
-            drawText(textLayoutResult = mainTextLayoutResult, alpha = textAlpha, topLeft = Offset(0f, 0f))
+            drawText(
+                textLayoutResult = mainTextLayoutResult,
+                alpha = textAlpha,
+                topLeft = Offset(0f, 0f)
+            )
             line.translation?.let {
                 drawText(
                     textLayoutResult = translationLayoutResult,
@@ -167,7 +180,7 @@ fun LyricLineDemo1(
                 )
             }
 
-            if (line.words.isNotEmpty()){
+            if (line.words.isNotEmpty()) {
                 val textWidth = calculateSungWidth(
                     currentTimeMs,
                     line,
@@ -175,8 +188,7 @@ fun LyricLineDemo1(
                     mainTextStyle
                 )
 
-                println("lyric width ==> ${mainTextLayoutResult.size.width}")
-                println("width ==> $textWidth")
+
                 if (currentTimeMs >= 0 && textWidth > 0f) {
 
                     val sungWidth = calculateSungWidth(
@@ -213,7 +225,6 @@ fun LyricLineDemo1(
     }
 }
 
-
 fun calculateSungWidth(
     currentTimeMs: Long,
     line: LyricLine,
@@ -225,18 +236,24 @@ fun calculateSungWidth(
     val lineStart = line.startTimeMs
     val lineEnd = lineStart + line.durationMs
     val totalText = line.words.joinToString("") { it.text }
+    // 计算所有单词的最晚结束时间
+    val maxWordEnd = line.words.maxOfOrNull { it.startTimeMs + it.durationMs } ?: lineEnd
+
     if (currentTimeMs < lineStart) return 0f  // 行未开始
-    if (currentTimeMs >= lineEnd) return line.measuredWidth ?: textMeasurer.measure(
-        text = totalText,
-        style = textStyle
-    ).size.width.toFloat().also { line.measuredWidth = it }  // 行已结束，返回总宽度
+    // 若当前时间超过所有单词结束时间或行结束时间，返回总宽度
+    if (currentTimeMs >= maxWordEnd || currentTimeMs >= lineEnd) {
+        return line.measuredWidth ?: textMeasurer.measure(
+            text = totalText,
+            style = textStyle
+        ).size.width.toFloat().also { line.measuredWidth = it }
+    }
 
     var sungWidth = 0f
 
     for (word in line.words) {
         val wordStart = word.startTimeMs
         val wordEnd = wordStart + word.durationMs
-        // 单词未开始或行已结束，跳过
+        // 单词未开始，跳过
         if (currentTimeMs < wordStart) continue
 
         // 计算单词在行内的相对开始时间和结束时间

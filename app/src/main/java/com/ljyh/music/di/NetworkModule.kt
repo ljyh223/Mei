@@ -34,8 +34,9 @@ object NetworkModule {
     @Singleton
     @Provides
     fun provideRetrofit(): Retrofit {
-        val BASE_URL=BASE_URLS.find { isServerReachable(it) }?: BASE_URLS.last()
-//        val BASE_URL= "http://192.168.246.127:3000/"
+//        val BASE_URL=BASE_URLS.find { isServerReachable(it) }?: BASE_URLS.last()
+        val BASE_URL= "http://192.168.9.127:3000/"
+//        val BASE_URL= "http://172.245.119.194:3000/"
         Log.d("BASE_URL", BASE_URL)
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(HeaderInterceptor()) // Add the interceptor

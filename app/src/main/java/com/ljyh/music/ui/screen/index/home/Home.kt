@@ -1,5 +1,6 @@
 package com.ljyh.music.ui.screen.index.home
 
+import android.widget.Toast
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,12 +34,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.component.CardExtInfo
 import com.ljyh.music.ui.component.CircularSearchBar
+import com.ljyh.music.ui.component.ConfirmationDialog
 import com.ljyh.music.ui.component.HomeShimmer
 import com.ljyh.music.ui.component.PlaylistCard
 import com.ljyh.music.ui.component.RecommendCard
 import com.ljyh.music.ui.local.LocalNavController
 import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.music.ui.screen.Screen
+import com.ljyh.music.ui.screen.playlist.prepare
 import com.ljyh.music.utils.DateUtils.getGreeting
 import com.ljyh.music.utils.middleImage
 
@@ -51,12 +57,17 @@ fun HomeScreen(
     val scrollToTop =
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
     val scrollState = rememberScrollState()
+    val context= LocalContext.current
+
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
             scrollState.animateScrollTo(0)
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
     }
+
+
+
     Box(
         modifier = Modifier.fillMaxSize()
     ){

@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -101,6 +102,8 @@ import kotlinx.coroutines.withContext
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.data.model.room.Color
+import com.ljyh.music.ui.component.ConfirmationDialog
+import com.ljyh.music.utils.checkFilesPermissions
 import io.ktor.http.Url
 import javax.inject.Inject
 
@@ -145,15 +148,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        createNotificationChannel(this)
-        checkAndRequestNotificationPermission(this)
-        checkAndRequestFilesPermissions(this)
+
 
         setContent {
             val navController = rememberNavController()
             val active by rememberSaveable {
                 mutableStateOf(false)
             }
+
+            //根据图片加载主题色
             val loader = rememberNetworkLoader()
             val dominantColorState = rememberDominantColorState(loader)
             val coverUrl= remember { mutableStateOf("") }
@@ -195,7 +198,6 @@ class MainActivity : ComponentActivity() {
                             )
                         )
                     }
-
                     isColorLoaded.value = true
                 }
             }
@@ -214,6 +216,7 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val bottomInset = with(density) { windowsInsets.getBottom(density).toDp() }
                     val navigationItems = remember { Screen.MainScreens }
+                    val showDialog=remember { mutableStateOf(false) }
                     val shouldShowNavigationBar = remember(navBackStackEntry, active) {
                         navBackStackEntry?.destination?.route == null ||
                                 navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } && !active
@@ -262,19 +265,37 @@ class MainActivity : ComponentActivity() {
                             else -> null
                         }
                     }
+                    ConfirmationDialog(
+                        title = "申请文件访问权限",
+                        text = "用于下载音乐",
+                        onConfirm = {
+                            createNotificationChannel(this@MainActivity)
+                            checkAndRequestNotificationPermission(this@MainActivity)
+                            checkAndRequestFilesPermissions(this@MainActivity)
+                        },
+                        onDismiss = { Toast.makeText(this@MainActivity, "已取消", Toast.LENGTH_SHORT).show() },
+                        openDialog = showDialog
+                    )
 
-                    LaunchedEffect(key1 = true) {
-                        lifecycleScope.launch {
-                            if (dataStore.get(FirstLaunchKey, true)) {
-                                dataStore.edit { settings ->
-                                    settings[FirstLaunchKey] = false
-                                }
-                                withContext(Dispatchers.IO) {
-                                    val localSongs = MusicUtils.getLocalMusic()
-                                    database.songDao().insertSongs(localSongs)
+                    LaunchedEffect(key1 = showDialog.value) {
+                        if(!checkFilesPermissions(this@MainActivity)){
+                            showDialog.value=true
+                        }else{
+                            Log.d("MainActivity","permission granted")
+                            lifecycleScope.launch {
+                                if (dataStore.get(FirstLaunchKey, true)) {
+                                    dataStore.edit { settings ->
+                                        settings[FirstLaunchKey] = false
+                                    }
+                                    Log.d("MainActivity","load local music")
+                                    withContext(Dispatchers.IO) {
+                                        val localSongs = MusicUtils.getLocalMusic()
+                                        database.songDao().insertSongs(localSongs)
+                                    }
                                 }
                             }
                         }
+
                     }
                     LaunchedEffect(navBackStackEntry) {
 //                        searchBarScrollBehavior.state.resetHeightOffset()

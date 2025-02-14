@@ -26,8 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -87,15 +89,20 @@ fun BottomSheetPlayer(
     } else {
         MaterialTheme.colorScheme.surfaceContainer
     }
-
+    var sliderPosition by remember { mutableFloatStateOf(0f) }
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val pagerState = rememberPagerState(pageCount = { 2 })
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
+    var position by rememberSaveable(playbackState) {
+        mutableLongStateOf(playerConnection.player.currentPosition)
+    }
+    var duration by rememberSaveable(playbackState) {
+        mutableLongStateOf(playerConnection.player.duration)
+    }
     val lyric by viewmodel.lyric.collectAsState()
     val lyricLine = remember { mutableStateOf(
         LyricData(
@@ -111,28 +118,15 @@ fun BottomSheetPlayer(
         )
     ) }
 
-
-    var position by rememberSaveable(playbackState) {
-        mutableLongStateOf(playerConnection.player.currentPosition)
-    }
-    var duration by rememberSaveable(playbackState) {
-        mutableLongStateOf(playerConnection.player.duration)
-    }
-
-    when (val result = lyric) {
-        is Resource.Success -> {
-            lyricLine.value = LyricData(
+    LaunchedEffect(lyric) {
+        lyricLine.value = when (val result = lyric) {
+            is Resource.Success -> LyricData(
                 isVerbatim = true,
                 lyricLine = result.data.parseYrc()
             )
-
-            println(lyricLine.value)
-        }
-
-        is Resource.Error -> {
-            lyricLine.value = LyricData(
+            is Resource.Error -> LyricData(
                 isVerbatim = false,
-                lyricLine= listOf(
+                lyricLine = listOf(
                     LyricLine(
                         lyric = "歌词加载错误",
                         startTimeMs = 0,
@@ -141,10 +135,12 @@ fun BottomSheetPlayer(
                     )
                 )
             )
+            Resource.Loading -> lyricLine.value
         }
-
-        Resource.Loading -> {}
     }
+
+
+
 
     LaunchedEffect(playbackState) {
         if (playbackState == STATE_READY) {
@@ -156,13 +152,12 @@ fun BottomSheetPlayer(
         }
     }
 
-//    LaunchedEffect(lyric) {
-//        withContext(Dispatchers.Default) {
-//            lyricLine.value.lyricLinesBeta?.forEach { word ->
-//                word.measuredWidth = measureWordWidth(word)
-//            }
-//        }
-//    }
+    LaunchedEffect(position, duration) {
+        if (position == 0L || duration == C.TIME_UNSET) {
+            sliderPosition = 0f // 重置滑块
+        }
+    }
+
     LaunchedEffect(mediaMetadata) {
         // 在这里处理 mediaMetadata 的变化
         lyricLine.value =LyricData(
@@ -203,29 +198,27 @@ fun BottomSheetPlayer(
             )
         }
     ) {
-        val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
-
-
+        val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = {
             ColorfulSlider(
                 modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                value = position.toFloat(),
+                value = sliderPosition,
                 thumbRadius = 0.dp,
                 trackHeight = 2.dp,
                 onValueChange = { value ->
-                    position = value.toLong()
+                    sliderPosition = value // 先更新滑块 UI
                 },
                 valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
                 onValueChangeFinished = {
-                    playerConnection.player.seekTo(position)
+                    position = sliderPosition.toLong() // 确保 `position` 也是最新值
+                    playerConnection.player.seekTo(position) // ExoPlayer 跳转到新位置
                 },
                 colors = MaterialSliderDefaults.materialColors(
                     activeTrackColor = SliderBrushColor(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     ),
-                    thumbColor= SliderBrushColor(
+                    thumbColor = SliderBrushColor(
                         color = MaterialTheme.colorScheme.tertiaryContainer
-                    ),
-
+                    )
                 )
             )
             Row(

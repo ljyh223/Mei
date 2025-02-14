@@ -110,8 +110,12 @@ class PlayerConnection
     }
 
 
-    fun toggleLike(id: String, like: Boolean) {
-        service.toggleLike(id, like)
+    fun toggleLike(id: String) {
+        service.toggleLike(id)
+    }
+
+    suspend fun isLike(id: String):Boolean{
+        return service.isLike(id)
     }
 
     fun seekToNext() {

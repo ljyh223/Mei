@@ -29,7 +29,7 @@ interface ApiService {
     @GET("/song/url/v1")
     suspend fun getSongUrlV1(
         @Query("id") id: String,
-        @Query("level") level: String = "level"
+        @Query("level") level: String = "standard"
     ): SongUrl
 
 

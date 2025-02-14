@@ -9,9 +9,11 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.SongUrl
+import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.network.ApiService
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.PlaylistRepository
+import com.ljyh.music.di.LikeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
     private val repository: PlaylistRepository,
+    private val likeRepository: LikeRepository,
     val apiService: ApiService
 ) : ViewModel() {
 
@@ -86,6 +89,11 @@ class PlaylistViewModel @Inject constructor(
 
 
 
+    fun updateAllLike(likes: List<Like>){
+        viewModelScope.launch {
+            likeRepository.updateAllLike(likes)
+        }
+    }
 
 
 

@@ -55,7 +55,7 @@ fun LyricScreen(lyricLines:List<LyricLine>, playerConnection:PlayerConnection, p
                 ) {}
             }
         }
-
+        val parentWidthDp = maxWidth
         val lyricsEntryListItems: (LazyListScope.() -> Unit) = {
             items(
                 lyricLines,
@@ -63,6 +63,7 @@ fun LyricScreen(lyricLines:List<LyricLine>, playerConnection:PlayerConnection, p
                 val isActiveLine = lyric == currentLine
                 LyricLineDemo1(
                     line = lyric,
+                    parentWidthDp = parentWidthDp,
                     currentTimeMs = if (isActiveLine) position else -1,
                 ){
                     playerConnection.player.seekTo(lyric.startTimeMs)

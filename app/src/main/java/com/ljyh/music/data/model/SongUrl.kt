@@ -68,7 +68,7 @@ data class SongUrl(
         @SerializedName("uf")
         val uf: Any,
         @SerializedName("url")
-        val url: String,
+        val url: String?,
         @SerializedName("urlSource")
         val urlSource: Int
     ) {

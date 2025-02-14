@@ -22,7 +22,7 @@ object MusicUtils {
                 val json = file.readText()
                 try {
                     val simplePlaylist = Gson().fromJson(json, SimplePlaylist::class.java)
-                    songs.addAll(simplePlaylist.songs.map { it.toSongDB() })
+                    songs.addAll(simplePlaylist.toSongDB())
                 }catch (e: Exception){
                     Log.d("MusicUtils", "getLocalMusic: ${e.message}")
                     continue

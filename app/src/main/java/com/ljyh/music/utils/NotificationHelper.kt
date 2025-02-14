@@ -13,19 +13,17 @@ import androidx.core.content.ContextCompat
 import com.ljyh.music.R
 
 fun createNotificationChannel(context: Context) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val channel = NotificationChannel(
-            "download_channel", // 通道 ID
-            "Download Notifications", // 通道名称
-            NotificationManager.IMPORTANCE_LOW // 通道重要性
-        ).apply {
-            description = "Notifications for song downloads"
-        }
-
-        val notificationManager: NotificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
+    val channel = NotificationChannel(
+        "download_channel", // 通道 ID
+        "Download Notifications", // 通道名称
+        NotificationManager.IMPORTANCE_LOW // 通道重要性
+    ).apply {
+        description = "Notifications for song downloads"
     }
+
+    val notificationManager: NotificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    notificationManager.createNotificationChannel(channel)
 }
 
 // 检查并申请通知权限

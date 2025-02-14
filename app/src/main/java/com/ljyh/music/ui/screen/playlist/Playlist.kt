@@ -65,6 +65,7 @@ import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.SimplePlaylist
 import com.ljyh.music.data.model.parseString
+import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.toMediaItem
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.extensions.mediaItems
@@ -103,7 +104,6 @@ fun PlaylistScreen(
 ) {
     LaunchedEffect(key1 = id) {
         viewModel.getPlaylistDetail(id.toString())
-
     }
     val userId by rememberPreference(UserIdKey, "")
     val playlistDetail by viewModel.playlistDetail.collectAsState()
@@ -158,6 +158,9 @@ fun PlaylistScreen(
                 is Resource.Success -> {
                     title.value = result.data.playlist.name
                     ids.value = result.data.playlist.trackIds.map { it.id.toString() }
+                    if(result.data.playlist.name.endsWith("喜欢的音乐")){
+                        viewModel.updateAllLike(result.data.playlist.trackIds.map { Like(it.id.toString()) }.toList())
+                    }
                     item {
                         PlaylistInfo(result.data, viewModel) {
                             playerConnection.playQueue(
@@ -414,7 +417,7 @@ fun prepare(
         val songUrls = viewModel.apiService.getSongUrl(ids)
         tempSongs.forEach { song ->
             songUrls.data.find { it.id.toString() == song.id }?.let {
-                song.url = it.url
+                song.url = it.url.toString()
             } ?: ""
         }
 

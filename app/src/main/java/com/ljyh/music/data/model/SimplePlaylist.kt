@@ -1,7 +1,9 @@
 package com.ljyh.music.data.model
 
+import android.os.Environment
 import com.google.gson.annotations.SerializedName
 import com.ljyh.music.data.model.room.Song
+import com.ljyh.music.utils.specialReplace
 
 
 data class SimplePlaylist(
@@ -42,6 +44,7 @@ data class SimplePlaylist(
                 album = album,
                 cover = picUrl,
                 duration = 0,
+                path="",
                 lyric = ""
             )
         }
@@ -52,6 +55,24 @@ data class SimplePlaylist(
             "name" to name,
             "songs" to songs.map { it.toMap() }
         )
+    }
+
+
+    fun toSongDB(): List<com.ljyh.music.data.model.room.Song> {
+        val relativePath=Environment.DIRECTORY_MUSIC
+        val downloadsDir=Environment.getExternalStoragePublicDirectory(relativePath)
+        return this.songs.map { s->
+            Song(
+                id = s.id,
+                title = s.name,
+                artist = s.artist,
+                album =s. album,
+                cover = s.picUrl,
+                duration = 0,
+                path= "$downloadsDir/${this.name}/${specialReplace(s.name)}.${s.fileType}",
+                lyric = ""
+            )
+        }
     }
 }
 

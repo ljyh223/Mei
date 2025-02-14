@@ -3,6 +3,7 @@ package com.ljyh.music.di
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import com.ljyh.music.data.model.room.Color
+import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.room.Song
 import com.ljyh.music.data.network.ApiService
 import com.ljyh.music.data.repository.HomeRepository
@@ -77,4 +78,25 @@ class SongRepository @Inject constructor(private val songDao: SongDao) {
         songDao.insertSongs(songs)
     }
 
+}
+
+class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
+    fun getLike(id:String): Like? {
+        return likeDao.getLike(id)
+    }
+
+    fun getAllLike(): List<Like> {
+        return likeDao.getALlLike()
+    }
+
+    suspend fun insertLike(like:Like) {
+        likeDao.insertLike(like)
+    }
+    suspend fun updateAllLike(likes: List<Like>) {
+        likeDao.updateALlLike(likes)
+    }
+
+    suspend fun deleteLike(id: String) {
+        likeDao.deleteLike(id)
+    }
 }

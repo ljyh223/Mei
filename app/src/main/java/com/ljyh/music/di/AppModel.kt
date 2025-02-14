@@ -39,6 +39,16 @@ object AppModule {
     fun provideColorDao(db: AppDatabase): ColorRepository =
         ColorRepository(db.colorDao())
 
+
+    @Provides
+    fun provideLikeDao(db: AppDatabase): LikeRepository =
+        LikeRepository(db.likeDao())
+
+
+    @Provides
+    fun provideSongDao(db: AppDatabase): SongRepository =
+        SongRepository(db.songDao())
+
     
     @Singleton
     @Provides
