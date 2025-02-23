@@ -8,6 +8,10 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 
+
+//    kotlin("jvm") version "2.0.0" // or kotlin("multiplatform") or any other kotlin plugin
+    kotlin("plugin.serialization") version "2.0.0"
+
 }
 
 android {
@@ -79,7 +83,9 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.converter.gson)
 
-    implementation (libs.retrofit)
+    implementation(libs.retrofit)
+//    implementation(libs.retrofit.scalars)
+    implementation(libs.retrofit.scalars)
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.room.runtime)
@@ -107,6 +113,7 @@ dependencies {
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)
-
+    implementation(libs.kotlinx.serialization.core)
+    implementation(libs.serialization.android)
 
 }

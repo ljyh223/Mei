@@ -85,7 +85,19 @@ fun checkAndRequestFilesPermissions(activity: Activity): Boolean {
     }
     return true
 }
+fun extractContent(input: String): String {
+    val startTag = "<!--"
+    val endTag = "-->"
 
+    val startIndex = input.indexOf(startTag) // 找到起始标记的位置
+    val endIndex = input.indexOf(endTag, startIndex + startTag.length) // 找到结束标记的位置
+
+    if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+        // 提取起始标记后和结束标记前的内容
+        return input.substring(startIndex + startTag.length, endIndex).trim()
+    }
+    return "" // 如果未找到标记，返回 null
+}
 
 fun checkFilesPermissions(activity: Activity): Boolean{
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

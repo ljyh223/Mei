@@ -6,6 +6,7 @@ import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.room.Song
 import com.ljyh.music.data.network.ApiService
+import com.ljyh.music.data.network.QQMusicApiService
 import com.ljyh.music.data.repository.HomeRepository
 import com.ljyh.music.data.repository.PlaylistRepository
 import com.ljyh.music.data.repository.ShareRepository
@@ -44,8 +45,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideShareRepository(apiService: ApiService): ShareRepository {
-        return ShareRepository(apiService)
+    fun provideShareRepository(apiService: ApiService, qqMusicApiService: QQMusicApiService): ShareRepository {
+        return ShareRepository(apiService,qqMusicApiService)
     }
 }
 
