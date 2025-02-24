@@ -1,6 +1,16 @@
 package com.ljyh.music.ui.component.player
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +44,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +60,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.C
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.transformations
 import com.ljyh.music.constants.DarkModeKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
@@ -59,12 +79,15 @@ import com.ljyh.music.ui.ShareViewModel
 import com.ljyh.music.ui.component.BottomSheet
 import com.ljyh.music.ui.component.BottomSheetState
 import com.ljyh.music.ui.component.rememberBottomSheetState
+import com.ljyh.music.ui.component.utils.calculateScaleToFit
+import com.ljyh.music.ui.component.utils.imageWithDynamicFilter
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.QRCUtils
 import com.ljyh.music.utils.extractContent
 import com.ljyh.music.utils.makeTimeString
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
+import com.ljyh.music.utils.smallImage
 import com.smarttoolfactory.slider.ColorfulSlider
 import com.smarttoolfactory.slider.MaterialSliderDefaults
 import com.smarttoolfactory.slider.SliderBrushColor
@@ -76,6 +99,7 @@ import kotlinx.serialization.decodeFromString
 import nl.adaptivity.xmlutil.serialization.XML
 
 
+@RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun BottomSheetPlayer(
     state: BottomSheetState,
@@ -106,6 +130,9 @@ fun BottomSheetPlayer(
     val pagerState = rememberPagerState(pageCount = { 2 })
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
+    val angle = remember { Animatable(0f) }
+    var cover by remember { mutableStateOf("")
+    }
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
@@ -189,9 +216,9 @@ fun BottomSheetPlayer(
                 val xmlParser = XML { indent = 4 }
                 val xLyric = xmlParser.decodeFromString<LyricCmd>(lyricXml)
                 val qrc = QRCUtils.decodeLyric(xLyric.cmd.lyric.content.value)
-                val translations=QRCUtils.decodeLyric(xLyric.cmd.lyric.contentTs.value,true)
-                Log.d("qLyric",translations)
-                lyricLine.value=LyricData(
+                val translations = QRCUtils.decodeLyric(xLyric.cmd.lyric.contentTs.value, true)
+                Log.d("qLyric", translations)
+                lyricLine.value = LyricData(
                     isVerbatim = true,
                     lyricLine = QRCUtils.parse(qrc, translations)
                 )
@@ -238,15 +265,33 @@ fun BottomSheetPlayer(
                 )
             )
         )
-        mediaMetadata?.id?.let {
-            viewmodel.getLyric(it.toString())
+        mediaMetadata?.let {
+            viewmodel.getLyric(it.id.toString())
             viewmodel.searchLyric(
-                mediaMetadata?.title.toString(),
-                mediaMetadata?.artists?.get(0)?.name ?: ""
+                it.title,
+                it.artists[0].name
             )
+
+            cover = it.coverUrl.toString()
+        }
+        mediaMetadata?.id?.let {
+
 //            viewmodel.get
         }
         Log.d("mediaMetadata", "mediaMetadata changed: $mediaMetadata")
+    }
+
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            // 创建一个无限循环的旋转动画
+            angle.animateTo(
+                targetValue = angle.value + 360f,
+                animationSpec = InfiniteRepeatableSpec(
+                    animation = tween(24000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                )
+            )
+        }
     }
 
     val queueSheetState = rememberBottomSheetState(
@@ -270,6 +315,8 @@ fun BottomSheetPlayer(
             )
         }
     ) {
+
+
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = {
             ColorfulSlider(
                 modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
@@ -332,6 +379,54 @@ fun BottomSheetPlayer(
         }
 
 
+        val backdropColorFilter = remember {
+            val cm = ColorMatrix(
+                floatArrayOf(
+                    2f, 0f, 0f, 0f, 0f, // 红色通道的亮度增加
+                    0f, 2f, 0f, 0f, 0f, // 绿色通道的亮度增加
+                    0f, 0f, 2f, 0f, 0f, // 蓝色通道的亮度增加
+                    0f, 0f, 0f, 2f, 0f    // 透明度保持不变
+                )
+            )
+            cm.setToSaturation(2.5f)
+            ColorFilter.colorMatrix(cm)
+        }
+
+        AsyncImage(
+            model = cover,
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(scale = calculateScaleToFit())
+                .graphicsLayer {
+                    rotationZ = angle.value + 90f
+                    renderEffect = RenderEffect
+                        .createBlurEffect(
+                            100f,  // X轴模糊半径
+                            100f,  // Y轴模糊半径
+                            Shader.TileMode.CLAMP // 边界处理
+                        )
+
+                        .asComposeRenderEffect()
+                }
+
+                .graphicsLayer {
+                    renderEffect = RenderEffect
+                        .createBlurEffect(100f, 100f, Shader.TileMode.CLAMP) // 第二层模糊
+                        .asComposeRenderEffect()
+                },
+            colorFilter = imageWithDynamicFilter(),
+            contentDescription = null,
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(0.5f)
+                .background(if (isSystemInDarkTheme()) Color.Black else Color.White)
+        )
+
+
+
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -352,6 +447,8 @@ fun BottomSheetPlayer(
                     when (page) {
                         0 -> {
                             mediaMetadata?.let {
+
+
                                 Column(
                                     modifier = Modifier.fillMaxSize(),
                                     verticalArrangement = Arrangement.Bottom
