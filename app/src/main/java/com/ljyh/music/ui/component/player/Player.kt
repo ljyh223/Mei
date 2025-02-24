@@ -131,7 +131,8 @@ fun BottomSheetPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val angle = remember { Animatable(0f) }
-    var cover by remember { mutableStateOf("")
+    var cover by remember {
+        mutableStateOf("")
     }
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
@@ -157,7 +158,9 @@ fun BottomSheetPlayer(
             )
         )
     }
-// 网易云官方的歌词
+
+
+    // 网易云官方的歌词
     LaunchedEffect(lyric) {
         lyricLine.value = when (val result = lyric) {
             is Resource.Success -> {
@@ -234,8 +237,6 @@ fun BottomSheetPlayer(
         }
     }
 
-
-
     LaunchedEffect(playbackState) {
         if (playbackState == STATE_READY) {
             while (isActive) {
@@ -271,12 +272,7 @@ fun BottomSheetPlayer(
                 it.title,
                 it.artists[0].name
             )
-
-            cover = it.coverUrl.toString()
-        }
-        mediaMetadata?.id?.let {
-
-//            viewmodel.get
+            cover = it.coverUrl
         }
         Log.d("mediaMetadata", "mediaMetadata changed: $mediaMetadata")
     }
@@ -377,57 +373,7 @@ fun BottomSheetPlayer(
                 repeatMode = repeatMode,
             )
         }
-
-
-        val backdropColorFilter = remember {
-            val cm = ColorMatrix(
-                floatArrayOf(
-                    2f, 0f, 0f, 0f, 0f, // 红色通道的亮度增加
-                    0f, 2f, 0f, 0f, 0f, // 绿色通道的亮度增加
-                    0f, 0f, 2f, 0f, 0f, // 蓝色通道的亮度增加
-                    0f, 0f, 0f, 2f, 0f    // 透明度保持不变
-                )
-            )
-            cm.setToSaturation(2.5f)
-            ColorFilter.colorMatrix(cm)
-        }
-
-        AsyncImage(
-            model = cover,
-            modifier = Modifier
-                .fillMaxSize()
-                .scale(scale = calculateScaleToFit())
-                .graphicsLayer {
-                    rotationZ = angle.value + 90f
-                    renderEffect = RenderEffect
-                        .createBlurEffect(
-                            100f,  // X轴模糊半径
-                            100f,  // Y轴模糊半径
-                            Shader.TileMode.CLAMP // 边界处理
-                        )
-
-                        .asComposeRenderEffect()
-                }
-
-                .graphicsLayer {
-                    renderEffect = RenderEffect
-                        .createBlurEffect(100f, 100f, Shader.TileMode.CLAMP) // 第二层模糊
-                        .asComposeRenderEffect()
-                },
-            colorFilter = imageWithDynamicFilter(),
-            contentDescription = null,
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(0.5f)
-                .background(if (isSystemInDarkTheme()) Color.Black else Color.White)
-        )
-
-
-
-
+        OptimizedBlurredImage(cover, isPlaying, 100.dp)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
