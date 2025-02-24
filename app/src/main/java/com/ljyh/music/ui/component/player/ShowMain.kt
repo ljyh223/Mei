@@ -71,8 +71,8 @@ fun ShowMain(
 
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(mediaMetadata.coverUrl.size1600())
                 .placeholderMemoryCacheKey(mediaMetadata.coverUrl.smallImage()) // 先用小图占位
+                .data(mediaMetadata.coverUrl.size1600())
                 .crossfade(true) // 平滑过渡
                 .build(),
             contentDescription = "Loaded Image",
@@ -80,8 +80,8 @@ fun ShowMain(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(ThumbnailCornerRadius * 2))
                 .shadow(
-                    elevation = 8.dp,
-                    shape = RoundedCornerShape(16.dp)
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(ThumbnailCornerRadius * 2)
                 )
                 .pointerInput(Unit) {
                     detectTapGestures(
