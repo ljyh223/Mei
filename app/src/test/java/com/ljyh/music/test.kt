@@ -1,6 +1,6 @@
 package com.ljyh.music
 
-import com.ljyh.music.data.model.qq.LyricCmd
+import com.ljyh.music.data.model.qq.c.LyricCmd
 import com.ljyh.music.utils.extractContent
 import kotlinx.serialization.decodeFromString
 import nl.adaptivity.xmlutil.serialization.XML

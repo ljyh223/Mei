@@ -1,7 +1,8 @@
 package com.ljyh.music.di
 
 import com.ljyh.music.data.network.ApiService
-import com.ljyh.music.data.network.QQMusicApiService
+import com.ljyh.music.data.network.QQMusicCApiService
+import com.ljyh.music.data.network.QQMusicUApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,8 +34,8 @@ object NetworkModule {
     @Provides
     @Named("netEaseMusicRetrofit")
     fun provideRetrofit(): Retrofit {
-//        val BASE_URL= "http://192.168.1.3:3000/"
-        val BASE_URL= "http://172.245.119.194:3000/"
+        val BASE_URL= "http://192.168.3.4:3000/"
+//        val BASE_URL= "http://172.245.119.194:3000/"
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(HeaderInterceptor())
             .build()
@@ -54,22 +55,36 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    @Named("qqMusicRetrofit")
-    fun provideQQMusicRetrofit(): Retrofit {
-        val okHttpClient = OkHttpClient.Builder()
-            .build()
-
+    @Named("qqMusicRetrofitC")
+    fun provideQQMusicRetrofitC(): Retrofit {
         return Retrofit.Builder()
             .baseUrl("https://c.y.qq.com/")  // 另一个 API 的 baseUrl
-            .client(okHttpClient)
             .addConverterFactory(ScalarsConverterFactory.create())
             .build()
     }
 
     @Singleton
     @Provides
-    fun provideQQMusicApiService( @Named("qqMusicRetrofit") retrofit: Retrofit): QQMusicApiService {
-        return retrofit.create(QQMusicApiService::class.java)
+    fun provideQQMusicApiServiceC( @Named("qqMusicRetrofitC") retrofit: Retrofit): QQMusicCApiService {
+        return retrofit.create(QQMusicCApiService::class.java)
+    }
+
+
+
+    @Singleton
+    @Provides
+    @Named("qqMusicRetrofitU")
+    fun provideQQMusicRetrofitU(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://u.y.qq.com/")  // 另一个 API 的 baseUrl
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Singleton
+    @Provides
+    fun provideQQMusicApiServiceU( @Named("qqMusicRetrofitU") retrofit: Retrofit): QQMusicUApiService {
+        return retrofit.create(QQMusicUApiService::class.java)
     }
 }
 

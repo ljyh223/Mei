@@ -515,21 +515,28 @@ object QRCUtils {
 
     //传入歌词xml
     fun decodeLyric(data: String,isTranslation:Boolean=false): String {
-        val decodedData = hexStringToByteArray(data)
-        val decodedContents = lyricDecode(decodedData, decodedData.size)
-        val gzipInputStream = decompressZlib(decodedContents)
-        val lyric = gzipInputStream.toString(Charsets.UTF_8)
-        if(isTranslation) return lyric
+        if(data=="") return ""
+        try {
+            val decodedData = hexStringToByteArray(data)
+            val decodedContents = lyricDecode(decodedData, decodedData.size)
+            val gzipInputStream = decompressZlib(decodedContents)
+            val lyric = gzipInputStream.toString(Charsets.UTF_8)
+            if(isTranslation) return lyric
 
-        val extractXmlRe =Regex("""<Lyric_1 LyricType="1" LyricContent="(.*?)"/>""", RegexOption.DOT_MATCHES_ALL)
+            val extractXmlRe =Regex("""<Lyric_1 LyricType="1" LyricContent="(.*?)"/>""", RegexOption.DOT_MATCHES_ALL)
 
-        val qrcLyric = extractXmlRe.find(lyric)
-        if (qrcLyric != null) {
-            return qrcLyric.groupValues[1]
-        } else {
+            val qrcLyric = extractXmlRe.find(lyric)
+            if (qrcLyric != null) {
+                return qrcLyric.groupValues[1]
+            } else {
+                return ""
+
+            }
+        }catch (e: Exception){
+            Log.e("QRCUtils", "decodeLyric: ${e.message}")
             return ""
-
         }
+
     }
 
 

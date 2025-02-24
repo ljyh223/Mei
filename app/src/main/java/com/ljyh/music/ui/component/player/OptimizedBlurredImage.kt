@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.music.ui.component.utils.calculateScaleToFit
+import com.ljyh.music.utils.size1600
 import com.ljyh.music.utils.smallImage
 import com.ljyh.music.utils.toPx
 import kotlinx.coroutines.delay
@@ -54,7 +55,7 @@ fun OptimizedBlurredImage(
 
     // 模糊背景图
     AsyncImage(
-        model = cover.smallImage(),
+        model = cover.size1600(),
         modifier = Modifier
             .fillMaxSize()
             .scale(scale = calculateScaleToFit())

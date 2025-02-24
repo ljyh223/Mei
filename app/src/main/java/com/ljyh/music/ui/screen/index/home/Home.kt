@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,7 +80,7 @@ fun HomeScreen(
                     val data = resource.data
                     CircularSearchBar()
                     Spacer(Modifier.height(10.dp))
-                    Text(getGreeting(), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(getGreeting(), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth()
@@ -107,7 +108,7 @@ fun HomeScreen(
 
 
                     Spacer(Modifier.height(10.dp))
-                    Text(text = "雷达歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "雷达歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(10.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth()
@@ -139,10 +140,8 @@ fun HomeScreen(
 
 
                     Spacer(Modifier.height(10.dp))
-                    Text(text = "推荐歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "推荐歌单", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(10.dp))
-
-
                     Row(
                         modifier = Modifier.fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.music.data.model.HomePageResourceShow
 import com.ljyh.music.data.model.Lyric
+import com.ljyh.music.data.model.qq.u.Search
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.ShareRepository
 import com.ljyh.music.data.repository.UserRepository
@@ -30,13 +31,19 @@ class ShareViewModel @Inject constructor(
     private val _searchLyric = MutableStateFlow<Resource<String>>(Resource.Loading)
     val searchLyric: StateFlow<Resource<String>> = _searchLyric
 
+
+    private val _searchU = MutableStateFlow<Resource<Search>>(Resource.Loading)
+    val searchU: StateFlow<Resource<Search>> = _searchU
+
+    private val _searchC = MutableStateFlow<Resource<com.ljyh.music.data.model.qq.c.Search>>(Resource.Loading)
+    val searchC: StateFlow<Resource<com.ljyh.music.data.model.qq.c.Search>> = _searchC
+
     fun getLyric(id: String) {
 
         viewModelScope.launch {
             _lyric.value = Resource.Loading
             _lyric.value = repository.getLyric(id)
         }
-
     }
 
 
@@ -53,6 +60,21 @@ class ShareViewModel @Inject constructor(
         viewModelScope.launch {
             _searchLyric.value = Resource.Loading
             _searchLyric.value = repository.searchLyric(songName, singerName)
+        }
+    }
+
+
+    fun searchU(keyword:String){
+        viewModelScope.launch {
+            _searchU.value = Resource.Loading
+            _searchU.value = repository.searchU(keyword)
+        }
+    }
+
+    fun searchC(keyword: String){
+        viewModelScope.launch {
+            _searchC.value = Resource.Loading
+            _searchC.value = repository.searchC(keyword)
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.ljyh.music.data.model.qq
+package com.ljyh.music.data.model.qq.c
 
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XmlElement
