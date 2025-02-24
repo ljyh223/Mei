@@ -321,7 +321,7 @@ fun Lyric.parseYrc(): List<LyricLine> {
         }
 
         if (j < translations.size) {
-            lyricLine.translation = translations[j].lyric
+            mYrc[i].translation = translations[j].lyric
         }
     }
     return mYrc

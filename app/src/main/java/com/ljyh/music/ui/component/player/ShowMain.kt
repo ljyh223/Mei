@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +60,7 @@ fun ShowMain(
     val context = LocalContext.current
     var isLiked by remember { mutableStateOf(false) }
     LaunchedEffect(mediaMetadata.id) {
-        isLiked = withContext(Dispatchers.IO){
+        isLiked = withContext(Dispatchers.IO) {
             playerConnection.isLike(mediaMetadata.id.toString())
         }
     }
@@ -78,6 +79,10 @@ fun ShowMain(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(ThumbnailCornerRadius * 2))
+                .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(16.dp)
+                )
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onDoubleTap = { offset ->

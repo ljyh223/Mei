@@ -1,6 +1,7 @@
 package com.ljyh.music.utils
 
 import android.util.Log
+import com.ljyh.music.data.model.LyricUtils
 import com.ljyh.music.ui.component.player.LyricLine
 import com.ljyh.music.ui.component.player.LyricWord
 import java.io.ByteArrayInputStream
@@ -10,6 +11,7 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.math.abs
 
 object QRCUtils {
     enum class DESMode {
@@ -511,15 +513,16 @@ object QRCUtils {
         return bytes.joinToString("") { "%02X".format(it) }
     }
 
-
-    fun decodeLyric(data: String): String {
+    //传入歌词xml
+    fun decodeLyric(data: String,isTranslation:Boolean=false): String {
         val decodedData = hexStringToByteArray(data)
         val decodedContents = lyricDecode(decodedData, decodedData.size)
         val gzipInputStream = decompressZlib(decodedContents)
         val lyric = gzipInputStream.toString(Charsets.UTF_8)
+        if(isTranslation) return lyric
 
-        val extractXmlRe =
-            Regex("""<Lyric_1 LyricType="1" LyricContent="(.*?)"/>""", RegexOption.DOT_MATCHES_ALL)
+        val extractXmlRe =Regex("""<Lyric_1 LyricType="1" LyricContent="(.*?)"/>""", RegexOption.DOT_MATCHES_ALL)
+
         val qrcLyric = extractXmlRe.find(lyric)
         if (qrcLyric != null) {
             return qrcLyric.groupValues[1]
@@ -530,7 +533,7 @@ object QRCUtils {
     }
 
 
-    fun parse(lyric:String):List<LyricLine>{
+    fun parse(lyric: String, translations: String): List<LyricLine> {
 
         val regex = "\\[(\\d+),(\\d+)\\](.*)".toRegex()
         val wordRegex = "([^\\(\\)]*)\\((\\d+),(\\d+)\\)".toRegex()
@@ -542,7 +545,7 @@ object QRCUtils {
 
                 val words = wordRegex.findAll(wordsText)
                     .map { wordMatch ->
-                        val (wordText,wordStart, wordDuration ) = wordMatch.destructured
+                        val (wordText, wordStart, wordDuration) = wordMatch.destructured
                         LyricWord(
                             startTimeMs = wordStart.toLong(),
                             durationMs = wordDuration.toLong(),
@@ -559,9 +562,36 @@ object QRCUtils {
                 )
             }
             .toList()
+
+
+        val mTranslations = translations.lineSequence()
+            .mapNotNull { line -> LyricUtils.parseLine(line) }
+            .toList()
+        if (translations.isEmpty()) return yrc
+        Log.d("parse","有翻译")
+        // ✅ 用双指针优化匹配翻译歌词（O(N) 复杂度）
+        var j = 0 // 翻译歌词的索引
+        for (i in yrc.indices) {
+            val lyricLine = yrc[i]
+
+            while (j < mTranslations.size - 1 &&
+                abs(mTranslations[j].time - lyricLine.startTimeMs) > abs(mTranslations[j + 1].time - lyricLine.startTimeMs)
+            ) {
+                j++
+            }
+
+            if (j < mTranslations.size && !mTranslations[j].lyric.startsWith("//")) {
+                yrc[i].translation = mTranslations[j].lyric
+            }
+        }
         return yrc
 
     }
 
 
+    enum class Content{
+        LYRIC,
+        LYRIC_TRANSLATION,
+        LYRIC_ROMA
+    }
 }

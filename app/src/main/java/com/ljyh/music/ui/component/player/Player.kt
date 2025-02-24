@@ -162,10 +162,10 @@ fun BottomSheetPlayer(
             is Resource.Success -> {
                 Log.d("searchLyric", result.data)
                 val xmlParser = XML { indent = 3 }
-                val searchLyric = xmlParser.decodeFromString<SearchLyricCmd>(result.data)
-                if (searchLyric.cmd.songInfo.isNotEmpty()) {
-                    Log.d("searchLyric", "id ==>" + searchLyric.cmd.songInfo[0].id)
-                    viewmodel.getQQMusicLyric(searchLyric.cmd.songInfo[0].id)
+                val xSearchLyric = xmlParser.decodeFromString<SearchLyricCmd>(result.data)
+                if (xSearchLyric.cmd.songInfo.isNotEmpty()) {
+                    Log.d("searchLyric", "id ==>" + xSearchLyric.cmd.songInfo[0].id)
+                    viewmodel.getQQMusicLyric(xSearchLyric.cmd.songInfo[0].id)
                 }
             }
 
@@ -187,17 +187,14 @@ fun BottomSheetPlayer(
                 // 正则提取 <!-- --> 中的内容
                 val lyricXml = extractContent(result.data).replace("<miniversion=\"1\" />", "")
                 val xmlParser = XML { indent = 4 }
-                Log.d("qLyric", lyricXml)
-                val qLyric = xmlParser.decodeFromString<LyricCmd>(lyricXml)
-                val qrc = QRCUtils.decodeLyric(qLyric.cmd.lyric.content.value)
-                Log.d("qLyric",qrc)
-
+                val xLyric = xmlParser.decodeFromString<LyricCmd>(lyricXml)
+                val qrc = QRCUtils.decodeLyric(xLyric.cmd.lyric.content.value)
+                val translations=QRCUtils.decodeLyric(xLyric.cmd.lyric.contentTs.value,true)
+                Log.d("qLyric",translations)
                 lyricLine.value=LyricData(
                     isVerbatim = true,
-                    lyricLine = QRCUtils.parse(qrc)
+                    lyricLine = QRCUtils.parse(qrc, translations)
                 )
-
-
             }
 
             is Resource.Error -> {
@@ -276,7 +273,7 @@ fun BottomSheetPlayer(
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = {
             ColorfulSlider(
                 modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                value = sliderPosition,
+                value = position.toFloat(),
                 thumbRadius = 0.dp,
                 trackHeight = 2.dp,
                 onValueChange = { value ->
