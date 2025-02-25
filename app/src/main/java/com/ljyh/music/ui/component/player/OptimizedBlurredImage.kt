@@ -22,8 +22,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import coil3.request.transformations
-import com.commit451.coiltransformations.ColorFilterTransformation
 import com.ljyh.music.ui.component.utils.calculateScaleToFit
 import com.ljyh.music.ui.component.utils.imageWithDynamicFilter
 import com.ljyh.music.utils.size1600
