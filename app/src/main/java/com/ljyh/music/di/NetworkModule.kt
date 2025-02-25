@@ -38,8 +38,8 @@ object NetworkModule {
     @Named("netEaseMusicRetrofit")
     fun provideRetrofit(): Retrofit {
 //        val BASE_URL= "http://192.168.3.4:3000/"
-//        val BASE_URL= "http://172.245.119.194:3000/"
-        val BASE_URL=  "http://192.168.246.127:3000/"
+        val BASE_URL= "http://172.245.119.194:3000/"
+//        val BASE_URL=  "http://192.168.246.127:3000/"
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(HeaderInterceptor())
             .build()
