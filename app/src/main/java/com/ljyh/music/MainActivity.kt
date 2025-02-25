@@ -4,8 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.drawable.BitmapDrawable
-import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -13,9 +12,9 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -41,8 +40,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,20 +55,25 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import coil3.asDrawable
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.toBitmap
+import coil3.ImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.util.CoilUtils
+import com.kmpalette.loader.rememberNetworkLoader
+import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.constants.AppBarHeight
 import com.ljyh.music.constants.FirstLaunchKey
 import com.ljyh.music.constants.MiniPlayerHeight
 import com.ljyh.music.constants.NavigationBarAnimationSpec
 import com.ljyh.music.constants.NavigationBarHeight
 import com.ljyh.music.data.model.UserData
+import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.di.AppDatabase
 import com.ljyh.music.playback.MusicService
 import com.ljyh.music.playback.PlayerConnection
+import com.ljyh.music.ui.component.ConfirmationDialog
 import com.ljyh.music.ui.component.player.BottomSheetPlayer
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalDatabase
@@ -82,29 +84,22 @@ import com.ljyh.music.ui.local.LocalUserData
 import com.ljyh.music.ui.screen.Index
 import com.ljyh.music.ui.screen.Screen
 import com.ljyh.music.ui.screen.navigationBuilder
-import com.ljyh.music.ui.theme.ColorSaver
-import com.ljyh.music.ui.theme.DefaultThemeColor
 import com.ljyh.music.ui.theme.MusicTheme
 import com.ljyh.music.utils.MusicUtils
 import com.ljyh.music.utils.appBarScrollBehavior
 import com.ljyh.music.utils.checkAndRequestFilesPermissions
 import com.ljyh.music.utils.checkAndRequestNotificationPermission
+import com.ljyh.music.utils.checkFilesPermissions
 import com.ljyh.music.utils.createNotificationChannel
 import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.get
 import com.ljyh.music.utils.resetHeightOffset
-import com.materialkolor.ktx.themeColor
 import dagger.hilt.android.AndroidEntryPoint
+import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.kmpalette.loader.rememberNetworkLoader
-import com.kmpalette.rememberDominantColorState
-import com.ljyh.music.data.model.room.Color
-import com.ljyh.music.ui.component.ConfirmationDialog
-import com.ljyh.music.utils.checkFilesPermissions
-import io.ktor.http.Url
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -144,6 +139,7 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     @kotlin.OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -159,14 +155,14 @@ class MainActivity : ComponentActivity() {
             //根据图片加载主题色
             val loader = rememberNetworkLoader()
             val dominantColorState = rememberDominantColorState(loader)
-            val coverUrl= remember { mutableStateOf("") }
+            val coverUrl = remember { mutableStateOf("") }
             val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
             LaunchedEffect(playerConnection) {
                 val playerConnection = playerConnection ?: return@LaunchedEffect
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
                     if (song != null) {
                         coverUrl.value = song.coverUrl
-                        withContext(Dispatchers.IO){
+                        withContext(Dispatchers.IO) {
                             val cachedColor = database.colorDao().getColor(song.coverUrl)
                             if (cachedColor != null) {
                                 // 不能直接赋值 color，改用 updateFrom 触发更新
@@ -190,7 +186,7 @@ class MainActivity : ComponentActivity() {
             // 颜色计算完成后存入数据库
             LaunchedEffect(dominantColorState.color) {
                 if (coverUrl.value.isNotEmpty() && !isColorLoaded.value) {
-                    withContext(Dispatchers.IO){
+                    withContext(Dispatchers.IO) {
                         database.colorDao().insertColor(
                             Color(
                                 url = coverUrl.value,
@@ -216,7 +212,7 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val bottomInset = with(density) { windowsInsets.getBottom(density).toDp() }
                     val navigationItems = remember { Screen.MainScreens }
-                    val showDialog=remember { mutableStateOf(false) }
+                    val showDialog = remember { mutableStateOf(false) }
                     val shouldShowNavigationBar = remember(navBackStackEntry, active) {
                         navBackStackEntry?.destination?.route == null ||
                                 navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } && !active
@@ -273,21 +269,27 @@ class MainActivity : ComponentActivity() {
                             checkAndRequestNotificationPermission(this@MainActivity)
                             checkAndRequestFilesPermissions(this@MainActivity)
                         },
-                        onDismiss = { Toast.makeText(this@MainActivity, "已取消", Toast.LENGTH_SHORT).show() },
+                        onDismiss = {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "已取消",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
                         openDialog = showDialog
                     )
 
                     LaunchedEffect(key1 = showDialog.value) {
-                        if(!checkFilesPermissions(this@MainActivity)){
-                            showDialog.value=true
-                        }else{
-                            Log.d("MainActivity","permission granted")
+                        if (!checkFilesPermissions(this@MainActivity)) {
+                            showDialog.value = true
+                        } else {
+                            Log.d("MainActivity", "permission granted")
                             lifecycleScope.launch {
                                 if (dataStore.get(FirstLaunchKey, true)) {
                                     dataStore.edit { settings ->
                                         settings[FirstLaunchKey] = false
                                     }
-                                    Log.d("MainActivity","load local music")
+                                    Log.d("MainActivity", "load local music")
                                     withContext(Dispatchers.IO) {
                                         val localSongs = MusicUtils.getLocalMusic()
                                         database.songDao().insertSongs(localSongs)

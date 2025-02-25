@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.ljyh.music.constants.ThumbnailCornerRadius
@@ -70,7 +68,7 @@ fun ShowMain(
     ) {
 
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
+            model = ImageRequest.Builder(context)
                 .placeholderMemoryCacheKey(mediaMetadata.coverUrl.smallImage()) // 先用小图占位
                 .data(mediaMetadata.coverUrl.size1600())
                 .crossfade(true) // 平滑过渡
@@ -103,7 +101,7 @@ fun ShowMain(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
-                modifier = Modifier.weight(3f),
+                modifier = Modifier.weight(5f),
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(

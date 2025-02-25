@@ -16,6 +16,7 @@ val UserNicknameKey = stringPreferencesKey("userNickname")
 val UserAvatarUrlKey = stringPreferencesKey("userAvatarUrl")
 val UserPhotoKey = stringPreferencesKey("userPhoto")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
-enum class SliderStyle {
-    DEFAULT, SQUIGGLY
-}
+
+
+val CookieKey = stringPreferencesKey("cookie")
+val NetEaseCloudMusicApiServiceHostKey= stringPreferencesKey("netEaseCloudMusicApiServiceHost")

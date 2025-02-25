@@ -13,14 +13,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.transformations
+import com.commit451.coiltransformations.ColorFilterTransformation
 import com.ljyh.music.ui.component.utils.calculateScaleToFit
+import com.ljyh.music.ui.component.utils.imageWithDynamicFilter
 import com.ljyh.music.utils.size1600
 import com.ljyh.music.utils.smallImage
 import com.ljyh.music.utils.toPx
@@ -35,7 +40,7 @@ fun OptimizedBlurredImage(
 ) {
     val context = LocalContext.current
     val angle = remember { mutableFloatStateOf(0f) }
-
+    val isDarkTheme = isSystemInDarkTheme()
     // 使用记忆化缓存模糊效果，避免重复计算
     val blurEffect by remember(blurRadius) {
         mutableStateOf(
@@ -45,17 +50,24 @@ fun OptimizedBlurredImage(
         )
     }
 
+
+    val cf = remember { imageWithDynamicFilter(isDarkTheme) }
+
+
     // 动画控制，降低刷新频率
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
             angle.value += 1f
-            delay(32L) // 每 32ms 更新一次 (30FPS)，减少动画更新频率
+            delay(64L)
         }
     }
 
     // 模糊背景图
     AsyncImage(
-        model = cover.size1600(),
+        model = ImageRequest.Builder(context)
+            .placeholderMemoryCacheKey(cover.smallImage()) // 先用小图占位
+            .data(cover.size1600())
+            .build(),
         modifier = Modifier
             .fillMaxSize()
             .scale(scale = calculateScaleToFit())
@@ -63,6 +75,7 @@ fun OptimizedBlurredImage(
                 rotationZ = angle.floatValue
                 renderEffect = blurEffect
             },
+        colorFilter = cf,
         contentDescription = null
     )
 
@@ -70,7 +83,7 @@ fun OptimizedBlurredImage(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f))
+            .background(Color.White.copy(alpha = 0.65f))
     )
 }
 

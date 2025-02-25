@@ -596,6 +596,30 @@ object QRCUtils {
     }
 
 
+    fun addTranslation(lyric:List<LyricLine>,translations: String):List<LyricLine>{
+        val mTranslations = translations.lineSequence()
+            .mapNotNull { line -> LyricUtils.parseLine(line) }
+            .toList()
+
+        if (translations.isEmpty()) return lyric
+
+        var j = 0
+        for (i in lyric.indices) {
+            val lyricLine = lyric[i]
+            while (j < mTranslations.size - 1 &&
+                abs(mTranslations[j].time - lyricLine.startTimeMs) > abs(mTranslations[j + 1].time - lyricLine.startTimeMs)
+            ) {
+                j++
+            }
+            if (j < mTranslations.size && !mTranslations[j].lyric.startsWith("//")) {
+                lyric[i].translation = mTranslations[j].lyric
+            }
+
+        }
+        return lyric
+    }
+
+
     enum class Content{
         LYRIC,
         LYRIC_TRANSLATION,

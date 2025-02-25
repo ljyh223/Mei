@@ -1,5 +1,8 @@
 package com.ljyh.music.ui.component.player
 
+import com.ljyh.music.data.model.Lyric
+import com.ljyh.music.data.model.qq.c.LyricCmd
+
 
 // 单句歌词（对应 [] 包裹的内容）
 data class LyricLine(
@@ -26,5 +29,12 @@ data class LyricLineA(
 
 data class LyricData(
     val isVerbatim: Boolean = false,
-    val lyricLine:List<LyricLine>
+    val source: LyricSource = LyricSource.Empty,
+    val lyricLine: List<LyricLine>
 )
+
+enum class LyricSource {
+    Empty,
+    NetEaseCloudMusic,
+    QQMusic
+}

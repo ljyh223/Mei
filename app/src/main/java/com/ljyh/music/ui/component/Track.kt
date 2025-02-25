@@ -59,7 +59,6 @@ fun Track(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-
     Row(
         modifier = Modifier
             .padding(vertical = 8.dp)

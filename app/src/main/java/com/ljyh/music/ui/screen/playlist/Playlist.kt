@@ -220,12 +220,12 @@ fun PlaylistScreen(
             scrollBehavior = scrollBehavior
         )
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-                .align(Alignment.BottomCenter)
-        )
+//        SnackbarHost(
+//            hostState = snackbarHostState,
+//            modifier = Modifier
+//                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+//                .align(Alignment.BottomCenter)
+//        )
     }
 
 }

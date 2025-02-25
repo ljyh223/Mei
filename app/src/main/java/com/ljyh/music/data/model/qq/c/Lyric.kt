@@ -89,9 +89,33 @@ data class ContentRoma(
     @XmlValue val value: String = ""
 )
 
+val emptyLyricCmd = LyricCmd(
+    Cmd(
+        0,
+        0,
+        0,
+        0,
+        "",
+        Check("", 0, 0),
+        Lyric(
+            0,
+            "",
+            0,
+            "",
+            "",
+            "",
+            "",
+            AdoptUser(0, 0),
+            Content("", "", 0, "", ""),
+            ContentTs("", "", 0, ""),
+            ContentRoma("", "", 0, "")
+        )
+    )
+)
 
 object CDataSerializer : KSerializer<String> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("CData", PrimitiveKind.STRING)
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("CData", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: String) {
         encoder.encodeString(value)

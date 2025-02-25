@@ -1,13 +1,9 @@
 package com.ljyh.music.ui.component.player
 
+
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.InfiniteRepeatableSpec
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -56,9 +53,11 @@ import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
 import com.ljyh.music.data.model.MediaMetadata
-import com.ljyh.music.data.model.qq.c.LyricCmd
-import com.ljyh.music.data.model.qq.c.SearchLyricCmd
+import com.ljyh.music.data.model.emptyLyric
 import com.ljyh.music.data.model.parseYrc
+import com.ljyh.music.data.model.qq.c.Lyric
+import com.ljyh.music.data.model.qq.c.LyricCmd
+import com.ljyh.music.data.model.qq.c.emptyLyricCmd
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.ShareViewModel
 import com.ljyh.music.ui.component.BottomSheet
@@ -76,8 +75,6 @@ import com.smarttoolfactory.slider.SliderBrushColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
-
-
 import nl.adaptivity.xmlutil.serialization.XML
 
 
@@ -112,20 +109,24 @@ fun BottomSheetPlayer(
     val pagerState = rememberPagerState(pageCount = { 2 })
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
-    val angle = remember { Animatable(0f) }
     var cover by remember { mutableStateOf("") }
-    var album by remember { mutableStateOf("") }
-    var singer by remember { mutableStateOf("") }
+    val album by remember { mutableStateOf("") }
+    val singer by remember { mutableStateOf("") }
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
     var duration by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.duration)
     }
-    val lyric by viewmodel.lyric.collectAsState()
-//    val searchLyric by viewmodel.searchLyric.collectAsState()
+
+    var netLyric by remember { mutableStateOf(emptyLyric) }
+    var qqLyric by remember { mutableStateOf(emptyLyricCmd) }
+
+    val netLyricResult by viewmodel.lyric.collectAsState()
+    val qLyricResult by viewmodel.qLyric.collectAsState()
     val qqSearch by viewmodel.searchU.collectAsState()
-    val qLyric by viewmodel.qLyric.collectAsState()
+
+
     val lyricLine = remember {
         mutableStateOf(
             LyricData(
@@ -143,19 +144,74 @@ fun BottomSheetPlayer(
     }
 
 
+
+
+    LaunchedEffect(qqLyric, netLyric) {
+        val qrc = QRCUtils.decodeLyric(qqLyric.cmd.lyric.content.value)
+        val qrcT = QRCUtils.decodeLyric(qqLyric.cmd.lyric.contentTs.value)
+        if (qrc != "" && qrcT != "") {
+            Log.d("Lyric parse", "qrc and qrcT")
+            lyricLine.value = LyricData(
+                isVerbatim = true,
+                source = LyricSource.QQMusic,
+                lyricLine = QRCUtils.parse(qrc, qrcT)
+            )
+            return@LaunchedEffect
+        }
+
+
+        if (netLyric.yrc != null && netLyric.tlyric != null) {
+            Log.d("Lyric parse", "netLyric and netLyric T")
+            lyricLine.value = LyricData(
+                isVerbatim = true,
+                source = LyricSource.NetEaseCloudMusic,
+                lyricLine = netLyric.parseYrc()
+            )
+            return@LaunchedEffect
+        }
+
+
+        if (qrc != "" && netLyric.tlyric != null) {
+            Log.d("Lyric parse", "qrc and netLyric T")
+            lyricLine.value = LyricData(
+                isVerbatim = true,
+                source = LyricSource.QQMusic,
+                lyricLine = QRCUtils.parse(qrc, netLyric.tlyric!!.lyric)
+            )
+            return@LaunchedEffect
+        }
+
+
+        if (qrc != "") {
+            Log.d("Lyric parse", "qrc")
+            lyricLine.value = LyricData(
+                isVerbatim = true,
+                source = LyricSource.QQMusic,
+                lyricLine = QRCUtils.parse(qrc, "")
+            )
+            return@LaunchedEffect
+        }
+
+
+        Log.d("Lyric parse", "netLyric")
+        lyricLine.value = LyricData(
+            isVerbatim = false,
+            source = LyricSource.NetEaseCloudMusic,
+            lyricLine = netLyric.parseYrc()
+        )
+        return@LaunchedEffect
+
+
+    }
     // 网易云官方的歌词
-    LaunchedEffect(lyric) {
+    LaunchedEffect(netLyricResult) {
         if (!lyricLine.value.isVerbatim) {
-            lyricLine.value = when (val result = lyric) {
+            when (val result = netLyricResult) {
                 is Resource.Success -> {
-                    val lyc = result.data.parseYrc()
-                    LyricData(
-                        isVerbatim = lyc[3].words.isNotEmpty(),
-                        lyricLine = lyc
-                    )
+                    netLyric=result.data
                 }
 
-                is Resource.Error -> LyricData(
+                is Resource.Error -> lyricLine.value = LyricData(
                     isVerbatim = false,
                     lyricLine = listOf(
                         LyricLine(
@@ -167,7 +223,7 @@ fun BottomSheetPlayer(
                     )
                 )
 
-                Resource.Loading -> lyricLine.value
+                Resource.Loading -> {}
             }
         }
 
@@ -177,29 +233,25 @@ fun BottomSheetPlayer(
     LaunchedEffect(qqSearch) {
         when (val result = qqSearch) {
             is Resource.Success -> {
-                //Log.d("searchLyric", "qqSearch ==>" + result.data)
+
                 if (result.data.code != 0) {
+                    Log.d("searchLyric", "qqSearch error")
+                    qqLyric= emptyLyricCmd
                     return@LaunchedEffect
                 }
                 val sid =
-                    result.data.req.data.body.song.list.find { singer == it.singer[0].name || album == it.album.name }?.id
+                    result.data.req.data.body.song.list.find { singer == it.singer[0].name || album == it.album.name}?.id
                 if (sid != null) {
                     Log.d("searchLyric", "id ==>$sid")
                     viewmodel.getQQMusicLyric(sid.toString())
-                }else{
-                    Log.d("searchLyric", "id ==>null")
+                } else {
+                    Log.d("searchLyric", "qqSearch id is null")
+                    qqLyric= emptyLyricCmd
                 }
-
-
-//                val xmlParser = XML { indent = 3 }
-//                val xSearchLyric = xmlParser.decodeFromString<SearchLyricCmd>(result.data)
-//                if (xSearchLyric.cmd.songInfo.isNotEmpty()) {
-//                    Log.d("searchLyric", "id ==>" + xSearchLyric.cmd.songInfo[0].id)
-
-//                }
             }
 
             is Resource.Error -> {
+                qqLyric= emptyLyricCmd
                 Log.d("searchLyric", result.message)
             }
 
@@ -209,24 +261,21 @@ fun BottomSheetPlayer(
     }
 
     //获取qq音乐的歌词
-    LaunchedEffect(qLyric) {
-        when (val result = qLyric) {
+    LaunchedEffect(qLyricResult) {
+        when (val result = qLyricResult) {
             is Resource.Success -> {
-
-                // 正则提取 <!-- --> 中的内容
+                if(result.data=="") {
+                    qqLyric= emptyLyricCmd
+                    return@LaunchedEffect
+                }
                 val lyricXml = extractContent(result.data).replace("<miniversion=\"1\" />", "")
                 val xmlParser = XML { indent = 4 }
                 val xLyric = xmlParser.decodeFromString<LyricCmd>(lyricXml)
-                val qrc = QRCUtils.decodeLyric(xLyric.cmd.lyric.content.value)
-                val translations = QRCUtils.decodeLyric(xLyric.cmd.lyric.contentTs.value, true)
-                Log.d("qLyric", "有逐字歌词")
-                lyricLine.value = LyricData(
-                    isVerbatim = true,
-                    lyricLine = QRCUtils.parse(qrc, translations)
-                )
+                qqLyric= xLyric
             }
 
             is Resource.Error -> {
+                qqLyric= emptyLyricCmd
                 Log.d("qLyric", result.message)
             }
 
@@ -250,9 +299,10 @@ fun BottomSheetPlayer(
             sliderPosition = 0f // 重置滑块
         }
     }
-
+    // 在这里处理 mediaMetadata 的变化
     LaunchedEffect(mediaMetadata) {
-        // 在这里处理 mediaMetadata 的变化
+        qqLyric= emptyLyricCmd
+        netLyric= emptyLyric
         lyricLine.value = LyricData(
             isVerbatim = false,
             lyricLine = listOf(
@@ -268,23 +318,9 @@ fun BottomSheetPlayer(
             viewmodel.searchU("${it.title} ${it.artists[0].name}")
             viewmodel.getLyric(it.id.toString())
             cover = it.coverUrl
-            album = it.album.title
-            singer = it.artists[0].name
         }
     }
 
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
-            // 创建一个无限循环的旋转动画
-            angle.animateTo(
-                targetValue = angle.value + 360f,
-                animationSpec = InfiniteRepeatableSpec(
-                    animation = tween(24000, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                )
-            )
-        }
-    }
 
     val queueSheetState = rememberBottomSheetState(
         dismissedBound = QueuePeekHeight + WindowInsets.systemBars.asPaddingValues()
@@ -307,8 +343,6 @@ fun BottomSheetPlayer(
             )
         }
     ) {
-
-
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = {
             ColorfulSlider(
                 modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
@@ -404,7 +438,7 @@ fun BottomSheetPlayer(
 
                         1 -> {
                             LyricScreen(
-                                lyricLines = lyricLine.value.lyricLine,
+                                lyricData = lyricLine.value,
                                 playerConnection = playerConnection,
                                 position = position
                             )
@@ -429,8 +463,4 @@ fun BottomSheetPlayer(
 
 enum class DarkMode {
     ON, OFF, AUTO
-}
-
-enum class PlayerTextAlignment {
-    SIDED, CENTER
 }

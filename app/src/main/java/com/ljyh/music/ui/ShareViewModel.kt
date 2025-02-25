@@ -24,7 +24,7 @@ class ShareViewModel @Inject constructor(
     val lyric: StateFlow<Resource<Lyric>> = _lyric
 
 
-    private val _qLyric = MutableStateFlow<Resource<String>>(Resource.Loading)
+    val _qLyric = MutableStateFlow<Resource<String>>(Resource.Loading)
     val qLyric: StateFlow<Resource<String>> = _qLyric
 
 

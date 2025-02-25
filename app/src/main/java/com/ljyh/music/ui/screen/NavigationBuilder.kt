@@ -11,6 +11,7 @@ import com.ljyh.music.ui.component.player.Test
 import com.ljyh.music.ui.screen.index.home.HomeScreen
 import com.ljyh.music.ui.screen.index.library.LibraryScreen
 import com.ljyh.music.ui.screen.playlist.PlaylistScreen
+import com.ljyh.music.ui.screen.setting.SettingScreen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,6 +29,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.Test.route) {
         Test()
+    }
+
+    composable(Screen.Setting.route){
+        SettingScreen()
     }
 
     composable(

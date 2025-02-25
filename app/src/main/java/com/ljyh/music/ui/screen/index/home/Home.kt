@@ -71,7 +71,9 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()))
             when (val resource = homePageResourceShow) {
-                is Resource.Error -> {}
+                is Resource.Error -> {
+                    Text(text = resource.message)
+                }
                 Resource.Loading -> {
                     HomeShimmer()
                 }

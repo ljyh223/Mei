@@ -1,6 +1,7 @@
 package com.ljyh.music.ui.screen.index.library
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,11 +17,17 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -176,11 +183,16 @@ fun User(
     userPhoto:String
 ) {
     val context = LocalContext.current
+    val navController = LocalNavController.current
+    val count = remember { mutableIntStateOf(0) }
+    if(count.intValue>3){
+        Screen.Setting.navigate(navController)
+    }
     Box(
         modifier = Modifier.fillMaxWidth()
             .aspectRatio(4f/3)
     ){
-        Log.d("user",userPhoto)
+
         if(userPhoto!=""){
             AsyncImage(
                 model = userPhoto,
@@ -204,16 +216,16 @@ fun User(
             model =userAvatarUrl.largeImage(),
             contentDescription = null,
             modifier = Modifier
-                .size(60.dp)
+                .size(72.dp)
                 .align(Alignment.Center)
-                .clip(RoundedCornerShape(30.dp)),
+                .clip(RoundedCornerShape(36.dp)),
         )
         Text(
             text = userNickname,
             style = TextStyle(
                 shadow = Shadow(
                     color = Color.Black,
-                    offset = Offset(2f, 2f),
+                    offset = Offset(4f, 4f),
                     blurRadius = 8f
                 ),
             ),
@@ -225,7 +237,10 @@ fun User(
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp)
+                .padding(vertical = 32.dp)
+                .clickable {
+                    count.value+=1
+                }
 
         )
     }

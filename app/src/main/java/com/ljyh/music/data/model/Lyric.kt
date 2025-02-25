@@ -19,7 +19,7 @@ data class Lyric(
     @SerializedName("qfy")
     val qfy: Boolean,
     @SerializedName("romalrc")
-    val romalrc: Romalrc,
+    val romalrc: Romalrc?,
     @SerializedName("sfy")
     val sfy: Boolean,
     @SerializedName("sgc")
@@ -66,7 +66,24 @@ data class Lyric(
         val version: Int
     )
 }
-
+val emptyLyric= Lyric(
+    code = 200,
+    klyric = Lyric.Klyric(
+        lyric = "",
+        version = 0
+    ),
+    lrc = Lyric.Lrc(
+        lyric = "",
+        version = 0
+    ),
+    qfy = false,
+    romalrc = null,
+    sfy = false,
+    sgc = false,
+    tlyric = null,
+    yrc = null,
+    pureMusic = false,
+)
 
 
 /**

@@ -23,7 +23,7 @@ android {
         minSdk = 29
         targetSdk = 35
         versionCode = 1
-        versionName = "1.16"
+        versionName = "1.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -115,5 +115,7 @@ dependencies {
     implementation(libs.ktor.client.android)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.serialization.android)
+    implementation(libs.composeSettings.ui)
+    implementation(libs.composeSettings.ui.extended)
 
 }
