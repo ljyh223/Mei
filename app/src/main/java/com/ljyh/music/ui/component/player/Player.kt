@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -55,7 +54,6 @@ import com.ljyh.music.constants.QueuePeekHeight
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.data.model.emptyLyric
 import com.ljyh.music.data.model.parseYrc
-import com.ljyh.music.data.model.qq.c.Lyric
 import com.ljyh.music.data.model.qq.c.LyricCmd
 import com.ljyh.music.data.model.qq.c.emptyLyricCmd
 import com.ljyh.music.data.network.Resource
@@ -64,7 +62,7 @@ import com.ljyh.music.ui.component.BottomSheet
 import com.ljyh.music.ui.component.BottomSheetState
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalPlayerConnection
-import com.ljyh.music.utils.QRCUtils
+import com.ljyh.music.utils.encrypt.QRCUtils
 import com.ljyh.music.utils.extractContent
 import com.ljyh.music.utils.makeTimeString
 import com.ljyh.music.utils.rememberEnumPreference
@@ -76,6 +74,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
 import nl.adaptivity.xmlutil.serialization.XML
+
 
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -233,7 +232,6 @@ fun BottomSheetPlayer(
     LaunchedEffect(qqSearch) {
         when (val result = qqSearch) {
             is Resource.Success -> {
-
                 if (result.data.code != 0) {
                     Log.d("searchLyric", "qqSearch error")
                     qqLyric= emptyLyricCmd
@@ -249,6 +247,8 @@ fun BottomSheetPlayer(
                     qqLyric= emptyLyricCmd
                 }
             }
+
+
 
             is Resource.Error -> {
                 qqLyric= emptyLyricCmd

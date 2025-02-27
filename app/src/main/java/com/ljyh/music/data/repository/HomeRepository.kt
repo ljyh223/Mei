@@ -2,21 +2,24 @@ package com.ljyh.music.data.repository
 
 import android.util.Log
 import com.ljyh.music.data.model.HomePageResourceShow
-import com.ljyh.music.data.network.ApiService
+import com.ljyh.music.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.music.data.network.Resource
+import com.ljyh.music.data.network.api.WeApiService
 import com.ljyh.music.data.network.safeApiCall
 import com.ljyh.music.utils.CacheFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class HomeRepository(private val apiService: ApiService) {
+class HomeRepository(private val weApiService: WeApiService) {
 
-    suspend fun getHomePageResourceShow(): Resource<HomePageResourceShow> {
+    suspend fun getHomePageResourceShow(
+        res:GetHomePageResourceShow
+    ): Resource<HomePageResourceShow> {
 
 
         if(CacheFile.shouldHomepage()){
             Log.d("getHomePageResourceShow","新加载")
-            val rseult=apiService.getHomePageResourceShow()
+            val rseult=weApiService.getHomePageResourceShow(res)
             CacheFile.updateHomepage(rseult)
             Log.d("getHomePageResourceShow","更新缓存")
             return withContext(Dispatchers.IO) {

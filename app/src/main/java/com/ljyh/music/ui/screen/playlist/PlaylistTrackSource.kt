@@ -3,12 +3,13 @@ package com.ljyh.music.ui.screen.playlist
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.ljyh.music.data.model.PlaylistDetail
-import com.ljyh.music.data.network.ApiService
+import com.ljyh.music.data.model.api.GetSongDetails
+import com.ljyh.music.data.network.api.ApiService
 
 class PlaylistTrackSource(
     private val apiService: ApiService,
     private val firstData: List<PlaylistDetail.Playlist.Track>,
-    private val id: String
+    private val ids: List<String>
 ) : PagingSource<Int, PlaylistDetail.Playlist.Track>() {
 
     // 服务器实际分页参数（根据最新请求日志）
@@ -26,7 +27,7 @@ class PlaylistTrackSource(
             val data = if (offset == 0) {
                 firstData
             } else {
-                apiService.getPlaylistTracks(id, limit = PAGE_SIZE, offset = offset).songs
+                apiService.getSongDetail(GetSongDetails(ids.joinToString(","))).songs
             }
 
 

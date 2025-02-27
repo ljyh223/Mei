@@ -87,7 +87,7 @@ fun PlaylistCard(
                             lineHeight = 16.sp,
                             style = TextStyle(
                                 shadow = Shadow(
-                                    color = Color.Black, offset = Offset(2f, 2f), blurRadius = 8f
+                                    color = Color.Black, offset = Offset(4f, 4f), blurRadius = 8f
                                 )
                             )
                         )
@@ -124,7 +124,7 @@ fun PlaylistCard(
                         style = TextStyle(
                             shadow = Shadow(
                                 color = Color.Black,
-                                offset = Offset(2f, 2f),
+                                offset = Offset(4f, 4f),
                                 blurRadius = 8f
                             )
                         )
@@ -146,7 +146,11 @@ fun PlaylistCard(
                     Icon(
                         imageVector = Icons.AutoMirrored.Default.PlaylistPlay,
                         contentDescription = "Play",
-                        tint = Color.White
+                        tint = Color.White,
+                        modifier = Modifier.shadow(
+                            4.dp,
+                            RoundedCornerShape(4.dp)
+                        ),
                     )
                 }
             }

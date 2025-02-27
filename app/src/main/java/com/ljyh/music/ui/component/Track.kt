@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.music.data.model.PlaylistDetail
+import com.ljyh.music.data.model.api.GetLyric
 import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
@@ -119,7 +120,11 @@ fun Track(
                                 if (path != "") {
                                     scope.launch {
                                         val lyric =
-                                            viewModel.apiService.getLyric(track.id.toString())
+                                            viewModel.apiService.getLyric(
+                                                GetLyric(
+                                                    id = track.id.toString()
+                                                )
+                                            )
                                         val mLyric = lyric.parseString()
                                         if (mLyric.isEmpty()) {
                                             Toast.makeText(
@@ -197,6 +202,6 @@ enum class Quality {
 }
 
 @Composable
-fun QualityIcon(quality:Quality){
+fun QualityIcon(quality: Quality) {
 
 }

@@ -14,9 +14,13 @@ plugins {
 
 }
 
+
+
+
 android {
     namespace = "com.ljyh.music"
     compileSdk = 35
+
 
     defaultConfig {
         applicationId = "com.ljyh.music"
@@ -49,6 +53,11 @@ android {
         buildConfig = true
         compose = true
     }
+}
+
+configurations.all {
+//    exclude("com.soywiz","korlibs-crypto-android-debug")
+    exclude("com.soywiz.korlibs.krypto","krypto-android")
 }
 
 dependencies {
@@ -84,7 +93,6 @@ dependencies {
     implementation(libs.converter.gson)
 
     implementation(libs.retrofit)
-//    implementation(libs.retrofit.scalars)
     implementation(libs.retrofit.scalars)
     ksp(libs.androidx.room.compiler)
 
@@ -117,5 +125,20 @@ dependencies {
     implementation(libs.serialization.android)
     implementation(libs.composeSettings.ui)
     implementation(libs.composeSettings.ui.extended)
+    implementation(libs.korlibs.crypto){
+        exclude("com.soywiz.korlibs.krypto", "krypto-android")
+    }
+    implementation(libs.logging.interceptor)
+    implementation(kotlin("reflect"))
 
+
+}
+kotlin {
+    sourceSets {
+        getByName("main") {
+            dependencies {
+                implementation(kotlin("reflect"))
+            }
+        }
+    }
 }

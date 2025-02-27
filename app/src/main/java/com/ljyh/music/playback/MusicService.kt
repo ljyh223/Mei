@@ -1,11 +1,9 @@
 package com.ljyh.music.playback
 
-import android.animation.Animator
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
 import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.net.Uri
@@ -14,8 +12,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
-import androidx.core.animation.LinearInterpolator
-import androidx.core.animation.ValueAnimator
 import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -54,11 +50,13 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.music.MainActivity
 import com.ljyh.music.R
 import com.ljyh.music.data.model.MediaMetadata
+import com.ljyh.music.data.model.api.GetSongDetails
+import com.ljyh.music.data.model.api.GetSongUrlV1
 import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.toMediaItem
-import com.ljyh.music.data.network.ApiService
+import com.ljyh.music.data.network.api.ApiService
+import com.ljyh.music.data.network.api.WeApiService
 import com.ljyh.music.di.AppDatabase
-import com.ljyh.music.di.LikeRepository
 import com.ljyh.music.extensions.SilentHandler
 import com.ljyh.music.extensions.currentMetadata
 import com.ljyh.music.playback.queue.EmptyQueue
@@ -124,7 +122,11 @@ class MusicService : MediaLibraryService(),
     private var isAudioEffectSessionOpened = false
 
     @Inject
-    lateinit var apiService: ApiService // 自动注入
+    lateinit var weApiService: WeApiService // 自动注入
+
+    @Inject
+    lateinit var apiService: ApiService
+
     private val songUrlCache = mutableMapOf<String, SongCache>()
 
 
@@ -266,7 +268,12 @@ class MusicService : MediaLibraryService(),
                 Log.d("like", "toggleLike: $like")
                 if (!like) database.likeDao().deleteLike(id) else database.likeDao()
                     .insertLike(Like(id))
-                apiService.like(id, like)
+                weApiService.like(
+                    com.ljyh.music.data.model.weapi.Like(
+                        trackId = id,
+                        like = like
+                    )
+                )
             }
         }
     }
@@ -345,7 +352,11 @@ class MusicService : MediaLibraryService(),
             val remainingItems = initialStatus.ids.drop(batchSize)
 
             val firstItems =
-                apiService.getSongDetail(ids = firstBatch.joinToString(",")).songs.map {
+                apiService.getSongDetail(
+                    GetSongDetails(
+                        c = firstBatch.joinToString(",")
+                    )
+                ).songs.map {
                     it.toMediaItem()
                 }
             // 设置第一批歌曲
@@ -371,7 +382,7 @@ class MusicService : MediaLibraryService(),
                     val nextBatch = remaining.take(batchSize)
                     scope.launch {
                         val nextItem =
-                            apiService.getSongDetail(ids = nextBatch.joinToString(",")).songs.map {
+                            apiService.getSongDetail(GetSongDetails(c = nextBatch.joinToString(","))).songs.map {
                                 it.toMediaItem()
                             }
                         remaining = remaining.drop(batchSize).toMutableList()
@@ -450,7 +461,10 @@ class MusicService : MediaLibraryService(),
             if (localFilePath != null) {
                 val file = File(localFilePath)
                 if (file.exists()) {
-                    Log.d("ResolvingDataSource", "Using local file for mediaId: $mediaId, filePath: ${file.path}")
+                    Log.d(
+                        "ResolvingDataSource",
+                        "Using local file for mediaId: $mediaId, filePath: ${file.path}"
+                    )
                     return@Factory dataSpec.withUri(Uri.fromFile(file))
                 }
             }
@@ -464,7 +478,9 @@ class MusicService : MediaLibraryService(),
 
             val deferredUrl = CoroutineScope(Dispatchers.IO).async {
                 try {
-                    val response = apiService.getSongUrlV1(mediaId, level = "standard")
+                    val response = apiService.getSongUrlV1(GetSongUrlV1(
+                        ids = "[$mediaId]",
+                    ))
                     response.data.getOrNull(0)?.url
                 } catch (e: Exception) {
                     Log.e("ResolvingDataSource", "Failed to fetch media URL", e)

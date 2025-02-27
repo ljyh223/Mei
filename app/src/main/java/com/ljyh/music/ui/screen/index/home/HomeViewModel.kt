@@ -6,6 +6,7 @@ import com.ljyh.music.data.model.HomePage
 import com.ljyh.music.data.model.HomePageResourceShow
 import com.ljyh.music.data.model.Recommend
 import com.ljyh.music.data.model.room.Color
+import com.ljyh.music.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.HomeRepository
 import com.ljyh.music.di.ColorRepository
@@ -22,19 +23,23 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
 
-    private val _homePageResourceShow = MutableStateFlow<Resource<HomePageResourceShow>>(Resource.Loading)
+    private val _homePageResourceShow =
+        MutableStateFlow<Resource<HomePageResourceShow>>(Resource.Loading)
     val homePageResourceShow: StateFlow<Resource<HomePageResourceShow>> = _homePageResourceShow
 
 
     init {
         homePageResourceShow()
     }
-    private fun homePageResourceShow(){
+
+    private fun homePageResourceShow() {
         viewModelScope.launch {
             _homePageResourceShow.value = Resource.Loading
-            _homePageResourceShow.value = repository.getHomePageResourceShow()
+            _homePageResourceShow.value =
+                repository.getHomePageResourceShow(res = GetHomePageResourceShow())
         }
     }
+
     fun getColors(url: String): Color? {
         return colorRepository.getColor(url)
     }

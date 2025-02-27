@@ -47,11 +47,7 @@ fun OptimizedBlurredImage(
             ).asComposeRenderEffect()
         )
     }
-
-
     val cf = remember { imageWithDynamicFilter(isDarkTheme) }
-
-
     // 动画控制，降低刷新频率
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
@@ -81,7 +77,7 @@ fun OptimizedBlurredImage(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.65f))
+            .background(if(isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f))
     )
 }
 

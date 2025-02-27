@@ -148,7 +148,7 @@ fun RecommendCard(
                         style = TextStyle(
                             shadow = Shadow(
                                 color = Color.Black,
-                                offset = Offset(2f, 2f),
+                                offset = Offset(4f, 4f),
                                 blurRadius = 8f
                             )
                         )

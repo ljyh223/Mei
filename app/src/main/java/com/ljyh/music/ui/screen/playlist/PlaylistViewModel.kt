@@ -6,11 +6,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import androidx.paging.cachedIn
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.SongUrl
 import com.ljyh.music.data.model.room.Like
-import com.ljyh.music.data.network.ApiService
+import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.PlaylistRepository
 import com.ljyh.music.di.LikeRepository
@@ -69,7 +68,7 @@ class PlaylistViewModel @Inject constructor(
                             prefetchDistance = 5, // 预加载距离
                             enablePlaceholders = true // 是否启用占位符
                         ),
-                        pagingSourceFactory = { PlaylistTrackSource(apiService,playlistDetail.playlist.tracks, id ) }
+                        pagingSourceFactory = { PlaylistTrackSource(apiService,playlistDetail.playlist.tracks, playlistDetail.playlist.trackIds.map { it.id.toString() }.toList() ) }
                     ).flow
                 }
             }

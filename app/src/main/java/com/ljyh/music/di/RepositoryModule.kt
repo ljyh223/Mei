@@ -1,13 +1,12 @@
 package com.ljyh.music.di
 
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.room.Song
-import com.ljyh.music.data.network.ApiService
+import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.QQMusicCApiService
 import com.ljyh.music.data.network.QQMusicUApiService
+import com.ljyh.music.data.network.api.WeApiService
 import com.ljyh.music.data.repository.HomeRepository
 import com.ljyh.music.data.repository.PlaylistRepository
 import com.ljyh.music.data.repository.ShareRepository
@@ -26,8 +25,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideHomeRepository(apiService: ApiService): HomeRepository {
-        return HomeRepository(apiService)
+    fun provideHomeRepository(weApiService: WeApiService): HomeRepository {
+        return HomeRepository(weApiService)
     }
 
 
@@ -46,7 +45,7 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideShareRepository(apiService: ApiService, qqMusicApiCService: QQMusicCApiService,qqMusicUApiService: QQMusicUApiService ): ShareRepository {
+    fun provideShareRepository(apiService: ApiService, qqMusicApiCService: QQMusicCApiService, qqMusicUApiService: QQMusicUApiService ): ShareRepository {
         return ShareRepository(apiService,qqMusicApiCService,qqMusicUApiService)
     }
 }
