@@ -1,15 +1,24 @@
 package com.ljyh.music.data.model.api
 
+import com.google.gson.annotations.SerializedName
+
 data class GetSongUrlV1(
-    val ids: String = "[]",
-    val level: String = "standard",
-    val encodeType: String = "flac",
+    @SerializedName("ids")
+    var ids: String,
+    @SerializedName("br")
+    var br: Int = 999000,
+    @SerializedName("level")
+    var level: String = "standard",
+    @SerializedName("encodeType")
+    var encodeType: String = "flac",
 )
 
 
 data class GetSongUrl(
+    @SerializedName("ids")
     var ids: String,
-    val br: Int = 999000,
+    @SerializedName("br")
+    var br: Int = 999000,
 ){
     init {
         ids= "[${ids}]"

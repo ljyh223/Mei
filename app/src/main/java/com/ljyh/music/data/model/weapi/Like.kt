@@ -1,14 +1,14 @@
 package com.ljyh.music.data.model.weapi
 
-//const data = {
-//    alg: 'itembased',
-//    trackId: query.id,
-//    like: query.like,
-//    time: '3',
-//}
+import com.google.gson.annotations.SerializedName
+
 data class Like(
+    @SerializedName("alg")
     val alg: String = "itembased",
+    @SerializedName("trackId")
     val trackId: String,
+    @SerializedName("like")
     val like: Boolean,
+    @SerializedName("time")
     val time: String = "3"
 )
