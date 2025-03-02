@@ -12,6 +12,8 @@ sealed class Screen(val route:String) {
     data object Search:Screen("search")
     data object PlayList:Screen("playlist")
     data object Setting:Screen("setting")
+    data object ContentSettings:Screen(("setting/content"))
+    data object AppearanceSettings:Screen("setting/appearance")
     data object Test:Screen("test")
     inline fun navigate(
         navController: NavController,

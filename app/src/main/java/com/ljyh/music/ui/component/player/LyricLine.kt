@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ljyh.music.constants.LyricTextAlignment
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.utils.textDp
 import kotlin.math.min
@@ -91,12 +92,14 @@ fun LyricLineView(
 fun LyricLineDemo1(
     line: LyricLine,
     currentTimeMs: Long, // -1 表示非当前行
+    textSize:Int,
+    textBold:Boolean,
+    textAlign: LyricTextAlignment,
     parentWidthDp: Dp,
     transitionWidth: Float = 0.3f,
     onClick: () -> Unit
 ) {
     val density = LocalDensity.current
-    val textSize = 20
 
     val textMeasurer = rememberTextMeasurer()
     val mainTextSize = textSize.textDp
@@ -111,13 +114,22 @@ fun LyricLineDemo1(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val maxTextWidth = with(density) { (screenWidth - PlayerHorizontalPadding * 2 - 16.dp).toPx() }
     val textAlpha = animateFloatAsState(if (currentTimeMs >= 0) 1F else 0.32F, label = "").value
-
+    val textAlignment=when(textAlign){
+        LyricTextAlignment.Left -> TextAlign.Left
+        LyricTextAlignment.Center -> TextAlign.Center
+        LyricTextAlignment.Right -> TextAlign.Right
+    }
+    val fontWeight:FontWeight = if(textBold){
+        if (currentTimeMs>0) FontWeight.W800 else FontWeight.W600
+    }else{
+        if (currentTimeMs>0) FontWeight.Bold else FontWeight.Normal
+    }
     val mainTextStyle = TextStyle(
         fontSize = mainTextSize,
         color = mainTextColor,
-        fontWeight = FontWeight.W800,
+        fontWeight = fontWeight,
         lineHeight = mainTextSize * 1.5F,
-
+        textAlign = textAlignment
         )
     val mainTextLayoutResult = textMeasurer.measure(
         text = line.lyric,
@@ -127,8 +139,9 @@ fun LyricLineDemo1(
     val translationTextStyle = TextStyle(
         fontSize = translationTextSize,
         color = translationTextColor,
-        fontWeight = FontWeight.W800,
-        lineHeight = translationTextSize * 1.5F
+        fontWeight = fontWeight,
+        lineHeight = translationTextSize * 1.5F,
+        textAlign = textAlignment
     )
     val translationLayoutResult = textMeasurer.measure(
         text = line.translation ?: "",

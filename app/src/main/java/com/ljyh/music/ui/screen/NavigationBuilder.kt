@@ -2,6 +2,8 @@ package com.ljyh.music.ui.screen
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.ui.util.fastAny
+import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -11,6 +13,8 @@ import com.ljyh.music.ui.component.player.Test
 import com.ljyh.music.ui.screen.index.home.HomeScreen
 import com.ljyh.music.ui.screen.index.library.LibraryScreen
 import com.ljyh.music.ui.screen.playlist.PlaylistScreen
+import com.ljyh.music.ui.screen.setting.AppearanceSettings
+import com.ljyh.music.ui.screen.setting.ContentsSetting
 import com.ljyh.music.ui.screen.setting.SettingScreen
 
 
@@ -31,8 +35,16 @@ fun NavGraphBuilder.navigationBuilder(
         Test()
     }
 
-    composable(Screen.Setting.route){
-        SettingScreen()
+    composable(Screen.Setting.route) {
+        SettingScreen(scrollBehavior)
+    }
+
+    composable(Screen.AppearanceSettings.route) {
+        AppearanceSettings(scrollBehavior)
+    }
+
+    composable(Screen.ContentSettings.route) {
+        ContentsSetting(scrollBehavior)
     }
 
     composable(
@@ -44,5 +56,12 @@ fun NavGraphBuilder.navigationBuilder(
         )
     ) {
         PlaylistScreen(id = it.arguments!!.getLong("id"))
+    }
+}
+
+
+fun NavController.backToMain() {
+    while (!Screen.MainScreens.fastAny { it.route == currentBackStackEntry?.destination?.route }) {
+        navigateUp()
     }
 }

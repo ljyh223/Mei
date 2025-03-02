@@ -87,7 +87,7 @@ interface ApiService {
     /*
     * 获取用户信息
     * */
-    @GET("/api/nuser/account/get")
+    @POST("/api/nuser/account/get")
     suspend fun getAccountDetail(): UserAccount
 
     /*
@@ -102,7 +102,6 @@ interface ApiService {
     /*
     * 获取歌词 新接口
     * */
-
     @POST("/api/song/lyric/v1")
     suspend fun getLyricV1(
         @Body body: GetLyricV1
@@ -129,9 +128,4 @@ interface ApiService {
     @POST("/api/user/photo/album/get")
     suspend fun getUserPhotoAlbum(@Body body: GetUserPhotoAlbum): AlbumPhoto
 
-    /**
-     * 每日推荐歌曲
-     */
-//    @GET("/api/v3/discovery/recommend/songs")
-//    suspend fun getDailyRecommendSongList(): DailyRecommendSongs
 }

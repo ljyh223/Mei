@@ -51,11 +51,14 @@ import com.ljyh.music.constants.DarkModeKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
+import com.ljyh.music.data.model.Lyric
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.data.model.emptyLyric
 import com.ljyh.music.data.model.parseYrc
 import com.ljyh.music.data.model.qq.c.LyricCmd
 import com.ljyh.music.data.model.qq.c.emptyLyricCmd
+import com.ljyh.music.data.model.qq.u.LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo
+import com.ljyh.music.data.model.qq.u.emptyData
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.ShareViewModel
 import com.ljyh.music.ui.component.BottomSheet
@@ -74,7 +77,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.decodeFromString
 import nl.adaptivity.xmlutil.serialization.XML
-
 
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -109,8 +111,9 @@ fun BottomSheetPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     var cover by remember { mutableStateOf("") }
-    val album by remember { mutableStateOf("") }
-    val singer by remember { mutableStateOf("") }
+    var album by remember { mutableStateOf("") }
+    var artist by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf("") }
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
@@ -119,11 +122,15 @@ fun BottomSheetPlayer(
     }
 
     var netLyric by remember { mutableStateOf(emptyLyric) }
-    var qqLyric by remember { mutableStateOf(emptyLyricCmd) }
+    var qqLyric by remember {
+        mutableStateOf(
+            emptyData
+        )
+    }
 
     val netLyricResult by viewmodel.lyric.collectAsState()
-    val qLyricResult by viewmodel.qLyric.collectAsState()
-    val qqSearch by viewmodel.searchU.collectAsState()
+    val searchNew by viewmodel.searchNew.collectAsState()
+    val lyricNew by viewmodel.lyricNew.collectAsState()
 
 
     val lyricLine = remember {
@@ -146,17 +153,8 @@ fun BottomSheetPlayer(
 
 
     LaunchedEffect(qqLyric, netLyric) {
-        val qrc = QRCUtils.decodeLyric(qqLyric.cmd.lyric.content.value)
-        val qrcT = QRCUtils.decodeLyric(qqLyric.cmd.lyric.contentTs.value)
-        if (qrc != "" && qrcT != "") {
-            Log.d("Lyric parse", "qrc and qrcT")
-            lyricLine.value = LyricData(
-                isVerbatim = true,
-                source = LyricSource.QQMusic,
-                lyricLine = QRCUtils.parse(qrc, qrcT)
-            )
-            return@LaunchedEffect
-        }
+        val qrc = QRCUtils.decodeLyric(qqLyric.lyric)
+        val qrcT = QRCUtils.decodeLyric(qqLyric.trans)
 
 
         if (netLyric.yrc != null && netLyric.tlyric != null) {
@@ -170,12 +168,22 @@ fun BottomSheetPlayer(
         }
 
 
+        if (qrc != "" && qrcT != "") {
+            Log.d("Lyric parse", "qrc and qrcT")
+            lyricLine.value = LyricData(
+                isVerbatim = true,
+                source = LyricSource.QQMusic,
+                lyricLine = QRCUtils.parse(qrc, qrcT)
+            )
+            return@LaunchedEffect
+        }
+
         if (qrc != "" && netLyric.tlyric != null) {
             Log.d("Lyric parse", "qrc and netLyric T")
             lyricLine.value = LyricData(
                 isVerbatim = true,
                 source = LyricSource.QQMusic,
-                lyricLine = QRCUtils.parse(qrc, netLyric.tlyric!!.lyric)
+                lyricLine = QRCUtils.parse(qrc, netLyric.tlyric?.lyric ?: "")
             )
             return@LaunchedEffect
         }
@@ -207,20 +215,23 @@ fun BottomSheetPlayer(
         if (!lyricLine.value.isVerbatim) {
             when (val result = netLyricResult) {
                 is Resource.Success -> {
-                    netLyric=result.data
+                    netLyric = result.data
                 }
 
-                is Resource.Error -> lyricLine.value = LyricData(
-                    isVerbatim = false,
-                    lyricLine = listOf(
-                        LyricLine(
-                            lyric = "歌词加载错误",
-                            startTimeMs = 0,
-                            durationMs = 0,
-                            words = emptyList()
+                is Resource.Error -> {
+                    Log.d("searchLyric", result.toString())
+                    lyricLine.value = LyricData(
+                        isVerbatim = false,
+                        lyricLine = listOf(
+                            LyricLine(
+                                lyric = "歌词加载错误",
+                                startTimeMs = 0,
+                                durationMs = 0,
+                                words = emptyList()
+                            )
                         )
                     )
-                )
+                }
 
                 Resource.Loading -> {}
             }
@@ -229,29 +240,30 @@ fun BottomSheetPlayer(
     }
 
     // 检索qq音乐的歌曲
-    LaunchedEffect(qqSearch) {
-        when (val result = qqSearch) {
+    LaunchedEffect(searchNew) {
+        when (val result = searchNew) {
             is Resource.Success -> {
-                if (result.data.code != 0) {
-                    Log.d("searchLyric", "qqSearch error")
-                    qqLyric= emptyLyricCmd
-                    return@LaunchedEffect
-                }
-                val sid =
-                    result.data.req.data.body.song.list.find { singer == it.singer[0].name || album == it.album.name}?.id
-                if (sid != null) {
-                    Log.d("searchLyric", "id ==>$sid")
-                    viewmodel.getQQMusicLyric(sid.toString())
+                Log.d("searchLyric", result.toString())
+                val s =
+                    result.data.req0.data.body.song.list.find { it.title == title && it.singer.any { si -> si.name == artist } }
+                if (s != null) {
+                    Log.d("searchLyric", "id ==>${s.id}")
+                    viewmodel.getLyricNew(
+                        title = title,
+                        album = album,
+                        artist = artist,
+                        duration = s.interval,
+                        id = s.id
+                    )
                 } else {
                     Log.d("searchLyric", "qqSearch id is null")
-                    qqLyric= emptyLyricCmd
+                    qqLyric = emptyData
                 }
             }
 
 
-
             is Resource.Error -> {
-                qqLyric= emptyLyricCmd
+                qqLyric = emptyData
                 Log.d("searchLyric", result.message)
             }
 
@@ -261,21 +273,14 @@ fun BottomSheetPlayer(
     }
 
     //获取qq音乐的歌词
-    LaunchedEffect(qLyricResult) {
-        when (val result = qLyricResult) {
+    LaunchedEffect(lyricNew) {
+        when (val result = lyricNew) {
             is Resource.Success -> {
-                if(result.data=="") {
-                    qqLyric= emptyLyricCmd
-                    return@LaunchedEffect
-                }
-                val lyricXml = extractContent(result.data).replace("<miniversion=\"1\" />", "")
-                val xmlParser = XML { indent = 4 }
-                val xLyric = xmlParser.decodeFromString<LyricCmd>(lyricXml)
-                qqLyric= xLyric
+                qqLyric = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data
             }
 
             is Resource.Error -> {
-                qqLyric= emptyLyricCmd
+                qqLyric = emptyData
                 Log.d("qLyric", result.message)
             }
 
@@ -301,8 +306,8 @@ fun BottomSheetPlayer(
     }
     // 在这里处理 mediaMetadata 的变化
     LaunchedEffect(mediaMetadata) {
-        qqLyric= emptyLyricCmd
-        netLyric= emptyLyric
+        qqLyric = emptyData
+        netLyric = emptyLyric
         lyricLine.value = LyricData(
             isVerbatim = false,
             lyricLine = listOf(
@@ -315,9 +320,14 @@ fun BottomSheetPlayer(
             )
         )
         mediaMetadata?.let {
-            viewmodel.searchU("${it.title} ${it.artists[0].name}")
-            viewmodel.getLyric(it.id.toString())
             cover = it.coverUrl
+            artist = it.artists[0].name
+            title = it.title
+            album = it.album.title
+
+            viewmodel.getLyricV1(it.id.toString())
+            viewmodel.searchNew(it.title)
+
         }
     }
 
@@ -423,6 +433,7 @@ fun BottomSheetPlayer(
                     when (page) {
                         0 -> {
                             mediaMetadata?.let {
+
                                 Column(
                                     modifier = Modifier.fillMaxSize(),
                                     verticalArrangement = Arrangement.Bottom

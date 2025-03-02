@@ -58,6 +58,7 @@ import androidx.navigation.compose.rememberNavController
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.constants.AppBarHeight
+import com.ljyh.music.constants.DynamicThemeKey
 import com.ljyh.music.constants.FirstLaunchKey
 import com.ljyh.music.constants.MiniPlayerHeight
 import com.ljyh.music.constants.NavigationBarAnimationSpec
@@ -81,13 +82,14 @@ import com.ljyh.music.ui.screen.navigationBuilder
 import com.ljyh.music.ui.theme.MusicTheme
 import com.ljyh.music.utils.MusicUtils
 import com.ljyh.music.ui.component.utils.appBarScrollBehavior
-import com.ljyh.music.utils.checkAndRequestFilesPermissions
-import com.ljyh.music.utils.checkAndRequestNotificationPermission
-import com.ljyh.music.utils.checkFilesPermissions
 import com.ljyh.music.utils.createNotificationChannel
 import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.get
 import com.ljyh.music.ui.component.utils.resetHeightOffset
+import com.ljyh.music.utils.checkAndRequestFilesPermissions
+import com.ljyh.music.utils.checkAndRequestNotificationPermission
+import com.ljyh.music.utils.checkFilesPermissions
+import com.ljyh.music.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
@@ -145,6 +147,7 @@ class MainActivity : ComponentActivity() {
             val active by rememberSaveable {
                 mutableStateOf(false)
             }
+            val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
 
             //根据图片加载主题色
             val loader = rememberNetworkLoader()
@@ -154,7 +157,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(playerConnection) {
                 val playerConnection = playerConnection ?: return@LaunchedEffect
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
-                    if (song != null) {
+                    if (dynamicTheme && song != null) {
                         coverUrl.value = song.coverUrl
                         withContext(Dispatchers.IO) {
                             val cachedColor = database.colorDao().getColor(song.coverUrl)

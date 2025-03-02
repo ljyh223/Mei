@@ -7,12 +7,13 @@ import com.ljyh.music.data.model.api.GetUserPhotoAlbum
 import com.ljyh.music.data.model.api.GetUserPlaylist
 import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.Resource
+import com.ljyh.music.data.network.api.EApiService
 import com.ljyh.music.data.network.safeApiCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 
-class UserRepository(private val apiService: ApiService) {
+class UserRepository(private val apiService: ApiService,private val eApiService: EApiService) {
     suspend fun getUserAccount(): Resource<UserAccount> {
         return withContext(Dispatchers.IO) {
             safeApiCall { apiService.getAccountDetail() }

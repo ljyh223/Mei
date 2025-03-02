@@ -131,6 +131,8 @@ dependencies {
     implementation(libs.logging.interceptor)
     implementation(kotlin("reflect"))
 
+    implementation(libs.android.gpuimage)
+
 
 }
 kotlin {

@@ -129,7 +129,6 @@ class MusicService : MediaLibraryService(),
 
     private val songUrlCache = mutableMapOf<String, SongCache>()
 
-
     override fun onCreate() {
         super.onCreate()
 
@@ -175,6 +174,8 @@ class MusicService : MediaLibraryService(),
                 addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
             }
 
+
+
         audioPlayer = AudioPlayer(player)
 
         mediaSession = MediaLibrarySession.Builder(this, player, LibrarySessionCallback())
@@ -202,6 +203,8 @@ class MusicService : MediaLibraryService(),
 
 
     }
+
+
 
     private fun openAudioEffectSession() {
         if (isAudioEffectSessionOpened) return

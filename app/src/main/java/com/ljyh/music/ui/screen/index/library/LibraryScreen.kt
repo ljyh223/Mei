@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -46,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
 import com.ljyh.music.constants.AppBarHeight
+import com.ljyh.music.constants.CookieKey
 import com.ljyh.music.constants.UserAvatarUrlKey
 import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.constants.UserNicknameKey
@@ -74,6 +76,7 @@ fun LibraryScreen(
     val (userNickname, setUserNickname) = rememberPreference(UserNicknameKey, "")
     val (userAvatarUrl, setUserAvatarUrl) = rememberPreference(UserAvatarUrlKey, "")
     val (userPhoto, setUserPhoto) = rememberPreference(UserPhotoKey, "")
+    val cookie by rememberPreference(CookieKey, defaultValue = "")
 //    var userPhoto by remember { mutableStateOf("") }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -91,20 +94,24 @@ fun LibraryScreen(
         Log.d("libraryScreen", "userId: $userId")
         if (userId != "") {
             viewModel.getUserPlaylist(userId)
-            if(userPhoto=="") {
+            if (userPhoto == "") {
                 viewModel.getPhotoAlbum(userId)
             }
-        } else viewModel.getUserAccount()
+        } else if (cookie != "") {
+            viewModel.getUserAccount()
+        }
     }
 
-    when(val result=photoAlbum){
-        is Resource.Error->{
-            Log.d("photoAlbum",result.toString())
+    when (val result = photoAlbum) {
+        is Resource.Error -> {
+            Log.d("photoAlbum", result.toString())
         }
-        Resource.Loading->{
-            Log.d("photoAlbum",result.toString())
+
+        Resource.Loading -> {
+            Log.d("photoAlbum", result.toString())
         }
-        is Resource.Success ->{
+
+        is Resource.Success -> {
             setUserPhoto(result.data.data.records[0].imageUrl)
         }
     }
@@ -127,8 +134,9 @@ fun LibraryScreen(
     }
 
 
-    Column (
-        modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
             .verticalScroll(scrollState),
     ) {
         Spacer(
@@ -137,13 +145,23 @@ fun LibraryScreen(
             )
         )
         if (userId != "") {
-                User(
-                    userId = userId,
-                    userNickname = userNickname,
-                    userAvatarUrl = userAvatarUrl,
-                    userPhoto = userPhoto
-                )
-                Spacer(Modifier.height(10.dp))
+            User(
+                userId = userId,
+                userNickname = userNickname,
+                userAvatarUrl = userAvatarUrl,
+                userPhoto = userPhoto
+            )
+            Spacer(Modifier.height(10.dp))
+        } else if (cookie == "") {
+            Button(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                onClick = {
+                    Screen.Setting.navigate(navController)
+                },
+            ) {
+                Text("去填写cookie")
+
+            }
         }
 
 
@@ -180,20 +198,17 @@ fun User(
     userId: String,
     userNickname: String,
     userAvatarUrl: String,
-    userPhoto:String
+    userPhoto: String
 ) {
     val context = LocalContext.current
     val navController = LocalNavController.current
-    val count = remember { mutableIntStateOf(0) }
-    if(count.intValue>3){
-        Screen.Setting.navigate(navController)
-    }
     Box(
-        modifier = Modifier.fillMaxWidth()
-            .aspectRatio(4f/3)
-    ){
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(4f / 3)
+    ) {
 
-        if(userPhoto!=""){
+        if (userPhoto != "") {
             AsyncImage(
                 model = userPhoto,
                 contentDescription = null,
@@ -203,7 +218,7 @@ fun User(
                     .fadingEdge(
                         top = WindowInsets.systemBars
                             .asPaddingValues()
-                            .calculateTopPadding() + AppBarHeight,
+                            .calculateTopPadding(),
                         bottom = 64.dp
                     ),
                 contentScale = ContentScale.Crop
@@ -213,11 +228,12 @@ fun User(
 
 
         AsyncImage(
-            model =userAvatarUrl.largeImage(),
+            model = userAvatarUrl.largeImage(),
             contentDescription = null,
             modifier = Modifier
                 .size(72.dp)
                 .align(Alignment.Center)
+                .clickable { Screen.Setting.navigate(navController) }
                 .clip(RoundedCornerShape(36.dp)),
         )
         Text(
@@ -238,9 +254,6 @@ fun User(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(vertical = 32.dp)
-                .clickable {
-                    count.value+=1
-                }
 
         )
     }

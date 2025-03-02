@@ -30,15 +30,23 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.ljyh.music.R
+import com.ljyh.music.constants.LyricTextAlignment
+import com.ljyh.music.constants.LyricTextAlignmentKey
+import com.ljyh.music.constants.LyricTextBoldKey
+import com.ljyh.music.constants.LyricTextSizeKey
 import com.ljyh.music.playback.PlayerConnection
 import com.ljyh.music.utils.dp2px
+import com.ljyh.music.utils.rememberEnumPreference
+import com.ljyh.music.utils.rememberPreference
 
 @Composable
 fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, position: Long) {
     val state = rememberLazyListState()
     val isUserScrolling by remember { derivedStateOf { state.isScrollInProgress } }
     val currentTextElementHeightPx = remember { mutableIntStateOf(0) }
-
+    val lyricTextAlignment by rememberEnumPreference(LyricTextAlignmentKey, defaultValue = LyricTextAlignment.Left)
+    val lyricTextSize by rememberPreference(LyricTextSizeKey, defaultValue = "20")
+    val lyricTextBold by rememberPreference(LyricTextBoldKey, defaultValue = true)
     val currentLine = remember(position) {
         lyricData.lyricLine.lastOrNull { line ->
             line.words.any { word ->
@@ -47,6 +55,11 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
             } || position >= line.startTimeMs
         }
     }
+
+    val lyricStyleKey = remember(lyricTextSize, lyricTextAlignment, lyricTextBold) {
+        "${lyricTextSize}_${lyricTextAlignment}_${lyricTextBold}"
+    }
+
 
     val currentIndex = remember(currentLine) {
         lyricData.lyricLine.indexOfFirst { it == currentLine }
@@ -62,21 +75,6 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
             }
         }
         val parentWidthDp = maxWidth
-        val lyricsEntryListItems: (LazyListScope.() -> Unit) = {
-            items(
-                lyricData.lyricLine,
-                key = { lyric -> lyric.startTimeMs.toString() + lyric.lyric }) { lyric ->
-                val isActiveLine = lyric == currentLine
-                LyricLineDemo1(
-                    line = lyric,
-                    parentWidthDp = parentWidthDp,
-                    currentTimeMs = if (isActiveLine) position else -1,
-                ) {
-                    playerConnection.player.seekTo(lyric.startTimeMs)
-                }
-
-            }
-        }
 
         LazyColumn(
             Modifier
@@ -98,7 +96,22 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
             state = state
         ) {
             blackItem()
-            lyricsEntryListItems()
+            items(
+                lyricData.lyricLine,
+                key = { lyric -> lyric.startTimeMs.toString() + lyric.lyric +lyricStyleKey }) { lyric ->
+                val isActiveLine = lyric == currentLine
+                LyricLineDemo1(
+                    line = lyric,
+                    textSize = lyricTextSize.toInt(),
+                    textBold = lyricTextBold,
+                    textAlign = lyricTextAlignment,
+                    parentWidthDp = parentWidthDp,
+                    currentTimeMs = if (isActiveLine) position else -1,
+                ) {
+                    playerConnection.player.seekTo(lyric.startTimeMs)
+                }
+
+            }
             blackItem()
         }
 
@@ -117,7 +130,7 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
         )
 
 
-        LaunchedEffect(key1 = position, key2 = currentTextElementHeightPx.intValue) {
+        LaunchedEffect(key1 = position, key2 = currentTextElementHeightPx, key3 = lyricStyleKey) {
             if (!isUserScrolling) { // 只有当用户没有手动滚动时才自动滚动
                 val height = (dp2px(maxHeight.value) - currentTextElementHeightPx.intValue) / 2
                 state.animateScrollToItem((currentIndex + 1).coerceAtLeast(0), -height.toInt())

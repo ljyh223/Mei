@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.music.data.model.HomePageResourceShow
 import com.ljyh.music.data.model.Lyric
+import com.ljyh.music.data.model.UserAccount
+import com.ljyh.music.data.model.qq.u.LyricResult
 import com.ljyh.music.data.model.qq.u.Search
+import com.ljyh.music.data.model.qq.u.SearchResult
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.ShareRepository
 import com.ljyh.music.data.repository.UserRepository
@@ -18,6 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ShareViewModel @Inject constructor(
     private val repository: ShareRepository,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val _lyric = MutableStateFlow<Resource<Lyric>>(Resource.Loading)
@@ -28,21 +32,30 @@ class ShareViewModel @Inject constructor(
     val qLyric: StateFlow<Resource<String>> = _qLyric
 
 
-    private val _searchLyric = MutableStateFlow<Resource<String>>(Resource.Loading)
-    val searchLyric: StateFlow<Resource<String>> = _searchLyric
-
-
     private val _searchU = MutableStateFlow<Resource<Search>>(Resource.Loading)
     val searchU: StateFlow<Resource<Search>> = _searchU
 
-    private val _searchC = MutableStateFlow<Resource<com.ljyh.music.data.model.qq.c.Search>>(Resource.Loading)
-    val searchC: StateFlow<Resource<com.ljyh.music.data.model.qq.c.Search>> = _searchC
+    private val _searchNew = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
+    val searchNew: StateFlow<Resource<SearchResult>> = _searchNew
 
+    private val _lyricNew=MutableStateFlow<Resource<LyricResult>>(Resource.Loading)
+    val lyricNew: StateFlow<Resource<LyricResult>> = _lyricNew
+
+
+    private val _userAccount = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
+    val userAccount: StateFlow<Resource<UserAccount>> = _userAccount
     fun getLyric(id: String) {
-
         viewModelScope.launch {
             _lyric.value = Resource.Loading
             _lyric.value = repository.getLyric(id)
+        }
+    }
+
+
+    fun getLyricV1(id: String) {
+        viewModelScope.launch {
+            _lyric.value = Resource.Loading
+            _lyric.value = repository.getLyricV1(id)
         }
     }
 
@@ -56,14 +69,6 @@ class ShareViewModel @Inject constructor(
     }
 
 
-    fun searchLyric(songName: String, singerName: String) {
-        viewModelScope.launch {
-            _searchLyric.value = Resource.Loading
-            _searchLyric.value = repository.searchLyric(songName, singerName)
-        }
-    }
-
-
     fun searchU(keyword:String){
         viewModelScope.launch {
             _searchU.value = Resource.Loading
@@ -71,10 +76,26 @@ class ShareViewModel @Inject constructor(
         }
     }
 
-    fun searchC(keyword: String){
+    fun searchNew(keyword:String){
         viewModelScope.launch {
-            _searchC.value = Resource.Loading
-            _searchC.value = repository.searchC(keyword)
+            _searchNew.value = Resource.Loading
+            _searchNew.value = repository.searchNew(keyword)
         }
     }
+
+
+    fun getLyricNew(title:String, album:String, artist:String, duration:Int,id:Int){
+        viewModelScope.launch {
+            _lyricNew.value = Resource.Loading
+            _lyricNew.value = repository.getLyricNew(title, album, artist, duration, id)
+        }
+    }
+
+    fun getUserAccount(){
+        viewModelScope.launch {
+            _userAccount.value = Resource.Loading
+            _userAccount.value = userRepository.getUserAccount()
+        }
+    }
+
 }

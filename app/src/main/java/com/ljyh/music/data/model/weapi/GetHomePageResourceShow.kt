@@ -5,15 +5,16 @@ import com.ljyh.music.utils.getCurrentTimestamp
 import com.ljyh.music.utils.getFormattedDate
 
 
+
 data class GetHomePageResourceShow(
     @SerializedName("adExtJson")
     val adExtJson: AdExtJson = AdExtJson(),
     @SerializedName("callbackParameters")
     val callbackParameters: String = "",
     @SerializedName("clientCacheBlockCode")
-    val clientCacheBlockCode: List<String> = emptyList(),
+    var clientCacheBlockCode: List<String> = emptyList(),
     @SerializedName("blockCodeOrderList")
-    val blockCodeOrderList: List<String> =listOf(
+    var blockCodeOrderList: List<String> = listOf(
         "PAGE_RECOMMEND_RANK",
         "PAGE_RECOMMEND_MUSIC_FM_LIST",
         "PAGE_RECOMMEND_RADAR",// 雷达歌单
@@ -37,11 +38,11 @@ data class GetHomePageResourceShow(
     @SerializedName("cursor")
     val cursor: Int = 0,
     @SerializedName("e_r")
-    val eR: Boolean=true,
+    val eR: Boolean = true,
     @SerializedName("extJson")
-    val extJson: ExtJson=ExtJson(),
+    val extJson: ExtJson = ExtJson(),
     @SerializedName("header")
-    val header: String="{}",
+    val header: String = "{}",
     @SerializedName("heightDp")
     val heightDp: String = "880.0",
     @SerializedName("isFirstScreen")
@@ -54,12 +55,120 @@ data class GetHomePageResourceShow(
     val reqTimeStamp: String = getCurrentTimestamp(),
     @SerializedName("widthDp")
     val widthDp: String = "411.42856"
-){
+) {
+    private val BlockCodeOrderList = listOf(
+        listOf(
+            "PAGE_RECOMMEND_RANK",//排行榜
+            "PAGE_RECOMMEND_MUSIC_FM_LIST",
+            "PAGE_RECOMMEND_RADAR",// 雷达歌单
+            "PAGE_RECOMMEND_ARTIST_FM_LIST",
+            "PAGE_RECOMMEND_FEELING_PLAYLIST_LOCATION",
+            "PAGE_RECOMMEND_DAILY_RECOMMEND", // 每日推荐
+            "PAGE_RECOMMEND_STYLE_PLAYLIST_1",
+            "PAGE_RECOMMEND_LBS",
+            "PAGE_RECOMMEND_MY_SHEET",
+            "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",
+            "PAGE_RECOMMEND_NEW_SONG_AND_ALBUM",
+            "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM",
+            "PAGE_RECOMMEND_PRIVATE_RCMD_SONG",
+            "PAGE_RECOMMEND_SPECIAL_ORIGIN_SONG_LOCATION",
+            "PAGE_RECOMMEND_VIP_CARD",
+            "PAGE_RECOMMEND_SCENE_PLAYLIST_LOCATION",
+            "PAGE_RECOMMEND_COMBINATION"
+        ),
+        listOf(
+
+            "PAGE_RECOMMEND_MIXED_ARTIST_PLAYLIST",
+            "PAGE_RECOMMEND_RED_SIMILAR_SONG",
+            "PAGE_RECOMMEND_PRIVATE_RCMD_SONG",
+            "PAGE_RECOMMEND_LBS",
+            "PAGE_RECOMMEND_RANK",
+            "PAGE_RECOMMEND_SURVEY",
+            "PAGE_RECOMMEND_MY_SHEET",
+            "PAGE_RECOMMEND_FIRM_PLAYLIST",
+            "PAGE_RECOMMEND_COMBINATION",
+            "PAGE_RECOMMEND_STYLE_PLAYLIST_1",
+            "PAGE_RECOMMEND_FEELING_PLAYLIST_LOCATION",
+            "PAGE_RECOMMEND_MUSIC_FM_LIST",
+            "PAGE_RECOMMEND_STYLE_PLAYLIST_2",
+            "PAGE_RECOMMEND_REAL_TIME_INTEREST_RCMD",
+            "PAGE_RECOMMEND_ARTIST_FM_LIST",
+            "PAGE_RECOMMEND_PODCAST_ALBUM_COVER",
+            "PAGE_RECOMMEND_PODCAST_MUSIC_RADIO",
+            "PAGE_RECOMMEND_MONTH_YEAR_PLAYLIST",
+            "PAGE_RECOMMEND_ARTIST_TREND",
+            "PAGE_RECOMMEND_VIP_CARD",
+            "PAGE_RECOMMEND_SCENE_PLAYLIST_LOCATION",
+            "PAGE_RECOMMEND_NEW_SONG_AND_ALBUM",
+            "PAGE_RECOMMEND_PODCAST_AUDIO_BOOK",
+            "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM",
+            "PAGE_RECOMMEND_BROADCAST",
+            "PAGE_RECOMMEND_SPECIAL_ORIGIN_SONG_LOCATION"
+        ),
+        listOf(
+
+            "PAGE_RECOMMEND_FIRM_PLAYLIST",
+            "PAGE_RECOMMEND_COMBINATION",
+            "PAGE_RECOMMEND_STYLE_PLAYLIST_1",
+            "PAGE_RECOMMEND_FEELING_PLAYLIST_LOCATION",
+            "PAGE_RECOMMEND_MUSIC_FM_LIST",
+            "PAGE_RECOMMEND_STYLE_PLAYLIST_2",
+            "PAGE_RECOMMEND_REAL_TIME_INTEREST_RCMD",
+            "PAGE_RECOMMEND_ARTIST_FM_LIST",
+            "PAGE_RECOMMEND_PODCAST_ALBUM_COVER",
+            "PAGE_RECOMMEND_PODCAST_MUSIC_RADIO",
+            "PAGE_RECOMMEND_MONTH_YEAR_PLAYLIST",
+            "PAGE_RECOMMEND_ARTIST_TREND",
+            "PAGE_RECOMMEND_VIP_CARD",
+            "PAGE_RECOMMEND_SCENE_PLAYLIST_LOCATION",
+            "PAGE_RECOMMEND_NEW_SONG_AND_ALBUM",
+            "PAGE_RECOMMEND_PODCAST_AUDIO_BOOK",
+            "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM",
+            "PAGE_RECOMMEND_BROADCAST",
+            "PAGE_RECOMMEND_SPECIAL_ORIGIN_SONG_LOCATION"
+        ),
+        listOf(
+            "PAGE_RECOMMEND_ARTIST_FM_LIST",
+            "PAGE_RECOMMEND_PODCAST_ALBUM_COVER",
+            "PAGE_RECOMMEND_PODCAST_MUSIC_RADIO",
+            "PAGE_RECOMMEND_MONTH_YEAR_PLAYLIST",
+            "PAGE_RECOMMEND_ARTIST_TREND",
+            "PAGE_RECOMMEND_VIP_CARD",
+            "PAGE_RECOMMEND_SCENE_PLAYLIST_LOCATION",
+            "PAGE_RECOMMEND_NEW_SONG_AND_ALBUM",
+            "PAGE_RECOMMEND_PODCAST_AUDIO_BOOK",
+            "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM",
+            "PAGE_RECOMMEND_BROADCAST",
+            "PAGE_RECOMMEND_SPECIAL_ORIGIN_SONG_LOCATION"
+        )
+
+    )
     init {
-        if(cursor>0){
-            isFirstScreen=false
-            extJson.refreshAction="pull"
-            extJson.firstRequestPerLaunch="false"
+        if (cursor > 0) {
+            isFirstScreen = false
+            extJson.refreshAction = "pull"
+            extJson.firstRequestPerLaunch = "false"
+        }
+
+
+        when(cursor){
+            0->{
+                blockCodeOrderList = BlockCodeOrderList[0]
+            }
+            8->{
+                blockCodeOrderList= BlockCodeOrderList[1]
+                clientCacheBlockCode= BlockCodeOrderList[0]
+            }
+
+            15->{
+                blockCodeOrderList= BlockCodeOrderList[2]
+                clientCacheBlockCode= BlockCodeOrderList[1]+BlockCodeOrderList[0]
+            }
+
+            22->{
+                blockCodeOrderList= BlockCodeOrderList[3]
+                clientCacheBlockCode= BlockCodeOrderList[2]+BlockCodeOrderList[1]+BlockCodeOrderList[0]
+            }
         }
     }
 
@@ -80,8 +189,8 @@ data class GetHomePageResourceShow(
         @SerializedName("requestLongVideoBanner")
         val requestLongVideoBanner: Boolean = true,
         @SerializedName("clientMobileSize")
-        val clientMobileSize: ClientMobileSize= ClientMobileSize()
-    ){
+        val clientMobileSize: ClientMobileSize = ClientMobileSize()
+    ) {
         data class ClientMobileSize(
             @SerializedName("height")
             val height: String = "2310",
@@ -89,8 +198,6 @@ data class GetHomePageResourceShow(
             val width: String = "1080"
         )
     }
-
-
 
 
     data class AdExtJson(

@@ -6,6 +6,7 @@ import com.ljyh.music.data.model.room.Song
 import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.QQMusicCApiService
 import com.ljyh.music.data.network.QQMusicUApiService
+import com.ljyh.music.data.network.api.EApiService
 import com.ljyh.music.data.network.api.WeApiService
 import com.ljyh.music.data.repository.HomeRepository
 import com.ljyh.music.data.repository.PlaylistRepository
@@ -38,8 +39,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideUserRepository(apiService: ApiService): UserRepository {
-        return UserRepository(apiService)
+    fun provideUserRepository(apiService: ApiService,eApiService: EApiService): UserRepository {
+        return UserRepository(apiService,eApiService)
     }
 
 

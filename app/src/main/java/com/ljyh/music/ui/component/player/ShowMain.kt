@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -31,9 +33,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,9 +48,15 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.ljyh.music.constants.CoverStyle
+import com.ljyh.music.constants.CoverStyleKey
+import com.ljyh.music.constants.IrregularityCoverKey
 import com.ljyh.music.constants.ThumbnailCornerRadius
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.playback.PlayerConnection
+import com.ljyh.music.ui.component.EnumListPreference
+import com.ljyh.music.utils.rememberEnumPreference
+import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.size1600
 import com.ljyh.music.utils.smallImage
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +70,11 @@ fun ShowMain(
 ) {
     val context = LocalContext.current
     var isLiked by remember { mutableStateOf(false) }
+    val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
+    val enabledIrregularityCoverKey by rememberPreference(
+        IrregularityCoverKey,
+        defaultValue = false
+    )
     LaunchedEffect(mediaMetadata.id) {
         isLiked = withContext(Dispatchers.IO) {
             playerConnection.isLike(mediaMetadata.id.toString())
@@ -73,13 +91,16 @@ fun ShowMain(
                 .data(mediaMetadata.coverUrl.size1600())
                 .crossfade(true) // 平滑过渡
                 .build(),
+            contentScale = ContentScale.Crop,
             contentDescription = "Loaded Image",
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(ThumbnailCornerRadius * 2))
-                .shadow(
-                    elevation = 16.dp,
-                    shape = RoundedCornerShape(ThumbnailCornerRadius * 2)
+                .aspectRatio(if (enabledIrregularityCoverKey) 1f else 1f)
+                .clip(
+                    when (coverStyle) {
+                        CoverStyle.Square -> RoundedCornerShape(ThumbnailCornerRadius * 2)
+                        CoverStyle.Circle -> CircleShape
+                    }
                 )
                 .pointerInput(Unit) {
                     detectTapGestures(

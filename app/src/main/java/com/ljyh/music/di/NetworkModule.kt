@@ -2,15 +2,24 @@ package com.ljyh.music.di
 
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.reflect.TypeToken
+import com.ljyh.music.AppContext
+import com.ljyh.music.constants.CookieKey
 import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.api.EApiService
 import com.ljyh.music.data.network.QQMusicCApiService
 import com.ljyh.music.data.network.QQMusicUApiService
 import com.ljyh.music.data.network.api.WeApiService
+import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.encrypt.createRandomKey
 import com.ljyh.music.utils.encrypt.decryptEApi
 import com.ljyh.music.utils.encrypt.encryptEApi
 import com.ljyh.music.utils.encrypt.encryptWeAPI
+import com.ljyh.music.utils.get
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,6 +51,7 @@ import kotlin.reflect.full.memberProperties
 object RetrofitModule {
 
     private const val BASE_URL = "https://interface.music.163.com/"
+    private const val DEBUG = true
 
     @Provides
     @Singleton
@@ -52,8 +62,11 @@ object RetrofitModule {
 
         val encryptionInterceptor = Interceptor { chain ->
             val originalRequest = chain.request()
+
+
             val url = originalRequest.url.toString()
             val headersBuilder = originalRequest.headers.newBuilder()
+
 
             // 确定加密方式
             val crypto = determineCryptoMethod(url)
@@ -65,6 +78,12 @@ object RetrofitModule {
             // 设置 User-Agent
             val userAgent = chooseUserAgent(crypto, "pc")
             headersBuilder.add("User-Agent", userAgent)
+
+//            if(originalRequest.method!="POST"){
+//
+//                val response = chain.proceed(newRequest)
+//                return@Interceptor chain.proceed(originalRequest)
+//            }
 
             // 获取请求体
             val originalBody = originalRequest.body
@@ -108,10 +127,18 @@ object RetrofitModule {
                 }
 
                 "api" -> {
-                    val res = Gson().fromJson(requestData, Map::class.java)
+
+                    println(requestData)
                     val formBodyBuilder = FormBody.Builder()
-                    for ((key, value) in res) {
-                        formBodyBuilder.add(key.toString(), value.toString())
+                    // 注册自定义解析器
+                    if(requestData!=""){
+                        val gson = GsonBuilder()
+                            .registerTypeAdapter(Map::class.java, DynamicMapDeserializer())
+                            .create()
+                        val res = gson.fromJson(requestData, Map::class.java)
+                        for ((key, value) in res) {
+                            formBodyBuilder.add(key.toString(), value.toString())
+                        }
                     }
                     originalRequest.newBuilder()
                         .headers(headersBuilder.build())
@@ -124,11 +151,10 @@ object RetrofitModule {
                     .method(originalRequest.method, originalBody)
                     .build()
             }
-
             val response = chain.proceed(newRequest)
             val responseBody = response.body
             // 解密响应数据
-            if (requestData.contains("e_r")) {
+            if (crypto=="weapi") {
                 val decryptedResponseBody = responseBody?.let { body ->
                     val encryptedBytes = body.bytes()
                     val decryptedBytes = decryptEApi(encryptedBytes)
@@ -143,37 +169,39 @@ object RetrofitModule {
             }
         }
 
-        val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-            override fun checkClientTrusted(
-                chain: Array<out X509Certificate>?,
-                authType: String?
-            ) {
+        return OkHttpClient.Builder().apply {
+            if (DEBUG) {
+                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                    override fun checkClientTrusted(
+                        chain: Array<out X509Certificate>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    override fun checkServerTrusted(
+                        chain: Array<out X509Certificate>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                })
+                val hostnameVerifier = HostnameVerifier { _, _ -> true }
+                // 创建 SSL 上下文并初始化
+                val sslContext = SSLContext.getInstance("TLS")
+                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
+                sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+                hostnameVerifier(hostnameVerifier)
             }
 
-            override fun checkServerTrusted(
-                chain: Array<out X509Certificate>?,
-                authType: String?
-            ) {
-            }
+            addInterceptor(loggingInterceptor)
+            addInterceptor(encryptionInterceptor)
+            connectTimeout(30, TimeUnit.SECONDS)
+            readTimeout(30, TimeUnit.SECONDS)
+            writeTimeout(30, TimeUnit.SECONDS)
 
-            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-        })
+        }.build()
 
-        // 创建一个不验证主机名的主机名验证器
-        val hostnameVerifier = HostnameVerifier { _, _ -> true }
-
-        // 创建 SSL 上下文并初始化
-        val sslContext = SSLContext.getInstance("TLS")
-        sslContext.init(null, trustAllCerts, java.security.SecureRandom())
-        return OkHttpClient.Builder()
-            .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-            .hostnameVerifier(hostnameVerifier)
-            .addInterceptor(loggingInterceptor)
-            .addInterceptor(encryptionInterceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .build()
     }
 
     @Provides
@@ -262,6 +290,8 @@ object RetrofitModule {
         // 这里可以根据需要实现具体的 Cookie 生成逻辑
         val MUSIC_U =
             "006503750A4B416ACE83191355213EC46491BFF92105213CD7A0101B11154F3FED93F869B0D0825102E06C02015190F81595D4185F02B7731650640BEA3F9C7F2BEA930E6D0F38C7486D8AF272284E56ECAB1A5727A6ACD8626FD01F2F53081A35C698F3575AB57141D46503F32176EC64F51EAA2469577AD63278642866EC5A305F4B332ECE583EC28FF34476F6A11F46B7608E193D7E9ECA1700B285AE1F231CC8BCF9E0533F742F6B00B05B9254571CB4D506708CF3993607B69CEA8B8143402BBDC918B433E9ACE157578C1E95E568C1A0BE38FA2033E9EBB646C7AAB79D19760949851141F75A1F966ABB8714709137B58AFBF20289AF9C374B74CE569D7B9D51CC5CAB37C94385A31E30C002C039FB5EA6C18C94C84762F498B9D897396C3918429C846D502E3454A25BC9F5F5035986801A3FB92CE445BBE521437224DC10F60CFBE5323B0563A89D262D1AD82F"
+
+
         val _ntes_nuid = createRandomKey(32)
         val os = when (crypto) {
             "weapi" -> "pc"
@@ -274,44 +304,11 @@ object RetrofitModule {
             "ntes_kaola_ad" to 1,
             "_ntes_nuid" to _ntes_nuid,
             "os" to osInfo?.os,
-            "MUSIC_U" to MUSIC_U
+            "MUSIC_U" to AppContext.instance.dataStore.get(CookieKey).toString()
         )
 
         return cookie.map { (key, value) -> "$key=$value" }.joinToString(";")
     }
-}
-
-
-// 自定义 Converter.Factory
-class FormUrlEncodedConverterFactory : Converter.Factory() {
-    override fun requestBodyConverter(
-        type: Type,
-        parameterAnnotations: Array<Annotation>,
-        methodAnnotations: Array<Annotation>,
-        retrofit: Retrofit
-    ): Converter<Any, RequestBody>? {
-        return if (type is Class<*> && type.kotlin.isData) {
-            Converter<Any, RequestBody> { value ->
-                val map = value.toMap()
-                val formBody = FormBody.Builder().apply {
-                    map.forEach { (key, value) ->
-                        add(key, value.toString())
-                    }
-                }.build()
-                formBody
-            }
-        } else {
-            null
-        }
-    }
-
-    private inline fun <reified T : Any> T.toMap(): Map<String, Any?> {
-        return T::class.memberProperties.associate { prop ->
-            prop.name to prop.get(this)
-        }
-    }
-
-
 }
 
 
@@ -350,3 +347,48 @@ val osMap = mapOf(
         channel = "distribution"
     )
 )
+
+// 自定义适配器，动态处理 JSON 中的数字类型
+class DynamicMapDeserializer : JsonDeserializer<Map<String, Any>> {
+    override fun deserialize(
+        json: JsonElement,
+        typeOfT: Type,
+        context: JsonDeserializationContext
+    ): Map<String, Any> {
+        return parseJsonElement(json) as Map<String, Any>
+    }
+
+    // 递归解析 JsonElement，自动判断类型
+    private fun parseJsonElement(json: JsonElement): Any {
+        return when {
+            json.isJsonObject -> {
+                val map = mutableMapOf<String, Any>()
+                json.asJsonObject.entrySet().forEach { (key, value) ->
+                    map[key] = parseJsonElement(value)
+                }
+                map
+            }
+
+            json.isJsonArray -> {
+                json.asJsonArray.map { parseJsonElement(it) }
+            }
+
+            json.isJsonPrimitive -> {
+                val primitive = json.asJsonPrimitive
+                when {
+                    primitive.isNumber -> {
+                        // 自动根据数字是否有小数点，决定使用 Int 还是 Double
+                        val number = primitive.asNumber
+                        if (number.toDouble() % 1 == 0.0) number.toInt() else number.toDouble()
+                    }
+
+                    primitive.isBoolean -> primitive.asBoolean
+                    else -> primitive.asString
+                }
+            }
+
+            else -> json.toString() // 其他情况，直接返回字符串形式
+        }
+    }
+}
+

@@ -7,6 +7,7 @@ converterGson = "2.11.0"
 core = "0.90.3"
 datastorePreferences = "1.1.2"
 foundation = "1.7.7"
+gpuimageVersion = "2.1.0"
 jaudiotagger = "3.0.1"
 korlibsCrypto = "6.0.0"
 kotlin = "2.0.0"
@@ -41,6 +42,7 @@ coreAnimation = "1.0.0"
 compose-settings = "2.10.0"
 greendao = "3.3.1"
 [libraries]
+android-gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimageVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
