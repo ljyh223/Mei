@@ -427,6 +427,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        unbindService(serviceConnection)
+    }
     companion object {
         const val ACTION_LIBRARY = "com.ljyh.music.action.LIBRARY"
     }

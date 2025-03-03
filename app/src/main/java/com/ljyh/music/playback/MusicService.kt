@@ -355,7 +355,7 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
-
+        CacheManager.release()
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)
@@ -372,12 +372,8 @@ class MusicService : MediaLibraryService(),
     }
 
     private fun createCacheDataSource(): CacheDataSource.Factory {
-
-
-        val evictor = LeastRecentlyUsedCacheEvictor((100 * 1024 * 1024 * 1024L))
-        val databaseProvider: DatabaseProvider = StandaloneDatabaseProvider(context)
-
-        val simpleCache = SimpleCache(File(context.cacheDir, "media"), evictor, databaseProvider)
+        Log.d("SimpleCache", "Creating CacheDataSource instance")
+        val simpleCache = CacheManager.getSimpleCache(context)
 
         return CacheDataSource.Factory()
             .setCache(simpleCache)
@@ -387,10 +383,8 @@ class MusicService : MediaLibraryService(),
                     OkHttpDataSource.Factory(OkHttpClient.Builder().build())
                 )
             )
-            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
     }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
     private fun createDataSourceFactory(): DataSource.Factory {
 
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->

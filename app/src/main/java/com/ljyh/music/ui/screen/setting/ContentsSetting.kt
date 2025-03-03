@@ -60,7 +60,7 @@ fun ContentsSetting(
     val userAccount by viewModel.userAccount.collectAsState()
 
     userName = when(val result=userAccount){
-        is Resource.Success-> result.data.profile.userName
+        is Resource.Success-> result.data.profile.nickname
         is Resource.Error -> "error"
         Resource.Loading -> "~~~"
     }
