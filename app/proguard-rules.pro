@@ -51,60 +51,9 @@
   @com.google.gson.annotations.SerializedName <fields>;
 }
 
-
-# 保留 ExoPlayer 相关类
--keep class androidx.media3.exoplayer.** { *; }
--dontwarn androidx.media3.exoplayer.**
-
-# 保留 SimpleCache 和其依赖类
--keep class androidx.media3.datasource.cache.SimpleCache { *; }
--keep class androidx.media3.database.StandaloneDatabaseProvider { *; }
-
-# 防止 R8 删除缓存相关的字段和方法
--keepclassmembers class androidx.media3.datasource.cache.SimpleCache {
-    private *;
-}
-
-# 防止 R8 删除 OkHttp 相关类
--keep class okhttp3.** { *; }
--dontwarn okhttp3.**
-
--keep,allowobfuscation,allowshrinking class * extends androidx.navigation.Navigator
--keep,allowobfuscation,allowshrinking @dagger.hilt.EntryPoint class *
--keep,allowobfuscation,allowshrinking @dagger.hilt.android.EarlyEntryPoint class *
--keep,allowobfuscation,allowshrinking @dagger.hilt.internal.ComponentEntryPoint class *
--keep,allowobfuscation,allowshrinking @dagger.hilt.internal.GeneratedEntryPoint class *
--keep,allowshrinking class * extends androidx.work.ListenableWorker
--keep class androidx.work.WorkerParameters
--keep,allowshrinking class * extends androidx.work.InputMerger
--keep,allowshrinking class * extends androidx.compose.ui.node.ModifierNodeElement
--keep class * extends androidx.room.RoomDatabase
--keep class io.ktor.client.engine.** implements io.ktor.client.HttpClientEngineContainer
--keep,allowobfuscation,allowshrinking,allowoptimization class <1>
--keep,allowshrinking class * extends androidx.startup.Initializer
--keep class * implements androidx.versionedparcelable.VersionedParcelable
--keep public class androidx.versionedparcelable.ParcelImpl
--keep,allowobfuscation @interface androidx.annotation.Keep
--keep,allowobfuscation interface <1>
--keep,allowobfuscation interface * extends <1>
--keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
--keep,allowobfuscation,allowshrinking,allowoptimization class <3>
--keep,allowobfuscation,allowshrinking class retrofit2.Response
--keep,allowshrinking class okhttp3.internal.publicsuffix.PublicSuffixDatabase
-
-# 保留 ServiceConnection 实现类
--keep class com.ljyh.music.playback.MusicService$* { *; }
-
--keep class android.content.ServiceConnection { *; }
-# 防止 R8 删除或混淆 MusicService 的生命周期方法
--keepclassmembers class com.ljyh.music.playback.MusicService {
-    public void onCreate();
-    public void onDestroy();
-}
-
-
-
-
+-keep,allowobfuscation,allowshrinking @dagger.hilt.EntryPoint class * { void (); }
+-keep,allowobfuscation,allowshrinking @dagger.hilt.android.AndroidEntryPoint class * { <init>(); }
+-keep class * extends androidx.room.RoomDatabase { <init> (); }
 # Please add these rules to your existing keep rules in order to suppress warnings.
 # This is generated automatically by the Android Gradle plugin.
 -dontwarn coil3.PlatformContext
@@ -122,3 +71,78 @@
 -dontwarn korlibs.crypto.encoding.Base64Kt
 -dontwarn korlibs.crypto.encoding.Hex
 -dontwarn korlibs.crypto.encoding.HexKt
+
+# 保留四大组件、自定义 Application
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+-keep public class * extends android.app.Application
+
+# Retrofit
+-keep class retrofit2.** { *; }
+-dontwarn retrofit2.**
+-keepattributes Signature
+-keepattributes Exceptions
+
+# Gson
+-keep class com.google.gson.** { *; }
+-keep class com.google.gson.stream.** { *; }
+
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# 保留枚举和注解类
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+-keepattributes *Annotation*
+
+-keepattributes Signature
+
+# 保持 Log 方法不被移除
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** e(...);
+}
+
+# Dagger Hilt 注解相关规则
+-keep,allowobfuscation,allowshrinking @dagger.hilt.EntryPoint class * { <init>(); }
+-keep,allowobfuscation,allowshrinking @dagger.hilt.android.EarlyEntryPoint class * { <init>(); }
+-keep,allowobfuscation,allowshrinking @dagger.hilt.internal.ComponentEntryPoint class * { <init>(); }
+-keep,allowobfuscation,allowshrinking @dagger.hilt.internal.GeneratedEntryPoint class * { <init>(); }
+
+
+# WorkManager 相关规则
+-keep,allowshrinking class * extends androidx.work.ListenableWorker { <init>(); }
+-keep class androidx.work.WorkerParameters { <init>(); }
+-keep,allowshrinking class * extends androidx.work.InputMerger { <init>(); }
+
+# Navigation 相关规则
+-keep,allowobfuscation,allowshrinking class * extends androidx.navigation.Navigator { <init>(); }
+
+# AndroidX Startup 相关规则
+-keep,allowshrinking class * extends androidx.startup.Initializer { <init>(); }
+
+# OkHttp 相关规则
+-keep,allowshrinking class okhttp3.internal.publicsuffix.PublicSuffixDatabase { <init>(); }
+
+# Retrofit 相关规则
+-keep,allowobfuscation interface *
+-keep,allowobfuscation interface * extends *
+-keep,allowobfuscation,allowshrinking class retrofit2.Response { <init>(); }
+
+# Ktor 相关规则
+-keep class io.ktor.client.engine.** implements io.ktor.client.HttpClientEngineContainer { <init>(); }
+
+# VersionedParcelable 相关规则
+-keep class * implements androidx.versionedparcelable.VersionedParcelable { <init>(); }
+-keep public class androidx.versionedparcelable.ParcelImpl { <init>(); }
+
+# AndroidX Annotations 相关规则
+-keep,allowobfuscation @interface androidx.annotation.Keep
+
+# Compose 相关规则
+-keep,allowshrinking class * extends androidx.compose.ui.node.ModifierNodeElement { <init>(); }

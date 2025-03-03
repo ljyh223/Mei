@@ -1,7 +1,6 @@
 package com.ljyh.music.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
 val FirstLaunchKey = booleanPreferencesKey("firstLaunch")
@@ -30,7 +29,7 @@ val DynamicThemeKey= booleanPreferencesKey("dynamicTheme")
 val LyricTextAlignmentKey = stringPreferencesKey("lyricTextAlignment")
 val LyricTextSizeKey = stringPreferencesKey("lyricTextSize")
 val LyricTextBoldKey = booleanPreferencesKey("lyricTextBold")
-val DynamicStreamer = booleanPreferencesKey("dynamicStreamer")
+val DynamicStreamerKey = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
 

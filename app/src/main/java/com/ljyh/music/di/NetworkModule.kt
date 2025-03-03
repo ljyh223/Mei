@@ -170,29 +170,29 @@ object RetrofitModule {
         }
 
         return OkHttpClient.Builder().apply {
-            if (DEBUG) {
-                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-                    override fun checkClientTrusted(
-                        chain: Array<out X509Certificate>?,
-                        authType: String?
-                    ) {
-                    }
-
-                    override fun checkServerTrusted(
-                        chain: Array<out X509Certificate>?,
-                        authType: String?
-                    ) {
-                    }
-
-                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                })
-                val hostnameVerifier = HostnameVerifier { _, _ -> true }
-                // 创建 SSL 上下文并初始化
-                val sslContext = SSLContext.getInstance("TLS")
-                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
-                sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-                hostnameVerifier(hostnameVerifier)
-            }
+//            if (DEBUG) {
+//                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+//                    override fun checkClientTrusted(
+//                        chain: Array<out X509Certificate>?,
+//                        authType: String?
+//                    ) {
+//                    }
+//
+//                    override fun checkServerTrusted(
+//                        chain: Array<out X509Certificate>?,
+//                        authType: String?
+//                    ) {
+//                    }
+//
+//                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+//                })
+//                val hostnameVerifier = HostnameVerifier { _, _ -> true }
+//                // 创建 SSL 上下文并初始化
+//                val sslContext = SSLContext.getInstance("TLS")
+//                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
+//                sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+//                hostnameVerifier(hostnameVerifier)
+//            }
 
             addInterceptor(loggingInterceptor)
             addInterceptor(encryptionInterceptor)

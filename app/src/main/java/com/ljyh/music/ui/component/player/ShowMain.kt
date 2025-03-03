@@ -33,12 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -54,7 +49,6 @@ import com.ljyh.music.constants.IrregularityCoverKey
 import com.ljyh.music.constants.ThumbnailCornerRadius
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.playback.PlayerConnection
-import com.ljyh.music.ui.component.EnumListPreference
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.size1600

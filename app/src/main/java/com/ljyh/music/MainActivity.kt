@@ -105,7 +105,9 @@ class MainActivity : ComponentActivity() {
     lateinit var database: AppDatabase
     private var userData by mutableStateOf(UserData.VISITOR)
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
-    private val serviceConnection = object : ServiceConnection {
+
+    private var isBound=false
+    private var serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             if (service is MusicService.MusicBinder) {
                 playerConnection =
@@ -123,20 +125,23 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         startService(Intent(this, MusicService::class.java))
+
         bindService(
             Intent(this, MusicService::class.java),
             serviceConnection,
             Context.BIND_AUTO_CREATE
         )
+        isBound=true
     }
 
     override fun onStop() {
-        unbindService(serviceConnection)
         super.onStop()
+        if(isBound) unbindService(serviceConnection)
+
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    @kotlin.OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -429,7 +434,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unbindService(serviceConnection)
+        if (isBound) {
+            unbindService(serviceConnection)
+            isBound = false
+        }
     }
     companion object {
         const val ACTION_LIBRARY = "com.ljyh.music.action.LIBRARY"

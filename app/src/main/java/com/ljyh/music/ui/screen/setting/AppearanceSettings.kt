@@ -1,7 +1,6 @@
 package com.ljyh.music.ui.screen.setting
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -11,8 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.AlignHorizontalLeft
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AlignHorizontalLeft
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
@@ -28,9 +25,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import com.ljyh.music.constants.CoverStyle
 import com.ljyh.music.constants.CoverStyleKey
+import com.ljyh.music.constants.DynamicStreamerKey
 import com.ljyh.music.constants.DynamicThemeKey
 import com.ljyh.music.constants.IrregularityCoverKey
 import com.ljyh.music.constants.LyricTextAlignment
@@ -38,8 +35,6 @@ import com.ljyh.music.constants.LyricTextAlignmentKey
 import com.ljyh.music.constants.LyricTextBoldKey
 import com.ljyh.music.constants.LyricTextSize
 import com.ljyh.music.constants.LyricTextSizeKey
-import com.ljyh.music.constants.UseQQMusicLyricKey
-import com.ljyh.music.ui.component.EditTextPreference
 import com.ljyh.music.ui.component.EnumListPreference
 import com.ljyh.music.ui.component.IconButton
 import com.ljyh.music.ui.component.PreferenceGroupTitle
@@ -83,7 +78,7 @@ fun AppearanceSettings(
     )
 
     val (dynamicStreamer,onDynamicStreamerChange) = rememberPreference(
-        DynamicThemeKey, defaultValue = true
+        DynamicStreamerKey, defaultValue = true
     )
 
     Scaffold(

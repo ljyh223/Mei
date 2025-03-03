@@ -2,10 +2,8 @@ package com.ljyh.music.ui.component.player
 
 import android.graphics.RenderEffect
 import android.graphics.Shader
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -14,12 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -27,17 +21,13 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.transformations
-import com.ljyh.music.constants.DynamicStreamer
-import com.ljyh.music.ui.component.BlurTransformation
+import com.ljyh.music.constants.DynamicStreamerKey
 import com.ljyh.music.ui.component.BlurTransformation1
-import com.ljyh.music.ui.component.utils.GPUImageBlurTransformation
 import com.ljyh.music.ui.component.utils.calculateScaleToFit
 import com.ljyh.music.ui.component.utils.imageWithDynamicFilter
 import com.ljyh.music.utils.middleImage
 import com.ljyh.music.utils.rememberPreference
-import com.ljyh.music.utils.size1600
 import com.ljyh.music.utils.smallImage
-import com.ljyh.music.utils.toPx
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -53,7 +43,7 @@ fun OptimizedBlurredImage(
     val isDarkTheme = isSystemInDarkTheme()
     val density = LocalDensity.current
     val cf = remember { imageWithDynamicFilter(isDarkTheme) }
-    val dynamicStreamer by rememberPreference(DynamicStreamer, defaultValue = true)
+    val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
     // 动画控制，降低刷新频率
     LaunchedEffect(isPlaying, dynamicStreamer) {
         if (dynamicStreamer)
