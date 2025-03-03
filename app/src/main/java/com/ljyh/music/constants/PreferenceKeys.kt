@@ -30,7 +30,7 @@ val DynamicThemeKey= booleanPreferencesKey("dynamicTheme")
 val LyricTextAlignmentKey = stringPreferencesKey("lyricTextAlignment")
 val LyricTextSizeKey = stringPreferencesKey("lyricTextSize")
 val LyricTextBoldKey = booleanPreferencesKey("lyricTextBold")
-
+val DynamicStreamer = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
 
@@ -42,4 +42,16 @@ enum class LyricTextAlignment {
     Left,
     Center,
     Right
+}
+
+
+enum class LyricTextSize {
+    Size18,
+    Size20,
+    Size22,
+    Size24,
+    Size26,
+    Size28,
+    Size30
+
 }

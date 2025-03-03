@@ -27,10 +27,14 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.transformations
+import com.ljyh.music.constants.DynamicStreamer
 import com.ljyh.music.ui.component.BlurTransformation
 import com.ljyh.music.ui.component.BlurTransformation1
+import com.ljyh.music.ui.component.utils.GPUImageBlurTransformation
 import com.ljyh.music.ui.component.utils.calculateScaleToFit
 import com.ljyh.music.ui.component.utils.imageWithDynamicFilter
+import com.ljyh.music.utils.middleImage
+import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.size1600
 import com.ljyh.music.utils.smallImage
 import com.ljyh.music.utils.toPx
@@ -48,63 +52,70 @@ fun OptimizedBlurredImage(
     val angle = remember { mutableFloatStateOf(0f) }
     val isDarkTheme = isSystemInDarkTheme()
     val density = LocalDensity.current
-    // 使用记忆化缓存模糊效果，避免重复计算
-//    val blurEffect by remember(blurRadius) {
-//        val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
-//
-//        mutableStateOf(
-//            RenderEffect.createBlurEffect(
-//                blurIntensity.roundToInt().toFloat(),
-//                blurIntensity.roundToInt().toFloat(),
-//                Shader.TileMode.CLAMP
-//            ).asComposeRenderEffect()
-//        )
-//    }
-
     val cf = remember { imageWithDynamicFilter(isDarkTheme) }
+    val dynamicStreamer by rememberPreference(DynamicStreamer, defaultValue = true)
     // 动画控制，降低刷新频率
-    LaunchedEffect(isPlaying) {
-        while (isPlaying) {
-            angle.value += 1f
-            delay(128L)
-        }
+    LaunchedEffect(isPlaying, dynamicStreamer) {
+        if (dynamicStreamer)
+            while (isPlaying) {
+                angle.value += 1f
+                delay(128L)
+            }
     }
 
     // 模糊背景图
-//    AsyncImage(
-//        model = ImageRequest.Builder(context)
-//            .placeholderMemoryCacheKey(cover.smallImage()) // 先用小图占位
-//            .data(cover.size1600())
-//            .build(),
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .scale(scale = calculateScaleToFit())
-//            .graphicsLayer {
-//                rotationZ = angle.floatValue
-//                renderEffect = blurEffect
-//            },
-//
-//        colorFilter = cf,
-//        contentDescription = null
-//    )
 
-    AsyncImage(
-        model = ImageRequest.Builder(context)
-            .data(cover.size1600())
-            .transformations(BlurTransformation1(context,25f, 10f))
-            .build(),
-        modifier = Modifier
-            .fillMaxSize()
-            .scale(scale = calculateScaleToFit()),
-        colorFilter = cf,
-        contentDescription = null
-    )
 
-    // 半透明叠加层，减少模糊计算的需求
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val blurEffect by remember(blurRadius) {
+            val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
+
+            mutableStateOf(
+                RenderEffect.createBlurEffect(
+                    blurIntensity.roundToInt().toFloat(),
+                    blurIntensity.roundToInt().toFloat(),
+                    Shader.TileMode.CLAMP
+                ).asComposeRenderEffect()
+            )
+        }
+
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .placeholderMemoryCacheKey(cover.smallImage()) // 先用小图占位
+                .data(cover.middleImage())
+                .build(),
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(scale = calculateScaleToFit())
+                .graphicsLayer {
+                    rotationZ = angle.floatValue
+                    renderEffect = blurEffect
+                },
+
+            colorFilter = cf,
+            contentDescription = null
+        )
+    } else {
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(cover.middleImage())
+                .transformations(BlurTransformation1(context, 15f, 5f))
+                .build(),
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(scale = calculateScaleToFit())
+                .graphicsLayer {
+                    rotationZ = angle.floatValue
+                },
+            colorFilter = cf,
+            contentDescription = null
+        )
+
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if(isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f))
+            .background(if (isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f))
     )
 }
 

@@ -54,7 +54,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun RecommendCard(
     cover: String,
-    title: String,
+    title: String?=null,
     extInfo: CardExtInfo,
     showPlay: Boolean = false,
     viewModel: HomeViewModel,
@@ -197,7 +197,7 @@ fun RecommendCard(
                 Text(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    text = title,
+                    text = title?:"",
                     modifier = Modifier.padding(8.dp),
                     maxLines = 1,
                     fontSize = 12.sp,

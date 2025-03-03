@@ -290,50 +290,7 @@ class MusicService : MediaLibraryService(),
         player.prepare()
     }
 
-    private fun createCacheDataSourceFactory(): DataSource.Factory {
-        val cache = SimpleCache(
-            File(context.cacheDir, "media"), // 缓存目录
-            LeastRecentlyUsedCacheEvictor(1024L * 1024 * 1024 * 1024), // 设置缓存大小为1G
-            StandaloneDatabaseProvider(context)
-        )
-        return CacheDataSource.Factory()
-            .setCache(cache)
-            .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context))
-            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
-    }
 
-//    fun playQueue(queue: Queue, playWhenReady: Boolean = true) {
-//        if (!scope.isActive) {
-//            scope = CoroutineScope(Dispatchers.Main) + Job()
-//        }
-//        currentQueue = queue
-//        queueTitle = null
-//        player.shuffleModeEnabled = false
-//        if (queue.preloadItem != null) {
-//            player.setMediaItem(queue.preloadItem!!.toMediaItem())
-//            player.prepare()
-//            player.playWhenReady = playWhenReady
-//        }
-//
-//        scope.launch(SilentHandler) {
-//            val initialStatus = withContext(Dispatchers.IO) {
-//                queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false))
-//            }
-//            if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
-//            if (initialStatus.title != null) {
-//                queueTitle = initialStatus.title
-//            }
-//            if (initialStatus.items.isEmpty()) return@launch
-//            if (queue.preloadItem != null) {
-//                player.addMediaItems(0, initialStatus.items.subList(0, initialStatus.mediaItemIndex))
-//                player.addMediaItems(initialStatus.items.subList(initialStatus.mediaItemIndex + 1, initialStatus.items.size))
-//            } else {
-//                player.setMediaItems(initialStatus.items, if (initialStatus.mediaItemIndex > 0) initialStatus.mediaItemIndex else 0, initialStatus.position)
-//                player.prepare()
-//                player.playWhenReady = playWhenReady
-//            }
-//        }
-//    }
 
     fun playQueue(queue: Queue, playWhenReady: Boolean = true, batchSize: Int = 10) {
         if (!scope.isActive) {
@@ -432,25 +389,6 @@ class MusicService : MediaLibraryService(),
             )
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
     }
-
-//    private fun createCacheDataSource(): CacheDataSource.Factory =
-//        CacheDataSource.Factory()
-//            .setCache(downloadCache)
-//            .setUpstreamDataSourceFactory(
-//                CacheDataSource.Factory()
-//                    .setCache(playerCache)
-//                    .setUpstreamDataSourceFactory(
-//                        DefaultDataSource.Factory(
-//                            this,
-//                            OkHttpDataSource.Factory(
-//                                OkHttpClient.Builder()
-//                                    .build()
-//                            )
-//                        )
-//                    )
-//            )
-//            .setCacheWriteDataSinkFactory(null)
-//            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun createDataSourceFactory(): DataSource.Factory {

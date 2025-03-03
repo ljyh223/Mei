@@ -51,6 +51,7 @@ import com.ljyh.music.constants.DarkModeKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
+import com.ljyh.music.constants.UseQQMusicLyricKey
 import com.ljyh.music.data.model.Lyric
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.data.model.emptyLyric
@@ -92,6 +93,7 @@ fun BottomSheetPlayer(
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
+    val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey,defaultValue = true)
     val useBlackBackground = remember(isSystemInDarkTheme, darkTheme, pureBlack) {
         val useDarkTheme =
             if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
@@ -326,7 +328,8 @@ fun BottomSheetPlayer(
             album = it.album.title
 
             viewmodel.getLyricV1(it.id.toString())
-            viewmodel.searchNew(it.title)
+            if(useQQMusicLyric) viewmodel.searchNew(it.title)
+
 
         }
     }

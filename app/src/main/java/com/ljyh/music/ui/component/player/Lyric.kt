@@ -100,7 +100,7 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
                 lyricData.lyricLine,
                 key = { lyric -> lyric.startTimeMs.toString() + lyric.lyric +lyricStyleKey }) { lyric ->
                 val isActiveLine = lyric == currentLine
-                LyricLineDemo1(
+                LyricLineBate(
                     line = lyric,
                     textSize = lyricTextSize.toInt(),
                     textBold = lyricTextBold,

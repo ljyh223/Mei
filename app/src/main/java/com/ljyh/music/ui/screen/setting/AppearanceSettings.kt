@@ -13,10 +13,12 @@ import androidx.compose.material.icons.automirrored.rounded.AlignHorizontalLeft
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AlignHorizontalLeft
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Stairs
+import androidx.compose.material.icons.rounded.TextRotationAngledown
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +36,7 @@ import com.ljyh.music.constants.IrregularityCoverKey
 import com.ljyh.music.constants.LyricTextAlignment
 import com.ljyh.music.constants.LyricTextAlignmentKey
 import com.ljyh.music.constants.LyricTextBoldKey
+import com.ljyh.music.constants.LyricTextSize
 import com.ljyh.music.constants.LyricTextSizeKey
 import com.ljyh.music.constants.UseQQMusicLyricKey
 import com.ljyh.music.ui.component.EditTextPreference
@@ -70,13 +73,17 @@ fun AppearanceSettings(
         LyricTextAlignmentKey,
         defaultValue = LyricTextAlignment.Left
     )
-    val (lyricTextSize, onLyricTextSizeChange) = rememberPreference(
+    val (lyricTextSize, onLyricTextSizeChange) = rememberEnumPreference(
         LyricTextSizeKey,
-        defaultValue = "20"
+        defaultValue = LyricTextSize.Size24
     )
     val (lyricTextBold, onLyricTextBoldChange) = rememberPreference(
         LyricTextBoldKey,
         defaultValue = true
+    )
+
+    val (dynamicStreamer,onDynamicStreamerChange) = rememberPreference(
+        DynamicThemeKey, defaultValue = true
     )
 
     Scaffold(
@@ -113,11 +120,18 @@ fun AppearanceSettings(
                 title = { Text("启用动态主题") },
                 icon = { Icon(Icons.Rounded.Palette, null) },
                 checked = dynamicTheme,
-                onCheckedChange = onDynamicThemeChange
+                onCheckedChange = onDynamicStreamerChange
             )
 
             PreferenceGroupTitle(
                 title = "PLAYER"
+            )
+
+            SwitchPreference(
+                title = { Text("启用动态背景") },
+                icon = { Icon(Icons.Rounded.TextRotationAngledown, null) },
+                checked = dynamicStreamer,
+                onCheckedChange = onDynamicThemeChange
             )
             SwitchPreference(
                 title = { Text("允许不规则封面") },
@@ -142,6 +156,12 @@ fun AppearanceSettings(
             PreferenceGroupTitle(
                 title = "LYRIC"
             )
+            SwitchPreference(
+                title = { Text("歌词字体加粗") },
+                icon = { Icon(Icons.Rounded.FormatBold, null)},
+                checked = lyricTextBold,
+                onCheckedChange = onLyricTextBoldChange
+            )
 
             EnumListPreference(
                 title = { Text("歌词文本对齐") },
@@ -157,19 +177,23 @@ fun AppearanceSettings(
                 }
             )
 
-            SwitchPreference(
-                title = { Text("歌词字体加粗") },
-                checked = lyricTextBold,
-                onCheckedChange = onLyricTextBoldChange
-            )
-
-            EditTextPreference(
+            EnumListPreference(
                 title = { Text("歌词字体大小") },
                 icon = { Icon(Icons.Rounded.FormatSize, null) },
-                value = lyricTextSize,
-                onValueChange = onLyricTextSizeChange,
+                selectedValue = lyricTextSize,
+                onValueSelected = onLyricTextSizeChange,
+                valueText = {
+                    when (it) {
+                        LyricTextSize.Size18 -> "18"
+                        LyricTextSize.Size20 -> "20"
+                        LyricTextSize.Size22 -> "22"
+                        LyricTextSize.Size24 -> "24"
+                        LyricTextSize.Size26 -> "26"
+                        LyricTextSize.Size28 -> "28"
+                        LyricTextSize.Size30 -> "30"
+                    }
+                }
             )
-
 
         }
     }

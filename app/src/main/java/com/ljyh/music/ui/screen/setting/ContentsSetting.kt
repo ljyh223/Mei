@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,11 +20,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.ljyh.music.constants.CookieKey
 import com.ljyh.music.constants.UseQQMusicLyricKey
+import com.ljyh.music.data.network.Resource
+import com.ljyh.music.ui.ShareViewModel
 import com.ljyh.music.ui.component.EditTextPreference
 import com.ljyh.music.ui.component.IconButton
+import com.ljyh.music.ui.component.PreferenceEntry
 import com.ljyh.music.ui.component.PreferenceGroupTitle
 import com.ljyh.music.ui.component.SwitchPreference
 import com.ljyh.music.ui.local.LocalNavController
@@ -35,17 +45,25 @@ import com.ljyh.music.utils.rememberPreference
 @Composable
 fun ContentsSetting(
     scrollBehavior: TopAppBarScrollBehavior,
+    viewModel: ShareViewModel= hiltViewModel()
 ) {
     val navController = LocalNavController.current
     val (useQQMusicLyric, onUseQQMusicLyricChange) = rememberPreference(
         UseQQMusicLyricKey,
-        defaultValue = false
+        defaultValue = true
     )
     val (cookie, onCookie) = rememberPreference(
         CookieKey,
         defaultValue = ""
     )
+    var userName by remember { mutableStateOf("") }
+    val userAccount by viewModel.userAccount.collectAsState()
 
+    userName = when(val result=userAccount){
+        is Resource.Success-> result.data.profile.userName
+        is Resource.Error -> "error"
+        Resource.Loading -> "~~~"
+    }
     Scaffold(
         topBar = {
 
@@ -89,6 +107,17 @@ fun ContentsSetting(
                 value = cookie,
                 onValueChange = onCookie
             )
+
+            PreferenceEntry(
+                title = { Text("测试Cookie") },
+                description = userName,
+                icon = { Icon(Icons.Rounded.TipsAndUpdates,null) },
+                onClick = {
+                    viewModel.getUserAccount()
+                }
+            )
+
+
         }
     }
 

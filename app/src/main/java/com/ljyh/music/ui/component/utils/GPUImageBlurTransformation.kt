@@ -9,7 +9,7 @@ import jp.co.cyberagent.android.gpuimage.filter.GPUImageGaussianBlurFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class GPUImageBlurTransformation(val context: Context, private val blurRadius: Float = 8f) : Transformation() {
+class GPUImageBlurTransformation(val context: Context, private val blurRadius: Float) : Transformation() {
 
     override val cacheKey: String = "gpuImageBlur-$blurRadius"
 
@@ -17,6 +17,7 @@ class GPUImageBlurTransformation(val context: Context, private val blurRadius: F
         return withContext(Dispatchers.Default) {
             val gpuImage = GPUImage(context)
             gpuImage.setImage(input)
+            gpuImage.setFilter(GPUImageGaussianBlurFilter(blurRadius))
             gpuImage.setFilter(GPUImageGaussianBlurFilter(blurRadius))
             gpuImage.bitmapWithFilterApplied
         }
