@@ -33,6 +33,8 @@ val DynamicStreamerKey = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
 
+
+val DebugKey = booleanPreferencesKey("debug")
 enum class CoverStyle {
     Circle,
     Square
@@ -44,6 +46,22 @@ enum class LyricTextAlignment {
 }
 
 
+//sealed class LyricTextSize(size:Int) {
+//    data object Size18:LyricTextSize(18)
+//    data object Size20:LyricTextSize(20)
+//    data object Size22:LyricTextSize(22)
+//    data object Size24:LyricTextSize(24)
+//    data object Size26:LyricTextSize(26)
+//    data object Size28:LyricTextSize(28)
+//    data object Size30:LyricTextSize(30)
+//    init {
+//        when(size){
+//            18,20,22,24,26,28,30->{}
+//            else->throw IllegalArgumentException("LyricTextSize must be 18,20,22,24,26,28,30")
+//        }
+//    }
+//}
+
 enum class LyricTextSize {
     Size18,
     Size20,
@@ -52,5 +70,4 @@ enum class LyricTextSize {
     Size26,
     Size28,
     Size30
-
 }

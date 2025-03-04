@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Stairs
 import androidx.compose.material.icons.rounded.TextRotationAngledown
@@ -27,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ljyh.music.constants.CoverStyle
 import com.ljyh.music.constants.CoverStyleKey
+import com.ljyh.music.constants.DebugKey
 import com.ljyh.music.constants.DynamicStreamerKey
 import com.ljyh.music.constants.DynamicThemeKey
 import com.ljyh.music.constants.IrregularityCoverKey
@@ -70,17 +72,20 @@ fun AppearanceSettings(
     )
     val (lyricTextSize, onLyricTextSizeChange) = rememberEnumPreference(
         LyricTextSizeKey,
-        defaultValue = LyricTextSize.Size24
+        defaultValue = LyricTextSize.Size20
     )
     val (lyricTextBold, onLyricTextBoldChange) = rememberPreference(
         LyricTextBoldKey,
         defaultValue = true
     )
 
-    val (dynamicStreamer,onDynamicStreamerChange) = rememberPreference(
+    val (dynamicStreamer, onDynamicStreamerChange) = rememberPreference(
         DynamicStreamerKey, defaultValue = true
     )
 
+    val (debug, onDebug) = rememberPreference(
+        DebugKey, defaultValue = false
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -153,7 +158,7 @@ fun AppearanceSettings(
             )
             SwitchPreference(
                 title = { Text("歌词字体加粗") },
-                icon = { Icon(Icons.Rounded.FormatBold, null)},
+                icon = { Icon(Icons.Rounded.FormatBold, null) },
                 checked = lyricTextBold,
                 onCheckedChange = onLyricTextBoldChange
             )
@@ -189,6 +194,20 @@ fun AppearanceSettings(
                     }
                 }
             )
+
+
+            PreferenceGroupTitle(
+                title = "DEBUG"
+            )
+
+            SwitchPreference(
+                title = { Text("Debug") },
+                description = "player debug",
+                icon = { Icon(Icons.Rounded.Kitesurfing, null) },
+                checked = debug,
+                onCheckedChange = onDebug
+            )
+
 
         }
     }

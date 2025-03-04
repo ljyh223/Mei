@@ -156,7 +156,7 @@ fun LibraryScreen(
             Button(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 onClick = {
-                    Screen.Setting.navigate(navController)
+                    Screen.ContentSettings.navigate(navController)
                 },
             ) {
                 Text("去填写cookie")

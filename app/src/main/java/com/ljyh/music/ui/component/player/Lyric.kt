@@ -33,6 +33,7 @@ import com.ljyh.music.R
 import com.ljyh.music.constants.LyricTextAlignment
 import com.ljyh.music.constants.LyricTextAlignmentKey
 import com.ljyh.music.constants.LyricTextBoldKey
+import com.ljyh.music.constants.LyricTextSize
 import com.ljyh.music.constants.LyricTextSizeKey
 import com.ljyh.music.playback.PlayerConnection
 import com.ljyh.music.utils.dp2px
@@ -44,8 +45,14 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
     val state = rememberLazyListState()
     val isUserScrolling by remember { derivedStateOf { state.isScrollInProgress } }
     val currentTextElementHeightPx = remember { mutableIntStateOf(0) }
-    val lyricTextAlignment by rememberEnumPreference(LyricTextAlignmentKey, defaultValue = LyricTextAlignment.Left)
-    val lyricTextSize by rememberPreference(LyricTextSizeKey, defaultValue = "20")
+    val lyricTextAlignment by rememberEnumPreference(
+        LyricTextAlignmentKey,
+        defaultValue = LyricTextAlignment.Left
+    )
+    val lyricTextSize by rememberEnumPreference(
+        LyricTextSizeKey,
+        defaultValue = LyricTextSize.Size24
+    )
     val lyricTextBold by rememberPreference(LyricTextBoldKey, defaultValue = true)
     val currentLine = remember(position) {
         lyricData.lyricLine.lastOrNull { line ->
@@ -98,11 +105,19 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
             blackItem()
             items(
                 lyricData.lyricLine,
-                key = { lyric -> lyric.startTimeMs.toString() + lyric.lyric +lyricStyleKey }) { lyric ->
+                key = { lyric -> lyric.startTimeMs.toString() + lyric.lyric + lyricStyleKey }) { lyric ->
                 val isActiveLine = lyric == currentLine
                 LyricLineBate(
                     line = lyric,
-                    textSize = lyricTextSize.toInt(),
+                    textSize = when (lyricTextSize) {
+                        LyricTextSize.Size18 -> 18
+                        LyricTextSize.Size20 -> 20
+                        LyricTextSize.Size22 -> 22
+                        LyricTextSize.Size24 -> 24
+                        LyricTextSize.Size26 -> 26
+                        LyricTextSize.Size28 -> 28
+                        LyricTextSize.Size30 -> 30
+                    },
                     textBold = lyricTextBold,
                     textAlign = lyricTextAlignment,
                     parentWidthDp = parentWidthDp,
@@ -120,11 +135,12 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
                 when (lyricData.source) {
                     LyricSource.Empty -> R.drawable.cloud
                     LyricSource.NetEaseCloudMusic -> R.drawable.cloud
-                    LyricSource.QQMusic ->R.drawable.qq
+                    LyricSource.QQMusic -> R.drawable.qq
                 }
             ),
             contentDescription = "source",
-            modifier = Modifier.padding(0.dp, 0.dp)
+            modifier = Modifier
+                .padding(0.dp, 0.dp)
                 .align(Alignment.BottomEnd)
                 .size(16.dp)
         )

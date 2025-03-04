@@ -9,17 +9,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -27,22 +23,17 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ljyh.music.constants.LyricTextAlignment
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.utils.textDp
 import kotlin.math.min
-
-
 
 
 @Composable
@@ -113,6 +104,7 @@ fun LyricLineBate(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
+
             .padding(0.dp, (textSize * 0.1F).dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(Color.Transparent),
@@ -172,9 +164,7 @@ fun LyricLineBate(
                     mainTextStyle
                 )
 
-
                 if (currentTimeMs >= 0 && textWidth > 0f) {
-
                     val sungWidth = calculateSungWidth(
                         currentTimeMs,
                         line,
@@ -185,7 +175,12 @@ fun LyricLineBate(
                     // 遍历每一行，计算需要填充的部分
                     var remainingSungWidth = sungWidth
                     for (i in 0 until multiParagraph.lineCount) {
-                        val lineStartX = multiParagraph.getLineLeft(i)
+                        val lineStartX = when (textAlignment) {
+                            TextAlign.Left -> multiParagraph.getLineLeft(i)
+                            TextAlign.Center -> (size.width - multiParagraph.getLineWidth(i)) / 2
+                            TextAlign.Right -> size.width - multiParagraph.getLineWidth(i)
+                            else -> multiParagraph.getLineLeft(i)
+                        }
                         val lineWidth = multiParagraph.getLineWidth(i)
                         val lineTopY = multiParagraph.getLineTop(i)
                         val lineBottomY = multiParagraph.getLineBottom(i)
@@ -204,7 +199,6 @@ fun LyricLineBate(
                     }
                 }
             }
-
         }
     }
 }

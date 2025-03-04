@@ -8,6 +8,7 @@ import com.ljyh.music.data.network.api.ApiService
 
 class PlaylistTrackSource(
     private val apiService: ApiService,
+    // 这是第一次加载的data
     private val firstData: List<PlaylistDetail.Playlist.Track>,
     private val ids: List<String>
 ) : PagingSource<Int, PlaylistDetail.Playlist.Track>() {
@@ -27,7 +28,8 @@ class PlaylistTrackSource(
             val data = if (offset == 0) {
                 firstData
             } else {
-                apiService.getSongDetail(GetSongDetails(ids.joinToString(","))).songs
+                // 如果不是第一次加载，那么就取ids后20个的id，去请求数据
+                apiService.getSongDetail(GetSongDetails(ids.subList(offset, offset + PAGE_SIZE).joinToString(","))).songs
             }
 
 

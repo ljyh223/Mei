@@ -32,7 +32,7 @@ class PlaylistViewModel @Inject constructor(
     val playlistDetail: StateFlow<Resource<PlaylistDetail>> = _playlistDetail
 
 
-    private val _songUrl= MutableStateFlow<Resource<SongUrl>>(Resource.Loading)
+    private val _songUrl = MutableStateFlow<Resource<SongUrl>>(Resource.Loading)
     val songUrl: StateFlow<Resource<SongUrl>> = _songUrl
 
     fun getSongUrl(id: String) {
@@ -48,9 +48,11 @@ class PlaylistViewModel @Inject constructor(
             _playlistDetail.value = repository.getPlaylistDetail(id)
         }
     }
+
+    // 分页加载，不是根据歌单id加载，而是根据歌曲id加载
     fun getPlaylistTracks(
         id: String,
-        currentUserId: String,
+        currentUserId: String, // 因为锁国属于本人歌单，直接返回完整的歌曲数据，否则使用分页加载
         playlistDetailResource: Resource<PlaylistDetail>
     ): Flow<PagingData<PlaylistDetail.Playlist.Track>> {
         return when (playlistDetailResource) {
@@ -68,15 +70,24 @@ class PlaylistViewModel @Inject constructor(
                             prefetchDistance = 5, // 预加载距离
                             enablePlaceholders = true // 是否启用占位符
                         ),
-                        pagingSourceFactory = { PlaylistTrackSource(apiService,playlistDetail.playlist.tracks, playlistDetail.playlist.trackIds.map { it.id.toString() }.toList() ) }
+                        // 这里似乎一次性加载了所有的歌曲，似乎没必要
+                        pagingSourceFactory = {
+                            PlaylistTrackSource(
+                                apiService,
+                                playlistDetail.playlist.tracks,
+                                playlistDetail.playlist.trackIds.map { it.id.toString() }.toList()
+                            )
+                        }
                     ).flow
                 }
             }
+
             is Resource.Loading -> {
                 // 处于加载状态时，返回空的数据流
                 Log.d("PlaylistViewModel", "getPlaylistTracks: 正在加载")
                 flowOf(PagingData.empty())
             }
+
             is Resource.Error -> {
                 // 出错时，返回空的数据流
                 Log.d("PlaylistViewModel", "getPlaylistTracks: 出错")
@@ -86,15 +97,11 @@ class PlaylistViewModel @Inject constructor(
     }
 
 
-
-
-    fun updateAllLike(likes: List<Like>){
+    fun updateAllLike(likes: List<Like>) {
         viewModelScope.launch {
             likeRepository.updateAllLike(likes)
         }
     }
-
-
 
 
 }

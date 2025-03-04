@@ -54,9 +54,8 @@ fun OptimizedBlurredImage(
     }
 
     // 模糊背景图
-
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    // 如果当前手机sdk大于Android 12 才使用RenderEffect
+    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
         val blurEffect by remember(blurRadius) {
             val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
 
