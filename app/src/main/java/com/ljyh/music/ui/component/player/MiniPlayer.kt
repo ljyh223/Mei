@@ -1,5 +1,6 @@
 package com.ljyh.music.ui.component.player
 
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -73,7 +74,7 @@ fun MiniPlayer(
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
     ) {
         LinearProgressIndicator(
-            progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
+            progress = { (position.toFloat() / duration).coerceIn(0f, 1f)?:0f },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(3.dp)

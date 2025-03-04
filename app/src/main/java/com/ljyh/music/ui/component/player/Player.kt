@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
@@ -46,7 +47,6 @@ import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
 import com.ljyh.music.constants.UseQQMusicLyricKey
 import com.ljyh.music.data.model.Lyric
-import com.ljyh.music.data.model.parse
 import com.ljyh.music.data.model.parseYrc
 import com.ljyh.music.data.model.qq.u.LyricResult
 import com.ljyh.music.data.network.Resource
@@ -99,11 +99,19 @@ fun BottomSheetPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
+
+    var position by rememberSaveable(playbackState) {
+        mutableLongStateOf(playerConnection.player.currentPosition)
+    }
     // Media info state
     var mediaInfo by rememberSaveable(stateSaver = MediaInfoSaver) {
         mutableStateOf(
             MediaInfo()
         )
+    }
+
+    var duration by rememberSaveable(playbackState) {
+        mutableLongStateOf(playerConnection.player.duration)
     }
 
 
@@ -124,18 +132,16 @@ fun BottomSheetPlayer(
         if (playbackState == STATE_READY) {
             while (isActive) {
                 delay(100)
-                mediaInfo = mediaInfo.copy(
-                    position = playerConnection.player.currentPosition,
-                    duration = playerConnection.player.duration
-                )
+                position = playerConnection.player.currentPosition
+                duration = playerConnection.player.duration
             }
         }
     }
 
     // Reset position when duration is invalid
-    LaunchedEffect(mediaInfo.position, mediaInfo.duration) {
-        if (mediaInfo.position == 0L || mediaInfo.duration == C.TIME_UNSET) {
-            mediaInfo = mediaInfo.copy(position = 0L)
+    LaunchedEffect(position, duration) {
+        if (position == 0L || duration == C.TIME_UNSET) {
+            position=0L
         }
     }
 
@@ -174,7 +180,8 @@ fun BottomSheetPlayer(
                 cover = it.coverUrl,
                 artist = it.artists[0].name,
                 title = it.title,
-                album = it.album.title
+                album = it.album.title,
+
             )
             // 获取网易云的歌词
             viewmodel.getLyricV1(it.id.toString())
@@ -203,7 +210,7 @@ fun BottomSheetPlayer(
         }
     }
 
-    DialogSelect(id = mediaInfo.id, showDialog, searchResult, viewmodel, mediaInfo.duration) {
+    DialogSelect(id = mediaInfo.id, showDialog, searchResult, viewmodel, duration) {
         showDialog = false
     }
     // Queue sheet state
@@ -223,9 +230,10 @@ fun BottomSheetPlayer(
             playerConnection.player.clearMediaItems()
         },
         collapsedContent = {
+
             MiniPlayer(
-                position = mediaInfo.position,
-                duration = mediaInfo.duration,
+                position = position,
+                duration = duration,
             )
         }
     ) {
@@ -264,7 +272,7 @@ fun BottomSheetPlayer(
                             LyricScreen(
                                 lyricData = lyricLine.value,
                                 playerConnection = playerConnection,
-                                position = mediaInfo.position
+                                position = position
                             ) {
                                 showDialog = true
                             }
@@ -276,18 +284,18 @@ fun BottomSheetPlayer(
             // Player controls
             mediaMetadata?.let {
                 PlayerProgressSlider(
-                    position = mediaInfo.position,
-                    duration = mediaInfo.duration,
+                    position = position,
+                    duration = duration,
                     onPositionChange = { newPosition ->
-                        mediaInfo = mediaInfo.copy(position = newPosition)
+                        position=newPosition
                         playerConnection.player.seekTo(newPosition)
                     },
                     modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
                 )
 
                 PlayerTimeDisplay(
-                    position = mediaInfo.position,
-                    duration = mediaInfo.duration
+                    position = position,
+                    duration = duration
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -387,8 +395,6 @@ data class MediaInfo(
     val album: String = "",
     val artist: String = "",
     val title: String = "",
-    val position: Long = 0L,
-    val duration: Long = 0L
 )
 
 val MediaInfoSaver: Saver<MediaInfo, *> = Saver(
@@ -399,8 +405,6 @@ val MediaInfoSaver: Saver<MediaInfo, *> = Saver(
             "album" to mediaInfo.album,
             "artist" to mediaInfo.artist,
             "title" to mediaInfo.title,
-            "position" to mediaInfo.position,
-            "duration" to mediaInfo.duration
         )
     },
     restore = { restored ->
@@ -410,8 +414,6 @@ val MediaInfoSaver: Saver<MediaInfo, *> = Saver(
             album = restored["album"].toString(),
             artist = restored["artist"].toString(),
             title = restored["title"].toString(),
-            position = restored["position"] as? Long ?: 0L,
-            duration = restored["duration"] as? Long ?: 0L
         )
     }
 )
