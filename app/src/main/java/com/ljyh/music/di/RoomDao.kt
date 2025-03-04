@@ -10,6 +10,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.data.model.room.Like
+import com.ljyh.music.data.model.room.QQSong
 import com.ljyh.music.data.model.room.Song
 import kotlinx.coroutines.flow.Flow
 
@@ -21,6 +22,15 @@ interface ColorDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertColor(color: Color)
+}
+
+@Dao
+interface QQSongDao{
+    @Query("SELECT * FROM song where id=:id")
+    fun getSong(id: String): QQSong?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSong(qqSong: QQSong)
 }
 
 @Dao
@@ -60,11 +70,12 @@ interface LikeDao{
 }
 
 
-@Database(entities = [Color::class, Song::class, Like::class], version = 4)
+@Database(entities = [Color::class, Song::class, Like::class, QQSong::class], version = 5)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
     abstract fun songDao(): SongDao
     abstract fun likeDao(): LikeDao
+    abstract fun qqSongDao(): QQSongDao
 
     companion object {
         @Volatile

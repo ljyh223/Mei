@@ -39,6 +39,9 @@ object AppModule {
 
 
 
+    @Provides
+    fun provideQQSongDao(db: AppDatabase): QQSongRepository =
+        QQSongRepository(db.qqSongDao())
 
 
 }

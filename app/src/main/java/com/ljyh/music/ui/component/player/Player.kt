@@ -4,6 +4,9 @@ package com.ljyh.music.ui.component.player
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,8 +24,11 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,9 +43,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,22 +60,21 @@ import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
 import com.ljyh.music.constants.UseQQMusicLyricKey
-import com.ljyh.music.data.model.Lyric
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.data.model.emptyLyric
 import com.ljyh.music.data.model.parseYrc
-import com.ljyh.music.data.model.qq.c.LyricCmd
-import com.ljyh.music.data.model.qq.c.emptyLyricCmd
-import com.ljyh.music.data.model.qq.u.LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo
+import com.ljyh.music.data.model.qq.u.SearchResult
 import com.ljyh.music.data.model.qq.u.emptyData
+import com.ljyh.music.data.model.room.QQSong
 import com.ljyh.music.data.network.Resource
-import com.ljyh.music.ui.ShareViewModel
 import com.ljyh.music.ui.component.BottomSheet
 import com.ljyh.music.ui.component.BottomSheetState
+import com.ljyh.music.ui.component.ListDialog
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.encrypt.QRCUtils
-import com.ljyh.music.utils.extractContent
+import com.ljyh.music.utils.formatMilliseconds
+import com.ljyh.music.utils.formatSeconds
 import com.ljyh.music.utils.makeTimeString
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
@@ -76,8 +83,7 @@ import com.smarttoolfactory.slider.MaterialSliderDefaults
 import com.smarttoolfactory.slider.SliderBrushColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.serialization.decodeFromString
-import nl.adaptivity.xmlutil.serialization.XML
+import kotlin.math.abs
 
 
 @RequiresApi(Build.VERSION_CODES.S)
@@ -86,14 +92,14 @@ fun BottomSheetPlayer(
     state: BottomSheetState,
     navController: NavController,
     modifier: Modifier = Modifier,
-    viewmodel: ShareViewModel = hiltViewModel(),
+    viewmodel: PlayerViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+    val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
-    val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey,defaultValue = true)
     val useBlackBackground = remember(isSystemInDarkTheme, darkTheme, pureBlack) {
         val useDarkTheme =
             if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
@@ -116,19 +122,15 @@ fun BottomSheetPlayer(
     var album by remember { mutableStateOf("") }
     var artist by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
-    var position by rememberSaveable(playbackState) {
-        mutableLongStateOf(playerConnection.player.currentPosition)
+    var position by rememberSaveable(playbackState) { mutableLongStateOf(playerConnection.player.currentPosition)
     }
     var duration by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.duration)
     }
 
     var netLyric by remember { mutableStateOf(emptyLyric) }
-    var qqLyric by remember {
-        mutableStateOf(
-            emptyData
-        )
-    }
+    var qqLyric by remember { mutableStateOf(emptyData) }
+    var showDialog by remember { mutableStateOf(false) }
 
     val netLyricResult by viewmodel.lyric.collectAsState()
     val searchNew by viewmodel.searchNew.collectAsState()
@@ -328,12 +330,15 @@ fun BottomSheetPlayer(
             album = it.album.title
 
             viewmodel.getLyricV1(it.id.toString())
-            if(useQQMusicLyric) viewmodel.searchNew(it.title)
-
-
+            if (useQQMusicLyric) viewmodel.searchNew(it.title)
         }
     }
 
+    if(searchNew is Resource.Success){
+        DialogSelect(showDialog, searchNew,viewmodel,duration) {
+            showDialog=false
+        }
+    }
 
     val queueSheetState = rememberBottomSheetState(
         dismissedBound = QueuePeekHeight + WindowInsets.systemBars.asPaddingValues()
@@ -455,7 +460,9 @@ fun BottomSheetPlayer(
                                 lyricData = lyricLine.value,
                                 playerConnection = playerConnection,
                                 position = position
-                            )
+                            ) {
+                                showDialog = true
+                            }
 
                         }
                     }

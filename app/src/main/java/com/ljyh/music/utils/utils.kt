@@ -31,6 +31,21 @@ fun formatDuration(milliseconds: Int): String {
     return String.format("%d:%02d", minutes, seconds)
 }
 
+// 毫秒转秒
+fun formatMilliseconds(milliseconds: Long): Int {
+    val seconds = milliseconds / 1000
+    return seconds.toInt()
+}
+// 秒转时分秒, 如果
+fun formatSeconds(seconds: Int): String {
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    val remainingSeconds = seconds % 60
+
+    if(hours>1) return String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds)
+    return String.format("%02d:%02d", minutes, remainingSeconds)
+}
+
 // 获取时间戳
 fun getCurrentTimestamp(): String {
     return System.currentTimeMillis().toString()

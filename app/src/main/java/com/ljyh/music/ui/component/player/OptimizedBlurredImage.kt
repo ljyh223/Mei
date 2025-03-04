@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -82,11 +83,13 @@ fun OptimizedBlurredImage(
                 },
 
             colorFilter = cf,
+            contentScale = ContentScale.Crop,
             contentDescription = null
         )
     } else {
         AsyncImage(
             model = ImageRequest.Builder(context)
+                .placeholderMemoryCacheKey(cover.smallImage()) // 先用小图占位
                 .data(cover.middleImage())
                 .transformations(BlurTransformation1(context, 15f, 5f))
                 .build(),
@@ -96,6 +99,7 @@ fun OptimizedBlurredImage(
                 .graphicsLayer {
                     rotationZ = angle.floatValue
                 },
+            contentScale = ContentScale.Crop,
             colorFilter = cf,
             contentDescription = null
         )

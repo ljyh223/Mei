@@ -21,3 +21,11 @@ data class Song(
 
 )
 
+@Entity(tableName = "qqSong")
+data class QQSong(
+    @PrimaryKey val id: String,
+    val title:String,
+    val artist: String,
+    val album: String,
+    val duration: Int,
+)

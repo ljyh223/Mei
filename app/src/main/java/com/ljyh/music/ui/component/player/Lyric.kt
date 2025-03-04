@@ -1,6 +1,7 @@
 package com.ljyh.music.ui.component.player
 
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -36,12 +37,18 @@ import com.ljyh.music.constants.LyricTextBoldKey
 import com.ljyh.music.constants.LyricTextSize
 import com.ljyh.music.constants.LyricTextSizeKey
 import com.ljyh.music.playback.PlayerConnection
+import com.ljyh.music.ui.component.IconButton
 import com.ljyh.music.utils.dp2px
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
 
 @Composable
-fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, position: Long) {
+fun LyricScreen(
+    lyricData: LyricData,
+    playerConnection: PlayerConnection,
+    position: Long,
+    switchLyric: () -> Unit
+) {
     val state = rememberLazyListState()
     val isUserScrolling by remember { derivedStateOf { state.isScrollInProgress } }
     val currentTextElementHeightPx = remember { mutableIntStateOf(0) }
@@ -129,7 +136,6 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
             }
             blackItem()
         }
-
         Icon(
             painter = painterResource(
                 when (lyricData.source) {
@@ -143,7 +149,9 @@ fun LyricScreen(lyricData: LyricData, playerConnection: PlayerConnection, positi
                 .padding(0.dp, 0.dp)
                 .align(Alignment.BottomEnd)
                 .size(16.dp)
+                .clickable { switchLyric() }
         )
+
 
 
         LaunchedEffect(key1 = position, key2 = currentTextElementHeightPx, key3 = lyricStyleKey) {

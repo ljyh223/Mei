@@ -32,16 +32,6 @@ class PlaylistViewModel @Inject constructor(
     val playlistDetail: StateFlow<Resource<PlaylistDetail>> = _playlistDetail
 
 
-    private val _songUrl = MutableStateFlow<Resource<SongUrl>>(Resource.Loading)
-    val songUrl: StateFlow<Resource<SongUrl>> = _songUrl
-
-    fun getSongUrl(id: String) {
-        viewModelScope.launch {
-            _songUrl.value = Resource.Loading
-            _songUrl.value = repository.getSongUrl(id)
-        }
-    }
-
     fun getPlaylistDetail(id: String) {
         viewModelScope.launch {
             _playlistDetail.value = Resource.Loading
