@@ -18,7 +18,6 @@ import javax.inject.Inject
 class ShareViewModel @Inject constructor(
     private val repository: ShareRepository,
     private val userRepository: UserRepository,
-    private val qqSongRepository: QQSongRepository
 ) : ViewModel() {
 
 
@@ -32,14 +31,5 @@ class ShareViewModel @Inject constructor(
         }
     }
 
-    fun getQQSong(id: String):QQSong? {
-        return qqSongRepository.getQQSong(id)
-    }
-
-    fun insertQQSong(qqSong: QQSong){
-        viewModelScope.launch {
-            qqSongRepository.insertSong(qqSong)
-        }
-    }
 
 }

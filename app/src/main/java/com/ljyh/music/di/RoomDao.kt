@@ -26,8 +26,8 @@ interface ColorDao {
 
 @Dao
 interface QQSongDao{
-    @Query("SELECT * FROM song where id=:id")
-    fun getSong(id: String): QQSong?
+    @Query("SELECT * FROM qqSong where id=:id")
+    fun getSong(id: String): Flow<QQSong?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(qqSong: QQSong)
@@ -70,7 +70,7 @@ interface LikeDao{
 }
 
 
-@Database(entities = [Color::class, Song::class, Like::class, QQSong::class], version = 5)
+@Database(entities = [Color::class, Song::class, Like::class, QQSong::class], version = 6)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
     abstract fun songDao(): SongDao

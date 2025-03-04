@@ -17,7 +17,7 @@ import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.utils.makeTimeString
 
 @Composable
-private fun PlayerTimeDisplay(
+fun PlayerTimeDisplay(
     position: Long,
     duration: Long,
     modifier: Modifier = Modifier

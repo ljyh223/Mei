@@ -14,7 +14,7 @@ import com.smarttoolfactory.slider.MaterialSliderDefaults
 import com.smarttoolfactory.slider.SliderBrushColor
 
 @Composable
-private fun PlayerProgressSlider(
+fun PlayerProgressSlider(
     position: Long,
     duration: Long,
     onPositionChange: (Long) -> Unit,

@@ -10,8 +10,10 @@ import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.PlayerRepository
 import com.ljyh.music.di.QQSongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,6 +31,9 @@ class PlayerViewModel @Inject constructor(
     private val _lyric = MutableStateFlow<Resource<Lyric>>(Resource.Loading)
     val lyric: StateFlow<Resource<Lyric>> = _lyric
 
+
+    private val _qqSong = MutableStateFlow<QQSong?>(null)
+    val qqSong: StateFlow<QQSong?> = _qqSong
     fun searchNew(keyword:String){
         viewModelScope.launch {
             _searchNew.value = Resource.Loading
@@ -60,9 +65,16 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun getQQSong(id: String) {
+    fun fetchQQSong(id: String) {
         viewModelScope.launch {
             qqSongRepository.getQQSong(id)
+                .catch { e ->
+                    // 处理错误
+                    println("Error fetching song: ${e.message}")
+                }
+                .collect { song ->
+                    _qqSong.value = song
+                }
         }
     }
 

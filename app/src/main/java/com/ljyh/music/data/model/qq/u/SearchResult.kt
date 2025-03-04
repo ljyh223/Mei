@@ -521,7 +521,7 @@ data class SearchResult(
                                 @SerializedName("type")
                                 val type: Int,
                                 @SerializedName("uin")
-                                val uin: Int
+                                val uin: Long
                             )
 
                             data class Volume(
@@ -596,7 +596,7 @@ data class SearchResult(
                             @SerializedName("type")
                             val type: Int,
                             @SerializedName("uin")
-                            val uin: Int
+                            val uin: Long
                         )
 
                         data class Volume(

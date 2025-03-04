@@ -19,7 +19,7 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
 }
 
 class QQSongRepository @Inject constructor(private val qqSongDao: QQSongDao) {
-    fun getQQSong(id: String): QQSong? {
+    fun getQQSong(id: String): Flow<QQSong?> {
         return qqSongDao.getSong(id)
     }
 
