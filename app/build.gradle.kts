@@ -8,8 +8,6 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 
-
-//    kotlin("jvm") version "2.0.0" // or kotlin("multiplatform") or any other kotlin plugin
     kotlin("plugin.serialization") version "2.0.0"
 
 }
@@ -27,7 +25,7 @@ android {
         minSdk = 29
         targetSdk = 35
         versionCode = 1
-        versionName = "1.23"
+        versionName = "1.24"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -56,7 +54,6 @@ android {
 }
 
 configurations.all {
-//    exclude("com.soywiz","korlibs-crypto-android-debug")
     exclude("com.soywiz.korlibs.krypto","krypto-android")
 }
 
