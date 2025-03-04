@@ -22,30 +22,34 @@ class PlayerViewModel @Inject constructor(
     private val repository: PlayerRepository,
     private val qqSongRepository: QQSongRepository
 ): ViewModel(){
-    private val _searchNew = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
-    val searchNew: StateFlow<Resource<SearchResult>> = _searchNew
+    private val _searchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
+    val searchResult: StateFlow<Resource<SearchResult>> = _searchResult
 
-    private val _lyricNew=MutableStateFlow<Resource<LyricResult>>(Resource.Loading)
-    val lyricNew: StateFlow<Resource<LyricResult>> = _lyricNew
+    private val _lyricResult=MutableStateFlow<Resource<LyricResult>>(Resource.Loading)
+    val lyricResult: StateFlow<Resource<LyricResult>> = _lyricResult
 
     private val _lyric = MutableStateFlow<Resource<Lyric>>(Resource.Loading)
     val lyric: StateFlow<Resource<Lyric>> = _lyric
 
-
+    fun clear(){
+        _searchResult.value = Resource.Loading
+        _lyricResult.value = Resource.Loading
+        _lyric.value = Resource.Loading
+    }
     private val _qqSong = MutableStateFlow<QQSong?>(null)
     val qqSong: StateFlow<QQSong?> = _qqSong
     fun searchNew(keyword:String){
         viewModelScope.launch {
-            _searchNew.value = Resource.Loading
-            _searchNew.value = repository.searchNew(keyword)
+            _searchResult.value = Resource.Loading
+            _searchResult.value = repository.searchNew(keyword)
         }
     }
 
 
     fun getLyricNew(title:String, album:String, artist:String, duration:Int,id:Int){
         viewModelScope.launch {
-            _lyricNew.value = Resource.Loading
-            _lyricNew.value = repository.getLyricNew(title, album, artist, duration, id)
+            _lyricResult.value = Resource.Loading
+            _lyricResult.value = repository.getLyricNew(title, album, artist, duration, id)
         }
     }
 
