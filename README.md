@@ -15,13 +15,12 @@
 
 ### 界面截图
 
-<figure>
-<img src="./screenshot/player1.jpg" width=200/>
-<img src="./screenshot/lyric1.jpg" width=200/>
-<img src="./screenshot/player2.jpg" width=200/>
-<img src="./screenshot/lyric2.jpg" width=200/>
-<img src="./screenshot/home.jpg" width=200/>
-<img src="./screenshot/playlist.jpg" width=200/>
-<img src="./screenshot/me.jpg" width=200/>
-</figure>
-
+<div style="display: flex; flex-wrap: wrap;">
+  <img src="./screenshot/player1.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/lyric1.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/player2.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/lyric2.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/home.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/playlist.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/me.jpg" width="200" />
+</div>
