@@ -50,7 +50,6 @@ fun Controls(
             .fillMaxWidth()
             .padding(horizontal = PlayerHorizontalPadding)
     ) {
-        //like
         Box(modifier = Modifier.weight(1f)) {
 
             IconButton(

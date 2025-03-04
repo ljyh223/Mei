@@ -182,7 +182,7 @@ data class Search(
                             @SerializedName("alert")
                             val alert: Int,
                             @SerializedName("icon2")
-                            val icon2: Int,
+                            val icon2: Long,
                             @SerializedName("icons")
                             val icons: Int,
                             @SerializedName("msgdown")
