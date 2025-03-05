@@ -9,16 +9,22 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM
 import androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
 import androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
+import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
+import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.music.constants.PlayModeKey
 import com.ljyh.music.data.model.metadata
 import com.ljyh.music.di.AppDatabase
 import com.ljyh.music.extensions.currentMetadata
 import com.ljyh.music.extensions.getCurrentQueueIndex
 import com.ljyh.music.extensions.getQueueWindows
 import com.ljyh.music.playback.queue.Queue
+import com.ljyh.music.utils.dataStore
+import com.ljyh.music.utils.get
+import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,9 +33,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
-
-
-
 
 
 @UnstableApi
@@ -44,6 +47,7 @@ class PlayerConnection
     init {
         Log.d("PlayerConnection", "PlayerConnection initialized")
     }
+
     val service = binder.service
     val player = service.player
 
@@ -51,18 +55,22 @@ class PlayerConnection
     private val playWhenReady = MutableStateFlow(player.playWhenReady)
     val isPlaying = combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
         playWhenReady && playbackState != STATE_ENDED
-    }.stateIn(scope, SharingStarted.Lazily, player.playWhenReady && player.playbackState != STATE_ENDED)
+    }.stateIn(
+        scope,
+        SharingStarted.Lazily,
+        player.playWhenReady && player.playbackState != STATE_ENDED
+    )
     val mediaMetadata = MutableStateFlow(player.currentMetadata)
+
     @kotlin.OptIn(ExperimentalCoroutinesApi::class)
     val currentSong = mediaMetadata.flatMapLatest {
         database.songDao().getSong((it?.id ?: 0).toString())
     }
 
-//
+    //
 //    val currentFormat = mediaMetadata.flatMapLatest { mediaMetadata ->
 //        database.format(mediaMetadata?.id)
 //    }
-
     val queueTitle = MutableStateFlow<String?>(null)
     val queueWindows = MutableStateFlow<List<Timeline.Window>>(emptyList())
     val currentMediaItemIndex = MutableStateFlow(-1)
@@ -90,21 +98,21 @@ class PlayerConnection
         repeatMode.value = player.repeatMode
     }
 
-    
+
     fun playQueue(queue: Queue) {
         service.playQueue(queue)
     }
 
     fun playNext(item: MediaItem) = playNext(listOf(item))
 
-    
+
     fun playNext(items: List<MediaItem>) {
         service.playNext(items)
     }
 
     fun addToQueue(item: MediaItem) = addToQueue(listOf(item))
 
-    
+
     fun addToQueue(items: List<MediaItem>) {
         service.addToQueue(items)
     }
@@ -114,9 +122,10 @@ class PlayerConnection
         service.toggleLike(id)
     }
 
-    suspend fun isLike(id: String):Boolean{
+    suspend fun isLike(id: String): Boolean {
         return service.isLike(id)
     }
+
 
     fun seekToNext() {
         player.seekToNext()
@@ -129,6 +138,19 @@ class PlayerConnection
         player.prepare()
         player.playWhenReady = true
     }
+
+    fun switchPlayMode(mode: PlayMode) {
+        when (mode) {
+            // OFF -> ALL -> SHUFFLE -> ONE
+            PlayMode.REPEAT_MODE_OFF -> player.repeatMode = REPEAT_MODE_ALL
+            PlayMode.REPEAT_MODE_ALL -> player.shuffleModeEnabled = true
+            PlayMode.SHUFFLE_MODE_ALL -> player.repeatMode = REPEAT_MODE_ONE
+            PlayMode.REPEAT_MODE_ONE -> player.repeatMode = REPEAT_MODE_OFF
+        }
+    }
+
+
+
 
     override fun onPlaybackStateChanged(state: Int) {
         playbackState.value = state
@@ -163,8 +185,10 @@ class PlayerConnection
 
     override fun onRepeatModeChanged(mode: Int) {
         repeatMode.value = mode
+        shuffleModeEnabled.value = false
         updateCanSkipPreviousAndNext()
     }
+
 
     override fun onPlayerErrorChanged(playbackError: PlaybackException?) {
         if (playbackError != null) {
@@ -175,11 +199,12 @@ class PlayerConnection
 
     private fun updateCanSkipPreviousAndNext() {
         if (!player.currentTimeline.isEmpty) {
-            val window = player.currentTimeline.getWindow(player.currentMediaItemIndex, Timeline.Window())
+            val window =
+                player.currentTimeline.getWindow(player.currentMediaItemIndex, Timeline.Window())
             canSkipPrevious.value = player.isCommandAvailable(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
-                    || !window.isLive()
+                    || !window.isLive
                     || player.isCommandAvailable(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-            canSkipNext.value = window.isLive() && window.isDynamic
+            canSkipNext.value = window.isLive && window.isDynamic
                     || player.isCommandAvailable(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
         } else {
             canSkipPrevious.value = false
@@ -190,4 +215,18 @@ class PlayerConnection
     fun dispose() {
         player.removeListener(this)
     }
+}
+
+enum class PlayMode {
+    // 整个播放列表循环播放。
+    REPEAT_MODE_ALL,
+
+    // 播放列表按顺序播放，播放完最后一首后停止。
+    REPEAT_MODE_OFF,
+
+    // 单曲循环播放。
+    REPEAT_MODE_ONE,
+
+    // 播放列表随机播放。
+    SHUFFLE_MODE_ALL
 }

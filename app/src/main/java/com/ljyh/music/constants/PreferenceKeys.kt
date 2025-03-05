@@ -2,6 +2,7 @@ package com.ljyh.music.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.ljyh.music.playback.PlayMode
 
 val FirstLaunchKey = booleanPreferencesKey("firstLaunch")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
@@ -32,7 +33,7 @@ val LyricTextBoldKey = booleanPreferencesKey("lyricTextBold")
 val DynamicStreamerKey = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
-
+val PlayModeKey= stringPreferencesKey("playMode")
 
 val DebugKey = booleanPreferencesKey("debug")
 enum class CoverStyle {

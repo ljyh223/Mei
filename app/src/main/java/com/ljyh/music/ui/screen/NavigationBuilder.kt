@@ -9,7 +9,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.ljyh.music.ui.component.player.Test
+import com.ljyh.music.ui.component.player.component.Test
 import com.ljyh.music.ui.screen.index.home.HomeScreen
 import com.ljyh.music.ui.screen.index.library.LibraryScreen
 import com.ljyh.music.ui.screen.playlist.PlaylistScreen

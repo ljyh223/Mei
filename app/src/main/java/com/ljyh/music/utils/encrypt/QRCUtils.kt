@@ -2,8 +2,8 @@ package com.ljyh.music.utils.encrypt
 
 import android.util.Log
 import com.ljyh.music.data.model.LyricUtils
-import com.ljyh.music.ui.component.player.LyricLine
-import com.ljyh.music.ui.component.player.LyricWord
+import com.ljyh.music.ui.component.player.component.LyricLine
+import com.ljyh.music.ui.component.player.component.LyricWord
 import java.io.ByteArrayInputStream
 import java.util.zip.InflaterInputStream
 import kotlin.math.abs
@@ -591,7 +591,7 @@ object QRCUtils {
     }
 
 
-    fun addTranslation(lyric:List<LyricLine>,translations: String):List<LyricLine>{
+    fun addTranslation(lyric:List<LyricLine>, translations: String):List<LyricLine>{
         val mTranslations = translations.lineSequence()
             .mapNotNull { line -> LyricUtils.parseLine(line) }
             .toList()

@@ -4,6 +4,7 @@ package com.ljyh.music.ui.component.player
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,9 +41,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.C
+import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import com.ljyh.music.constants.DarkModeKey
+import com.ljyh.music.constants.DebugKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
@@ -50,11 +54,24 @@ import com.ljyh.music.data.model.Lyric
 import com.ljyh.music.data.model.parseYrc
 import com.ljyh.music.data.model.qq.u.LyricResult
 import com.ljyh.music.data.network.Resource
+import com.ljyh.music.playback.PlayMode
 import com.ljyh.music.ui.component.BottomSheet
 import com.ljyh.music.ui.component.BottomSheetState
+import com.ljyh.music.ui.component.player.component.Controls
+import com.ljyh.music.ui.component.player.component.Debug
+import com.ljyh.music.ui.component.player.component.DialogSelect
+import com.ljyh.music.ui.component.player.component.LyricData
+import com.ljyh.music.ui.component.player.component.LyricLine
+import com.ljyh.music.ui.component.player.component.LyricScreen
+import com.ljyh.music.ui.component.player.component.LyricSource
+import com.ljyh.music.ui.component.player.component.OptimizedBlurredImage
+import com.ljyh.music.ui.component.player.component.PlayerProgressSlider
+import com.ljyh.music.ui.component.player.component.PlayerTimeDisplay
+import com.ljyh.music.ui.component.player.component.ShowMain
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.encrypt.QRCUtils
+import com.ljyh.music.utils.formatMilliseconds
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
 import kotlinx.coroutines.delay
@@ -77,6 +94,7 @@ fun BottomSheetPlayer(
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
+    val debug by rememberPreference(DebugKey, defaultValue = false)
 
     // Derived state for background color
     val useBlackBackground = remember(isSystemInDarkTheme, darkTheme, pureBlack) {
@@ -95,10 +113,12 @@ fun BottomSheetPlayer(
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()
+    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
+    val playMode = remember { mutableStateOf(PlayMode.REPEAT_MODE_ALL) }
 
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
@@ -141,7 +161,7 @@ fun BottomSheetPlayer(
     // Reset position when duration is invalid
     LaunchedEffect(position, duration) {
         if (position == 0L || duration == C.TIME_UNSET) {
-            position=0L
+            position = 0L
         }
     }
 
@@ -182,7 +202,7 @@ fun BottomSheetPlayer(
                 title = it.title,
                 album = it.album.title,
 
-            )
+                )
             // 获取网易云的歌词
             viewmodel.getLyricV1(it.id.toString())
             // 如果启用QQ音乐歌词
@@ -238,25 +258,36 @@ fun BottomSheetPlayer(
         }
     ) {
         OptimizedBlurredImage(mediaInfo.cover, isPlaying, 100.dp)
-
+        if(debug)
+            Debug(
+                title = mediaInfo.title,
+                artist = mediaInfo.artist,
+                album = mediaInfo.album,
+                duration = formatMilliseconds(duration).toString(),
+                id = mediaInfo.id,
+                qid = qqSong?.qid ?: "null",
+                modifier = Modifier.align(Alignment.TopStart)
+                    .padding(10.dp)
+            )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                 .padding(bottom = queueSheetState.collapsedBound)
         ) {
+
             Box(modifier = Modifier.weight(1f)) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
-                        .padding(horizontal = PlayerHorizontalPadding)
                         .fillMaxSize()
                 ) { page ->
                     when (page) {
                         0 -> {
                             mediaMetadata?.let {
                                 Column(
-                                    modifier = Modifier.fillMaxSize(),
+                                    modifier = Modifier.fillMaxSize()
+                                        .padding(horizontal = PlayerHorizontalPadding),
                                     verticalArrangement = Arrangement.Bottom
                                 ) {
                                     ShowMain(
@@ -287,7 +318,7 @@ fun BottomSheetPlayer(
                     position = position,
                     duration = duration,
                     onPositionChange = { newPosition ->
-                        position=newPosition
+                        position = newPosition
                         playerConnection.player.seekTo(newPosition)
                     },
                     modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
@@ -300,13 +331,23 @@ fun BottomSheetPlayer(
 
                 Spacer(Modifier.height(12.dp))
 
+                if(shuffleModeEnabled){
+                    playMode.value=PlayMode.SHUFFLE_MODE_ALL
+                }else{
+                    playMode.value=when(repeatMode){
+                        Player.REPEAT_MODE_ONE -> PlayMode.REPEAT_MODE_ONE
+                        Player.REPEAT_MODE_ALL -> PlayMode.REPEAT_MODE_ALL
+                        Player.REPEAT_MODE_OFF -> PlayMode.REPEAT_MODE_OFF
+                        else -> PlayMode.REPEAT_MODE_OFF
+                    }
+                }
                 Controls(
                     playerConnection = playerConnection,
                     canSkipPrevious = canSkipPrevious,
                     canSkipNext = canSkipNext,
                     isPlaying = isPlaying,
                     playbackState = playbackState,
-                    repeatMode = repeatMode,
+                    playMode =playMode.value,
                 )
             }
 
@@ -334,9 +375,9 @@ private fun processLyrics(
     netLyric: Lyric?,
     qqLyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data?
 ): LyricData {
-    Log.d("lyric load", "start")
-    Log.d("lyric load netLyric ->", netLyric.toString())
-    Log.d("lyric load qqLyric  ->", qqLyric.toString())
+//    Log.d("lyric load", "start")
+//    Log.d("lyric load netLyric ->", netLyric.toString())
+//    Log.d("lyric load qqLyric  ->", qqLyric.toString())
     when {
         netLyric?.yrc != null && netLyric.tlyric != null -> {
             Log.d("lyric load", "YRC found")
@@ -353,11 +394,18 @@ private fun processLyrics(
                 isVerbatim = true,
                 source = LyricSource.QQMusic,
                 lyricLine = QRCUtils.parse(
-                    QRCUtils.decodeLyric(qqLyric.lyric), QRCUtils.decodeLyric(qqLyric.trans,true)
+                    QRCUtils.decodeLyric(qqLyric.lyric), QRCUtils.decodeLyric(qqLyric.trans, true)
                 )
             )
         }
-
+        qqLyric?.lyric != null -> {
+            Log.d("lyric load", "QRC-1 found")
+            return LyricData(
+                isVerbatim = true,
+                source = LyricSource.QQMusic,
+                lyricLine = QRCUtils.parse(QRCUtils.decodeLyric(qqLyric.lyric), "")
+            )
+        }
         netLyric?.lrc != null -> {
             Log.d("lyric load", "LRC found")
             return LyricData(
@@ -368,14 +416,7 @@ private fun processLyrics(
         }
 
 
-        qqLyric?.lyric != null -> {
-            Log.d("lyric load", "QRC-1 found")
-            return LyricData(
-                isVerbatim = true,
-                source = LyricSource.QQMusic,
-                lyricLine = QRCUtils.parse(QRCUtils.decodeLyric(qqLyric.lyric), "")
-            )
-        }
+
 
 
         else -> {

@@ -2,9 +2,9 @@ package com.ljyh.music.data.model
 
 import com.google.gson.annotations.SerializedName
 import com.ljyh.music.data.model.LyricUtils.mergedLyric
-import com.ljyh.music.ui.component.player.LyricLine
-import com.ljyh.music.ui.component.player.LyricLineA
-import com.ljyh.music.ui.component.player.LyricWord
+import com.ljyh.music.ui.component.player.component.LyricLine
+import com.ljyh.music.ui.component.player.component.LyricLineA
+import com.ljyh.music.ui.component.player.component.LyricWord
 import java.util.regex.Pattern
 import kotlin.math.abs
 
