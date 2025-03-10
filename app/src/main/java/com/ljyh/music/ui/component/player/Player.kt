@@ -291,6 +291,7 @@ fun BottomSheetPlayer(
                                     verticalArrangement = Arrangement.Bottom
                                 ) {
                                     ShowMain(
+                                        viewModel=viewmodel,
                                         playerConnection = playerConnection,
                                         mediaMetadata = it,
                                         modifier = Modifier.padding(bottom = 8.dp)
@@ -301,6 +302,7 @@ fun BottomSheetPlayer(
 
                         1 -> {
                             LyricScreen(
+
                                 lyricData = lyricLine.value,
                                 playerConnection = playerConnection,
                                 position = position

@@ -3,6 +3,7 @@ package com.ljyh.music.data.network.api
 import com.ljyh.music.data.model.HomePageResourceShow
 import com.ljyh.music.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.music.data.model.weapi.Like
+import com.ljyh.music.data.model.weapi.LikeResult
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -11,7 +12,7 @@ interface WeApiService {
     @POST("/weapi/link/page/rcmd/resource/show")
     suspend fun getHomePageResourceShow(@Body body:GetHomePageResourceShow): HomePageResourceShow
 
-
     @POST("/weapi/radio/like")
-    suspend fun like(@Body body: Like)
+    suspend fun like(@Body body: Like): LikeResult
+
 }

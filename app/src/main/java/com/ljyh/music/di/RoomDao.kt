@@ -52,11 +52,11 @@ interface SongDao {
 @Dao
 interface LikeDao{
     @Query("SELECT * FROM `like` where id=:id")
-    fun getLike(id: String): Like?
+    suspend fun getLike(id: String): Like?
 
 
     @Query("SELECT * FROM `like`")
-    fun getALlLike(): List<Like>
+    suspend fun getALlLike(): List<Like>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLike(like: Like)

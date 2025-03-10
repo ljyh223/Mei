@@ -12,3 +12,13 @@ data class Like(
     @SerializedName("time")
     val time: String = "3"
 )
+
+
+data class LikeResult(
+    @SerializedName("songs")
+    val songs: List<Any>,
+    @SerializedName("playlistId")
+    val playlistId: Long,
+    @SerializedName("code")
+    val code: Int
+)

@@ -48,11 +48,11 @@ class SongRepository @Inject constructor(private val songDao: SongDao) {
 }
 
 class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
-    fun getLike(id:String): Like? {
+    suspend fun getLike(id:String): Like? {
         return likeDao.getLike(id)
     }
 
-    fun getAllLike(): List<Like> {
+    suspend fun getAllLike(): List<Like> {
         return likeDao.getALlLike()
     }
 

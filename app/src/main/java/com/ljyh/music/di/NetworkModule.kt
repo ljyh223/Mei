@@ -156,6 +156,7 @@ object RetrofitModule {
             // 解密响应数据
             if (crypto=="weapi") {
                 val decryptedResponseBody = responseBody?.let { body ->
+                    Log.d("Decrypted Response", "weapi")
                     val encryptedBytes = body.bytes()
                     val decryptedBytes = decryptEApi(encryptedBytes)
                     decryptedBytes.toResponseBody(body.contentType())

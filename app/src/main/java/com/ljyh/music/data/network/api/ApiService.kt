@@ -15,6 +15,8 @@ import com.ljyh.music.data.model.api.GetSongUrl
 import com.ljyh.music.data.model.api.GetSongUrlV1
 import com.ljyh.music.data.model.api.GetUserPhotoAlbum
 import com.ljyh.music.data.model.api.GetUserPlaylist
+import com.ljyh.music.data.model.weapi.Like
+import com.ljyh.music.data.model.weapi.LikeResult
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -127,5 +129,7 @@ interface ApiService {
 
     @POST("/api/user/photo/album/get")
     suspend fun getUserPhotoAlbum(@Body body: GetUserPhotoAlbum): AlbumPhoto
+
+
 
 }

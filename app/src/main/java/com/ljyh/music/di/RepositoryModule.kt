@@ -55,8 +55,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun providePlayerRepository(qqMusicUApiService: QQMusicUApiService,apiService: ApiService): PlayerRepository {
-        return PlayerRepository(qqMusicUApiService,apiService)
+    fun providePlayerRepository(qqMusicUApiService: QQMusicUApiService,apiService: ApiService,weApiService: WeApiService): PlayerRepository {
+        return PlayerRepository(qqMusicUApiService,apiService,weApiService)
     }
 }
 

@@ -8,16 +8,19 @@ import com.ljyh.music.data.model.qq.u.GetSearchData
 import com.ljyh.music.data.model.qq.u.GetSearchData.Comm1
 import com.ljyh.music.data.model.qq.u.LyricResult
 import com.ljyh.music.data.model.qq.u.SearchResult
+import com.ljyh.music.data.model.weapi.Like
 import com.ljyh.music.data.network.QQMusicUApiService
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.network.api.ApiService
+import com.ljyh.music.data.network.api.WeApiService
 import com.ljyh.music.data.network.safeApiCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class PlayerRepository(
     private val qqMusicUApiService: QQMusicUApiService,
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val weApiService: WeApiService
 ) {
 
     suspend fun searchNew(keyword: String): Resource<SearchResult> {
@@ -84,6 +87,16 @@ class PlayerRepository(
                 )
             }
         }
+    }
+
+
+    suspend fun like(id: String, like: Boolean) {
+        apiService.like(
+            Like(
+                trackId = id,
+                like = like
+            )
+        )
     }
 
 

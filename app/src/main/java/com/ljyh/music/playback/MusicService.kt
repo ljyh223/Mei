@@ -264,27 +264,6 @@ class MusicService : MediaLibraryService(),
         player.prepare()
     }
 
-    fun toggleLike(id: String) {
-        scope.launch {
-            withContext(Dispatchers.IO) {
-                val like = database.likeDao().getLike(id) == null
-                Log.d("like", "toggleLike: $like")
-                if (!like) database.likeDao().deleteLike(id) else database.likeDao()
-                    .insertLike(Like(id))
-                weApiService.like(
-                    com.ljyh.music.data.model.weapi.Like(
-                        trackId = id,
-                        like = like
-                    )
-                )
-            }
-        }
-    }
-
-    suspend fun isLike(id: String) = withContext(Dispatchers.IO) {
-        database.likeDao().getLike(id) != null
-    }
-
     fun addToQueue(items: List<MediaItem>) {
         player.addMediaItems(items)
         player.prepare()

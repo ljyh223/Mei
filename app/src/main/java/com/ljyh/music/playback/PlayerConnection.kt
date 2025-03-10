@@ -117,16 +117,6 @@ class PlayerConnection
         service.addToQueue(items)
     }
 
-
-    fun toggleLike(id: String) {
-        service.toggleLike(id)
-    }
-
-    suspend fun isLike(id: String): Boolean {
-        return service.isLike(id)
-    }
-
-
     fun seekToNext() {
         player.seekToNext()
         player.prepare()

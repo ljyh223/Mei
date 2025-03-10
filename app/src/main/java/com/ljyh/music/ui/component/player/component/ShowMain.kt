@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,7 @@ import com.ljyh.music.constants.IrregularityCoverKey
 import com.ljyh.music.constants.ThumbnailCornerRadius
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.playback.PlayerConnection
+import com.ljyh.music.ui.component.player.PlayerViewModel
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.size1600
@@ -58,27 +60,28 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun ShowMain(
+    viewModel: PlayerViewModel,
     playerConnection: PlayerConnection,
     mediaMetadata: MediaMetadata,
     modifier: Modifier
 ) {
     val context = LocalContext.current
-    var isLiked by remember { mutableStateOf(false) }
+//    var isLiked by remember { mutableStateOf(false) }
     val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
     val enabledIrregularityCoverKey by rememberPreference(
         IrregularityCoverKey,
         defaultValue = false
     )
-    LaunchedEffect(mediaMetadata.id) {
-        isLiked = withContext(Dispatchers.IO) {
-            playerConnection.isLike(mediaMetadata.id.toString())
-        }
+    val isLiked by viewModel.like.collectAsState(initial = null)
+    LaunchedEffect(
+        key1 = mediaMetadata.id,
+    ) {
+        viewModel.getLike(mediaMetadata.id.toString())
     }
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .placeholderMemoryCacheKey(mediaMetadata.coverUrl.smallImage()) // 先用小图占位
@@ -146,9 +149,8 @@ fun ShowMain(
                 modifier = Modifier.weight(2f)
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    AnimatedLikeButton(isLiked = isLiked, onToggleLike = {
-                        playerConnection.toggleLike(mediaMetadata.id.toString())
-                        isLiked = !isLiked
+                    AnimatedLikeButton(isLiked = isLiked != null, onToggleLike = {
+                        viewModel.like(id = mediaMetadata.id.toString())
                     })
                 }
                 Box(modifier = Modifier.weight(1f)) {
@@ -195,7 +197,7 @@ fun AnimatedLikeButton(
         },
         label = "scale"
     ) { state ->
-        if (state) 1.2f else 1f // Scale up slightly when liked
+        if (state) 1.1f else 1f // Scale up slightly when liked
     }
 
     val icon = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder
