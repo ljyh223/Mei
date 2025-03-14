@@ -91,7 +91,7 @@ fun ShowMain(
             contentDescription = "Loaded Image",
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(if (enabledIrregularityCoverKey) 1f else 1f)
+                .aspectRatio( 1f)
                 .clip(
                     when (coverStyle) {
                         CoverStyle.Square -> RoundedCornerShape(ThumbnailCornerRadius * 2)

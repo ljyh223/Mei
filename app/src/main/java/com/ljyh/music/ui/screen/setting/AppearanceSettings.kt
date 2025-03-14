@@ -120,7 +120,7 @@ fun AppearanceSettings(
                 title = { Text("启用动态主题") },
                 icon = { Icon(Icons.Rounded.Palette, null) },
                 checked = dynamicTheme,
-                onCheckedChange = onDynamicStreamerChange
+                onCheckedChange = onDynamicThemeChange
             )
 
             PreferenceGroupTitle(
@@ -131,7 +131,7 @@ fun AppearanceSettings(
                 title = { Text("启用动态背景") },
                 icon = { Icon(Icons.Rounded.TextRotationAngledown, null) },
                 checked = dynamicStreamer,
-                onCheckedChange = onDynamicThemeChange
+                onCheckedChange = onDynamicStreamerChange
             )
             SwitchPreference(
                 title = { Text("允许不规则封面") },

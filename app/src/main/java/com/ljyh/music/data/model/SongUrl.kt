@@ -18,7 +18,7 @@ data class SongUrl(
         @SerializedName("closedGain")
         val closedGain: Int,
         @SerializedName("closedPeak")
-        val closedPeak: Int,
+        val closedPeak: Any,
         @SerializedName("code")
         val code: Int,
         @SerializedName("effectTypes")
@@ -38,7 +38,7 @@ data class SongUrl(
         @SerializedName("freeTrialPrivilege")
         val freeTrialPrivilege: FreeTrialPrivilege,
         @SerializedName("gain")
-        val gain: Int,
+        val gain: Any,
         @SerializedName("id")
         val id: Long,
         @SerializedName("level")

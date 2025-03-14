@@ -71,8 +71,7 @@ fun OptimizedBlurredImage(
 
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .placeholderMemoryCacheKey(cover.smallImage()) // 先用小图占位
-                .data(cover.middleImage())
+                .data(cover.smallImage())
                 .build(),
             modifier = Modifier
                 .fillMaxSize()
