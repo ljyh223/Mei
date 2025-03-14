@@ -1,19 +1,17 @@
 package com.ljyh.music.di
 
 import android.util.Log
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
-import com.google.gson.reflect.TypeToken
 import com.ljyh.music.AppContext
 import com.ljyh.music.constants.CookieKey
 import com.ljyh.music.constants.DeviceIdKey
-import com.ljyh.music.data.network.api.ApiService
-import com.ljyh.music.data.network.api.EApiService
 import com.ljyh.music.data.network.QQMusicCApiService
 import com.ljyh.music.data.network.QQMusicUApiService
+import com.ljyh.music.data.network.api.ApiService
+import com.ljyh.music.data.network.api.EApiService
 import com.ljyh.music.data.network.api.WeApiService
 import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.encrypt.createRandomKey
@@ -31,10 +29,8 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.FormBody
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Converter
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
@@ -47,7 +43,6 @@ import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
-import kotlin.reflect.full.memberProperties
 
 
 @Module
@@ -75,13 +70,46 @@ object RetrofitModule {
             // 确定加密方式
             val crypto = determineCryptoMethod(url)
 
+            val os = when (crypto) {
+                "weapi" -> "pc"
+                "eapi" -> "pc"
+                "api" -> "iphone"
+                else -> "pc"
+            }
+            val osInfo = osMap[os]?:OSInfo("","","","")
+
             // 模拟设置 Cookie 和其他头信息
-            val cookie = generateCookie(crypto) // 根据加密方式生成 Cookie
+            val cookie = generateCookie(crypto, osInfo) // 根据加密方式生成 Cookie
             headersBuilder.add("Cookie", cookie)
 
-            // 设置 User-Agent
-            val userAgent = chooseUserAgent(crypto, "pc")
-            headersBuilder.add("User-Agent", userAgent)
+            if (crypto == "api") {
+                headersBuilder.apply {
+                    add("User-Agent", chooseUserAgent(crypto, "iphone"))
+                    add("osver", osInfo.osver )
+                    add("deviceId", AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId())
+                    add("os", osInfo.os )
+                    add("appver", osInfo.appver)
+                    add("versioncode", "140")
+                    add("mobilename", "")
+                    add("buildver", System.currentTimeMillis().toString().substring(0, 10))
+                    add("resolution", "1920x1080")
+                    add("__csrf", "")
+                    add("channel", osInfo.channel)
+                    add(
+                        "requestId",
+                        "${System.currentTimeMillis()}_${
+                            (Math.random() * 1000).toInt().toString().padStart(4, '0')
+                        }"
+                    )
+                    if (cookie.contains("MUSIC_U")) {
+                        add("MUSIC_U", AppContext.instance.dataStore[CookieKey].toString())
+                    }
+                }
+
+            } else {
+                val userAgent = chooseUserAgent(crypto, "pc")
+                headersBuilder.add("User-Agent", userAgent)
+            }
 
             // 获取请求体
             val originalBody = originalRequest.body
@@ -129,7 +157,7 @@ object RetrofitModule {
                     println(requestData)
                     val formBodyBuilder = FormBody.Builder()
                     // 注册自定义解析器
-                    if(requestData!=""){
+                    if (requestData != "") {
                         val gson = GsonBuilder()
                             .registerTypeAdapter(Map::class.java, DynamicMapDeserializer())
                             .create()
@@ -152,10 +180,10 @@ object RetrofitModule {
             val response = chain.proceed(newRequest)
             val responseBody = response.body
             // 解密响应数据
-            if (crypto=="weapi") {
+            if (crypto == "weapi") {
                 val decryptedResponseBody = responseBody?.let { body ->
                     Log.d("Decrypted Response", "weapi")
-                    Log.d("Decrypted Response",body.toString())
+                    Log.d("Decrypted Response", body.toString())
                     val encryptedBytes = body.bytes()
                     val decryptedBytes = decryptEApi(encryptedBytes)
                     decryptedBytes.toResponseBody(body.contentType())
@@ -276,68 +304,52 @@ object RetrofitModule {
     }
 
 
-//    const chooseUserAgent = (crypto, uaType = 'pc') => {
-//        const userAgentMap = {
-//            weapi: {
-//                pc: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
-//        },
-//            linuxapi: {
-//                linux:
-//                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
-//        },
-//            api: {
-//                pc: 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.0.18.203152',
-//                android:
-//                'NeteaseMusic/9.1.65.240927161425(9001065);Dalvik/2.1.0 (Linux; U; Android 14; 23013RK75C Build/UKQ1.230804.001)',
-//                iphone: 'NeteaseMusic 9.0.90/5038 (iPhone; iOS 16.2; zh_CN)',
-//        },
-//        }
-//        return userAgentMap[crypto][uaType] || ''
-//    }
-
-    private fun chooseUserAgent(crypto: String): String {
+    private fun chooseUserAgent(crypto: String, os: String): String {
         val userAgentMap = mapOf(
             "weapi" to mapOf(
                 "pc" to "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
             ),
             "linuxapi" to mapOf(
-                "linux" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36")
-        )
-    }
-}
-    private fun generateCookie(crypto: String): String {
-        // 根据加密方式生成 Cookie
-        // 这里可以根据需要实现具体的 Cookie 生成逻辑
-        val MUSIC_U =
-            "006503750A4B416ACE83191355213EC46491BFF92105213CD7A0101B11154F3FED93F869B0D0825102E06C02015190F81595D4185F02B7731650640BEA3F9C7F2BEA930E6D0F38C7486D8AF272284E56ECAB1A5727A6ACD8626FD01F2F53081A35C698F3575AB57141D46503F32176EC64F51EAA2469577AD63278642866EC5A305F4B332ECE583EC28FF34476F6A11F46B7608E193D7E9ECA1700B285AE1F231CC8BCF9E0533F742F6B00B05B9254571CB4D506708CF3993607B69CEA8B8143402BBDC918B433E9ACE157578C1E95E568C1A0BE38FA2033E9EBB646C7AAB79D19760949851141F75A1F966ABB8714709137B58AFBF20289AF9C374B74CE569D7B9D51CC5CAB37C94385A31E30C002C039FB5EA6C18C94C84762F498B9D897396C3918429C846D502E3454A25BC9F5F5035986801A3FB92CE445BBE521437224DC10F60CFBE5323B0563A89D262D1AD82F"
-
-
-        val _ntes_nuid = createRandomKey(32)
-        val os = when (crypto) {
-            "weapi" -> "pc"
-            "eapi" -> "pc"
-            "api" -> "android"
-            else -> "pc"
-        }
-        val osInfo = osMap[os]
-        val cookie = mapOf(
-            "ntes_kaola_ad" to 1,
-            "_ntes_nuid" to _ntes_nuid,
-            "_ntes_nnid" to "${_ntes_nuid},${System.currentTimeMillis()}",
-            "WNMCID" to getWNMCID(),
-            "WEVNSM" to "1.0.0",
-            "deviceId" to AppContext.instance.dataStore[DeviceIdKey],
-            "osver" to osInfo?.osver,
-            "os" to osInfo?.os,
-            "channel" to osInfo?.channel,
-            "appver" to osInfo?.appver,
-            "NMTID" to getRandomString(),
-            "MUSIC_U" to AppContext.instance.dataStore[CookieKey].toString()
+                "linux" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36"
+            ),
+            "api" to mapOf(
+                "pc" to "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.0.18.203152",
+                "android" to "NeteaseMusic/9.1.65.240927161425(9001065);Dalvik/2.1.0 (Linux; U; Android 14; 23013RK75C Build/UKQ1.230804.001",
+                "iphone" to "NeteaseMusic 9.0.90/5038 (iPhone; iOS 16.2; zh_CN)"
+            )
         )
 
-        return cookie.map { (key, value) -> "$key=$value" }.joinToString(";")
+        return userAgentMap[crypto]?.get(os) ?: ""
     }
 }
+
+private fun generateCookie(crypto: String, osInfo: OSInfo): String {
+    // 根据加密方式生成 Cookie
+    // 这里可以根据需要实现具体的 Cookie 生成逻辑
+    val MUSIC_U =
+        "006503750A4B416ACE83191355213EC46491BFF92105213CD7A0101B11154F3FED93F869B0D0825102E06C02015190F81595D4185F02B7731650640BEA3F9C7F2BEA930E6D0F38C7486D8AF272284E56ECAB1A5727A6ACD8626FD01F2F53081A35C698F3575AB57141D46503F32176EC64F51EAA2469577AD63278642866EC5A305F4B332ECE583EC28FF34476F6A11F46B7608E193D7E9ECA1700B285AE1F231CC8BCF9E0533F742F6B00B05B9254571CB4D506708CF3993607B69CEA8B8143402BBDC918B433E9ACE157578C1E95E568C1A0BE38FA2033E9EBB646C7AAB79D19760949851141F75A1F966ABB8714709137B58AFBF20289AF9C374B74CE569D7B9D51CC5CAB37C94385A31E30C002C039FB5EA6C18C94C84762F498B9D897396C3918429C846D502E3454A25BC9F5F5035986801A3FB92CE445BBE521437224DC10F60CFBE5323B0563A89D262D1AD82F"
+
+
+    val _ntes_nuid = createRandomKey(32)
+
+    val cookie = mapOf(
+        "ntes_kaola_ad" to 1,
+        "_ntes_nuid" to _ntes_nuid,
+        "_ntes_nnid" to "${_ntes_nuid},${System.currentTimeMillis()}",
+        "WNMCID" to getWNMCID(),
+        "WEVNSM" to "1.0.0",
+        "deviceId" to AppContext.instance.dataStore[DeviceIdKey],
+        "osver" to osInfo?.osver,
+        "os" to osInfo?.os,
+        "channel" to osInfo?.channel,
+        "appver" to osInfo?.appver,
+        "NMTID" to getRandomString(),
+        "MUSIC_U" to AppContext.instance.dataStore[CookieKey].toString()
+    )
+
+    return cookie.map { (key, value) -> "$key=$value" }.joinToString(";")
+}
+
 
 
 data class OSInfo(
