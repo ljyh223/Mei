@@ -12,7 +12,6 @@ interface WeApiService {
     @POST("/weapi/link/page/rcmd/resource/show")
     suspend fun getHomePageResourceShow(@Body body:GetHomePageResourceShow): HomePageResourceShow
 
-    @POST("/weapi/radio/like")
-    suspend fun like(@Body body: Like): LikeResult
+
 
 }

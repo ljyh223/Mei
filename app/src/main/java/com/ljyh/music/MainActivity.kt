@@ -58,6 +58,7 @@ import androidx.navigation.compose.rememberNavController
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.constants.AppBarHeight
+import com.ljyh.music.constants.DeviceIdKey
 import com.ljyh.music.constants.DynamicThemeKey
 import com.ljyh.music.constants.FirstLaunchKey
 import com.ljyh.music.constants.MiniPlayerHeight
@@ -290,6 +291,7 @@ class MainActivity : ComponentActivity() {
                                 if (dataStore.get(FirstLaunchKey, true)) {
                                     dataStore.edit { settings ->
                                         settings[FirstLaunchKey] = false
+                                        settings[DeviceIdKey] = com.ljyh.music.utils.getDeviceId()
                                     }
                                     Log.d("MainActivity", "load local music")
                                     withContext(Dispatchers.IO) {

@@ -212,3 +212,20 @@ fun jsonToFormUrlEncoded(jsonString: String): String {
         "$encodedKey=$encodedValue"
     }
 }
+
+fun getRandomString(len:Int=16):String{
+    val sb = StringBuilder(len)
+    for (i in 0 until len) {
+        sb.append(('a'..'z').random())
+    }
+    return sb.toString()
+}
+
+fun getWNMCID(): String {
+    val characters = "abcdefghijklmnopqrstuvwxyz"
+    var randomString = ""
+    for (i in 0 until 6) {
+        randomString += characters.random()
+    }
+    return "$randomString.${System.currentTimeMillis()}.01.0"
+}

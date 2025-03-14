@@ -9,6 +9,7 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.ljyh.music.AppContext
 import com.ljyh.music.constants.CookieKey
+import com.ljyh.music.constants.DeviceIdKey
 import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.api.EApiService
 import com.ljyh.music.data.network.QQMusicCApiService
@@ -20,6 +21,9 @@ import com.ljyh.music.utils.encrypt.decryptEApi
 import com.ljyh.music.utils.encrypt.encryptEApi
 import com.ljyh.music.utils.encrypt.encryptWeAPI
 import com.ljyh.music.utils.get
+import com.ljyh.music.utils.getDeviceId
+import com.ljyh.music.utils.getRandomString
+import com.ljyh.music.utils.getWNMCID
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -78,12 +82,6 @@ object RetrofitModule {
             // 设置 User-Agent
             val userAgent = chooseUserAgent(crypto, "pc")
             headersBuilder.add("User-Agent", userAgent)
-
-//            if(originalRequest.method!="POST"){
-//
-//                val response = chain.proceed(newRequest)
-//                return@Interceptor chain.proceed(originalRequest)
-//            }
 
             // 获取请求体
             val originalBody = originalRequest.body
@@ -157,6 +155,7 @@ object RetrofitModule {
             if (crypto=="weapi") {
                 val decryptedResponseBody = responseBody?.let { body ->
                     Log.d("Decrypted Response", "weapi")
+                    Log.d("Decrypted Response",body.toString())
                     val encryptedBytes = body.bytes()
                     val decryptedBytes = decryptEApi(encryptedBytes)
                     decryptedBytes.toResponseBody(body.contentType())
@@ -171,29 +170,29 @@ object RetrofitModule {
         }
 
         return OkHttpClient.Builder().apply {
-//            if (DEBUG) {
-//                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-//                    override fun checkClientTrusted(
-//                        chain: Array<out X509Certificate>?,
-//                        authType: String?
-//                    ) {
-//                    }
-//
-//                    override fun checkServerTrusted(
-//                        chain: Array<out X509Certificate>?,
-//                        authType: String?
-//                    ) {
-//                    }
-//
-//                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-//                })
-//                val hostnameVerifier = HostnameVerifier { _, _ -> true }
-//                // 创建 SSL 上下文并初始化
-//                val sslContext = SSLContext.getInstance("TLS")
-//                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
-//                sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-//                hostnameVerifier(hostnameVerifier)
-//            }
+            if (DEBUG) {
+                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                    override fun checkClientTrusted(
+                        chain: Array<out X509Certificate>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    override fun checkServerTrusted(
+                        chain: Array<out X509Certificate>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                })
+                val hostnameVerifier = HostnameVerifier { _, _ -> true }
+                // 创建 SSL 上下文并初始化
+                val sslContext = SSLContext.getInstance("TLS")
+                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
+                sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+                hostnameVerifier(hostnameVerifier)
+            }
 
             addInterceptor(loggingInterceptor)
             addInterceptor(encryptionInterceptor)
@@ -276,16 +275,36 @@ object RetrofitModule {
         }
     }
 
-    private fun chooseUserAgent(crypto: String, uaType: String): String {
-        // 根据加密方式和设备类型选择 User-Agent
-        return when (crypto) {
-            "weapi" -> "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
-            "linuxapi" -> "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36"
-            "api" -> "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.0.18.203152"
-            else -> ""
-        }
-    }
 
+//    const chooseUserAgent = (crypto, uaType = 'pc') => {
+//        const userAgentMap = {
+//            weapi: {
+//                pc: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0',
+//        },
+//            linuxapi: {
+//                linux:
+//                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
+//        },
+//            api: {
+//                pc: 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.0.18.203152',
+//                android:
+//                'NeteaseMusic/9.1.65.240927161425(9001065);Dalvik/2.1.0 (Linux; U; Android 14; 23013RK75C Build/UKQ1.230804.001)',
+//                iphone: 'NeteaseMusic 9.0.90/5038 (iPhone; iOS 16.2; zh_CN)',
+//        },
+//        }
+//        return userAgentMap[crypto][uaType] || ''
+//    }
+
+    private fun chooseUserAgent(crypto: String): String {
+        val userAgentMap = mapOf(
+            "weapi" to mapOf(
+                "pc" to "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
+            ),
+            "linuxapi" to mapOf(
+                "linux" to "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36")
+        )
+    }
+}
     private fun generateCookie(crypto: String): String {
         // 根据加密方式生成 Cookie
         // 这里可以根据需要实现具体的 Cookie 生成逻辑
@@ -304,8 +323,16 @@ object RetrofitModule {
         val cookie = mapOf(
             "ntes_kaola_ad" to 1,
             "_ntes_nuid" to _ntes_nuid,
+            "_ntes_nnid" to "${_ntes_nuid},${System.currentTimeMillis()}",
+            "WNMCID" to getWNMCID(),
+            "WEVNSM" to "1.0.0",
+            "deviceId" to AppContext.instance.dataStore[DeviceIdKey],
+            "osver" to osInfo?.osver,
             "os" to osInfo?.os,
-            "MUSIC_U" to AppContext.instance.dataStore.get(CookieKey).toString()
+            "channel" to osInfo?.channel,
+            "appver" to osInfo?.appver,
+            "NMTID" to getRandomString(),
+            "MUSIC_U" to AppContext.instance.dataStore[CookieKey].toString()
         )
 
         return cookie.map { (key, value) -> "$key=$value" }.joinToString(";")

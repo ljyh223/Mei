@@ -34,7 +34,7 @@ val DynamicStreamerKey = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
 val PlayModeKey= stringPreferencesKey("playMode")
-
+val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
 enum class CoverStyle {
     Circle,

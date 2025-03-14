@@ -130,6 +130,8 @@ interface ApiService {
     @POST("/api/user/photo/album/get")
     suspend fun getUserPhotoAlbum(@Body body: GetUserPhotoAlbum): AlbumPhoto
 
+    @POST("/api/radio/like")
+    suspend fun like(@Body body: Like): LikeResult
 
 
 }

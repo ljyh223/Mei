@@ -66,7 +66,6 @@ fun ShowMain(
     modifier: Modifier
 ) {
     val context = LocalContext.current
-//    var isLiked by remember { mutableStateOf(false) }
     val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
     val enabledIrregularityCoverKey by rememberPreference(
         IrregularityCoverKey,
