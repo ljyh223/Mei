@@ -3,6 +3,7 @@ package com.ljyh.music.constants
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ljyh.music.playback.PlayMode
+import com.materialkolor.scheme.DynamicScheme
 
 val FirstLaunchKey = booleanPreferencesKey("firstLaunch")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
@@ -37,7 +38,11 @@ val PlayModeKey= stringPreferencesKey("playMode")
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
 
+val DynamicStreamerTypeKey= stringPreferencesKey("dynamicStreamerType")
 val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")
+
+// 原图封面
+val OriginalCoverKey = booleanPreferencesKey("originalCover")
 enum class CoverStyle {
     Circle,
     Square
@@ -46,6 +51,11 @@ enum class LyricTextAlignment {
     Left,
     Center,
     Right
+}
+
+enum class DynamicStreamerType {
+    FluidBg,
+    Image
 }
 
 

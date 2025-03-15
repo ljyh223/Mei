@@ -47,6 +47,7 @@ import coil3.request.crossfade
 import com.ljyh.music.constants.CoverStyle
 import com.ljyh.music.constants.CoverStyleKey
 import com.ljyh.music.constants.IrregularityCoverKey
+import com.ljyh.music.constants.OriginalCoverKey
 import com.ljyh.music.constants.ThumbnailCornerRadius
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.playback.PlayerConnection
@@ -71,6 +72,11 @@ fun ShowMain(
         IrregularityCoverKey,
         defaultValue = false
     )
+
+    val originalCover by rememberPreference(
+        OriginalCoverKey,
+        defaultValue = false
+    )
     val isLiked by viewModel.like.collectAsState(initial = null)
     LaunchedEffect(
         key1 = mediaMetadata.id,
@@ -84,14 +90,16 @@ fun ShowMain(
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .placeholderMemoryCacheKey(mediaMetadata.coverUrl.smallImage()) // 先用小图占位
-                .data(mediaMetadata.coverUrl.size1600())
+                .data(
+                    if (originalCover) mediaMetadata.coverUrl else mediaMetadata.coverUrl.size1600()
+                )
                 .crossfade(true) // 平滑过渡
                 .build(),
             contentScale = ContentScale.Crop,
             contentDescription = "Loaded Image",
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio( 1f)
+                .aspectRatio(1f)
                 .clip(
                     when (coverStyle) {
                         CoverStyle.Square -> RoundedCornerShape(ThumbnailCornerRadius * 2)
@@ -187,16 +195,14 @@ fun AnimatedLikeButton(
     val scale by transition.animateFloat(
         transitionSpec = {
             if (targetState) {
-                // Animation when transitioning to liked state
                 tween(durationMillis = 200)
             } else {
-                // Animation when transitioning to unliked state
                 tween(durationMillis = 200)
             }
         },
         label = "scale"
     ) { state ->
-        if (state) 1.1f else 1f // Scale up slightly when liked
+        if (state) 1.1f else 1f
     }
 
     val icon = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder
@@ -212,7 +218,7 @@ fun AnimatedLikeButton(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier
-                .scale(scale) // Apply the scale animation
+                .scale(scale)
         )
     }
 }

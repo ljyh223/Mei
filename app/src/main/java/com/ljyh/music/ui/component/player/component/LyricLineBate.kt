@@ -59,6 +59,8 @@ fun LyricLineBate(
     val translationTextColor = if (darkMode) Color(0xFFAAAAAA) else Color(0xFF444444)
     val sungTextColor = if (darkMode) Color(0xFFFFC107) else Color(0xFF0084FF) // 唱过的部分，黄色/蓝色
 
+
+
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val maxTextWidth = with(density) { (screenWidth - PlayerHorizontalPadding * 2 - 16.dp).toPx() }
     val textAlpha = animateFloatAsState(if (currentTimeMs >= 0) 1F else 0.32F, label = "").value

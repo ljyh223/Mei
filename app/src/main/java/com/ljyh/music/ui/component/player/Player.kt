@@ -46,6 +46,9 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import com.ljyh.music.constants.DarkModeKey
 import com.ljyh.music.constants.DebugKey
+import com.ljyh.music.constants.DynamicStreamerKey
+import com.ljyh.music.constants.DynamicStreamerType
+import com.ljyh.music.constants.DynamicStreamerTypeKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
@@ -68,6 +71,7 @@ import com.ljyh.music.ui.component.player.component.OptimizedBlurredImage
 import com.ljyh.music.ui.component.player.component.PlayerProgressSlider
 import com.ljyh.music.ui.component.player.component.PlayerTimeDisplay
 import com.ljyh.music.ui.component.player.component.ShowMain
+import com.ljyh.music.ui.component.player.component.animatedGradient
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.encrypt.QRCUtils
@@ -94,6 +98,8 @@ fun BottomSheetPlayer(
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
+    val dynamicStreamerType by rememberEnumPreference(DynamicStreamerTypeKey, defaultValue = DynamicStreamerType.Image)
+    val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
     val debug by rememberPreference(DebugKey, defaultValue = false)
 
     // Derived state for background color
@@ -119,6 +125,7 @@ fun BottomSheetPlayer(
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
     val playMode = remember { mutableStateOf(PlayMode.REPEAT_MODE_ALL) }
+
 
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
@@ -257,7 +264,8 @@ fun BottomSheetPlayer(
             )
         }
     ) {
-        OptimizedBlurredImage(mediaInfo.cover, isPlaying, 100.dp)
+        if(dynamicStreamerType==DynamicStreamerType.Image)
+             OptimizedBlurredImage(mediaInfo.cover, isPlaying, 100.dp)
         if(debug)
             Debug(
                 title = mediaInfo.title,
@@ -271,9 +279,15 @@ fun BottomSheetPlayer(
             )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                .padding(bottom = queueSheetState.collapsedBound)
+            modifier = Modifier.apply {
+                if(dynamicStreamerType==DynamicStreamerType.FluidBg){
+                    animatedGradient(dynamicStreamer)
+                }
+                windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                padding(bottom = queueSheetState.collapsedBound)
+            }
+
+
         ) {
 
             Box(modifier = Modifier.weight(1f)) {

@@ -14,36 +14,30 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -59,9 +53,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -85,7 +82,6 @@ import com.ljyh.music.constants.FirstLaunchKey
 import com.ljyh.music.constants.MiniPlayerHeight
 import com.ljyh.music.constants.NavigationBarAnimationSpec
 import com.ljyh.music.constants.NavigationBarHeight
-import com.ljyh.music.constants.PauseSearchHistoryKey
 import com.ljyh.music.data.model.UserData
 import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.di.AppDatabase
@@ -93,14 +89,11 @@ import com.ljyh.music.playback.MusicService
 import com.ljyh.music.playback.PlayerConnection
 import com.ljyh.music.ui.component.ConfirmationDialog
 import com.ljyh.music.ui.component.IconButton
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.sp
 import com.ljyh.music.ui.component.SearchBar
 import com.ljyh.music.ui.component.player.BottomSheetPlayer
 import com.ljyh.music.ui.component.rememberBottomSheetState
+import com.ljyh.music.ui.component.utils.appBarScrollBehavior
+import com.ljyh.music.ui.component.utils.resetHeightOffset
 import com.ljyh.music.ui.local.LocalDatabase
 import com.ljyh.music.ui.local.LocalNavController
 import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
@@ -108,18 +101,16 @@ import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.ui.local.LocalUserData
 import com.ljyh.music.ui.screen.Index
 import com.ljyh.music.ui.screen.Screen
+import com.ljyh.music.ui.screen.backToMain
 import com.ljyh.music.ui.screen.navigationBuilder
 import com.ljyh.music.ui.theme.MusicTheme
 import com.ljyh.music.utils.MusicUtils
-import com.ljyh.music.ui.component.utils.appBarScrollBehavior
-import com.ljyh.music.utils.createNotificationChannel
-import com.ljyh.music.utils.dataStore
-import com.ljyh.music.utils.get
-import com.ljyh.music.ui.component.utils.resetHeightOffset
-import com.ljyh.music.ui.screen.backToMain
 import com.ljyh.music.utils.checkAndRequestFilesPermissions
 import com.ljyh.music.utils.checkAndRequestNotificationPermission
 import com.ljyh.music.utils.checkFilesPermissions
+import com.ljyh.music.utils.createNotificationChannel
+import com.ljyh.music.utils.dataStore
+import com.ljyh.music.utils.get
 import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.urlEncode
 import dagger.hilt.android.AndroidEntryPoint
@@ -305,11 +296,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val playerAwareWindowInsets = remember(
-                        bottomInset,
-                        shouldShowNavigationBar,
-                        playerBottomSheetState.isDismissed
-                    ) {
+                    val playerAwareWindowInsets = remember(bottomInset, shouldShowNavigationBar, playerBottomSheetState.isDismissed) {
                         var bottom = bottomInset
                         if (shouldShowNavigationBar) bottom += NavigationBarHeight
                         if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
@@ -503,7 +490,6 @@ class MainActivity : ComponentActivity() {
                                         Box(
                                             contentAlignment = Alignment.Center,
                                             modifier = Modifier
-                                                .size(48.dp)
                                                 .clip(CircleShape)
                                                 .clickable {
                                                     navController.navigate(Screen.Setting.route)
@@ -537,13 +523,8 @@ class MainActivity : ComponentActivity() {
                                             y = (bottomInset + NavigationBarHeight).roundToPx()
                                         )
                                     } else {
-                                        val slideOffset =
-                                            (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(
-                                                0f,
-                                                1f
-                                            )
-                                        val hideOffset =
-                                            (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
+                                        val slideOffset = (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(0f, 1f)
+                                        val hideOffset = (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
                                         IntOffset(
                                             x = 0,
                                             y = (slideOffset + hideOffset).roundToPx()
