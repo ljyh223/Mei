@@ -52,10 +52,10 @@ interface SongDao {
 @Dao
 interface PlaylistDao {
     @Query("SELECT * FROM playlist where id=:id")
-    fun getPlaylist(id: String): Flow<Playlist?>
+    suspend fun getPlaylist(id: String): Playlist?
 
     @Query("SELECT * FROM playlist where author=:author")
-    fun getPlaylistByAuthor(author: String): List<Playlist>
+    suspend fun getPlaylistByAuthor(author: String): List<Playlist>
 
     @Query("SELECT * FROM playlist")
     fun getAllPlaylist(): Flow<List<Playlist>>

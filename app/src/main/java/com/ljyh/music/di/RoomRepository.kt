@@ -72,11 +72,11 @@ class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
 
 
 class PlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
-    fun getPlaylist(id: String): Flow<Playlist?> {
+    suspend fun getPlaylist(id: String): Playlist? {
         return playlistDao.getPlaylist(id)
     }
 
-    fun getPlaylistByAuthor(author: String): List<Playlist> {
+    suspend fun getPlaylistByAuthor(author: String): List<Playlist> {
         return if (author == "") {
             emptyList()
         } else {

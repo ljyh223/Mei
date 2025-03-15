@@ -136,15 +136,6 @@ private fun SuccessState(
                 onClick = { onSongClick(song) }
             )
 
-            if (index < songs.size - 1) {
-                HorizontalDivider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
         }
     }
 }
@@ -160,7 +151,7 @@ private fun SongItem(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+//            .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(4.dp)
     ) {

@@ -23,16 +23,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Lyrics
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -51,15 +48,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.api.GetLyric
 import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.network.Resource
-import com.ljyh.music.di.PlaylistRepository
 import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.DownloadManager
 import com.ljyh.music.utils.SongMate
+import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.formatDuration
+import com.ljyh.music.utils.get
 import com.ljyh.music.utils.smallImage
 import kotlinx.coroutines.launch
 
@@ -77,12 +76,14 @@ fun Track(
     val context = LocalContext.current
     val allMePlaylist by viewModel.playlist.collectAsState()
 
+    val userId= LocalContext.current.dataStore[UserIdKey] ?: ""
+
     var showBottomSheet by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     if (showDialog) {
-
         ListDialog(
             modifier = Modifier.padding(16.dp),
+
             onDismiss = {
                 showDialog = false
             }
@@ -90,9 +91,11 @@ fun Track(
             items(allMePlaylist) {
                 Row(
                     modifier = Modifier
+                        .padding(8.dp)
                         .clickable {
                             showBottomSheet = false
                             showDialog = false
+                            Toast.makeText(context, "添加成功", Toast.LENGTH_SHORT).show()
                             viewModel.addSongToPlaylist(
                                 pid = it.id,
                                 trackIds = track.id.toString()
@@ -111,9 +114,10 @@ fun Track(
                         modifier = Modifier
                             .padding(start = 8.dp)
                             .weight(1f),
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.SpaceAround
                     ) {
-                        Text("${it.title}·${it.count}")
+                        Text(it.title)
+                        Text("${it.count}首歌曲")
 
                     }
                 }
@@ -141,22 +145,36 @@ fun Track(
                         .calculateBottomPadding()
                 )
             ) {
-
-
                 GridMenuItem(
                     icon = Icons.Rounded.Add,
-                    title = "add to playlist",
+                    title = "添加到歌单",
                     onClick = {
                         viewModel.getAllMePlaylist()
                         showDialog = true
-
                     }
                 )
+
+                if (playlistDetail is Resource.Success &&
+                    (playlistDetail as Resource.Success<PlaylistDetail>).data.playlist.creator.userId.toString() == userId) {
+                    GridMenuItem(
+                        icon = Icons.Rounded.DeleteSweep,
+                        title = "删除此歌曲",
+                        onClick = {
+                            showBottomSheet= false
+                            viewModel.deleteSongFromPlaylist(
+                                pid = (playlistDetail as Resource.Success<PlaylistDetail>).data.playlist.Id.toString(),
+                                trackIds = track.id.toString()
+                            )
+                            Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+
 
 
                 GridMenuItem(
                     icon = Icons.Rounded.Lyrics,
-                    title = "update lyric",
+                    title = "更新本地歌词",
                     onClick = {
                         when (val result = playlistDetail) {
                             is Resource.Success -> {
@@ -200,8 +218,9 @@ fun Track(
 
                 GridMenuItem(
                     icon = Icons.Rounded.ContentCopy,
-                    title = "copy id",
+                    title = "复制id",
                     onClick = {
+                        showBottomSheet= false
                         val clipboard =
                             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("id", track.id.toString())
@@ -212,8 +231,9 @@ fun Track(
 
                 GridMenuItem(
                     icon = Icons.Rounded.ContentCopy,
-                    title = "copy name",
+                    title = "复制歌名",
                     onClick = {
+                        showBottomSheet= false
                         val clipboard =
                             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("name", track.name)
