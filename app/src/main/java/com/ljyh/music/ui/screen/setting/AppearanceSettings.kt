@@ -30,6 +30,8 @@ import com.ljyh.music.constants.CoverStyle
 import com.ljyh.music.constants.CoverStyleKey
 import com.ljyh.music.constants.DebugKey
 import com.ljyh.music.constants.DynamicStreamerKey
+import com.ljyh.music.constants.DynamicStreamerType
+import com.ljyh.music.constants.DynamicStreamerTypeKey
 import com.ljyh.music.constants.DynamicThemeKey
 import com.ljyh.music.constants.IrregularityCoverKey
 import com.ljyh.music.constants.LyricTextAlignment
@@ -37,6 +39,7 @@ import com.ljyh.music.constants.LyricTextAlignmentKey
 import com.ljyh.music.constants.LyricTextBoldKey
 import com.ljyh.music.constants.LyricTextSize
 import com.ljyh.music.constants.LyricTextSizeKey
+import com.ljyh.music.constants.OriginalCoverKey
 import com.ljyh.music.ui.component.EnumListPreference
 import com.ljyh.music.ui.component.IconButton
 import com.ljyh.music.ui.component.PreferenceGroupTitle
@@ -82,6 +85,15 @@ fun AppearanceSettings(
     val (dynamicStreamer, onDynamicStreamerChange) = rememberPreference(
         DynamicStreamerKey, defaultValue = true
     )
+    val (dynamicStreamerType, onDynamicStreamerType) = rememberEnumPreference(
+        DynamicStreamerTypeKey,
+        defaultValue = DynamicStreamerType.Image
+    )
+
+    val (originalCover, onOriginalCover) = rememberPreference(
+        OriginalCoverKey,
+        defaultValue = false
+    )
 
     val (debug, onDebug) = rememberPreference(
         DebugKey, defaultValue = false
@@ -116,6 +128,13 @@ fun AppearanceSettings(
             PreferenceGroupTitle(
                 title = "THEME"
             )
+            // 原图封面
+            SwitchPreference(
+                title = { Text("使用原图加载封面") },
+                icon = { Icon(Icons.Rounded.Image, null) },
+                checked = originalCover,
+                onCheckedChange = onOriginalCover
+            )
             SwitchPreference(
                 title = { Text("启用动态主题") },
                 icon = { Icon(Icons.Rounded.Palette, null) },
@@ -128,16 +147,29 @@ fun AppearanceSettings(
             )
 
             SwitchPreference(
+                title = { Text("允许不规则封面") },
+                icon = { Icon(Icons.Rounded.Stairs, null) },
+                checked = irregularityCover,
+                onCheckedChange = onIrregularityCover
+            )
+            SwitchPreference(
                 title = { Text("启用动态背景") },
                 icon = { Icon(Icons.Rounded.TextRotationAngledown, null) },
                 checked = dynamicStreamer,
                 onCheckedChange = onDynamicStreamerChange
             )
-            SwitchPreference(
-                title = { Text("允许不规则封面") },
-                icon = { Icon(Icons.Rounded.Stairs, null) },
-                checked = irregularityCover,
-                onCheckedChange = onIrregularityCover
+            EnumListPreference(
+                title = { Text("动态背景样式") },
+                icon = { Icon(Icons.Rounded.Image, null) },
+                isEnabled = dynamicStreamer,
+                selectedValue = dynamicStreamerType,
+                onValueSelected = onDynamicStreamerType,
+                valueText = {
+                    when (it) {
+                        DynamicStreamerType.Image -> "Image"
+                        DynamicStreamerType.FluidBg -> "FluidBg"
+                    }
+                }
             )
             EnumListPreference(
                 title = { Text("歌曲封面样式") },
