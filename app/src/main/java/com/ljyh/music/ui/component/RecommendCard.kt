@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -98,124 +99,127 @@ fun RecommendCard(
             isColorLoaded.value = true
         }
     }
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 6.dp)
-                .clip(RoundedCornerShape(topEnd = 8.dp, topStart = 8.dp)),
-            onClick = onClick,
+    Row {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Box {
-                AsyncImage(
-                    model = cover.largeImage(),
-                    modifier = Modifier
-                        .size(RecommendCardWidth, RecommendCardHeight),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                )
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topEnd = 8.dp, topStart = 8.dp)),
+                onClick = onClick,
+            ) {
+                Box {
+                    AsyncImage(
+                        model = cover.largeImage(),
+                        modifier = Modifier
+                            .size(RecommendCardWidth, RecommendCardHeight),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                    )
 
 
-                Row(
-                    Modifier
-                        .height(IntrinsicSize.Min)
-                        .align(Alignment.TopStart)
-                        .padding(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    Row(
+                        Modifier
+                            .height(IntrinsicSize.Min)
+                            .align(Alignment.TopStart)
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
 
-                ) {
-                    extInfo.icon?.let {
-                        AsyncImage(
-                            model = it,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop
+                    ) {
+                        extInfo.icon?.let {
+                            AsyncImage(
+                                model = it,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        Text(
+                            text = extInfo.text,
+                            fontSize = 16.sp,
+                            maxLines = 1,
+                            lineHeight = 16.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            style = TextStyle(
+                                shadow = Shadow(
+                                    color = Color.Black,
+                                    offset = Offset(4f, 4f),
+                                    blurRadius = 8f
+                                )
+                            )
                         )
+
+                    }
+                    if (showPlay) {
+                        IconButton(modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(32.dp)
+                            .padding(4.dp),
+                            onClick = {
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Default.PlaylistPlay,
+                                contentDescription = "Play",
+                                tint = Color.White
+                            )
+                        }
                     }
 
+
+                }
+
+            }
+
+            Surface(
+                modifier = Modifier
+                    .width(RecommendCardWidth)
+                    .clip(RoundedCornerShape(bottomEnd = 8.dp, bottomStart = 8.dp))
+            ) {
+                Box(
+                    Modifier
+                        .width(RecommendCardWidth)
+                        .clip(RoundedCornerShape(bottomEnd = 8.dp, bottomStart = 8.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color((dominantColorState.color.toArgb() and 0xFFFFFF) or 0xD1000000.toInt()), // 与一个 82% 不透明的白色，做 centerColor。注意此处位运算的改变
+                                    Color(dominantColorState.color.toArgb() or 0xFF000000.toInt()) // 确保是不透明的颜色
+                                )
+                            )
+                        )
+                ) {
                     Text(
-                        text = extInfo.text,
-                        fontSize = 16.sp,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        text = title?:"",
+                        modifier = Modifier.padding(8.dp),
                         maxLines = 1,
-                        lineHeight = 16.sp,
+                        fontSize = 12.sp,
                         color = Color.White,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
                         style = TextStyle(
                             shadow = Shadow(
                                 color = Color.Black,
-                                offset = Offset(4f, 4f),
+                                offset = Offset(2f, 2f),
                                 blurRadius = 8f
                             )
                         )
                     )
-
                 }
-                if (showPlay) {
-                    IconButton(modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(32.dp)
-                        .padding(4.dp),
-                        onClick = {
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.PlaylistPlay,
-                            contentDescription = "Play",
-                            tint = Color.White
-                        )
-                    }
-                }
-
-
             }
 
+
         }
-
-        Surface(
-            modifier = Modifier
-                .width(RecommendCardWidth)
-                .clip(RoundedCornerShape(bottomEnd = 8.dp, bottomStart = 8.dp))
-        ) {
-            Box(
-                Modifier
-                    .width(RecommendCardWidth)
-                    .clip(RoundedCornerShape(bottomEnd = 8.dp, bottomStart = 8.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color((dominantColorState.color.toArgb() and 0xFFFFFF) or 0xD1000000.toInt()), // 与一个 82% 不透明的白色，做 centerColor。注意此处位运算的改变
-                                Color(dominantColorState.color.toArgb() or 0xFF000000.toInt()) // 确保是不透明的颜色
-                            )
-                        )
-                    )
-            ) {
-                Text(
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    text = title?:"",
-                    modifier = Modifier.padding(8.dp),
-                    maxLines = 1,
-                    fontSize = 12.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style = TextStyle(
-                        shadow = Shadow(
-                            color = Color.Black,
-                            offset = Offset(2f, 2f),
-                            blurRadius = 8f
-                        )
-                    )
-                )
-            }
-        }
-
-
+        Spacer(Modifier.width(12.dp))
     }
+
 }
 
 

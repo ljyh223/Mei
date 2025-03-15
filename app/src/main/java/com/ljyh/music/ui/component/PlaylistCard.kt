@@ -58,116 +58,119 @@ fun PlaylistCard(
 //    val isPlaying by playerConnection.isPlaying.collectAsState()
 //    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val context = LocalNavController.current.context
-    Column(modifier = Modifier
-        .width(PlaylistCardSize)
-        .padding(end = 6.dp)
-        .clickable { onClick() }) {
-        Box {
-            AsyncImage(
-                model = coverImg.largeImage(),
-                modifier = Modifier
-                    .size(PlaylistCardSize)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-            )
-            subTitle?.let {
-                Column(
+    Row {
+        Column(modifier = Modifier
+            .width(PlaylistCardSize)
+            .clickable { onClick() }) {
+            Box {
+                AsyncImage(
+                    model = coverImg.largeImage(),
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(4.dp),
+                        .size(PlaylistCardSize)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                )
+                subTitle?.let {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(4.dp),
+                    ) {
+                        it.forEach { t ->
+                            Text(
+                                text = t,
+                                fontSize = 12.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.ExtraBold,
+                                lineHeight = 16.sp,
+                                style = TextStyle(
+                                    shadow = Shadow(
+                                        color = Color.Black, offset = Offset(4f, 4f), blurRadius = 8f
+                                    )
+                                )
+                            )
+                        }
+                    }
+                }
+
+                extInfo?.let {
+
+                    Row(
+                        Modifier.height(IntrinsicSize.Min)
+                            .align(Alignment.TopStart)
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
 
                     ) {
-                    it.forEach { t ->
+                        Icon(
+                            imageVector = Icons.Filled.Headset,
+                            contentDescription = "Headset",
+                            modifier = Modifier.size(12.dp).shadow(
+                                4.dp,
+                                RoundedCornerShape(4.dp)
+                            ),
+                            tint = Color.White
+                        )
                         Text(
-                            text = t,
-                            fontSize = 12.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
+                            text = it,
+                            fontSize = 10.sp,
+                            maxLines = 1,
                             lineHeight = 16.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
                             style = TextStyle(
                                 shadow = Shadow(
-                                    color = Color.Black, offset = Offset(4f, 4f), blurRadius = 8f
+                                    color = Color.Black,
+                                    offset = Offset(4f, 4f),
+                                    blurRadius = 8f
                                 )
                             )
                         )
                     }
+
                 }
-            }
 
-            extInfo?.let {
 
-                Row(
-                    Modifier.height(IntrinsicSize.Min)
-                        .align(Alignment.TopStart)
+
+                if (showPlay) {
+                    IconButton(modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(24.dp)
                         .padding(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Headset,
-                        contentDescription = "Headset",
-                        modifier = Modifier.size(12.dp).shadow(
-                            4.dp,
-                            RoundedCornerShape(4.dp)
-                        ),
-                        tint = Color.White
-                    )
-                    Text(
-                        text = it,
-                        fontSize = 10.sp,
-                        maxLines = 1,
-                        lineHeight = 16.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        style = TextStyle(
-                            shadow = Shadow(
-                                color = Color.Black,
-                                offset = Offset(4f, 4f),
-                                blurRadius = 8f
-                            )
+                        onClick = {
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Default.PlaylistPlay,
+                            contentDescription = "Play",
+                            tint = Color.White,
+                            modifier = Modifier.shadow(
+                                4.dp,
+                                RoundedCornerShape(4.dp)
+                            ),
                         )
-                    )
-                }
-
-            }
-
-
-
-            if (showPlay) {
-                IconButton(modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(24.dp)
-                    .padding(4.dp),
-                    onClick = {
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Default.PlaylistPlay,
-                        contentDescription = "Play",
-                        tint = Color.White,
-                        modifier = Modifier.shadow(
-                            4.dp,
-                            RoundedCornerShape(4.dp)
-                        ),
-                    )
                 }
+
+
             }
 
-
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = title,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                fontSize = 11.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = title,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            fontSize = 11.sp,
-            lineHeight = 16.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Spacer(Modifier.width(12.dp))
     }
+
 
 }
