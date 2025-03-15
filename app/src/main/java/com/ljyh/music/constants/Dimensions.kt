@@ -10,7 +10,7 @@ val RecommendCardHeight = 160.dp
 
 val PlaylistCardSize = 100.dp
 
-val NavigationBarHeight = 80.dp
+val NavigationBarHeight = 64.dp
 val MiniPlayerHeight = 64.dp
 val QueuePeekHeight = 64.dp
 val AppBarHeight = 64.dp

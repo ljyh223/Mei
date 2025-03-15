@@ -217,7 +217,7 @@ fun RecommendCard(
 
 
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(16.dp))
     }
 
 }

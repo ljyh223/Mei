@@ -4,4 +4,7 @@
     <string name="error_no_internet">No network connection</string>
     <string name="error_timeout">Timeout</string>
     <string name="error_unknown">Unknown error</string>
+
+    <string name="search_bar_search">Search</string>
+    <string name="suggestions_available">Suggestions available</string>
 </resources>

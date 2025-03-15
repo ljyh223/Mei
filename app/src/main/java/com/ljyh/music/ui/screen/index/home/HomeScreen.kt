@@ -28,7 +28,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.component.CardExtInfo
-import com.ljyh.music.ui.component.CircularSearchBar
 import com.ljyh.music.ui.component.HomeShimmer
 import com.ljyh.music.ui.component.PlaylistCard
 import com.ljyh.music.ui.component.RecommendCard
@@ -80,7 +79,6 @@ fun HomeScreen(
 
                 is Resource.Success -> {
                     val data = resource.data
-                    CircularSearchBar()
                     Spacer(Modifier.height(10.dp))
                     Text(getGreeting(), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(10.dp))

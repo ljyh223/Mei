@@ -13,20 +13,37 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -44,6 +61,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -66,12 +85,20 @@ import com.ljyh.music.constants.FirstLaunchKey
 import com.ljyh.music.constants.MiniPlayerHeight
 import com.ljyh.music.constants.NavigationBarAnimationSpec
 import com.ljyh.music.constants.NavigationBarHeight
+import com.ljyh.music.constants.PauseSearchHistoryKey
 import com.ljyh.music.data.model.UserData
 import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.di.AppDatabase
 import com.ljyh.music.playback.MusicService
 import com.ljyh.music.playback.PlayerConnection
 import com.ljyh.music.ui.component.ConfirmationDialog
+import com.ljyh.music.ui.component.IconButton
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
+import com.ljyh.music.ui.component.SearchBar
 import com.ljyh.music.ui.component.player.BottomSheetPlayer
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalDatabase
@@ -89,10 +116,12 @@ import com.ljyh.music.utils.createNotificationChannel
 import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.get
 import com.ljyh.music.ui.component.utils.resetHeightOffset
+import com.ljyh.music.ui.screen.backToMain
 import com.ljyh.music.utils.checkAndRequestFilesPermissions
 import com.ljyh.music.utils.checkAndRequestNotificationPermission
 import com.ljyh.music.utils.checkFilesPermissions
 import com.ljyh.music.utils.rememberPreference
+import com.ljyh.music.utils.urlEncode
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
@@ -109,7 +138,7 @@ class MainActivity : ComponentActivity() {
     private var userData by mutableStateOf(UserData.VISITOR)
     private var playerConnection by mutableStateOf<PlayerConnection?>(null)
 
-    private var isBound=false
+    private var isBound = false
     private var serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             if (service is MusicService.MusicBinder) {
@@ -134,12 +163,12 @@ class MainActivity : ComponentActivity() {
             serviceConnection,
             Context.BIND_AUTO_CREATE
         )
-        isBound=true
+        isBound = true
     }
 
     override fun onStop() {
         super.onStop()
-        if(isBound) unbindService(serviceConnection)
+        if (isBound) unbindService(serviceConnection)
 
     }
 
@@ -152,7 +181,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
-            val active by rememberSaveable {
+            var active by rememberSaveable {
                 mutableStateOf(false)
             }
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
@@ -211,8 +240,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom).asPaddingValues())
                 ) {
+                    val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
                     val windowsInsets = WindowInsets.systemBars
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -228,6 +257,11 @@ class MainActivity : ComponentActivity() {
                             bottomInset + (if (shouldShowNavigationBar) NavigationBarHeight else 0.dp) + MiniPlayerHeight
                         }
                     }
+                    val searchBarFocusRequester = remember { FocusRequester() }
+                    val shouldShowSearchBar = remember(active, navBackStackEntry) {
+                        active || navBackStackEntry?.destination?.route == Screen.Home.route ||
+                                navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                    }
 
                     val playerBottomSheetState = rememberBottomSheetState(
                         dismissedBound = 0.dp,
@@ -239,12 +273,37 @@ class MainActivity : ComponentActivity() {
                         animationSpec = NavigationBarAnimationSpec,
                         label = ""
                     )
+                    val searchBarScrollBehavior = appBarScrollBehavior(
+                        canScroll = {
+                            navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                                    (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
+                        }
+                    )
                     val topAppBarScrollBehavior = appBarScrollBehavior(
                         canScroll = {
                             navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
                                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                         }
                     )
+                    val (query, onQueryChange) = rememberSaveable(stateSaver = TextFieldValue.Saver) {
+                        mutableStateOf(TextFieldValue())
+                    }
+                    val onActiveChange: (Boolean) -> Unit = { newActive ->
+                        active = newActive
+                        if (!newActive) {
+                            focusManager.clearFocus()
+                            if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
+                                onQueryChange(TextFieldValue())
+                            }
+                        }
+                    }
+
+                    val onSearch: (String) -> Unit = {
+                        if (it.isNotEmpty()) {
+                            onActiveChange(false)
+                            navController.navigate("search/${it.urlEncode()}")
+                        }
+                    }
 
                     val playerAwareWindowInsets = remember(
                         bottomInset,
@@ -267,6 +326,11 @@ class MainActivity : ComponentActivity() {
                             else -> null
                         }
                     }
+                    val topLevelScreens = listOf(
+                        Screen.Home.route,
+                        Screen.Library.route,
+                        Screen.Setting.route
+                    )
                     ConfirmationDialog(
                         title = "申请文件访问权限",
                         text = "用于下载音乐",
@@ -307,12 +371,12 @@ class MainActivity : ComponentActivity() {
 
                     }
                     LaunchedEffect(navBackStackEntry) {
-//                        searchBarScrollBehavior.state.resetHeightOffset()
+                        searchBarScrollBehavior.state.resetHeightOffset()
                         topAppBarScrollBehavior.state.resetHeightOffset()
                     }
                     LaunchedEffect(active) {
                         if (active) {
-//                            searchBarScrollBehavior.state.resetHeightOffset()
+                            searchBarScrollBehavior.state.resetHeightOffset()
                             topAppBarScrollBehavior.state.resetHeightOffset()
                         }
                     }
@@ -362,6 +426,101 @@ class MainActivity : ComponentActivity() {
                             }.route,
                         ) {
                             navigationBuilder(navController, topAppBarScrollBehavior)
+                        }
+
+                        AnimatedVisibility(
+                            visible = shouldShowSearchBar,
+                            enter = fadeIn(),
+                            exit = fadeOut(),
+                        ) {
+                            SearchBar(
+                                query = query,
+                                onQueryChange = onQueryChange,
+                                onSearch = onSearch,
+                                active = active,
+                                onActiveChange = onActiveChange,
+                                scrollBehavior = searchBarScrollBehavior,
+                                placeholder = {
+                                    Text("搜索")
+                                },
+                                leadingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            when {
+                                                active -> onActiveChange(false)
+                                                !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } -> {
+                                                    navController.navigateUp()
+                                                }
+                                                else -> onActiveChange(true)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            when {
+                                                active -> {}
+                                                !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } -> {
+                                                    navController.backToMain()
+                                                }
+                                                else -> {}
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = if (active || !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
+                                                Icons.AutoMirrored.Rounded.ArrowBack
+                                            } else {
+                                                Icons.Rounded.Search
+                                            },
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            contentDescription = null
+                                        )
+                                    }
+                                },
+                                trailingIcon = {
+                                    if (active) {
+                                        if (query.text.isNotEmpty()) {
+                                            IconButton(
+                                                onClick = { onQueryChange(TextFieldValue("")) }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Close,
+                                                    contentDescription = null
+                                                )
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                Toast.makeText(this@MainActivity, "还未实现", Toast.LENGTH_SHORT).show()
+                                            }
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(
+                                                    R.drawable.cloud
+                                                ),
+                                                contentDescription = null
+                                            )
+                                        }
+                                    } else if (navBackStackEntry?.destination?.route in topLevelScreens) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    navController.navigate(Screen.Setting.route)
+                                                }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Settings,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    }
+                                },
+                                focusRequester = searchBarFocusRequester,
+                                modifier = Modifier.align(Alignment.TopCenter),
+                            ) {
+
+                            }
                         }
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
@@ -444,6 +603,7 @@ class MainActivity : ComponentActivity() {
             isBound = false
         }
     }
+
     companion object {
         const val ACTION_LIBRARY = "com.ljyh.music.action.LIBRARY"
     }

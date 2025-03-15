@@ -133,11 +133,7 @@ fun LibraryScreen(
             .fillMaxSize()
             .verticalScroll(scrollState),
     ) {
-        Spacer(
-            Modifier.height(
-                LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()
-            )
-        )
+
         if (userId != "") {
             User(
                 userId = userId,

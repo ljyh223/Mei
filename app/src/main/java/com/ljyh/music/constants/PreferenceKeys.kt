@@ -36,6 +36,8 @@ val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
 val PlayModeKey= stringPreferencesKey("playMode")
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
+
+val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")
 enum class CoverStyle {
     Circle,
     Square
