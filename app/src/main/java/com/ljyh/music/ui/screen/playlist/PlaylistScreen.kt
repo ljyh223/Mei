@@ -63,6 +63,7 @@ import com.ljyh.music.data.model.api.GetSongUrl
 import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.network.Resource
+import com.ljyh.music.di.PlaylistRepository
 import com.ljyh.music.extensions.mediaItems
 import com.ljyh.music.playback.queue.ListQueue
 import com.ljyh.music.ui.component.ConfirmationDialog
@@ -149,8 +150,9 @@ fun PlaylistScreen(
                 is Resource.Success -> {
                     title.value = result.data.playlist.name
                     ids.value = result.data.playlist.trackIds.map { it.id.toString() }
-                    if(result.data.playlist.name.endsWith("喜欢的音乐")){
-                        viewModel.updateAllLike(result.data.playlist.trackIds.map { Like(it.id.toString()) }.toList())
+                    if (result.data.playlist.name.endsWith("喜欢的音乐")) {
+                        viewModel.updateAllLike(result.data.playlist.trackIds.map { Like(it.id.toString()) }
+                            .toList())
                     }
                     item {
                         PlaylistInfo(result.data, viewModel) {
@@ -169,7 +171,10 @@ fun PlaylistScreen(
                         if (track != null) {
                             Track(viewModel, track) {
                                 playerConnection.player.mediaItems.forEachIndexed { i, mediaItem ->
-                                    Log.d("PlaylistScreen", "index: $i, mediaId: ${mediaItem.mediaId}")
+                                    Log.d(
+                                        "PlaylistScreen",
+                                        "index: $i, mediaId: ${mediaItem.mediaId}"
+                                    )
                                     if (mediaItem.mediaId == track.id.toString()) {
                                         playerConnection.player.seekToDefaultPosition(i)
                                         playerConnection.player.play()

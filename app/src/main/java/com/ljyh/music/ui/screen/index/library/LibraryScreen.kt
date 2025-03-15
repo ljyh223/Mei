@@ -17,18 +17,12 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,12 +40,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
-import com.ljyh.music.constants.AppBarHeight
 import com.ljyh.music.constants.CookieKey
 import com.ljyh.music.constants.UserAvatarUrlKey
 import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.constants.UserNicknameKey
 import com.ljyh.music.constants.UserPhotoKey
+import com.ljyh.music.data.model.room.Playlist
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.component.PlaylistItem
 import com.ljyh.music.ui.component.utils.fadingEdge
@@ -175,6 +169,15 @@ fun LibraryScreen(
             }
 
             is Resource.Success -> {
+                viewModel.insertPlaylist(result.data.playlist.map {
+                    Playlist(
+                        id = it.id.toString(),
+                        title = it.name,
+                        cover = it.coverImgUrl,
+                        author = it.creator.userId.toString(),
+                        count = it.trackCount,
+                    )
+                })
                 result.data.playlist.forEach {
                     PlaylistItem(it) {
                         Screen.PlayList.navigate(navController) {

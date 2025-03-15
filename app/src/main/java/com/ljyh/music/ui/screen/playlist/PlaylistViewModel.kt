@@ -3,16 +3,24 @@ package com.ljyh.music.ui.screen.playlist
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import com.ljyh.music.AppContext
+import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.SongUrl
+import com.ljyh.music.data.model.api.ManipulateTrack
+import com.ljyh.music.data.model.api.ManipulateTrackResult
 import com.ljyh.music.data.model.room.Like
+import com.ljyh.music.data.model.room.Playlist
 import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.PlaylistRepository
 import com.ljyh.music.di.LikeRepository
+import com.ljyh.music.utils.dataStore
+import com.ljyh.music.utils.get
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,13 +33,20 @@ import javax.inject.Inject
 class PlaylistViewModel @Inject constructor(
     private val repository: PlaylistRepository,
     private val likeRepository: LikeRepository,
+    private val playlistRepository: com.ljyh.music.di.PlaylistRepository,
     val apiService: ApiService
 ) : ViewModel() {
-
+    val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
     private val _playlistDetail = MutableStateFlow<Resource<PlaylistDetail>>(Resource.Loading)
     val playlistDetail: StateFlow<Resource<PlaylistDetail>> = _playlistDetail
 
+    private val _manipulateTracks =
+        MutableStateFlow<Resource<ManipulateTrackResult>>(Resource.Loading)
+    val manipulateTracks: StateFlow<Resource<ManipulateTrackResult>> = _manipulateTracks
 
+
+    private val _playlist = MutableStateFlow<List<Playlist>>(emptyList())
+    val playlist: StateFlow<List<Playlist>> = _playlist
     fun getPlaylistDetail(id: String) {
         viewModelScope.launch {
             _playlistDetail.value = Resource.Loading
@@ -92,6 +107,28 @@ class PlaylistViewModel @Inject constructor(
             likeRepository.updateAllLike(likes)
         }
     }
+
+    fun addSongToPlaylist(pid: String, trackIds: String) {
+        viewModelScope.launch {
+            _manipulateTracks.value = Resource.Loading
+            _manipulateTracks.value = repository.manipulateTrack("add", pid, trackIds)
+
+        }
+    }
+
+
+    fun deleteSongFromPlaylist(pid: String, trackIds: String) {
+        viewModelScope.launch {
+            _manipulateTracks.value = Resource.Loading
+            _manipulateTracks.value = repository.manipulateTrack("del", pid, trackIds)
+        }
+    }
+    fun getAllMePlaylist(){
+        viewModelScope.launch {
+            _playlist.value = playlistRepository.getPlaylistByAuthor(userId)
+        }
+    }
+
 
 
 }

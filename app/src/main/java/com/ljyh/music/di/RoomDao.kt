@@ -10,6 +10,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.data.model.room.Like
+import com.ljyh.music.data.model.room.Playlist
 import com.ljyh.music.data.model.room.QQSong
 import com.ljyh.music.data.model.room.Song
 import kotlinx.coroutines.flow.Flow
@@ -48,6 +49,23 @@ interface SongDao {
     suspend fun insertSongs(songs: List<Song>)
 }
 
+@Dao
+interface PlaylistDao {
+    @Query("SELECT * FROM playlist where id=:id")
+    fun getPlaylist(id: String): Flow<Playlist?>
+
+    @Query("SELECT * FROM playlist where author=:author")
+    fun getPlaylistByAuthor(author: String): List<Playlist>
+
+    @Query("SELECT * FROM playlist")
+    fun getAllPlaylist(): Flow<List<Playlist>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPlaylist(playlist: Playlist)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPlaylists(playlists: List<Playlist>)
+}
 
 @Dao
 interface LikeDao{
@@ -70,12 +88,13 @@ interface LikeDao{
 }
 
 
-@Database(entities = [Color::class, Song::class, Like::class, QQSong::class], version = 6)
+@Database(entities = [Color::class, Song::class, Like::class, QQSong::class, Playlist::class], version = 7)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
     abstract fun songDao(): SongDao
     abstract fun likeDao(): LikeDao
     abstract fun qqSongDao(): QQSongDao
+    abstract fun playlistDao(): PlaylistDao
 
     companion object {
         @Volatile

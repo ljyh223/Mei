@@ -2,9 +2,11 @@ package com.ljyh.music.di
 
 import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.data.model.room.Like
+import com.ljyh.music.data.model.room.Playlist
 import com.ljyh.music.data.model.room.QQSong
 import com.ljyh.music.data.model.room.Song
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 
 
@@ -65,5 +67,32 @@ class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
 
     suspend fun deleteLike(id: String) {
         likeDao.deleteLike(id)
+    }
+}
+
+
+class PlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
+    fun getPlaylist(id: String): Flow<Playlist?> {
+        return playlistDao.getPlaylist(id)
+    }
+
+    fun getPlaylistByAuthor(author: String): List<Playlist> {
+        return if (author == "") {
+            emptyList()
+        } else {
+            playlistDao.getPlaylistByAuthor(author)
+        }
+    }
+
+    fun getAllPlaylist(): Flow<List<Playlist>> {
+        return playlistDao.getAllPlaylist()
+    }
+
+    suspend fun insertPlaylist(playlist: Playlist) {
+        playlistDao.insertPlaylist(playlist)
+    }
+
+    suspend fun insertPlaylists(playlists: List<Playlist>) {
+        playlistDao.insertPlaylists(playlists)
     }
 }

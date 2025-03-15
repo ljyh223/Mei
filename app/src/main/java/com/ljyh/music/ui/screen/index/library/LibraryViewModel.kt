@@ -1,18 +1,14 @@
 package com.ljyh.music.ui.screen.index.library
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.data.model.AlbumPhoto
-import com.ljyh.music.data.model.HomePage
 import com.ljyh.music.data.model.UserAccount
 import com.ljyh.music.data.model.UserPlaylist
+import com.ljyh.music.data.model.room.Playlist
 import com.ljyh.music.data.network.Resource
-import com.ljyh.music.data.repository.HomeRepository
 import com.ljyh.music.data.repository.UserRepository
-import com.ljyh.music.utils.dataStore
-import com.ljyh.music.utils.get
+import com.ljyh.music.di.PlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val repository: UserRepository,
+    private val playlistRepository: PlaylistRepository
 ):ViewModel() {
     private val _account = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
     val account: StateFlow<Resource<UserAccount>> = _account
@@ -55,4 +52,12 @@ class LibraryViewModel @Inject constructor(
             _photoAlbum.value = repository.getPhotoAlbum(id)
         }
     }
+
+
+    fun insertPlaylist(playlist: List<Playlist>) {
+        viewModelScope.launch {
+            playlistRepository.insertPlaylists(playlist)
+        }
+    }
+    val allPlaylist = playlistRepository.getAllPlaylist()
 }

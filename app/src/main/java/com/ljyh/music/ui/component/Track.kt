@@ -7,20 +7,34 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,6 +55,7 @@ import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.api.GetLyric
 import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.network.Resource
+import com.ljyh.music.di.PlaylistRepository
 import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.DownloadManager
 import com.ljyh.music.utils.SongMate
@@ -49,6 +64,7 @@ import com.ljyh.music.utils.smallImage
 import kotlinx.coroutines.launch
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Track(
     viewModel: PlaylistViewModel,
@@ -56,9 +72,158 @@ fun Track(
     onclick: () -> Unit
 ) {
     val playlistDetail by viewModel.playlistDetail.collectAsState()
-    var isMenuExpanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState()
     val context = LocalContext.current
+    val allMePlaylist by viewModel.playlist.collectAsState()
+
+    var showBottomSheet by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
+    if (showDialog) {
+
+        ListDialog(
+            modifier = Modifier.padding(16.dp),
+            onDismiss = {
+                showDialog = false
+            }
+        ) {
+            items(allMePlaylist) {
+                Row(
+                    modifier = Modifier
+                        .clickable {
+                            showBottomSheet = false
+                            showDialog = false
+                            viewModel.addSongToPlaylist(
+                                pid = it.id,
+                                trackIds = track.id.toString()
+                            )
+                        }
+                ) {
+                    AsyncImage(
+                        model = it.cover.smallImage(),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .weight(1f),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("${it.title}·${it.count}")
+
+                    }
+                }
+            }
+
+        }
+    }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            shape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp),
+            onDismissRequest = {
+                showBottomSheet = false
+            },
+            sheetState = sheetState
+        ) {
+
+
+            GridMenu(
+                contentPadding = PaddingValues(
+                    start = 8.dp,
+                    top = 8.dp,
+                    end = 8.dp,
+                    bottom = 8.dp + WindowInsets.systemBars.asPaddingValues()
+                        .calculateBottomPadding()
+                )
+            ) {
+
+
+                GridMenuItem(
+                    icon = Icons.Rounded.Add,
+                    title = "add to playlist",
+                    onClick = {
+                        viewModel.getAllMePlaylist()
+                        showDialog = true
+
+                    }
+                )
+
+
+                GridMenuItem(
+                    icon = Icons.Rounded.Lyrics,
+                    title = "update lyric",
+                    onClick = {
+                        when (val result = playlistDetail) {
+                            is Resource.Success -> {
+                                val path = DownloadManager.isExist(
+                                    result.data.playlist.Id.toString(),
+                                    result.data.playlist.name,
+                                    track.id.toString()
+                                )
+                                if (path != "") {
+                                    scope.launch {
+                                        val lyric =
+                                            viewModel.apiService.getLyric(
+                                                GetLyric(
+                                                    id = track.id.toString()
+                                                )
+                                            )
+                                        val mLyric = lyric.parseString()
+                                        if (mLyric.isEmpty()) {
+                                            Toast.makeText(
+                                                context,
+                                                "找不到可用的歌词",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            return@launch
+                                        }
+                                        SongMate.writeLyric(path, mLyric)
+                                        Toast.makeText(context, "已更新", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    Toast.makeText(context, "找不到文件", Toast.LENGTH_SHORT).show()
+                                }
+
+                            }
+
+                            else -> {
+
+                            }
+                        }
+                    }
+                )
+
+                GridMenuItem(
+                    icon = Icons.Rounded.ContentCopy,
+                    title = "copy id",
+                    onClick = {
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("id", track.id.toString())
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                    }
+                )
+
+                GridMenuItem(
+                    icon = Icons.Rounded.ContentCopy,
+                    title = "copy name",
+                    onClick = {
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("name", track.name)
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -99,92 +264,8 @@ fun Track(
 
 
         IconButton(onClick = {
-            isMenuExpanded = true
+            showBottomSheet = true
         }) {
-
-            DropdownMenu(
-                expanded = isMenuExpanded,
-                onDismissRequest = { isMenuExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("update lyric") },
-                    onClick = {
-                        isMenuExpanded = false
-                        when (val result = playlistDetail) {
-                            is Resource.Success -> {
-                                val path = DownloadManager.isExist(
-                                    result.data.playlist.Id.toString(),
-                                    result.data.playlist.name,
-                                    track.id.toString()
-                                )
-                                if (path != "") {
-                                    scope.launch {
-                                        val lyric =
-                                            viewModel.apiService.getLyric(
-                                                GetLyric(
-                                                    id = track.id.toString()
-                                                )
-                                            )
-                                        val mLyric = lyric.parseString()
-                                        if (mLyric.isEmpty()) {
-                                            Toast.makeText(
-                                                context,
-                                                "找不到可用的歌词",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            return@launch
-                                        }
-                                        SongMate.writeLyric(path, mLyric)
-                                        Toast.makeText(context, "已更新", Toast.LENGTH_SHORT).show()
-                                    }
-                                } else {
-                                    Toast.makeText(context, "找不到文件", Toast.LENGTH_SHORT).show()
-                                }
-
-                            }
-
-                            else -> {
-
-                            }
-                        }
-                    },
-                )
-
-                DropdownMenuItem(
-                    text = { Text("copy id") },
-                    onClick = {
-                        isMenuExpanded = false
-
-                        val clipboard =
-                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("id", track.id.toString())
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
-                    })
-
-
-                DropdownMenuItem(
-                    text = { Text("copy name") },
-                    onClick = {
-                        isMenuExpanded = false
-
-                        val clipboard =
-                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("name", track.name)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
-                    })
-
-
-                DropdownMenuItem(
-                    text = { Text("save cover") },
-                    onClick = {
-                        Toast.makeText(context, "还未实现", Toast.LENGTH_SHORT).show()
-                        isMenuExpanded = false
-                    })
-            }
-
-
             Icon(
                 imageVector = Icons.Filled.MoreVert,
                 contentDescription = null,
@@ -192,16 +273,10 @@ fun Track(
             )
         }
     }
-
 }
 
 
 enum class Quality {
     HR,
     SQ
-}
-
-@Composable
-fun QualityIcon(quality: Quality) {
-
 }

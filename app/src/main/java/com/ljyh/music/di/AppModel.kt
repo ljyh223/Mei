@@ -1,17 +1,12 @@
 package com.ljyh.music.di
 
 import android.content.Context
-import androidx.media3.database.DatabaseProvider
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
-import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.room.Room
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Qualifier
-import javax.inject.Singleton
 
 
 @Module
@@ -42,6 +37,11 @@ object AppModule {
     @Provides
     fun provideQQSongDao(db: AppDatabase): QQSongRepository =
         QQSongRepository(db.qqSongDao())
+
+
+    @Provides
+    fun providePlaylistDao(db: AppDatabase): PlaylistRepository =
+        PlaylistRepository(db.playlistDao())
 
 
 }
