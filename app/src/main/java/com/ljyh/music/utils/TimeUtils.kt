@@ -9,7 +9,7 @@ object TimeUtils {
     fun formatDuration(milliseconds: Int): String {
         val minutes = (milliseconds / 1000) / 60
         val seconds = (milliseconds / 1000) % 60
-        return String.format("%d:%02d", minutes, seconds)
+        return String.format(Locale.US,"%d:%02d", minutes, seconds)
     }
 
     // 毫秒转秒
@@ -20,13 +20,19 @@ object TimeUtils {
 
     // 秒转时分秒, 如果
     fun formatSeconds(seconds: Int): String {
+        if (seconds < 0) return "00:00" // 处理负数情况
+
         val hours = seconds / 3600
         val minutes = (seconds % 3600) / 60
         val remainingSeconds = seconds % 60
 
-        if(hours>1) return String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds)
-        return String.format("%02d:%02d", minutes, remainingSeconds)
+        return if (hours > 0) {
+            String.format(Locale.US,"%02d:%02d:%02d", hours, minutes, remainingSeconds)
+        } else {
+            String.format(Locale.US,"%02d:%02d", minutes, remainingSeconds)
+        }
     }
+
 
     // 获取时间戳
     fun getCurrentTimestamp(): String {

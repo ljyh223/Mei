@@ -13,14 +13,12 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.rounded.MultipleStop
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.PlaylistPlay
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material.icons.rounded.StopCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,13 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.Player
-import androidx.media3.common.Player.REPEAT_MODE_ALL
-import androidx.media3.common.Player.REPEAT_MODE_OFF
-import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_ENDED
-import androidx.media3.session.legacy.PlaybackStateCompat
-import androidx.media3.session.legacy.PlaybackStateCompat.SHUFFLE_MODE_ALL
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.extensions.togglePlayPause
 import com.ljyh.music.extensions.toggleRepeatMode
@@ -151,11 +143,12 @@ fun Controls(
                 )
             }
         }
-        //repeat
+
+        // TODO 播放列表
         Box(modifier = Modifier.weight(1f)) {
 
             IconButton(
-                onClick = playerConnection.player::toggleRepeatMode,
+                onClick = {},
                 modifier = Modifier
                     .size(24.dp)
                     .align(Alignment.Center)

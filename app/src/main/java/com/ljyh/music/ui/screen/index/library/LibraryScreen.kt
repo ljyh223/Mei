@@ -143,14 +143,17 @@ fun LibraryScreen(
             )
             Spacer(Modifier.height(10.dp))
         } else if (cookie == "") {
-            Button(
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                onClick = {
-                    Screen.ContentSettings.navigate(navController)
-                },
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Text("去填写cookie")
-
+                Button(
+                    onClick = {
+                        Screen.ContentSettings.navigate(navController)
+                    }
+                ) {
+                    Text("去填写cookie")
+                }
             }
         }
 

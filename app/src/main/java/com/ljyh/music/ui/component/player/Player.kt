@@ -4,7 +4,6 @@ package com.ljyh.music.ui.component.player
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,7 +47,6 @@ import com.ljyh.music.constants.DebugKey
 import com.ljyh.music.constants.DynamicStreamerKey
 import com.ljyh.music.constants.DynamicStreamerType
 import com.ljyh.music.constants.DynamicStreamerTypeKey
-import com.ljyh.music.constants.MiniPlayerHeight
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight

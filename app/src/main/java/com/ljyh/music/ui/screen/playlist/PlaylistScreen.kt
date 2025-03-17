@@ -4,24 +4,36 @@ import android.app.Activity
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Message
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.rounded.AddTask
+import androidx.compose.material.icons.rounded.Collections
+import androidx.compose.material.icons.rounded.Message
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,11 +52,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,6 +76,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import com.google.gson.Gson
 import com.ljyh.music.AppContext
+import com.ljyh.music.R
 import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.SimplePlaylist
@@ -72,6 +95,7 @@ import com.ljyh.music.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.music.ui.component.shimmer.ListItemPlaceHolder
 import com.ljyh.music.ui.component.shimmer.ShimmerHost
 import com.ljyh.music.ui.component.shimmer.TextPlaceholder
+import com.ljyh.music.ui.component.utils.fadingEdge
 import com.ljyh.music.ui.local.LocalNavController
 import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.music.ui.local.LocalPlayerConnection
@@ -79,6 +103,7 @@ import com.ljyh.music.utils.DownloadManager
 import com.ljyh.music.utils.NotificationHelper
 import com.ljyh.music.utils.PermissionsUtils.checkAndRequestFilesPermissions
 import com.ljyh.music.utils.largeImage
+import com.ljyh.music.utils.rearrangeArray
 import com.ljyh.music.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -183,7 +208,7 @@ fun PlaylistScreen(
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = result.data.playlist.name,
-                                        items = lazyPagingItems.itemSnapshotList.items.map { it.id.toString() }
+                                        items = rearrangeArray(index, lazyPagingItems.itemSnapshotList.items.map { it.id.toString() })
                                     )
                                 )
                             }
@@ -216,6 +241,140 @@ fun PlaylistScreen(
 
 }
 
+
+@Composable
+@Preview
+fun Official() {
+    Box(
+        modifier = Modifier
+    ) {
+        AsyncImage(
+            model = R.drawable.bg1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .aspectRatio(1f)
+                .fadingEdge(
+                    top = WindowInsets.systemBars
+                        .asPaddingValues()
+                        .calculateTopPadding(),
+                    bottom = 64.dp
+                ),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+        )
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .wrapContentHeight()
+//                .aspectRatio(4/3f)
+//                .align(Alignment.Center)
+//                .background(Color.Black.copy(alpha = 0.3f))
+//        )
+
+        Column(
+            modifier = Modifier
+            .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(
+                    text = "时光雷达",
+                    textAlign = TextAlign.Center,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.W900,
+                    color = Color.White,
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(0f, 0f),
+                            blurRadius = 4f
+                        )
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    text = "每日更新",
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color.White.copy(alpha = 0.95f),
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(0f, 0f),
+                            blurRadius = 4f
+                        )
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+
+                )
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    text = "你曾经只爱的那些歌曲，现在你还记得吗",
+                    maxLines = 2,
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(0f, 0f),
+                            blurRadius = 4f
+                        )
+                    ),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+            Row {
+                Button (
+                    modifier = Modifier.weight(1f)
+                        .alpha(0.5f),
+                    onClick = {}
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PlayCircle,
+                        tint = Color.White,
+                        contentDescription = null
+                    )
+                }
+
+                Spacer(Modifier.widthIn(16.dp))
+
+                Button(
+                    modifier = Modifier.weight(1f)
+                        .alpha(0.5f),
+                    onClick = {}
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.AddTask,
+                        tint = Color.White,
+                        contentDescription = null
+                    )
+                }
+
+                Spacer(Modifier.widthIn(16.dp))
+
+                Button(
+                    modifier = Modifier.weight(1f)
+                        .alpha(0.5f),
+                    onClick = {}
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.Message,
+                        tint = Color.White,
+                        contentDescription = null
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun PlaylistInfo(
