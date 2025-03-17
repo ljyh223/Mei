@@ -5,6 +5,7 @@ import android.os.Environment
 import android.util.Log
 import com.google.gson.Gson
 import com.ljyh.music.data.model.SimplePlaylist
+import com.ljyh.music.utils.StringUtils.specialReplace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

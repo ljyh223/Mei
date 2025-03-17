@@ -16,7 +16,7 @@ data class SongUrl(
         @SerializedName("channelLayout")
         val channelLayout: Any,
         @SerializedName("closedGain")
-        val closedGain: Int,
+        val closedGain: Any,
         @SerializedName("closedPeak")
         val closedPeak: Any,
         @SerializedName("code")

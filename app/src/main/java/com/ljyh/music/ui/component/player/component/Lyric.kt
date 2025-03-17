@@ -38,7 +38,7 @@ import com.ljyh.music.constants.LyricTextSize
 import com.ljyh.music.constants.LyricTextSizeKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.playback.PlayerConnection
-import com.ljyh.music.utils.dp2px
+import com.ljyh.music.utils.UnitUtils.dp2px
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
 

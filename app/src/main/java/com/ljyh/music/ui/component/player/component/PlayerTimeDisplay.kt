@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
 import com.ljyh.music.constants.PlayerHorizontalPadding
-import com.ljyh.music.utils.makeTimeString
+import com.ljyh.music.utils.TimeUtils.makeTimeString
 
 @Composable
 fun PlayerTimeDisplay(

@@ -3,7 +3,7 @@ package com.ljyh.music.data.model
 import android.os.Environment
 import com.google.gson.annotations.SerializedName
 import com.ljyh.music.data.model.room.Song
-import com.ljyh.music.utils.specialReplace
+import com.ljyh.music.utils.StringUtils.specialReplace
 
 
 data class SimplePlaylist(

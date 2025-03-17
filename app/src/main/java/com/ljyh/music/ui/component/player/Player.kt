@@ -49,6 +49,7 @@ import com.ljyh.music.constants.DebugKey
 import com.ljyh.music.constants.DynamicStreamerKey
 import com.ljyh.music.constants.DynamicStreamerType
 import com.ljyh.music.constants.DynamicStreamerTypeKey
+import com.ljyh.music.constants.MiniPlayerHeight
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
@@ -74,8 +75,8 @@ import com.ljyh.music.ui.component.player.component.ShowMain
 import com.ljyh.music.ui.component.player.component.animatedGradient
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalPlayerConnection
+import com.ljyh.music.utils.TimeUtils.formatMilliseconds
 import com.ljyh.music.utils.encrypt.QRCUtils
-import com.ljyh.music.utils.formatMilliseconds
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
 import kotlinx.coroutines.delay
@@ -279,13 +280,16 @@ fun BottomSheetPlayer(
             )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.apply {
-                if(dynamicStreamerType==DynamicStreamerType.FluidBg){
-                    animatedGradient(dynamicStreamer)
+            modifier = Modifier
+
+                .let {
+                    if(dynamicStreamerType==DynamicStreamerType.FluidBg)
+                        it.animatedGradient(dynamicStreamer)
+                    else it
                 }
-                windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                padding(bottom = queueSheetState.collapsedBound)
-            }
+
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                .padding(bottom = queueSheetState.collapsedBound)
 
 
         ) {

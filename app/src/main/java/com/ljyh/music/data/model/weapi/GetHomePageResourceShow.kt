@@ -1,9 +1,8 @@
 package com.ljyh.music.data.model.weapi
 
 import com.google.gson.annotations.SerializedName
-import com.ljyh.music.utils.getCurrentTimestamp
-import com.ljyh.music.utils.getFormattedDate
-
+import com.ljyh.music.utils.TimeUtils.getCurrentTimestamp
+import com.ljyh.music.utils.TimeUtils.getFormattedDate
 
 
 data class GetHomePageResourceShow(

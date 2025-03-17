@@ -20,8 +20,6 @@ import com.ljyh.music.utils.encrypt.encryptEApi
 import com.ljyh.music.utils.encrypt.encryptWeAPI
 import com.ljyh.music.utils.get
 import com.ljyh.music.utils.getDeviceId
-import com.ljyh.music.utils.getRandomString
-import com.ljyh.music.utils.getWNMCID
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -343,7 +341,7 @@ private fun generateCookie(crypto: String, osInfo: OSInfo): String {
         "os" to osInfo?.os,
         "channel" to osInfo?.channel,
         "appver" to osInfo?.appver,
-        "NMTID" to getRandomString(),
+        "NMTID" to createRandomKey(16),
         "MUSIC_U" to AppContext.instance.dataStore[CookieKey].toString()
     )
 
@@ -359,6 +357,14 @@ data class OSInfo(
     val channel: String
 )
 
+fun getWNMCID(): String {
+    val characters = "abcdefghijklmnopqrstuvwxyz"
+    var randomString = ""
+    for (i in 0 until 6) {
+        randomString += characters.random()
+    }
+    return "$randomString.${System.currentTimeMillis()}.01.0"
+}
 
 // 使用 Map 来存储操作系统信息
 val osMap = mapOf(

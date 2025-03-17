@@ -3,6 +3,7 @@ package com.ljyh.music.ui.component
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,8 +57,8 @@ import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.DownloadManager
 import com.ljyh.music.utils.SongMate
+import com.ljyh.music.utils.TimeUtils.formatDuration
 import com.ljyh.music.utils.dataStore
-import com.ljyh.music.utils.formatDuration
 import com.ljyh.music.utils.get
 import com.ljyh.music.utils.smallImage
 import kotlinx.coroutines.launch
@@ -76,7 +77,7 @@ fun Track(
     val context = LocalContext.current
     val allMePlaylist by viewModel.playlist.collectAsState()
 
-    val userId= LocalContext.current.dataStore[UserIdKey] ?: ""
+    val userId = LocalContext.current.dataStore[UserIdKey] ?: ""
 
     var showBottomSheet by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
@@ -96,6 +97,10 @@ fun Track(
                             showBottomSheet = false
                             showDialog = false
                             Toast.makeText(context, "添加成功", Toast.LENGTH_SHORT).show()
+                            Log.d(
+                                "Playlist ADD",
+                                "添加的歌曲id:${track.id} 名字:${track.name} playlistId:${it.id} playlistName:${it.title}"
+                            )
                             viewModel.addSongToPlaylist(
                                 pid = it.id,
                                 trackIds = track.id.toString()
@@ -155,12 +160,14 @@ fun Track(
                 )
 
                 if (playlistDetail is Resource.Success &&
-                    (playlistDetail as Resource.Success<PlaylistDetail>).data.playlist.creator.userId.toString() == userId) {
+                    (playlistDetail as Resource.Success<PlaylistDetail>).data.playlist.creator.userId.toString() == userId
+                ) {
                     GridMenuItem(
                         icon = Icons.Rounded.DeleteSweep,
                         title = "删除此歌曲",
                         onClick = {
-                            showBottomSheet= false
+                            showBottomSheet = false
+                            Log.d("Playlist DEL", "删除的歌曲id:${track.id} 名字:${track.name}")
                             viewModel.deleteSongFromPlaylist(
                                 pid = (playlistDetail as Resource.Success<PlaylistDetail>).data.playlist.Id.toString(),
                                 trackIds = track.id.toString()
@@ -220,7 +227,7 @@ fun Track(
                     icon = Icons.Rounded.ContentCopy,
                     title = "复制id",
                     onClick = {
-                        showBottomSheet= false
+                        showBottomSheet = false
                         val clipboard =
                             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("id", track.id.toString())
@@ -233,7 +240,7 @@ fun Track(
                     icon = Icons.Rounded.ContentCopy,
                     title = "复制歌名",
                     onClick = {
-                        showBottomSheet= false
+                        showBottomSheet = false
                         val clipboard =
                             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("name", track.name)

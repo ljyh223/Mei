@@ -33,8 +33,8 @@ import com.ljyh.music.data.model.qq.u.SearchResult
 import com.ljyh.music.data.model.room.QQSong
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.ui.component.player.PlayerViewModel
-import com.ljyh.music.utils.formatMilliseconds
-import com.ljyh.music.utils.formatSeconds
+import com.ljyh.music.utils.TimeUtils.formatMilliseconds
+import com.ljyh.music.utils.TimeUtils.formatSeconds
 import kotlin.math.abs
 
 @Composable

@@ -128,13 +128,7 @@ fun AppearanceSettings(
             PreferenceGroupTitle(
                 title = "THEME"
             )
-            // 原图封面
-            SwitchPreference(
-                title = { Text("使用原图加载封面") },
-                icon = { Icon(Icons.Rounded.Image, null) },
-                checked = originalCover,
-                onCheckedChange = onOriginalCover
-            )
+
             SwitchPreference(
                 title = { Text("启用动态主题") },
                 icon = { Icon(Icons.Rounded.Palette, null) },
@@ -146,6 +140,13 @@ fun AppearanceSettings(
                 title = "PLAYER"
             )
 
+            // 原图封面
+            SwitchPreference(
+                title = { Text("使用原图加载封面") },
+                icon = { Icon(Icons.Rounded.Image, null) },
+                checked = originalCover,
+                onCheckedChange = onOriginalCover
+            )
             SwitchPreference(
                 title = { Text("允许不规则封面") },
                 icon = { Icon(Icons.Rounded.Stairs, null) },

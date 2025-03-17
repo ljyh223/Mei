@@ -23,7 +23,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ljyh.music.utils.textDp
+import com.ljyh.music.utils.UnitUtils.textDp
 
 /**
  * 歌词 Item

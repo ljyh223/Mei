@@ -24,9 +24,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
@@ -105,14 +107,14 @@ import com.ljyh.music.ui.screen.backToMain
 import com.ljyh.music.ui.screen.navigationBuilder
 import com.ljyh.music.ui.theme.MusicTheme
 import com.ljyh.music.utils.MusicUtils
-import com.ljyh.music.utils.checkAndRequestFilesPermissions
+import com.ljyh.music.utils.PermissionsUtils.checkAndRequestFilesPermissions
+import com.ljyh.music.utils.PermissionsUtils.checkFilesPermissions
+import com.ljyh.music.utils.StringUtils.urlEncode
 import com.ljyh.music.utils.checkAndRequestNotificationPermission
-import com.ljyh.music.utils.checkFilesPermissions
 import com.ljyh.music.utils.createNotificationChannel
 import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.get
 import com.ljyh.music.utils.rememberPreference
-import com.ljyh.music.utils.urlEncode
 import dagger.hilt.android.AndroidEntryPoint
 import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
@@ -243,15 +245,17 @@ class MainActivity : ComponentActivity() {
                         navBackStackEntry?.destination?.route == null ||
                                 navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } && !active
                     }
-                    val collapsedBound = remember(shouldShowNavigationBar) {
-                        derivedStateOf {
-                            bottomInset + (if (shouldShowNavigationBar) NavigationBarHeight else 0.dp) + MiniPlayerHeight
-                        }
-                    }
+
                     val searchBarFocusRequester = remember { FocusRequester() }
                     val shouldShowSearchBar = remember(active, navBackStackEntry) {
                         active || navBackStackEntry?.destination?.route == Screen.Home.route ||
                                 navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                    }
+
+                    val collapsedBound = remember(shouldShowNavigationBar) {
+                        derivedStateOf {
+                            bottomInset + (if (shouldShowNavigationBar) NavigationBarHeight else 0.dp) + MiniPlayerHeight
+                        }
                     }
 
                     val playerBottomSheetState = rememberBottomSheetState(
@@ -296,7 +300,11 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val playerAwareWindowInsets = remember(bottomInset, shouldShowNavigationBar, playerBottomSheetState.isDismissed) {
+                    val playerAwareWindowInsets = remember(
+                        bottomInset,
+                        shouldShowNavigationBar,
+                        playerBottomSheetState.isDismissed
+                    ) {
                         var bottom = bottomInset
                         if (shouldShowNavigationBar) bottom += NavigationBarHeight
                         if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
@@ -438,6 +446,7 @@ class MainActivity : ComponentActivity() {
                                                 !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } -> {
                                                     navController.navigateUp()
                                                 }
+
                                                 else -> onActiveChange(true)
                                             }
                                         },
@@ -447,6 +456,7 @@ class MainActivity : ComponentActivity() {
                                                 !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } -> {
                                                     navController.backToMain()
                                                 }
+
                                                 else -> {}
                                             }
                                         }
@@ -476,7 +486,11 @@ class MainActivity : ComponentActivity() {
                                         }
                                         IconButton(
                                             onClick = {
-                                                Toast.makeText(this@MainActivity, "还未实现", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    "还未实现",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                             }
                                         ) {
                                             Icon(
@@ -523,8 +537,13 @@ class MainActivity : ComponentActivity() {
                                             y = (bottomInset + NavigationBarHeight).roundToPx()
                                         )
                                     } else {
-                                        val slideOffset = (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(0f, 1f)
-                                        val hideOffset = (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
+                                        val slideOffset =
+                                            (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(
+                                                0f,
+                                                1f
+                                            )
+                                        val hideOffset =
+                                            (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
                                         IntOffset(
                                             x = 0,
                                             y = (slideOffset + hideOffset).roundToPx()

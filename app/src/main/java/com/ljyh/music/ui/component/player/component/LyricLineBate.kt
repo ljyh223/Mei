@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.music.constants.LyricTextAlignment
 import com.ljyh.music.constants.PlayerHorizontalPadding
-import com.ljyh.music.utils.textDp
+import com.ljyh.music.utils.UnitUtils.textDp
 import kotlin.math.min
 
 

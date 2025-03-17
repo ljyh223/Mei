@@ -37,8 +37,8 @@ object DateUtils {
     // 下午 14:00 - 18:00 下午好
     // 晚上 18:00 - 24:00 晚上好
     // 24:00 - 06:00 夜深了
-    fun getGreeting(): String {
-        val currentTime = LocalTime.now()
+    fun getGreeting(zoneId: ZoneId = ZoneId.systemDefault()): String {
+        val currentTime = LocalTime.now(zoneId)
         return when {
             currentTime.isBefore(LocalTime.of(6, 0)) -> "夜深了"
             currentTime.isBefore(LocalTime.of(12, 0)) -> "早上好"
@@ -47,4 +47,5 @@ object DateUtils {
             else -> "晚上好"
         }
     }
+
 }

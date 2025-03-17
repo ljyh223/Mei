@@ -77,9 +77,8 @@ import com.ljyh.music.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.DownloadManager
 import com.ljyh.music.utils.NotificationHelper
-import com.ljyh.music.utils.checkAndRequestFilesPermissions
+import com.ljyh.music.utils.PermissionsUtils.checkAndRequestFilesPermissions
 import com.ljyh.music.utils.largeImage
-import com.ljyh.music.utils.rearrangeArray
 import com.ljyh.music.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -184,10 +183,7 @@ fun PlaylistScreen(
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = result.data.playlist.name,
-                                        items = rearrangeArray(
-                                            lazyPagingItems.itemSnapshotList.items.map { it.id.toString() },
-                                            index
-                                        )
+                                        items = lazyPagingItems.itemSnapshotList.items.map { it.id.toString() }
                                     )
                                 )
                             }

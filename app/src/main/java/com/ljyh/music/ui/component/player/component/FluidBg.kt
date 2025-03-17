@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.sqrt
 
-fun Modifier.animatedGradient(animating: Boolean): Modifier = composed {
+fun Modifier.animatedGradient(animating: Boolean=true): Modifier = composed {
     val rotation = remember { Animatable(0f) }
 
     LaunchedEffect(rotation, animating) {
