@@ -38,7 +38,7 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
+import com.ljyh.music.ui.component.player.component.animatedGradient
 
 
 @Composable
@@ -80,8 +80,8 @@ fun Test(){
             Offset(size.width / 2f, 0f),
             Offset(size.width / 2f, size.height),
             listOf(
-                MaterialTheme.colorScheme.primary,           // 核心品牌色[6,7](@ref)
-                MaterialTheme.colorScheme.tertiaryContainer   // 第三色浅调容器[4,6](@ref)
+                MaterialTheme.colorScheme.primaryContainer,           // 核心品牌色[6,7](@ref)
+                MaterialTheme.colorScheme.error   // 第三色浅调容器[4,6](@ref)
             ),
             listOf(0f, 1f)
         )
@@ -90,8 +90,8 @@ fun Test(){
             Offset(size.width / 2f, 0f),
             Offset(size.width / 2f, size.height),
             listOf(
-                MaterialTheme.colorScheme.errorContainer,     // 错误色浅调容器[3,7](@ref)
-                MaterialTheme.colorScheme.inversePrimary    // 次色反色[3,6](@ref)
+                MaterialTheme.colorScheme.tertiaryContainer,     // 错误色浅调容器[3,7](@ref)
+                MaterialTheme.colorScheme.onSurfaceVariant    // 次色反色[3,6](@ref)
             ),
             listOf(0f, 1f)
         )
@@ -118,11 +118,7 @@ fun Test(){
                 }
                 .clip(RoundedCornerShape(16.dp))
                 .border(1.dp, Color.White, RoundedCornerShape(16.dp))
-                .drawBehind {
-                    drawRect(brushA)
-                    drawRect(brushMask, blendMode = BlendMode.DstOut)
-                    drawRect(brushB, blendMode = BlendMode.Difference)
-                },
+                .animatedGradient(true),
             contentAlignment = Alignment.Center
         ) {
             Text(

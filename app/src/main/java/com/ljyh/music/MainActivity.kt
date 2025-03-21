@@ -74,6 +74,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
+import com.kmpalette.rememberPaletteState
 import com.ljyh.music.constants.AppBarHeight
 import com.ljyh.music.constants.DeviceIdKey
 import com.ljyh.music.constants.DynamicThemeKey

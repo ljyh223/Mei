@@ -4,7 +4,6 @@ import android.app.Activity
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,8 +30,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.rounded.AddTask
-import androidx.compose.material.icons.rounded.Collections
-import androidx.compose.material.icons.rounded.Message
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,7 +53,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -66,7 +62,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -86,7 +81,6 @@ import com.ljyh.music.data.model.api.GetSongUrl
 import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.network.Resource
-import com.ljyh.music.di.PlaylistRepository
 import com.ljyh.music.extensions.mediaItems
 import com.ljyh.music.playback.queue.ListQueue
 import com.ljyh.music.ui.component.ConfirmationDialog
@@ -243,7 +237,6 @@ fun PlaylistScreen(
 
 
 @Composable
-@Preview
 fun Official() {
     Box(
         modifier = Modifier

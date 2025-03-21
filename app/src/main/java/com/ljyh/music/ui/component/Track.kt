@@ -272,14 +272,19 @@ fun Track(
         Column(
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = track.name,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row {
+                Text(
+                    text = track.name,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+
+            }
+
             Text(
                 text = "${track.ar.joinToString(", ") { it.name }} • ${formatDuration(track.dt)}",
                 color = MaterialTheme.colorScheme.secondary,

@@ -64,6 +64,7 @@ fun RecommendCard(
     val context = LocalContext.current
     val loader = rememberNetworkLoader()
     val dominantColorState = rememberDominantColorState(loader)
+
     val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
     LaunchedEffect(cover) {
 

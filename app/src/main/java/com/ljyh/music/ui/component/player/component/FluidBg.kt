@@ -18,9 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.withTransform
 import kotlin.math.sqrt
 
-fun Modifier.animatedGradient(animating: Boolean=true): Modifier = composed {
+fun Modifier.animatedGradient(animating: Boolean = true): Modifier = composed {
     val rotation = remember { Animatable(0f) }
-
     LaunchedEffect(rotation, animating) {
         if (!animating) return@LaunchedEffect
         val target = rotation.value + 360f
@@ -34,12 +33,12 @@ fun Modifier.animatedGradient(animating: Boolean=true): Modifier = composed {
             ),
         )
     }
-    // shader A
-    val primary=MaterialTheme.colorScheme.primary
-    val tertiaryContainer=MaterialTheme.colorScheme.tertiaryContainer
-    // shader B
-    val errorContainer=MaterialTheme.colorScheme.errorContainer
-    val inversePrimary=MaterialTheme.colorScheme.inversePrimary
+
+    // 直接使用 kmpalette 生成的主题色
+    val a1 = MaterialTheme.colorScheme.primaryContainer
+    val a2 = MaterialTheme.colorScheme.secondaryContainer
+    val b1 = MaterialTheme.colorScheme.tertiaryContainer
+    val b2 = MaterialTheme.colorScheme.background
 
     drawWithCache {
         val rectSize = sqrt(size.width * size.width + size.height * size.height)
@@ -49,15 +48,15 @@ fun Modifier.animatedGradient(animating: Boolean=true): Modifier = composed {
         )
 
         val brush1 = Brush.linearGradient(
-            0f to primary,           // 核心品牌色[6,7](@ref)
-            1f to tertiaryContainer,   // 第三色浅调容器[4,6](@ref)
+            0f to a1,
+            1f to a2,
             start = topLeft,
             end = Offset(rectSize * 0.7f, rectSize * 0.7f),
         )
 
         val brush2 = Brush.linearGradient(
-            0f to errorContainer,
-            1f to inversePrimary,
+            0f to b1,
+            1f to b2,
             start = Offset(rectSize, 0f),
             end = Offset(0f, rectSize),
         )
