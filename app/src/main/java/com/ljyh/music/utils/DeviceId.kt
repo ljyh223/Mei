@@ -18,7 +18,6 @@ fun getDeviceId(): String {
 
 
 fun cloudmusicDllEncodeId(someId: String, idXorKey1: String): String {
-    // Step 1: XOR encryption
     val xoredString = buildString {
         for (i in someId.indices) {
             val charCode = someId[i].code xor idXorKey1[i % idXorKey1.length].code

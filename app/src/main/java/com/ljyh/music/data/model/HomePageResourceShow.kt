@@ -740,7 +740,7 @@ data class HomePageResourceShow(
                         @SerializedName("alias")
                         val alias: List<Any>,
                         @SerializedName("id")
-                        val id: Int,
+                        val id: Long,
                         @SerializedName("lMusic")
                         val lMusic: LMusic,
                         @SerializedName("album")

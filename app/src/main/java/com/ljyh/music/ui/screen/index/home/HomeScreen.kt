@@ -230,7 +230,6 @@ private fun RenderHomePageContent(
 
 
             "PAGE_RECOMMEND_PRIVATE_RCMD_SONG" -> {
-                Log.d("Private song", "${block.dslData}")
                 Title("为你推荐")
                 TripleLaneSlider(
                     songsArray = block.dslData.homeCommon.content.items

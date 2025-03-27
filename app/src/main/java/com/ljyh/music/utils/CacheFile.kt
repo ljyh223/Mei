@@ -8,9 +8,7 @@ import java.io.File
 import java.io.IOException
 
 object CacheFile {
-    private const val PREF_NAME = "app"
-    private val sharedPreferences = sharedPreferencesOf(PREF_NAME)
-    private const val lastHomePage = "last_homepage"
+    private const val LastHomePage = "last_homepage"
     private fun cacheJsonToFile(fileName: String, json: String) {
         try {
             val file = File(AppContext.instance.cacheDir, fileName)
@@ -37,35 +35,18 @@ object CacheFile {
 
 
     fun getHomePageResourceShow(): HomePageResourceShow {
-        val radar=getJsonFromFile(lastHomePage)
+        val radar=getJsonFromFile(LastHomePage)
         return Gson().fromJson(radar, HomePageResourceShow::class.java)
 
     }
 
-
-
-
-    private fun updateLast(s: String) {
-        val editor = sharedPreferences.edit()
-        editor.putLong(s, System.currentTimeMillis())
-        editor.apply()
-    }
-
-    fun updateHomepage(radar: HomePageResourceShow) {
-        cacheJsonToFile(lastHomePage, Gson().toJson(radar))
-        updateLast(lastHomePage)
-    }
-
-
-
-    fun shouldHomepage(): Boolean {
-        return shouldLast(lastHomePage)
-    }
-
-
-    private fun shouldLast(s: String): Boolean {
-        val lastRequestTime = sharedPreferences.getLong(s, 0)
+    fun isNewDay(lastRequestTime:Long): Boolean {
         return isWithinSameDayWindow(lastRequestTime)
     }
+
+
+
+
+
 
 }
