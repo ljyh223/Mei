@@ -306,11 +306,10 @@ fun TripleLaneSlider(
     )
     HorizontalPager(
         state = pagerState,
-        contentPadding = PaddingValues(end = 32.dp)
+        contentPadding = PaddingValues(end = 24.dp)
     ) { page ->
         Column(
             modifier = Modifier
-                .padding(vertical = 8.dp)
                 .fillMaxWidth()
         ) {
             songsArray[page].items.forEachIndexed { index, song ->
