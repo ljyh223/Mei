@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -52,6 +53,7 @@ import com.ljyh.music.constants.ThumbnailCornerRadius
 import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.playback.PlayerConnection
 import com.ljyh.music.ui.component.player.PlayerViewModel
+import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.rememberEnumPreference
 import com.ljyh.music.utils.rememberPreference
 import com.ljyh.music.utils.size1600
@@ -64,7 +66,8 @@ fun ShowMain(
     viewModel: PlayerViewModel,
     playerConnection: PlayerConnection,
     mediaMetadata: MediaMetadata,
-    modifier: Modifier
+    modifier: Modifier,
+    playlistViewModel: PlaylistViewModel= hiltViewModel()
 ) {
     val context = LocalContext.current
     val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
@@ -78,6 +81,7 @@ fun ShowMain(
         defaultValue = false
     )
     val isLiked by viewModel.like.collectAsState(initial = null)
+    var showTrackBottomSheet by remember { mutableStateOf(false) }
     LaunchedEffect(
         key1 = mediaMetadata.id,
     ) {
@@ -119,6 +123,15 @@ fun ShowMain(
                 }
         )
 
+        viewModel.mediaMetadata?.let {
+            TrackBottomSheet(
+                showBottomSheet = showTrackBottomSheet,
+                viewModel = playlistViewModel,
+                mediaMetadata=it,
+            ) {
+                showTrackBottomSheet = false
+            }
+        }
 
         Spacer(Modifier.height(96.dp))
 
@@ -163,6 +176,7 @@ fun ShowMain(
                 Box(modifier = Modifier.weight(1f)) {
                     IconButton(
                         onClick = {
+                            showTrackBottomSheet=true
                         },
                         modifier = Modifier
                             .size(32.dp)

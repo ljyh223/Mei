@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -131,9 +132,9 @@ fun LibraryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState),
+            .verticalScroll(scrollState)
+            .wrapContentSize(Alignment.Center),
     ) {
-
         if (userId != "") {
             User(
                 userId = userId,
@@ -143,17 +144,12 @@ fun LibraryScreen(
             )
             Spacer(Modifier.height(10.dp))
         } else if (cookie == "") {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            Button(
+                onClick = {
+                    Screen.ContentSettings.navigate(navController)
+                },
             ) {
-                Button(
-                    onClick = {
-                        Screen.ContentSettings.navigate(navController)
-                    }
-                ) {
-                    Text("去填写cookie")
-                }
+                Text("去填写cookie")
             }
         }
 

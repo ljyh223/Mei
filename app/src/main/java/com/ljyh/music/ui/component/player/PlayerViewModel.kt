@@ -3,14 +3,18 @@ package com.ljyh.music.ui.component.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.music.data.model.Lyric
+import com.ljyh.music.data.model.MediaMetadata
+import com.ljyh.music.data.model.api.ManipulateTrackResult
 import com.ljyh.music.data.model.qq.u.LyricResult
 import com.ljyh.music.data.model.qq.u.SearchResult
 import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.room.QQSong
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.PlayerRepository
+import com.ljyh.music.data.repository.PlaylistRepository
 import com.ljyh.music.di.LikeRepository
 import com.ljyh.music.di.QQSongRepository
+import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +29,7 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val repository: PlayerRepository,
     private val qqSongRepository: QQSongRepository,
+    private val playlistRepository: PlaylistRepository,
     private val likeRepository: LikeRepository
 ) : ViewModel() {
     private val _searchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
@@ -38,6 +43,9 @@ class PlayerViewModel @Inject constructor(
 
     private val _like = MutableStateFlow<Like?>(null)
     val like: StateFlow<Like?> = _like
+
+
+    var mediaMetadata:MediaMetadata?=null
 
     // 获取点赞状态
     fun getLike(id: String) {
@@ -73,10 +81,6 @@ class PlayerViewModel @Inject constructor(
             }
         }
     }
-
-
-
-
     fun clear() {
         _searchResult.value = Resource.Loading
         _lyricResult.value = Resource.Loading
@@ -134,6 +138,8 @@ class PlayerViewModel @Inject constructor(
             qqSongRepository.insertSong(song)
         }
     }
+
+
 
 
 

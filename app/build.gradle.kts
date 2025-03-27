@@ -130,6 +130,8 @@ dependencies {
 
     implementation(libs.android.gpuimage)
 
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
 
 }
 kotlin {

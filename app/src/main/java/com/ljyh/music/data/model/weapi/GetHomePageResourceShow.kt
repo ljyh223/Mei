@@ -14,7 +14,7 @@ data class GetHomePageResourceShow(
     var clientCacheBlockCode: List<String> = emptyList(),
     @SerializedName("blockCodeOrderList")
     var blockCodeOrderList: List<String> = listOf(
-        "PAGE_RECOMMEND_RANK",
+        "PAGE_RECOMMEND_RANK",//排行榜
         "PAGE_RECOMMEND_MUSIC_FM_LIST",
         "PAGE_RECOMMEND_RADAR",// 雷达歌单
         "PAGE_RECOMMEND_ARTIST_FM_LIST",
@@ -23,10 +23,10 @@ data class GetHomePageResourceShow(
         "PAGE_RECOMMEND_STYLE_PLAYLIST_1",
         "PAGE_RECOMMEND_LBS",
         "PAGE_RECOMMEND_MY_SHEET",
-        "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",
+        "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",// 推荐歌单
         "PAGE_RECOMMEND_NEW_SONG_AND_ALBUM",
         "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM",
-        "PAGE_RECOMMEND_PRIVATE_RCMD_SONG",
+        "PAGE_RECOMMEND_PRIVATE_RCMD_SONG",// 私人推荐
         "PAGE_RECOMMEND_SPECIAL_ORIGIN_SONG_LOCATION",
         "PAGE_RECOMMEND_VIP_CARD",
         "PAGE_RECOMMEND_SCENE_PLAYLIST_LOCATION",
@@ -35,7 +35,7 @@ data class GetHomePageResourceShow(
     @SerializedName("clientTime")
     val clientTime: String = getFormattedDate(),
     @SerializedName("cursor")
-    val cursor: Int = 0,
+    var cursor: Int = 0,
     @SerializedName("e_r")
     val eR: Boolean = true,
     @SerializedName("extJson")
@@ -93,7 +93,7 @@ data class GetHomePageResourceShow(
             "PAGE_RECOMMEND_REAL_TIME_INTEREST_RCMD",
             "PAGE_RECOMMEND_ARTIST_FM_LIST",
             "PAGE_RECOMMEND_PODCAST_ALBUM_COVER",
-            "PAGE_RECOMMEND_PODCAST_MUSIC_RADIO",
+            "PAGE_RECOMMEND_PODCAST_MUSIC_RADIO",//音乐播客
             "PAGE_RECOMMEND_MONTH_YEAR_PLAYLIST",
             "PAGE_RECOMMEND_ARTIST_TREND",
             "PAGE_RECOMMEND_VIP_CARD",
@@ -142,33 +142,25 @@ data class GetHomePageResourceShow(
         )
 
     )
+
     init {
         if (cursor > 0) {
             isFirstScreen = false
             extJson.refreshAction = "pull"
             extJson.firstRequestPerLaunch = "false"
+            clientCacheBlockCode = BlockCodeOrderList.take(cursor).flatten()
+        }
+        blockCodeOrderList = BlockCodeOrderList[cursor]
+
+
+        when (cursor) {
+            0 -> cursor = 0
+            1 -> cursor = 8
+            2 -> cursor = 15
+            3 -> cursor = 22
+            else -> cursor = 0
         }
 
-
-        when(cursor){
-            0->{
-                blockCodeOrderList = BlockCodeOrderList[0]
-            }
-            8->{
-                blockCodeOrderList= BlockCodeOrderList[1]
-                clientCacheBlockCode= BlockCodeOrderList[0]
-            }
-
-            15->{
-                blockCodeOrderList= BlockCodeOrderList[2]
-                clientCacheBlockCode= BlockCodeOrderList[1]+BlockCodeOrderList[0]
-            }
-
-            22->{
-                blockCodeOrderList= BlockCodeOrderList[3]
-                clientCacheBlockCode= BlockCodeOrderList[2]+BlockCodeOrderList[1]+BlockCodeOrderList[0]
-            }
-        }
     }
 
 

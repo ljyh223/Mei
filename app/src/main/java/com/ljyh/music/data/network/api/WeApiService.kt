@@ -2,8 +2,6 @@ package com.ljyh.music.data.network.api
 
 import com.ljyh.music.data.model.HomePageResourceShow
 import com.ljyh.music.data.model.weapi.GetHomePageResourceShow
-import com.ljyh.music.data.model.weapi.Like
-import com.ljyh.music.data.model.weapi.LikeResult
 import retrofit2.http.Body
 import retrofit2.http.POST
 

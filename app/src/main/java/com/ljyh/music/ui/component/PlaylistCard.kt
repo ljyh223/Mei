@@ -51,6 +51,7 @@ fun PlaylistCard(
     showPlay: Boolean = false,
     subTitle: List<String>? = null,
     extInfo: String? = null,
+    imageSize:Boolean=true,
 //    viewModel:HomeViewModel,
     onClick: () -> Unit
 ) {
@@ -64,7 +65,7 @@ fun PlaylistCard(
             .clickable { onClick() }) {
             Box {
                 AsyncImage(
-                    model = coverImg.largeImage(),
+                    model = if(imageSize) coverImg.largeImage() else coverImg,
                     modifier = Modifier
                         .size(PlaylistCardSize)
                         .clip(RoundedCornerShape(8.dp)),

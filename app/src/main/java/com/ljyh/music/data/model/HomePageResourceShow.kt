@@ -1,874 +1,182 @@
 package com.ljyh.music.data.model
 import com.google.gson.annotations.SerializedName
+import com.ljyh.music.di.SpecialKey
 
 
 data class HomePageResourceShow(
     @SerializedName("code")
     val code: Int,
     @SerializedName("data")
-    val `data`: Data,
-    @SerializedName("message")
-    val message: String,
-    @SerializedName("trp")
-    val trp: Trp
+    val `data`: Data
 ) {
     data class Data(
-        @SerializedName("blockCodeOrderList")
-        val blockCodeOrderList: String,
         @SerializedName("blocks")
         val blocks: List<Block>,
-        @SerializedName("callbackParameters")
-        val callbackParameters: String,
+        @SerializedName("guideToast")
+        val guideToast: Any,
         @SerializedName("cursor")
         val cursor: Int,
-        @SerializedName("demote")
-        val demote: Boolean,
-        @SerializedName("extMap")
-        val extMap: ExtMap,
-        @SerializedName("hasDoubleFlow")
-        val hasDoubleFlow: Boolean,
+        @SerializedName("blockCodeOrderList")
+        val blockCodeOrderList: Any,
+        @SerializedName("requestBlockOrder")
+        val requestBlockOrder: Any,
+        @SerializedName("callbackParameters")
+        val callbackParameters: String,
         @SerializedName("hasMore")
         val hasMore: Boolean,
-        @SerializedName("requestBlockOrder")
-        val requestBlockOrder: List<String>
+        @SerializedName("demote")
+        val demote: Boolean,
+        @SerializedName("libraList")
+        val libraList: Any,
+        @SerializedName("hasDoubleFlow")
+        val hasDoubleFlow: Boolean,
+        @SerializedName("extMap")
+        val extMap: Any,
+        @SerializedName("dinformation")
+        val dinformation: Any
     ) {
         data class Block(
-            @SerializedName("bizCode")
-            val bizCode: String,
-            @SerializedName("channelCode")
-            val channelCode: String,
-            @SerializedName("constructLogId")
-            val constructLogId: String,
-            @SerializedName("crossPlatformConfig")
-            val crossPlatformConfig: CrossPlatformConfig,
-            @SerializedName("dslData")
-            val dslData: DslData,
-            @SerializedName("extMap")
-            val extMap: ExtMap,
-            @SerializedName("likePosition")
-            val likePosition: Int,
-            @SerializedName("log")
-            val log: Log,
-            @SerializedName("logMap")
-            val logMap: LogMap,
-            @SerializedName("needClientCover")
-            val needClientCover: Boolean,
+            @SerializedName("trp_type")
+            val trpType: Any,
+            @SerializedName("trp_id")
+            val trpId: Any,
+            @SerializedName("scene")
+            val scene: Any,
             @SerializedName("positionCode")
             val positionCode: String,
+            @SerializedName("c_flowGroupId")
+            val cFlowGroupId: Any,
+            @SerializedName("channelCode")
+            val channelCode: String,
+            @SerializedName("channelCodeSubId")
+            val channelCodeSubId: Any,
+            @SerializedName("c_planGroupId")
+            val cPlanGroupId: Any,
+            @SerializedName("c_planId")
+            val cPlanId: Any,
+            @SerializedName("c_templateId")
+            val cTemplateId: Any,
+            @SerializedName("c_bizTags")
+            val cBizTags: Any,
+            @SerializedName("c_resourceType")
+            val cResourceType: Any,
+            @SerializedName("c_resourceId")
+            val cResourceId: Any,
+            @SerializedName("c_creativeReachId")
+            val cCreativeReachId: Any,
+            @SerializedName("originalData")
+            val originalData: Any,
+            @SerializedName("clientData")
+            val clientData: Any,
+            @SerializedName("summary")
+            val summary: Any,
+            @SerializedName("log")
+            val log: Log,
+            @SerializedName("positionInteractInfo")
+            val positionInteractInfo: Any,
+            @SerializedName("moduleType")
+            val moduleType: Any,
+            @SerializedName("crossPlatformConfig")
+            val crossPlatformConfig: CrossPlatformConfig,
+            @SerializedName("nativeConfig")
+            val nativeConfig: Any,
+            @SerializedName("dslData")
+            val dslData: DslData,
+            @SerializedName("rnData")
+            val rnData: Any,
+            @SerializedName("nativeData")
+            val nativeData: Any,
+            @SerializedName("extMap")
+            val extMap: ExtMap,
+            @SerializedName("callbackParametersMap")
+            val callbackParametersMap: Any,
+            @SerializedName("bizCode")
+            val bizCode: String,
             @SerializedName("showTitle")
-            val showTitle: Boolean
+            val showTitle: Boolean,
+            @SerializedName("needClientCover")
+            val needClientCover: Boolean,
+            @SerializedName("feedbackType")
+            val feedbackType: Any,
+            @SerializedName("likePosition")
+            val likePosition: Int,
+            @SerializedName("logId")
+            val logId: Any,
+            @SerializedName("logMap")
+            val logMap: LogMap,
+            @SerializedName("code")
+            val code: Any,
+            @SerializedName("constructLogId")
+            val constructLogId: String
         ) {
+            data class Log(
+                @SerializedName("s_ctrp")
+                val sCtrp: String
+            )
+
             data class CrossPlatformConfig(
-                @SerializedName("alertConfig")
-                val alertConfig: AlertConfig,
                 @SerializedName("containerType")
                 val containerType: String,
+                @SerializedName("alertConfig")
+                val alertConfig: AlertConfig,
+                @SerializedName("rnContent")
+                val rnContent: Any,
                 @SerializedName("dslContent")
                 val dslContent: DslContent
             ) {
                 data class AlertConfig(
-                    @SerializedName("hPadding")
-                    val hPadding: Int,
-                    @SerializedName("hpadding")
-                    val hpadding: Int,
+                    @SerializedName("alertType")
+                    val alertType: Any,
                     @SerializedName("needCloseBtn")
                     val needCloseBtn: Boolean,
+                    @SerializedName("hPadding")
+                    val hPadding: Int,
                     @SerializedName("widthExpand")
-                    val widthExpand: Boolean
+                    val widthExpand: Boolean,
+                    @SerializedName("autoDismissDuration")
+                    val autoDismissDuration: Any,
+                    @SerializedName("hpadding")
+                    val hpadding: Int
                 )
 
                 data class DslContent(
-                    @SerializedName("lunaforcmLoadType")
-                    val lunaforcmLoadType: String,
                     @SerializedName("lunaforcmSence")
                     val lunaforcmSence: String,
-                    @SerializedName("lunaforcmTempletContent")
-                    val lunaforcmTempletContent: LunaforcmTempletContent,
                     @SerializedName("lunaforcmTempletId")
-                    val lunaforcmTempletId: String
+                    val lunaforcmTempletId: String,
+                    @SerializedName("lunaforcmLoadType")
+                    val lunaforcmLoadType: String,
+                    @SerializedName("lunaforcmTempletContent")
+                    val lunaforcmTempletContent: LunaforcmTempletContent
                 ) {
                     data class LunaforcmTempletContent(
+                        @SerializedName("dataSources")
+                        val dataSources: Any,
+                        @SerializedName("dslRootId")
+                        val dslRootId: String,
+                        @SerializedName("minSupportVersion")
+                        val minSupportVersion: Any,
                         @SerializedName("blockId")
                         val blockId: Int,
                         @SerializedName("blockName")
                         val blockName: String,
                         @SerializedName("blockType")
                         val blockType: String,
-                        @SerializedName("dslMap")
-                        val dslMap: DslMap,
-                        @SerializedName("dslRootId")
-                        val dslRootId: String,
-                        @SerializedName("needScaleForPad")
-                        val needScaleForPad: Boolean,
                         @SerializedName("publishTime")
                         val publishTime: String,
+                        @SerializedName("templateConfig")
+                        val templateConfig: String,
                         @SerializedName("sceneName")
                         val sceneName: String,
-                        @SerializedName("templateConfig")
-                        val templateConfig: String
-                    ) {
-                        data class DslMap(
-                            @SerializedName("artiste_parachute_greeting_hpak321yot")
-                            val artisteParachuteGreetingHpak321yot: ArtisteParachuteGreetingHpak321yot,
-                            @SerializedName("daily_mix_single_line_text_copy_ly2bff6we2")
-                            val dailyMixSingleLineTextCopyLy2bff6we2: DailyMixSingleLineTextCopyLy2bff6we2,
-                            @SerializedName("daily_mix_single_line_text_copy_qqy0we33tm")
-                            val dailyMixSingleLineTextCopyQqy0we33tm: DailyMixSingleLineTextCopyQqy0we33tm,
-                            @SerializedName("daily_rcmd_annual_and_monthly_playlist_item_47yuuxhs5s")
-                            val dailyRcmdAnnualAndMonthlyPlaylistItem47yuuxhs5s: DailyRcmdAnnualAndMonthlyPlaylistItem47yuuxhs5s,
-                            @SerializedName("empty_icon_d8vh7d7n9p")
-                            val emptyIconD8vh7d7n9p: EmptyIconD8vh7d7n9p,
-                            @SerializedName("empty_icon_eqs0sun5u3")
-                            val emptyIconEqs0sun5u3: EmptyIconEqs0sun5u3,
-                            @SerializedName("empty_icon_hvetjbwns3")
-                            val emptyIconHvetjbwns3: EmptyIconHvetjbwns3,
-                            @SerializedName("empty_icon_i8h4kd56rz")
-                            val emptyIconI8h4kd56rz: EmptyIconI8h4kd56rz,
-                            @SerializedName("empty_icon_lflntqarff")
-                            val emptyIconLflntqarff: EmptyIconLflntqarff,
-                            @SerializedName("empty_icon_thrc7s8px1")
-                            val emptyIconThrc7s8px1: EmptyIconThrc7s8px1,
-                            @SerializedName("ground_glass_back_ground_uh06xewrtz")
-                            val groundGlassBackGroundUh06xewrtz: GroundGlassBackGroundUh06xewrtz,
-                            @SerializedName("ground_glass_back_ground_uh06xewrtz_14")
-                            val groundGlassBackGroundUh06xewrtz14: GroundGlassBackGroundUh06xewrtz14,
-                            @SerializedName("ground_glass_back_ground_uh06xewrtz_18")
-                            val groundGlassBackGroundUh06xewrtz18: GroundGlassBackGroundUh06xewrtz18,
-                            @SerializedName("ground_glass_back_ground_uh06xewrtz_20")
-                            val groundGlassBackGroundUh06xewrtz20: GroundGlassBackGroundUh06xewrtz20,
-                            @SerializedName("ground_glass_back_ground_uh06xewrtz_23")
-                            val groundGlassBackGroundUh06xewrtz23: GroundGlassBackGroundUh06xewrtz23,
-                            @SerializedName("ground_glass_back_ground_uh06xewrtz_30")
-                            val groundGlassBackGroundUh06xewrtz30: GroundGlassBackGroundUh06xewrtz30,
-                            @SerializedName("home_bottom_margin_65cju8vvls")
-                            val homeBottomMargin65cju8vvls: HomeBottomMargin65cju8vvls,
-                            @SerializedName("home_bottom_margin_ao7hq65rhh")
-                            val homeBottomMarginAo7hq65rhh: HomeBottomMarginAo7hq65rhh,
-                            @SerializedName("home_bottom_margin_hfcxc755tw")
-                            val homeBottomMarginHfcxc755tw: HomeBottomMarginHfcxc755tw,
-                            @SerializedName("home_common_rcmd_song_item_u59ognvt3u")
-                            val homeCommonRcmdSongItemU59ognvt3u: HomeCommonRcmdSongItemU59ognvt3u,
-                            @SerializedName("home_common_rcmd_song_list_lwxbsnqyiy")
-                            val homeCommonRcmdSongListLwxbsnqyiy: HomeCommonRcmdSongListLwxbsnqyiy,
-                            @SerializedName("home_common_rcmd_songs_module_8pim9hfovz")
-                            val homeCommonRcmdSongsModule8pim9hfovz: HomeCommonRcmdSongsModule8pim9hfovz,
-                            @SerializedName("home_common_title_nc13i9w3i3")
-                            val homeCommonTitleNc13i9w3i3: HomeCommonTitleNc13i9w3i3,
-                            @SerializedName("home_common_title_pczt00v2qu")
-                            val homeCommonTitlePczt00v2qu: HomeCommonTitlePczt00v2qu,
-                            @SerializedName("home_common_title_with_nick_name_sxp3xmlqd7")
-                            val homeCommonTitleWithNickNameSxp3xmlqd7: HomeCommonTitleWithNickNameSxp3xmlqd7,
-                            @SerializedName("home_ground_glass_back_ground_926ehi7wma")
-                            val homeGroundGlassBackGround926ehi7wma: HomeGroundGlassBackGround926ehi7wma,
-                            @SerializedName("home_ground_glass_back_ground_d8w9yhqyfq")
-                            val homeGroundGlassBackGroundD8w9yhqyfq: HomeGroundGlassBackGroundD8w9yhqyfq,
-                            @SerializedName("home_ground_glass_back_ground_mxogq4yvvn")
-                            val homeGroundGlassBackGroundMxogq4yvvn: HomeGroundGlassBackGroundMxogq4yvvn,
-                            @SerializedName("home_ground_glass_back_ground_yc96n95amx")
-                            val homeGroundGlassBackGroundYc96n95amx: HomeGroundGlassBackGroundYc96n95amx,
-                            @SerializedName("home_page_rcmd_cloud_village_play_list_item_copy_3e6thhksc0")
-                            val homePageRcmdCloudVillagePlayListItemCopy3e6thhksc0: HomePageRcmdCloudVillagePlayListItemCopy3e6thhksc0,
-                            @SerializedName("home_page_rcmd_cloud_village_play_list_list_table_28mch2inm1")
-                            val homePageRcmdCloudVillagePlayListListTable28mch2inm1: HomePageRcmdCloudVillagePlayListListTable28mch2inm1,
-                            @SerializedName("home_page_rcmd_cloud_village_play_list_module_faw1pbe7y8")
-                            val homePageRcmdCloudVillagePlayListModuleFaw1pbe7y8: HomePageRcmdCloudVillagePlayListModuleFaw1pbe7y8,
-                            @SerializedName("new_home_page_vip_center_guide_module_42w4ziiqcf")
-                            val newHomePageVipCenterGuideModule42w4ziiqcf: NewHomePageVipCenterGuideModule42w4ziiqcf,
-                            @SerializedName("page_rcmd_greeting_activity_bar_c0bqitk6g2")
-                            val pageRcmdGreetingActivityBarC0bqitk6g2: PageRcmdGreetingActivityBarC0bqitk6g2,
-                            @SerializedName("page_rcmd_greeting_bar_list_jl4b6qchz3")
-                            val pageRcmdGreetingBarListJl4b6qchz3: PageRcmdGreetingBarListJl4b6qchz3,
-                            @SerializedName("page_rcmd_top_greeting_2bnzys1v1e")
-                            val pageRcmdTopGreeting2bnzys1v1e: PageRcmdTopGreeting2bnzys1v1e,
-                            @SerializedName("page_recommend_shared_playlist_avatar_item_ppiwrujhes")
-                            val pageRecommendSharedPlaylistAvatarItemPpiwrujhes: PageRecommendSharedPlaylistAvatarItemPpiwrujhes,
-                            @SerializedName("play_count_ggdliuj3or")
-                            val playCountGgdliuj3or: PlayCountGgdliuj3or,
-                            @SerializedName("rcmd_daily_big_card_item_copy_copy_rank_up2miqp06e")
-                            val rcmdDailyBigCardItemCopyCopyRankUp2miqp06e: RcmdDailyBigCardItemCopyCopyRankUp2miqp06e,
-                            @SerializedName("rcmd_daily_big_card_item_copy_copy_v2_fm_h5m567dqoh")
-                            val rcmdDailyBigCardItemCopyCopyV2FmH5m567dqoh: RcmdDailyBigCardItemCopyCopyV2FmH5m567dqoh,
-                            @SerializedName("rcmd_daily_big_card_item_copy_copy_v2_play_list_album_copy_1c5gxgw7zw")
-                            val rcmdDailyBigCardItemCopyCopyV2PlayListAlbumCopy1c5gxgw7zw: RcmdDailyBigCardItemCopyCopyV2PlayListAlbumCopy1c5gxgw7zw,
-                            @SerializedName("rcmd_daily_big_card_item_heart_mode_44cgowqchu")
-                            val rcmdDailyBigCardItemHeartMode44cgowqchu: RcmdDailyBigCardItemHeartMode44cgowqchu,
-                            @SerializedName("rcmd_daily_big_card_item_normal_with_icon_b8sjvnpzec")
-                            val rcmdDailyBigCardItemNormalWithIconB8sjvnpzec: RcmdDailyBigCardItemNormalWithIconB8sjvnpzec,
-                            @SerializedName("rcmd_daily_big_card_item_recall_playlist_tatdbvm9na")
-                            val rcmdDailyBigCardItemRecallPlaylistTatdbvm9na: RcmdDailyBigCardItemRecallPlaylistTatdbvm9na,
-                            @SerializedName("rcmd_daily_big_card_item_similar_artist_01l23vvgnp")
-                            val rcmdDailyBigCardItemSimilarArtist01l23vvgnp: RcmdDailyBigCardItemSimilarArtist01l23vvgnp,
-                            @SerializedName("rcmd_daily_big_card_item_similar_song_d2n95tot6l")
-                            val rcmdDailyBigCardItemSimilarSongD2n95tot6l: RcmdDailyBigCardItemSimilarSongD2n95tot6l,
-                            @SerializedName("rcmd_daily_card_common_item_s457tn5uue")
-                            val rcmdDailyCardCommonItemS457tn5uue: RcmdDailyCardCommonItemS457tn5uue,
-                            @SerializedName("rcmd_daily_card_item_fm_qhwied3mg2")
-                            val rcmdDailyCardItemFmQhwied3mg2: RcmdDailyCardItemFmQhwied3mg2,
-                            @SerializedName("rcmd_daily_card_item_mini_banner_gbflt5s6id")
-                            val rcmdDailyCardItemMiniBannerGbflt5s6id: RcmdDailyCardItemMiniBannerGbflt5s6id,
-                            @SerializedName("rcmd_daily_card_item_play_list_album_ab6yx1ds2f")
-                            val rcmdDailyCardItemPlayListAlbumAb6yx1ds2f: RcmdDailyCardItemPlayListAlbumAb6yx1ds2f,
-                            @SerializedName("rcmd_daily_card_item_play_list_album_copy_894sjc9sxd")
-                            val rcmdDailyCardItemPlayListAlbumCopy894sjc9sxd: RcmdDailyCardItemPlayListAlbumCopy894sjc9sxd,
-                            @SerializedName("rcmd_daily_card_item_style_rcmd_57rg03kwiz")
-                            val rcmdDailyCardItemStyleRcmd57rg03kwiz: RcmdDailyCardItemStyleRcmd57rg03kwiz,
-                            @SerializedName("rcmd_daily_card_list_okidnj8j06")
-                            val rcmdDailyCardListOkidnj8j06: RcmdDailyCardListOkidnj8j06,
-                            @SerializedName("rcmd_daily_card_live_item_u9qm0drcli")
-                            val rcmdDailyCardLiveItemU9qm0drcli: RcmdDailyCardLiveItemU9qm0drcli,
-                            @SerializedName("rcmd_daily_card_module_q9aeks8g75")
-                            val rcmdDailyCardModuleQ9aeks8g75: RcmdDailyCardModuleQ9aeks8g75,
-                            @SerializedName("rcmd_daily_common_no_play_btn_0vjlxbwkuy")
-                            val rcmdDailyCommonNoPlayBtn0vjlxbwkuy: RcmdDailyCommonNoPlayBtn0vjlxbwkuy,
-                            @SerializedName("rcmd_daily_podcast_big_card_item_c4c6636xx6")
-                            val rcmdDailyPodcastBigCardItemC4c6636xx6: RcmdDailyPodcastBigCardItemC4c6636xx6,
-                            @SerializedName("rcmd_daily_rcmd_dynamic_hidden_header_8srypues38")
-                            val rcmdDailyRcmdDynamicHiddenHeader8srypues38: RcmdDailyRcmdDynamicHiddenHeader8srypues38,
-                            @SerializedName("rcmd_radar_list_with_cover_item0710_cndqberk6i")
-                            val rcmdRadarListWithCoverItem0710Cndqberk6i: RcmdRadarListWithCoverItem0710Cndqberk6i,
-                            @SerializedName("rcmd_radar_with_mask_list0710_7e7xn390w8")
-                            val rcmdRadarWithMaskList07107e7xn390w8: RcmdRadarWithMaskList07107e7xn390w8,
-                            @SerializedName("rcmd_radar_with_mask_module0710_bd22kgyeqo")
-                            val rcmdRadarWithMaskModule0710Bd22kgyeqo: RcmdRadarWithMaskModule0710Bd22kgyeqo,
-                            @SerializedName("rcmd_top_greeting_ad_jvyaq7tx21")
-                            val rcmdTopGreetingAdJvyaq7tx21: RcmdTopGreetingAdJvyaq7tx21,
-                            @SerializedName("static_scroll_container_u59ognvt3u")
-                            val staticScrollContainerU59ognvt3u: StaticScrollContainerU59ognvt3u,
-                            @SerializedName("static_scroll_container_u59ognvt3u_virtual")
-                            val staticScrollContainerU59ognvt3uVirtual: StaticScrollContainerU59ognvt3uVirtual,
-                            @SerializedName("template_142003")
-                            val template142003: Template142003,
-                            @SerializedName("template_314201")
-                            val template314201: Template314201,
-                            @SerializedName("template_349202")
-                            val template349202: Template349202,
-                            @SerializedName("template_355201")
-                            val template355201: Template355201,
-                            @SerializedName("template_98001")
-                            val template98001: Template98001
-                        ) {
-                            data class ArtisteParachuteGreetingHpak321yot(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class DailyMixSingleLineTextCopyLy2bff6we2(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class DailyMixSingleLineTextCopyQqy0we33tm(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class DailyRcmdAnnualAndMonthlyPlaylistItem47yuuxhs5s(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class EmptyIconD8vh7d7n9p(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class EmptyIconEqs0sun5u3(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class EmptyIconHvetjbwns3(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class EmptyIconI8h4kd56rz(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class EmptyIconLflntqarff(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class EmptyIconThrc7s8px1(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class GroundGlassBackGroundUh06xewrtz(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class GroundGlassBackGroundUh06xewrtz14(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class GroundGlassBackGroundUh06xewrtz18(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class GroundGlassBackGroundUh06xewrtz20(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class GroundGlassBackGroundUh06xewrtz23(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class GroundGlassBackGroundUh06xewrtz30(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeBottomMargin65cju8vvls(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeBottomMarginAo7hq65rhh(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeBottomMarginHfcxc755tw(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeCommonRcmdSongItemU59ognvt3u(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeCommonRcmdSongListLwxbsnqyiy(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeCommonRcmdSongsModule8pim9hfovz(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeCommonTitleNc13i9w3i3(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeCommonTitlePczt00v2qu(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeCommonTitleWithNickNameSxp3xmlqd7(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeGroundGlassBackGround926ehi7wma(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeGroundGlassBackGroundD8w9yhqyfq(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeGroundGlassBackGroundMxogq4yvvn(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomeGroundGlassBackGroundYc96n95amx(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomePageRcmdCloudVillagePlayListItemCopy3e6thhksc0(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomePageRcmdCloudVillagePlayListListTable28mch2inm1(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class HomePageRcmdCloudVillagePlayListModuleFaw1pbe7y8(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class NewHomePageVipCenterGuideModule42w4ziiqcf(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class PageRcmdGreetingActivityBarC0bqitk6g2(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class PageRcmdGreetingBarListJl4b6qchz3(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class PageRcmdTopGreeting2bnzys1v1e(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class PageRecommendSharedPlaylistAvatarItemPpiwrujhes(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class PlayCountGgdliuj3or(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemCopyCopyRankUp2miqp06e(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemCopyCopyV2FmH5m567dqoh(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemCopyCopyV2PlayListAlbumCopy1c5gxgw7zw(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemHeartMode44cgowqchu(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemNormalWithIconB8sjvnpzec(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemRecallPlaylistTatdbvm9na(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemSimilarArtist01l23vvgnp(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyBigCardItemSimilarSongD2n95tot6l(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardCommonItemS457tn5uue(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardItemFmQhwied3mg2(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardItemMiniBannerGbflt5s6id(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardItemPlayListAlbumAb6yx1ds2f(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardItemPlayListAlbumCopy894sjc9sxd(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardItemStyleRcmd57rg03kwiz(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardListOkidnj8j06(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardLiveItemU9qm0drcli(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCardModuleQ9aeks8g75(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyCommonNoPlayBtn0vjlxbwkuy(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyPodcastBigCardItemC4c6636xx6(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdDailyRcmdDynamicHiddenHeader8srypues38(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdRadarListWithCoverItem0710Cndqberk6i(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdRadarWithMaskList07107e7xn390w8(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdRadarWithMaskModule0710Bd22kgyeqo(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class RcmdTopGreetingAdJvyaq7tx21(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class StaticScrollContainerU59ognvt3u(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class StaticScrollContainerU59ognvt3uVirtual(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class Template142003(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class Template314201(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class Template349202(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class Template355201(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-
-                            data class Template98001(
-                                @SerializedName("css")
-                                val css: String,
-                                @SerializedName("databinding")
-                                val databinding: String,
-                                @SerializedName("json")
-                                val json: String
-                            )
-                        }
-                    }
+                        @SerializedName("needScaleForPad")
+                        val needScaleForPad: Boolean,
+                        @SerializedName("dslMapMd5")
+                        val dslMapMd5: Any,
+                        @SerializedName("merge")
+                        val merge: Any,
+                        @SerializedName("headlessJson")
+                        val headlessJson: Any
+                    )
                 }
             }
 
@@ -877,356 +185,153 @@ data class HomePageResourceShow(
                 val blockResource: BlockResource,
                 @SerializedName("code")
                 val code: Int,
-                @SerializedName("dslShowTitle")
-                val dslShowTitle: Boolean,
-                @SerializedName("home_common_rcmd_songs_module_8pim9hfovz")
-                val homeCommonRcmdSongsModule8pim9hfovz: HomeCommonRcmdSongsModule8pim9hfovz,
-                @SerializedName("page_rcmd_top_greeting_2bnzys1v1e")
-                val pageRcmdTopGreeting2bnzys1v1e: PageRcmdTopGreeting2bnzys1v1e,
-                @SerializedName("responseFrom")
-                val responseFrom: String
+                @SerializedName("djPrograms")
+                val djPrograms: List<DjProgram>,
+                @SerializedName("cursor")
+                val cursor: String,
+                @SerializedName("blockCode")
+                val blockCode: String,
+                @SerializedName("blockName")
+                val blockName: String,
+                @SerializedName("itemIds")
+                val itemIds: List<Long>,
+                @SerializedName("client")
+                val client: String,
+                @SerializedName("header")
+                val header: Header,
+                @SerializedName("track")
+                val track: Track,
+                @SerializedName("items")
+                val items: List<Item>,
+                @SerializedName("extInfo")
+                val extInfo: ExtInfo,
+
+                @SerializedName(SpecialKey.Rank)
+                val rank: Rank,
+                @SerializedName(SpecialKey.HomeCommon)
+                val homeCommon: HomeCommon,
             ) {
-                data class BlockResource(
-                    @SerializedName("action")
-                    val action: String,
-                    @SerializedName("alg")
-                    val alg: String,
-                    @SerializedName("minLimitSize")
-                    val minLimitSize: Int,
-                    @SerializedName("resources")
-                    val resources: List<Resource>,
+                data class Rank(
                     @SerializedName("showMore")
                     val showMore: Boolean,
-                    @SerializedName("subTitle")
-                    val subTitle: String,
+                    @SerializedName("resources")
+                    val resources: List<Resource>,
                     @SerializedName("title")
                     val title: String
                 ) {
                     data class Resource(
-                        @SerializedName("action")
-                        val action: String,
-                        @SerializedName("alg")
-                        val alg: String,
-                        @SerializedName("algTitle")
-                        val algTitle: String,
-                        @SerializedName("coverAlg")
-                        val coverAlg: String,
-                        @SerializedName("coverId")
-                        val coverId: String,
+                        @SerializedName("playCount")
+                        val playCount: String,
+                        @SerializedName("playCountOpacity")
+                        val playCountOpacity: Int,
+                        @SerializedName("resourceId")
+                        val resourceId: String,
                         @SerializedName("coverImg")
                         val coverImg: String,
-                        @SerializedName("coverType")
-                        val coverType: String,
-                        @SerializedName("dayOfMonth")
-                        val dayOfMonth: String,
-                        @SerializedName("extInfo")
-                        val extInfo: ExtInfo,
-                        @SerializedName("firstSongId")
-                        val firstSongId: String,
+                        @SerializedName("subTitle")
+                        val subTitle: String,
+                        @SerializedName("action")
+                        val action: String,
+                        @SerializedName("playBtnOpacity")
+                        val playBtnOpacity: Int,
+                        @SerializedName("playBtn")
+                        val playBtn: String,
+                        @SerializedName("title")
+                        val title: String,
+                        @SerializedName("alg")
+                        val alg: String,
+                        @SerializedName("resourceType")
+                        val resourceType: String
+                    )
+                }
+
+                data class BlockResource(
+                    @SerializedName("subTitle")
+                    val subTitle: String,
+                    @SerializedName("showMore")
+                    val showMore: Boolean,
+                    @SerializedName("resources")
+                    val resources: List<Resource>,
+                    @SerializedName("title")
+                    val title: String,
+                    @SerializedName("alg")
+                    val alg: String,
+                    @SerializedName("action")
+                    val action: Any,
+                    @SerializedName("iconUrl")
+                    val iconUrl: Any,
+                    @SerializedName("minLimitSize")
+                    val minLimitSize: Int,
+                    @SerializedName("button")
+                    val button: Any,
+                    @SerializedName("playAll")
+                    val playAll: Any
+                ) {
+                    data class Resource(
+                        @SerializedName("playBtnData")
+                        val playBtnData: Any,
+                        @SerializedName("resourceId")
+                        val resourceId: String,
+                        @SerializedName("coverImg")
+                        val coverImg: String,
+                        @SerializedName("subTitle")
+                        val subTitle: String,
                         @SerializedName("iconDesc")
                         val iconDesc: IconDesc,
                         @SerializedName("lunaItemType")
                         val lunaItemType: String,
-                        @SerializedName("moduleType")
-                        val moduleType: String,
-                        @SerializedName("playBtnData")
-                        val playBtnData: String,
-                        @SerializedName("resourceExtInfo")
-                        val resourceExtInfo: ResourceExtInfo,
-                        @SerializedName("resourceId")
-                        val resourceId: String,
-                        @SerializedName("resourceInteractInfo")
-                        val resourceInteractInfo: ResourceInteractInfo,
-                        @SerializedName("resourceStates")
-                        val resourceStates: String,
+                        @SerializedName("action")
+                        val action: String,
+                        @SerializedName("title")
+                        val title: String,
+                        @SerializedName("alg")
+                        val alg: String,
+                        @SerializedName("extInfo")
+                        val extInfo: ExtInfo,
                         @SerializedName("resourceType")
                         val resourceType: String,
-                        @SerializedName("singleLineTitle")
-                        val singleLineTitle: String,
-                        @SerializedName("songIdsStr")
-                        val songIdsStr: String,
-                        @SerializedName("subTitle")
-                        val subTitle: String,
-                        @SerializedName("tagDisplay")
-                        val tagDisplay: String,
-                        @SerializedName("tagImgUrl")
-                        val tagImgUrl: String,
-                        @SerializedName("tagText")
-                        val tagText: String,
+                        @SerializedName("tagId")
+                        val tagId: String,
+                        @SerializedName("categoryId")
+                        val categoryId: String,
+                        @SerializedName("resourceStates")
+                        val resourceStates: String,
+                        @SerializedName("playOrpheus")
+                        val playOrpheus: Any,
+                        @SerializedName("coverImgType")
+                        val coverImgType: Any,
+                        @SerializedName("logInfo")
+                        val logInfo: Any,
+                        @SerializedName("resourceInteractInfo")
+                        val resourceInteractInfo: ResourceInteractInfo,
                         @SerializedName("tags")
-                        val tags: List<String>,
-                        @SerializedName("title")
-                        val title: String
+                        val tags: List<Any>,
+                        @SerializedName("tagImgUrl")
+                        val tagImgUrl: Any,
+                        @SerializedName("labelText")
+                        val labelText: Any,
+                        @SerializedName("resourceExtInfo")
+                        val resourceExtInfo: ResourceExtInfo,
+                        @SerializedName("extMap")
+                        val extMap: Any,
+                        @SerializedName("singleLineTitle")
+                        val singleLineTitle:String,
                     ) {
-                        data class ExtInfo(
-                            @SerializedName("desc")
-                            val desc: String,
-                            @SerializedName("elementId")
-                            val elementId: String,
-                            @SerializedName("fmCoverConfig")
-                            val fmCoverConfig: FmCoverConfig,
-                            @SerializedName("fmCoverMaskConfig")
-                            val fmCoverMaskConfig: FmCoverMaskConfig,
-                            @SerializedName("fmSubTitleConfig")
-                            val fmSubTitleConfig: FmSubTitleConfig,
-                            @SerializedName("fmTitleBgConfig")
-                            val fmTitleBgConfig: FmTitleBgConfig,
-                            @SerializedName("ignoreGuide")
-                            val ignoreGuide: Boolean,
-                            @SerializedName("mode")
-                            val mode: String,
-                            @SerializedName("once")
-                            val once: Boolean,
-                            @SerializedName("playlist")
-                            val playlist: Playlist,
-                            @SerializedName("showFmTitle")
-                            val showFmTitle: Boolean,
-                            @SerializedName("songId")
-                            val songId: Int,
-                            @SerializedName("subMode")
-                            val subMode: String,
-                            @SerializedName("topGradient")
-                            val topGradient: String,
-                            @SerializedName("useMiniIcon")
-                            val useMiniIcon: Boolean
-                        ) {
-                            data class FmCoverConfig(
-                                @SerializedName("aidjDarkCover")
-                                val aidjDarkCover: String,
-                                @SerializedName("aidjLightCover")
-                                val aidjLightCover: String,
-                                @SerializedName("algTitle")
-                                val algTitle: String,
-                                @SerializedName("coverImg")
-                                val coverImg: String,
-                                @SerializedName("isFmCard")
-                                val isFmCard: Boolean,
-                                @SerializedName("modeCode")
-                                val modeCode: String,
-                                @SerializedName("subModeCode")
-                                val subModeCode: String
-                            )
-
-                            data class FmCoverMaskConfig(
-                                @SerializedName("algTitle")
-                                val algTitle: String,
-                                @SerializedName("colorRect")
-                                val colorRect: ColorRect,
-                                @SerializedName("direction")
-                                val direction: String,
-                                @SerializedName("enableCrossDissolve")
-                                val enableCrossDissolve: Boolean,
-                                @SerializedName("excludeBlackWhiteColor")
-                                val excludeBlackWhiteColor: Boolean,
-                                @SerializedName("iconConfig")
-                                val iconConfig: IconConfig,
-                                @SerializedName("modeCode")
-                                val modeCode: String,
-                                @SerializedName("serverColorArea")
-                                val serverColorArea: String,
-                                @SerializedName("source")
-                                val source: String,
-                                @SerializedName("subModeCode")
-                                val subModeCode: String,
-                                @SerializedName("type")
-                                val type: String
-                            ) {
-                                data class ColorRect(
-                                    @SerializedName("heightRatio")
-                                    val heightRatio: Int,
-                                    @SerializedName("widthRatio")
-                                    val widthRatio: Int,
-                                    @SerializedName("xRatio")
-                                    val xRatio: Int,
-                                    @SerializedName("yRatio")
-                                    val yRatio: Int
-                                )
-
-                                data class IconConfig(
-                                    @SerializedName("iconHeightRatio")
-                                    val iconHeightRatio: Double,
-                                    @SerializedName("iconUrl")
-                                    val iconUrl: String,
-                                    @SerializedName("iconWidthRatio")
-                                    val iconWidthRatio: Double,
-                                    @SerializedName("marginLeftRatio")
-                                    val marginLeftRatio: Double,
-                                    @SerializedName("marginTopRatio")
-                                    val marginTopRatio: Double
-                                )
-                            }
-
-                            data class FmSubTitleConfig(
-                                @SerializedName("algTitle")
-                                val algTitle: String,
-                                @SerializedName("colorRect")
-                                val colorRect: ColorRect,
-                                @SerializedName("direction")
-                                val direction: String,
-                                @SerializedName("enableCrossDissolve")
-                                val enableCrossDissolve: Boolean,
-                                @SerializedName("excludeBlackWhiteColor")
-                                val excludeBlackWhiteColor: Boolean,
-                                @SerializedName("hiddenInAIDJ")
-                                val hiddenInAIDJ: Boolean,
-                                @SerializedName("isFmCard")
-                                val isFmCard: Boolean,
-                                @SerializedName("modeCode")
-                                val modeCode: String,
-                                @SerializedName("serverColorArea")
-                                val serverColorArea: String,
-                                @SerializedName("source")
-                                val source: String,
-                                @SerializedName("subModeCode")
-                                val subModeCode: String,
-                                @SerializedName("type")
-                                val type: String
-                            ) {
-                                data class ColorRect(
-                                    @SerializedName("heightRatio")
-                                    val heightRatio: Double,
-                                    @SerializedName("widthRatio")
-                                    val widthRatio: Int,
-                                    @SerializedName("xRatio")
-                                    val xRatio: Int,
-                                    @SerializedName("yRatio")
-                                    val yRatio: Int
-                                )
-                            }
-
-                            data class FmTitleBgConfig(
-                                @SerializedName("algTitle")
-                                val algTitle: String,
-                                @SerializedName("colorRect")
-                                val colorRect: ColorRect,
-                                @SerializedName("direction")
-                                val direction: String,
-                                @SerializedName("enableCrossDissolve")
-                                val enableCrossDissolve: Boolean,
-                                @SerializedName("excludeBlackWhiteColor")
-                                val excludeBlackWhiteColor: Boolean,
-                                @SerializedName("isFmCard")
-                                val isFmCard: Boolean,
-                                @SerializedName("modeCode")
-                                val modeCode: String,
-                                @SerializedName("serverColorArea")
-                                val serverColorArea: String,
-                                @SerializedName("source")
-                                val source: String,
-                                @SerializedName("subModeCode")
-                                val subModeCode: String,
-                                @SerializedName("type")
-                                val type: String
-                            ) {
-                                data class ColorRect(
-                                    @SerializedName("heightRatio")
-                                    val heightRatio: Double,
-                                    @SerializedName("widthRatio")
-                                    val widthRatio: Int,
-                                    @SerializedName("xRatio")
-                                    val xRatio: Int,
-                                    @SerializedName("yRatio")
-                                    val yRatio: Double
-                                )
-                            }
-
-                            data class Playlist(
-                                @SerializedName("adType")
-                                val adType: Int,
-                                @SerializedName("adjustedPlayCount")
-                                val adjustedPlayCount: Any,
-                                @SerializedName("anonimous")
-                                val anonimous: Boolean,
-                                @SerializedName("approved")
-                                val approved: Boolean,
-                                @SerializedName("auditRejected")
-                                val auditRejected: Boolean,
-                                @SerializedName("auditStatus")
-                                val auditStatus: Int,
-                                @SerializedName("auditTime")
-                                val auditTime: Int,
-                                @SerializedName("bookTime")
-                                val bookTime: Int,
-                                @SerializedName("bookedCount")
-                                val bookedCount: Int,
-                                @SerializedName("commentThreadId")
-                                val commentThreadId: Int,
-                                @SerializedName("copied")
-                                val copied: Boolean,
-                                @SerializedName("coverImgId")
-                                val coverImgId: Long,
-                                @SerializedName("coverImgUrl")
-                                val coverImgUrl: String,
-                                @SerializedName("coverStatus")
-                                val coverStatus: Int,
-                                @SerializedName("createEventId")
-                                val createEventId: Int,
-                                @SerializedName("createTime")
-                                val createTime: Long,
-                                @SerializedName("defaultCover")
-                                val defaultCover: Boolean,
-                                @SerializedName("freeLimitExpire")
-                                val freeLimitExpire: Boolean,
-                                @SerializedName("highQuality")
-                                val highQuality: Boolean,
-                                @SerializedName("id")
-                                val id: Long,
-                                @SerializedName("name")
-                                val name: String,
-                                @SerializedName("newImported")
-                                val newImported: Boolean,
-                                @SerializedName("opRecommend")
-                                val opRecommend: Boolean,
-                                @SerializedName("playCount")
-                                val playCount: Int,
-                                @SerializedName("playlistType")
-                                val playlistType: String,
-                                @SerializedName("privacy")
-                                val privacy: Int,
-                                @SerializedName("recommended")
-                                val recommended: Boolean,
-                                @SerializedName("specialType")
-                                val specialType: Int,
-                                @SerializedName("status")
-                                val status: Int,
-                                @SerializedName("tags")
-                                val tags: List<Any>,
-                                @SerializedName("totalDuration")
-                                val totalDuration: Int,
-                                @SerializedName("trackCount")
-                                val trackCount: Int,
-                                @SerializedName("trackNumberUpdateTime")
-                                val trackNumberUpdateTime: Long,
-                                @SerializedName("trackUpdateTime")
-                                val trackUpdateTime: Long,
-                                @SerializedName("updateTime")
-                                val updateTime: Long,
-                                @SerializedName("userId")
-                                val userId: Long,
-                                @SerializedName("userOrdered")
-                                val userOrdered: Boolean,
-                                @SerializedName("validCloudTrackCount")
-                                val validCloudTrackCount: Int,
-                                @SerializedName("validTrackCount")
-                                val validTrackCount: Int,
-                                @SerializedName("weightValue")
-                                val weightValue: Int
-                            )
-                        }
-
-                        data class IconDesc(
-                            @SerializedName("blur_bottom")
-                            val blurBottom: String?,
-                            @SerializedName("blur_left")
-                            val blurLeft: String?,
-                            @SerializedName("blur_right")
-                            val blurRight: String?,
-                            @SerializedName("blur_show")
-                            val blurShow: Boolean,
-                            @SerializedName("blur_top")
-                            val blurTop: String?,
-                            @SerializedName("image")
-                            val image: String?
+                        data class PlayBtnData(
+                            @SerializedName("pauseType")
+                            val pauseType: String,
+                            @SerializedName("resourceId")
+                            val resourceId: String,
+                            @SerializedName("playOrpheus")
+                            val playOrpheus: String,
+                            @SerializedName("playType")
+                            val playType: String,
+                            @SerializedName("detailUrl")
+                            val detailUrl: String,
+                            @SerializedName("playActionType")
+                            val playActionType: String,
+                            @SerializedName("resourceType")
+                            val resourceType: String
                         )
 
                         data class ResourceExtInfo(
@@ -1247,67 +352,914 @@ data class HomePageResourceShow(
                             )
                         }
 
+                        data class IconDesc(
+                            @SerializedName("image")
+                            val image: String,
+                            @SerializedName("blur_bottom")
+                            val blurBottom: String,
+                            @SerializedName("blur_top")
+                            val blurTop: String,
+                            @SerializedName("blur_right")
+                            val blurRight: String,
+                            @SerializedName("blur_show")
+                            val blurShow: Boolean,
+                            @SerializedName("blur_left")
+                            val blurLeft: String
+                        )
+
+                        data class ExtInfo(
+                            @SerializedName("miniIconGroup")
+                            val miniIconGroup: String,
+                            @SerializedName("useMiniIcon")
+                            val useMiniIcon: Boolean,
+                            @SerializedName("topGradient")
+                            val topGradient: String
+                        )
+
                         data class ResourceInteractInfo(
                             @SerializedName("playCount")
-                            val playCount: String
+                            val playCount: String,
+                            @SerializedName("likedCount")
+                            val likedCount: Any,
+                            @SerializedName("replyCount")
+                            val replyCount: Any
                         )
                     }
                 }
 
-                data class HomeCommonRcmdSongsModule8pim9hfovz(
-                    @SerializedName("content")
-                    val content: Content,
+                data class DjProgram(
+                    @SerializedName("scheduledPublishTime")
+                    val scheduledPublishTime: Long,
+                    @SerializedName("bdAuditStatus")
+                    val bdAuditStatus: Int,
+                    @SerializedName("programDesc")
+                    val programDesc: List<ProgramDesc>,
+                    @SerializedName("dj")
+                    val dj: Dj,
+                    @SerializedName("description")
+                    val description: String,
+                    @SerializedName("privacy")
+                    val privacy: Boolean,
+                    @SerializedName("classicRelationSong")
+                    val classicRelationSong: ClassicRelationSong,
+                    @SerializedName("specialTags")
+                    val specialTags: List<String>,
+                    @SerializedName("radio")
+                    val radio: Radio,
+                    @SerializedName("programFeeType")
+                    val programFeeType: Int,
+                    @SerializedName("duration")
+                    val duration: Int,
+                    @SerializedName("listenerCount")
+                    val listenerCount: Int,
+                    @SerializedName("trackCount")
+                    val trackCount: Int,
+                    @SerializedName("coverId")
+                    val coverId: Long,
+                    @SerializedName("blurCoverUrl")
+                    val blurCoverUrl: String,
+                    @SerializedName("id")
+                    val id: Long,
+                    @SerializedName("reward")
+                    val reward: Boolean,
+                    @SerializedName("pubStatus")
+                    val pubStatus: Int,
+                    @SerializedName("createEventId")
+                    val createEventId: Int,
+                    @SerializedName("serialNum")
+                    val serialNum: Long,
+                    @SerializedName("commentThreadId")
+                    val commentThreadId: String,
+                    @SerializedName("updateTime")
+                    val updateTime: Long,
+                    @SerializedName("mainTrackId")
+                    val mainTrackId: Long,
+                    @SerializedName("userId")
+                    val userId: Long,
+                    @SerializedName("coverUrl")
+                    val coverUrl: String,
+                    @SerializedName("channels")
+                    val channels: List<String>,
+                    @SerializedName("h5Links")
+                    val h5Links: List<Any>,
+                    @SerializedName("createTime")
+                    val createTime: Long,
+                    @SerializedName("canReward")
+                    val canReward: Boolean,
+                    @SerializedName("publish")
+                    val publish: Boolean,
+                    @SerializedName("name")
+                    val name: String,
+                    @SerializedName("buyed")
+                    val buyed: Boolean,
+                    @SerializedName("subscribedCount")
+                    val subscribedCount: Int,
+                    @SerializedName("auditStatus")
+                    val auditStatus: Int,
+                    @SerializedName("adjustedPlayCount")
+                    val adjustedPlayCount: Int,
+                    @SerializedName("secondCategoryId")
+                    val secondCategoryId: Int,
+                    @SerializedName("categoryId")
+                    val categoryId: Int,
+                    @SerializedName("disPlayStatus")
+                    val disPlayStatus: String,
+                    @SerializedName("secondCategory")
+                    val secondCategory: String,
+                    @SerializedName("mainSong")
+                    val mainSong: MainSong,
+                    @SerializedName("shortName")
+                    val shortName: String,
+                    @SerializedName("category")
+                    val category: String
+                ) {
+                    data class ProgramDesc(
+                        @SerializedName("id")
+                        val id: Int
+                    )
+
+                    data class Dj(
+                        @SerializedName("birthday")
+                        val birthday: Long,
+                        @SerializedName("detailDescription")
+                        val detailDescription: String,
+                        @SerializedName("backgroundUrl")
+                        val backgroundUrl: String,
+                        @SerializedName("gender")
+                        val gender: Int,
+                        @SerializedName("city")
+                        val city: Int,
+                        @SerializedName("signature")
+                        val signature: String,
+                        @SerializedName("description")
+                        val description: String,
+                        @SerializedName("accountStatus")
+                        val accountStatus: Int,
+                        @SerializedName("avatarImgId")
+                        val avatarImgId: Long,
+                        @SerializedName("defaultAvatar")
+                        val defaultAvatar: Boolean,
+                        @SerializedName("avatarImgIdStr")
+                        val avatarImgIdStr: String,
+                        @SerializedName("backgroundImgIdStr")
+                        val backgroundImgIdStr: String,
+                        @SerializedName("province")
+                        val province: Int,
+                        @SerializedName("nickname")
+                        val nickname: String,
+                        @SerializedName("djStatus")
+                        val djStatus: Int,
+                        @SerializedName("avatarUrl")
+                        val avatarUrl: String,
+                        @SerializedName("authStatus")
+                        val authStatus: Int,
+                        @SerializedName("vipType")
+                        val vipType: Int,
+                        @SerializedName("followed")
+                        val followed: Boolean,
+                        @SerializedName("userId")
+                        val userId: Long,
+                        @SerializedName("authenticationTypes")
+                        val authenticationTypes: Int,
+                        @SerializedName("mutual")
+                        val mutual: Boolean,
+                        @SerializedName("authority")
+                        val authority: Int,
+                        @SerializedName("anchor")
+                        val anchor: Boolean,
+                        @SerializedName("userType")
+                        val userType: Int,
+                        @SerializedName("backgroundImgId")
+                        val backgroundImgId: Long
+                    )
+
+                    data class ClassicRelationSong(
+                        @SerializedName("voiceName")
+                        val voiceName: String,
+                        @SerializedName("redirectText")
+                        val redirectText: String,
+                        @SerializedName("hotScore")
+                        val hotScore: Int,
+                        @SerializedName("bubbleClickUrl")
+                        val bubbleClickUrl: String,
+                        @SerializedName("mainTitleIcon")
+                        val mainTitleIcon: MainTitleIcon,
+                        @SerializedName("titleImage")
+                        val titleImage: TitleImage,
+                        @SerializedName("subTitle")
+                        val subTitle: String,
+                        @SerializedName("mainTitle")
+                        val mainTitle: String,
+                        @SerializedName("musicStyles")
+                        val musicStyles: List<Int>,
+                        @SerializedName("commentClickUrl")
+                        val commentClickUrl: String,
+                        @SerializedName("songDataList")
+                        val songDataList: List<SongData>,
+                        @SerializedName("shortName")
+                        val shortName: String,
+                        @SerializedName("bubbleTipText")
+                        val bubbleTipText: String,
+                        @SerializedName("voiceCollectionUrl")
+                        val voiceCollectionUrl: String
+                    ) {
+                        data class MainTitleIcon(
+                            @SerializedName("width")
+                            val width: Int,
+                            @SerializedName("url")
+                            val url: String,
+                            @SerializedName("height")
+                            val height: Int
+                        )
+
+                        data class TitleImage(
+                            @SerializedName("width")
+                            val width: Int,
+                            @SerializedName("url")
+                            val url: String,
+                            @SerializedName("height")
+                            val height: Int
+                        )
+
+                        data class SongData(
+                            @SerializedName("name")
+                            val name: String,
+                            @SerializedName("id")
+                            val id: Long
+                        )
+                    }
+
+                    data class Radio(
+                        @SerializedName("lastProgramId")
+                        val lastProgramId: Long,
+                        @SerializedName("secondCategory")
+                        val secondCategory: String,
+                        @SerializedName("originalPrice")
+                        val originalPrice: Int,
+                        @SerializedName("purchaseCount")
+                        val purchaseCount: Int,
+                        @SerializedName("radioFeeType")
+                        val radioFeeType: Int,
+                        @SerializedName("feeScope")
+                        val feeScope: Int,
+                        @SerializedName("lastProgramCreateTime")
+                        val lastProgramCreateTime: Long,
+                        @SerializedName("privacy")
+                        val privacy: Boolean,
+                        @SerializedName("intervenePicId")
+                        val intervenePicId: Long,
+                        @SerializedName("subCount")
+                        val subCount: Int,
+                        @SerializedName("picUrl")
+                        val picUrl: String,
+                        @SerializedName("specialType")
+                        val specialType: Int,
+                        @SerializedName("subed")
+                        val subed: Boolean,
+                        @SerializedName("price")
+                        val price: Int,
+                        @SerializedName("danmakuCount")
+                        val danmakuCount: Int,
+                        @SerializedName("dynamic")
+                        val `dynamic`: Boolean,
+                        @SerializedName("id")
+                        val id: Int,
+                        @SerializedName("picId")
+                        val picId: Long,
+                        @SerializedName("participateUidList")
+                        val participateUidList: List<Any>,
+                        @SerializedName("userDeleted")
+                        val userDeleted: Boolean,
+                        @SerializedName("intervenePicUrl")
+                        val intervenePicUrl: String,
+                        @SerializedName("finished")
+                        val finished: Boolean,
+                        @SerializedName("programOrder")
+                        val programOrder: Int,
+                        @SerializedName("hightQuality")
+                        val hightQuality: Boolean,
+                        @SerializedName("composeVideo")
+                        val composeVideo: Boolean,
+                        @SerializedName("descPicList")
+                        val descPicList: List<DescPic>,
+                        @SerializedName("playCount")
+                        val playCount: Int,
+                        @SerializedName("deleted")
+                        val deleted: Boolean,
+                        @SerializedName("createTime")
+                        val createTime: Long,
+                        @SerializedName("name")
+                        val name: String,
+                        @SerializedName("buyed")
+                        val buyed: Boolean,
+                        @SerializedName("whiteList")
+                        val whiteList: Boolean,
+                        @SerializedName("programCount")
+                        val programCount: Int,
+                        @SerializedName("underShelf")
+                        val underShelf: Boolean,
+                        @SerializedName("category")
+                        val category: String,
+                        @SerializedName("secondCategoryId")
+                        val secondCategoryId: Int,
+                        @SerializedName("onlySelfSee")
+                        val onlySelfSee: Boolean,
+                        @SerializedName("categoryId")
+                        val categoryId: Int,
+                        @SerializedName("taskId")
+                        val taskId: Int,
+                        @SerializedName("desc")
+                        val desc: String,
+                        @SerializedName("original")
+                        val original: String,
+                        @SerializedName("rcmdText")
+                        val rcmdText: String
+                    ) {
+                        data class DescPic(
+                            @SerializedName("id")
+                            val id: Int,
+                            @SerializedName("type")
+                            val type: Int,
+                            @SerializedName("imageContentURLInvalid")
+                            val imageContentURLInvalid: Boolean,
+                            @SerializedName("content")
+                            val content: String,
+                            @SerializedName("nestedData")
+                            val nestedData: NestedData
+                        ) {
+                            data class NestedData(
+                                @SerializedName("textList")
+                                val textList: List<Text>
+                            ) {
+                                data class Text(
+                                    @SerializedName("text")
+                                    val text: String,
+                                    @SerializedName("attributes")
+                                    val attributes: Attributes
+                                ) {
+                                    data class Attributes(
+                                        @SerializedName("bold")
+                                        val bold: Boolean
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    data class MainSong(
+                        @SerializedName("no")
+                        val no: Int,
+                        @SerializedName("copyright")
+                        val copyright: Int,
+                        @SerializedName("dayPlays")
+                        val dayPlays: Int,
+                        @SerializedName("fee")
+                        val fee: Int,
+                        @SerializedName("mMusic")
+                        val mMusic: MMusic,
+                        @SerializedName("bMusic")
+                        val bMusic: BMusic,
+                        @SerializedName("duration")
+                        val duration: Int,
+                        @SerializedName("score")
+                        val score: Int,
+                        @SerializedName("starred")
+                        val starred: Boolean,
+                        @SerializedName("artists")
+                        val artists: List<Artist>,
+                        @SerializedName("rtUrls")
+                        val rtUrls: List<Any>,
+                        @SerializedName("popularity")
+                        val popularity: Int,
+                        @SerializedName("playedNum")
+                        val playedNum: Int,
+                        @SerializedName("hearTime")
+                        val hearTime: Int,
+                        @SerializedName("starredNum")
+                        val starredNum: Int,
+                        @SerializedName("alias")
+                        val alias: List<Any>,
+                        @SerializedName("id")
+                        val id: Int,
+                        @SerializedName("lMusic")
+                        val lMusic: LMusic,
+                        @SerializedName("album")
+                        val album: Album,
+                        @SerializedName("originCoverType")
+                        val originCoverType: Int,
+                        @SerializedName("commentThreadId")
+                        val commentThreadId: String,
+                        @SerializedName("ringtone")
+                        val ringtone: String,
+                        @SerializedName("copyFrom")
+                        val copyFrom: String,
+                        @SerializedName("single")
+                        val single: Int,
+                        @SerializedName("ftype")
+                        val ftype: Int,
+                        @SerializedName("copyrightId")
+                        val copyrightId: Int,
+                        @SerializedName("name")
+                        val name: String,
+                        @SerializedName("disc")
+                        val disc: String,
+                        @SerializedName("position")
+                        val position: Int,
+                        @SerializedName("mark")
+                        val mark: Int,
+                        @SerializedName("status")
+                        val status: Int,
+                        @SerializedName("hMusic")
+                        val hMusic: HMusic
+                    ) {
+                        data class MMusic(
+                            @SerializedName("extension")
+                            val extension: String,
+                            @SerializedName("size")
+                            val size: Int,
+                            @SerializedName("volumeDelta")
+                            val volumeDelta: Int,
+                            @SerializedName("bitrate")
+                            val bitrate: Int,
+                            @SerializedName("playTime")
+                            val playTime: Int,
+                            @SerializedName("id")
+                            val id: Long,
+                            @SerializedName("dfsId")
+                            val dfsId: Int,
+                            @SerializedName("sr")
+                            val sr: Int
+                        )
+
+                        data class BMusic(
+                            @SerializedName("extension")
+                            val extension: String,
+                            @SerializedName("size")
+                            val size: Int,
+                            @SerializedName("volumeDelta")
+                            val volumeDelta: Int,
+                            @SerializedName("bitrate")
+                            val bitrate: Int,
+                            @SerializedName("playTime")
+                            val playTime: Int,
+                            @SerializedName("id")
+                            val id: Long,
+                            @SerializedName("dfsId")
+                            val dfsId: Int,
+                            @SerializedName("sr")
+                            val sr: Int
+                        )
+
+                        data class Artist(
+                            @SerializedName("img1v1Url")
+                            val img1v1Url: String,
+                            @SerializedName("picUrl")
+                            val picUrl: String,
+                            @SerializedName("topicPerson")
+                            val topicPerson: Int,
+                            @SerializedName("briefDesc")
+                            val briefDesc: String,
+                            @SerializedName("musicSize")
+                            val musicSize: Int,
+                            @SerializedName("name")
+                            val name: String,
+                            @SerializedName("alias")
+                            val alias: List<Any>,
+                            @SerializedName("img1v1Id")
+                            val img1v1Id: Int,
+                            @SerializedName("id")
+                            val id: Int,
+                            @SerializedName("albumSize")
+                            val albumSize: Int,
+                            @SerializedName("picId")
+                            val picId: Int,
+                            @SerializedName("trans")
+                            val trans: String
+                        )
+
+                        data class LMusic(
+                            @SerializedName("extension")
+                            val extension: String,
+                            @SerializedName("size")
+                            val size: Int,
+                            @SerializedName("volumeDelta")
+                            val volumeDelta: Int,
+                            @SerializedName("bitrate")
+                            val bitrate: Int,
+                            @SerializedName("playTime")
+                            val playTime: Int,
+                            @SerializedName("id")
+                            val id: Long,
+                            @SerializedName("dfsId")
+                            val dfsId: Int,
+                            @SerializedName("sr")
+                            val sr: Int
+                        )
+
+                        data class Album(
+                            @SerializedName("publishTime")
+                            val publishTime: Int,
+                            @SerializedName("dolbyMark")
+                            val dolbyMark: Int,
+                            @SerializedName("artist")
+                            val artist: Artist,
+                            @SerializedName("description")
+                            val description: String,
+                            @SerializedName("commentThreadId")
+                            val commentThreadId: String,
+                            @SerializedName("pic")
+                            val pic: Long,
+                            @SerializedName("gapless")
+                            val gapless: Int,
+                            @SerializedName("tags")
+                            val tags: String,
+                            @SerializedName("picUrl")
+                            val picUrl: String,
+                            @SerializedName("companyId")
+                            val companyId: Int,
+                            @SerializedName("size")
+                            val size: Int,
+                            @SerializedName("briefDesc")
+                            val briefDesc: String,
+                            @SerializedName("artists")
+                            val artists: List<Artist>,
+                            @SerializedName("copyrightId")
+                            val copyrightId: Int,
+                            @SerializedName("songs")
+                            val songs: List<Any>,
+                            @SerializedName("name")
+                            val name: String,
+                            @SerializedName("alias")
+                            val alias: List<Any>,
+                            @SerializedName("onSale")
+                            val onSale: Boolean,
+                            @SerializedName("id")
+                            val id: Int,
+                            @SerializedName("picId")
+                            val picId: Long,
+                            @SerializedName("mark")
+                            val mark: Int,
+                            @SerializedName("status")
+                            val status: Int,
+                            @SerializedName("extProperties")
+                            val extProperties: ExtProperties,
+                            @SerializedName("blurPicUrl")
+                            val blurPicUrl: String,
+                            @SerializedName("xInfo")
+                            val xInfo: XInfo
+                        ) {
+                            data class Artist(
+                                @SerializedName("img1v1Url")
+                                val img1v1Url: String,
+                                @SerializedName("picUrl")
+                                val picUrl: String,
+                                @SerializedName("topicPerson")
+                                val topicPerson: Int,
+                                @SerializedName("briefDesc")
+                                val briefDesc: String,
+                                @SerializedName("musicSize")
+                                val musicSize: Int,
+                                @SerializedName("name")
+                                val name: String,
+                                @SerializedName("alias")
+                                val alias: List<Any>,
+                                @SerializedName("img1v1Id")
+                                val img1v1Id: Int,
+                                @SerializedName("id")
+                                val id: Int,
+                                @SerializedName("albumSize")
+                                val albumSize: Int,
+                                @SerializedName("picId")
+                                val picId: Int,
+                                @SerializedName("trans")
+                                val trans: String
+                            )
+
+                            data class ExtProperties(
+                                @SerializedName("picId_str")
+                                val picIdStr: String
+                            )
+
+                            data class XInfo(
+                                @SerializedName("picId_str")
+                                val picIdStr: String
+                            )
+                        }
+
+                        data class HMusic(
+                            @SerializedName("extension")
+                            val extension: String,
+                            @SerializedName("size")
+                            val size: Int,
+                            @SerializedName("volumeDelta")
+                            val volumeDelta: Int,
+                            @SerializedName("bitrate")
+                            val bitrate: Int,
+                            @SerializedName("playTime")
+                            val playTime: Int,
+                            @SerializedName("id")
+                            val id: Long,
+                            @SerializedName("dfsId")
+                            val dfsId: Int,
+                            @SerializedName("sr")
+                            val sr: Int
+                        )
+                    }
+                }
+
+                data class Header(
+                    @SerializedName("showMore")
+                    val showMore: Boolean,
+                    @SerializedName("action")
+                    val action: String,
+                    @SerializedName("title")
+                    val title: String
+                )
+
+                data class Track(
+                    @SerializedName("s_cid")
+                    val sCid: String,
+                    @SerializedName("s_ctype")
+                    val sCtype: String,
+                    @SerializedName("itemIds")
+                    val itemIds: List<Long>,
+                    @SerializedName("title")
+                    val title: String,
+                    @SerializedName("s_ctrp")
+                    val sCtrp: String
+                )
+
+                data class Item(
+                    @SerializedName("items")
+                    val items: List<Item>
+                ) {
+                    data class Item(
+                        @SerializedName("coverUrl")
+                        val coverUrl: String,
+                        @SerializedName("resourceId")
+                        val resourceId: Long,
+                        @SerializedName("subTitle")
+                        val subTitle: String,
+                        @SerializedName("isClassicSong")
+                        val isClassicSong: Boolean,
+                        @SerializedName("index")
+                        val index: Int,
+                        @SerializedName("title")
+                        val title: String,
+                        @SerializedName("track")
+                        val track: Track,
+                        @SerializedName("classicSongDesc")
+                        val classicSongDesc: String,
+                        @SerializedName("radioName")
+                        val radioName: String,
+                        @SerializedName("resourceType")
+                        val resourceType: String,
+                        @SerializedName("label")
+                        val label: Label
+                    ) {
+                        data class Track(
+                            @SerializedName("s_position")
+                            val sPosition: Int,
+                            @SerializedName("s_cid")
+                            val sCid: Long,
+                            @SerializedName("s_ctype")
+                            val sCtype: String,
+                            @SerializedName("s_calg")
+                            val sCalg: String,
+                            @SerializedName("text")
+                            val text: String,
+                            @SerializedName("s_ctrp")
+                            val sCtrp: String
+                        )
+
+                        data class Label(
+                            @SerializedName("labelSource")
+                            val labelSource: String,
+                            @SerializedName("labelSize")
+                            val labelSize: String,
+                            @SerializedName("text")
+                            val text: String
+                        )
+                    }
+                }
+
+                data class ExtInfo(
+                    @SerializedName("2065473022")
+                    val x2065473022: X2065473022,
+                    @SerializedName("2488727108")
+                    val x2488727108: X2488727108,
+                    @SerializedName("2508696560")
+                    val x2508696560: X2508696560,
+                    @SerializedName("2518145597")
+                    val x2518145597: X2518145597,
+                    @SerializedName("2522578775")
+                    val x2522578775: X2522578775,
+                    @SerializedName("2524310254")
+                    val x2524310254: X2524310254,
+                    @SerializedName("2524523882")
+                    val x2524523882: X2524523882,
+                    @SerializedName("2526969458")
+                    val x2526969458: X2526969458,
+                    @SerializedName("2537211653")
+                    val x2537211653: X2537211653,
+                    @SerializedName("2539114511")
+                    val x2539114511: X2539114511,
+                    @SerializedName("2539414505")
+                    val x2539414505: X2539414505,
+                    @SerializedName("3062599074")
+                    val x3062599074: X3062599074
+                ) {
+                    data class X2065473022(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2488727108(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2508696560(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2518145597(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2522578775(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2524310254(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2524523882(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2526969458(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2537211653(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2539114511(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X2539414505(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class X3062599074(
+                        @SerializedName("coverImageInfo")
+                        val coverImageInfo: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+                }
+
+                data class HomeCommon(
                     @SerializedName("ctype")
                     val ctype: String,
                     @SerializedName("header")
                     val header: Header,
                     @SerializedName("oid")
-                    val oid: String
+                    val oid: String,
+                    @SerializedName("content")
+                    val content: Content
                 ) {
+                    data class Header(
+                        @SerializedName("showMore")
+                        val showMore: Boolean,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
                     data class Content(
-                        @SerializedName("items")
-                        val items: List<Item>,
                         @SerializedName("oid")
-                        val oid: String
+                        val oid: String,
+                        @SerializedName("items")
+                        val items: List<Item>
                     ) {
                         data class Item(
                             @SerializedName("items")
                             val items: List<Item>
                         ) {
                             data class Item(
-                                @SerializedName("alg")
-                                val alg: String,
-                                @SerializedName("artistName")
-                                val artistName: String,
-                                @SerializedName("clickAction")
-                                val clickAction: ClickAction,
-                                @SerializedName("coverUrl")
-                                val coverUrl: String,
-                                @SerializedName("like")
-                                val like: Int,
                                 @SerializedName("likeDisplay")
                                 val likeDisplay: String,
-                                @SerializedName("oid")
-                                val oid: String,
-                                @SerializedName("playBtn")
-                                val playBtn: PlayBtn,
-                                @SerializedName("position")
-                                val position: Int,
-                                @SerializedName("recReasonDisplay")
-                                val recReasonDisplay: String,
                                 @SerializedName("resourceId")
                                 val resourceId: String,
-                                @SerializedName("resourceType")
-                                val resourceType: String,
-                                @SerializedName("singleSongCtrp")
-                                val singleSongCtrp: String,
-                                @SerializedName("tag")
-                                val tag: String,
                                 @SerializedName("tagDisplay")
                                 val tagDisplay: String,
+                                @SerializedName("like")
+                                val like: Int,
+                                @SerializedName("singleSongCtrp")
+                                val singleSongCtrp: String,
+                                @SerializedName("recReasonDisplay")
+                                val recReasonDisplay: String,
+                                @SerializedName("oid")
+                                val oid: String,
                                 @SerializedName("title")
-                                val title: String
+                                val title: String,
+                                @SerializedName("coverUrl")
+                                val coverUrl: String,
+                                @SerializedName("recReason")
+                                val recReason: String,
+                                @SerializedName("artistName")
+                                val artistName: String,
+                                @SerializedName("position")
+                                val position: Int,
+                                @SerializedName("tag")
+                                val tag: String,
+                                @SerializedName("playBtn")
+                                val playBtn: PlayBtn,
+                                @SerializedName("alg")
+                                val alg: String,
+                                @SerializedName("clickAction")
+                                val clickAction: ClickAction,
+                                @SerializedName("resourceType")
+                                val resourceType: String
                             ) {
+                                data class PlayBtn(
+                                    @SerializedName("pauseType")
+                                    val pauseType: String,
+                                    @SerializedName("resourceId")
+                                    val resourceId: String,
+                                    @SerializedName("playAction")
+                                    val playAction: PlayAction,
+                                    @SerializedName("playType")
+                                    val playType: String,
+                                    @SerializedName("tintColor")
+                                    val tintColor: String,
+                                    @SerializedName("detailUrl")
+                                    val detailUrl: String
+                                ) {
+                                    data class PlayAction(
+                                        @SerializedName("songIndex")
+                                        val songIndex: Int,
+                                        @SerializedName("songIds")
+                                        val songIds: List<String>,
+                                        @SerializedName("algs")
+                                        val algs: List<String>,
+                                        @SerializedName("playParams")
+                                        val playParams: PlayParams
+                                    ) {
+                                        data class PlayParams(
+                                            @SerializedName("sourceResourceName")
+                                            val sourceResourceName: String,
+                                            @SerializedName("trialSceneMode")
+                                            val trialSceneMode: Int,
+                                            @SerializedName("sourceDes")
+                                            val sourceDes: String,
+                                            @SerializedName("playerType")
+                                            val playerType: String,
+                                            @SerializedName("playingShowUI")
+                                            val playingShowUI: Boolean,
+                                            @SerializedName("showUI")
+                                            val showUI: Boolean,
+                                            @SerializedName("sourceModuleName")
+                                            val sourceModuleName: String
+                                        )
+                                    }
+                                }
+
                                 data class ClickAction(
                                     @SerializedName("msg")
                                     val msg: Msg,
@@ -1323,355 +1275,57 @@ data class HomePageResourceShow(
                                         val params: Params
                                     ) {
                                         data class Params(
+                                            @SerializedName("songIndex")
+                                            val songIndex: Int,
+                                            @SerializedName("songIds")
+                                            val songIds: List<String>,
                                             @SerializedName("algs")
                                             val algs: List<String>,
                                             @SerializedName("playParams")
-                                            val playParams: PlayParams,
-                                            @SerializedName("songIds")
-                                            val songIds: List<String>,
-                                            @SerializedName("songIndex")
-                                            val songIndex: Int
+                                            val playParams: PlayParams
                                         ) {
                                             data class PlayParams(
+                                                @SerializedName("sourceResourceName")
+                                                val sourceResourceName: String,
+                                                @SerializedName("trialSceneMode")
+                                                val trialSceneMode: Int,
+                                                @SerializedName("sourceDes")
+                                                val sourceDes: String,
                                                 @SerializedName("playerType")
                                                 val playerType: String,
                                                 @SerializedName("playingShowUI")
                                                 val playingShowUI: Boolean,
                                                 @SerializedName("showUI")
                                                 val showUI: Boolean,
-                                                @SerializedName("sourceDes")
-                                                val sourceDes: String,
                                                 @SerializedName("sourceModuleName")
-                                                val sourceModuleName: String,
-                                                @SerializedName("sourceResourceName")
-                                                val sourceResourceName: String,
-                                                @SerializedName("trialSceneMode")
-                                                val trialSceneMode: Int
+                                                val sourceModuleName: String
                                             )
                                         }
-                                    }
-                                }
-
-                                data class PlayBtn(
-                                    @SerializedName("detailUrl")
-                                    val detailUrl: String,
-                                    @SerializedName("pauseType")
-                                    val pauseType: String,
-                                    @SerializedName("playAction")
-                                    val playAction: PlayAction,
-                                    @SerializedName("playType")
-                                    val playType: String,
-                                    @SerializedName("resourceId")
-                                    val resourceId: String,
-                                    @SerializedName("tintColor")
-                                    val tintColor: String
-                                ) {
-                                    data class PlayAction(
-                                        @SerializedName("algs")
-                                        val algs: List<String>,
-                                        @SerializedName("playParams")
-                                        val playParams: PlayParams,
-                                        @SerializedName("songIds")
-                                        val songIds: List<String>,
-                                        @SerializedName("songIndex")
-                                        val songIndex: Int
-                                    ) {
-                                        data class PlayParams(
-                                            @SerializedName("playerType")
-                                            val playerType: String,
-                                            @SerializedName("playingShowUI")
-                                            val playingShowUI: Boolean,
-                                            @SerializedName("showUI")
-                                            val showUI: Boolean,
-                                            @SerializedName("sourceDes")
-                                            val sourceDes: String,
-                                            @SerializedName("sourceModuleName")
-                                            val sourceModuleName: String,
-                                            @SerializedName("sourceResourceName")
-                                            val sourceResourceName: String,
-                                            @SerializedName("trialSceneMode")
-                                            val trialSceneMode: Int
-                                        )
                                     }
                                 }
                             }
                         }
                     }
-
-                    data class Header(
-                        @SerializedName("showMore")
-                        val showMore: Boolean,
-                        @SerializedName("title")
-                        val title: String
-                    )
-                }
-
-                data class PageRcmdTopGreeting2bnzys1v1e(
-                    @SerializedName("commonResourceList")
-                    val commonResourceList: List<CommonResource>,
-                    @SerializedName("dataGroupResourceList")
-                    val dataGroupResourceList: List<DataGroupResource>
-                ) {
-                    data class CommonResource(
-                        @SerializedName("actionUrl")
-                        val actionUrl: String,
-                        @SerializedName("blockName")
-                        val blockName: String,
-                        @SerializedName("c_flowGroupId")
-                        val cFlowGroupId: Int,
-                        @SerializedName("channelCode")
-                        val channelCode: String,
-                        @SerializedName("constructLogId")
-                        val constructLogId: String,
-                        @SerializedName("creativeId")
-                        val creativeId: Int,
-                        @SerializedName("creativeReachId")
-                        val creativeReachId: String,
-                        @SerializedName("duration")
-                        val duration: Int,
-                        @SerializedName("endTime")
-                        val endTime: Int,
-                        @SerializedName("extraMap")
-                        val extraMap: ExtraMap,
-                        @SerializedName("home_greet_rcmd_title_resource")
-                        val homeGreetRcmdTitleResource: HomeGreetRcmdTitleResource,
-                        @SerializedName("icon")
-                        val icon: String,
-                        @SerializedName("iconType")
-                        val iconType: Int,
-                        @SerializedName("log")
-                        val log: Log,
-                        @SerializedName("logMap")
-                        val logMap: LogMap,
-                        @SerializedName("lunaItemType")
-                        val lunaItemType: String,
-                        @SerializedName("planId")
-                        val planId: String,
-                        @SerializedName("position")
-                        val position: Int,
-                        @SerializedName("positionCode")
-                        val positionCode: String,
-                        @SerializedName("resourceId")
-                        val resourceId: String,
-                        @SerializedName("resourceType")
-                        val resourceType: String,
-                        @SerializedName("s_ctrp")
-                        val sCtrp: String,
-                        @SerializedName("showType")
-                        val showType: String,
-                        @SerializedName("startTime")
-                        val startTime: Int,
-                        @SerializedName("subCommonResourceList")
-                        val subCommonResourceList: List<SubCommonResource>,
-                        @SerializedName("subIndex")
-                        val subIndex: Int,
-                        @SerializedName("summary")
-                        val summary: String,
-                        @SerializedName("templateId")
-                        val templateId: Int,
-                        @SerializedName("title")
-                        val title: String,
-                        @SerializedName("trp_id")
-                        val trpId: String,
-                        @SerializedName("trp_type")
-                        val trpType: String
-                    ) {
-                        data class ExtraMap(
-                            @SerializedName("arrowIconJson")
-                            val arrowIconJson: String,
-                            @SerializedName("backgroundColor")
-                            val backgroundColor: String,
-                            @SerializedName("borderColor")
-                            val borderColor: String,
-                            @SerializedName("darkIcon")
-                            val darkIcon: String,
-                            @SerializedName("iconHeight")
-                            val iconHeight: Int,
-                            @SerializedName("iconWidth")
-                            val iconWidth: Int,
-                            @SerializedName("isSquareIcon")
-                            val isSquareIcon: Boolean,
-                            @SerializedName("titleColor")
-                            val titleColor: String
-                        )
-
-                        data class HomeGreetRcmdTitleResource(
-                            @SerializedName("title")
-                            val title: String,
-                            @SerializedName("title_en_US")
-                            val titleEnUS: String,
-                            @SerializedName("title_zh_HK")
-                            val titleZhHK: String,
-                            @SerializedName("title_zh_TW")
-                            val titleZhTW: String
-                        )
-
-                        data class Log(
-                            @SerializedName("hitType")
-                            val hitType: String,
-                            @SerializedName("logContext")
-                            val logContext: String,
-                            @SerializedName("s_ctrp")
-                            val sCtrp: String
-                        )
-
-                        data class LogMap(
-                            @SerializedName("cc")
-                            val cc: String,
-                            @SerializedName("fgid")
-                            val fgid: String,
-                            @SerializedName("pc")
-                            val pc: String
-                        )
-
-                        data class SubCommonResource(
-                            @SerializedName("actionUrl")
-                            val actionUrl: String,
-                            @SerializedName("constructLogId")
-                            val constructLogId: String,
-                            @SerializedName("duration")
-                            val duration: Int,
-                            @SerializedName("endTime")
-                            val endTime: Int,
-                            @SerializedName("extraMap")
-                            val extraMap: ExtraMap,
-                            @SerializedName("icon")
-                            val icon: String,
-                            @SerializedName("iconType")
-                            val iconType: Int,
-                            @SerializedName("log")
-                            val log: Log,
-                            @SerializedName("logMap")
-                            val logMap: LogMap,
-                            @SerializedName("lunaItemType")
-                            val lunaItemType: String,
-                            @SerializedName("position")
-                            val position: Int,
-                            @SerializedName("resourceType")
-                            val resourceType: String,
-                            @SerializedName("showType")
-                            val showType: String,
-                            @SerializedName("startTime")
-                            val startTime: Int,
-                            @SerializedName("title")
-                            val title: String
-                        ) {
-                            data class ExtraMap(
-                                @SerializedName("arrowIconJson")
-                                val arrowIconJson: String,
-                                @SerializedName("backgroundColor")
-                                val backgroundColor: String,
-                                @SerializedName("borderColor")
-                                val borderColor: String,
-                                @SerializedName("darkIcon")
-                                val darkIcon: String,
-                                @SerializedName("iconHeight")
-                                val iconHeight: Int,
-                                @SerializedName("iconWidth")
-                                val iconWidth: Int,
-                                @SerializedName("isSquareIcon")
-                                val isSquareIcon: Boolean,
-                                @SerializedName("titleColor")
-                                val titleColor: String
-                            )
-
-                            data class Log(
-                                @SerializedName("hitType")
-                                val hitType: String,
-                                @SerializedName("logContext")
-                                val logContext: String
-                            )
-
-                            data class LogMap(
-                                @SerializedName("fgid")
-                                val fgid: String
-                            )
-                        }
-                    }
-
-                    data class DataGroupResource(
-                        @SerializedName("blockName")
-                        val blockName: String,
-                        @SerializedName("channelCode")
-                        val channelCode: String,
-                        @SerializedName("creativeId")
-                        val creativeId: Int,
-                        @SerializedName("creativeReachId")
-                        val creativeReachId: String,
-                        @SerializedName("home_greet_rcmd_title_resource")
-                        val homeGreetRcmdTitleResource: HomeGreetRcmdTitleResource,
-                        @SerializedName("log")
-                        val log: Log,
-                        @SerializedName("planId")
-                        val planId: String,
-                        @SerializedName("positionCode")
-                        val positionCode: String,
-                        @SerializedName("resourceId")
-                        val resourceId: String,
-                        @SerializedName("resourceType")
-                        val resourceType: String,
-                        @SerializedName("s_ctrp")
-                        val sCtrp: String,
-                        @SerializedName("subIndex")
-                        val subIndex: Int,
-                        @SerializedName("templateId")
-                        val templateId: Int,
-                        @SerializedName("trp_id")
-                        val trpId: String,
-                        @SerializedName("trp_type")
-                        val trpType: String
-                    ) {
-                        data class HomeGreetRcmdTitleResource(
-                            @SerializedName("title")
-                            val title: String,
-                            @SerializedName("title_en_US")
-                            val titleEnUS: String,
-                            @SerializedName("title_zh_HK")
-                            val titleZhHK: String,
-                            @SerializedName("title_zh_TW")
-                            val titleZhTW: String
-                        )
-
-                        data class Log(
-                            @SerializedName("s_ctrp")
-                            val sCtrp: String
-                        )
-                    }
                 }
             }
 
             data class ExtMap(
+                @SerializedName("demote")
+                val demote: String,
                 @SerializedName("cacheable")
                 val cacheable: String,
                 @SerializedName("clientCacheExpireTime")
-                val clientCacheExpireTime: String,
-                @SerializedName("demote")
-                val demote: String
-            )
-
-            data class Log(
-                @SerializedName("s_ctrp")
-                val sCtrp: String
+                val clientCacheExpireTime: String
             )
 
             data class LogMap(
                 @SerializedName("cc")
                 val cc: String,
-                @SerializedName("fgid")
-                val fgid: String,
                 @SerializedName("pc")
-                val pc: String
+                val pc: String,
+                @SerializedName("fgid")
+                val fgid: String
             )
         }
-
-        data class ExtMap(
-            @SerializedName("pageStyleType")
-            val pageStyleType: String
-        )
     }
-
-    data class Trp(
-        @SerializedName("rules")
-        val rules: List<String>
-    )
 }

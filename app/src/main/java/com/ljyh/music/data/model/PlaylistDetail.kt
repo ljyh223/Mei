@@ -393,7 +393,7 @@ data class PlaylistDetail(
             @SerializedName("tagPicList")
             val tagPicList: Any,
             @SerializedName("tns")
-            val tns: List<String>,
+            val tns: List<String>?,
             @SerializedName("v")
             val v: Int,
             @SerializedName("version")

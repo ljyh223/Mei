@@ -35,6 +35,8 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.lang.reflect.Type
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 import javax.inject.Named
 import javax.inject.Singleton
 import javax.net.ssl.HostnameVerifier
@@ -47,14 +49,15 @@ import javax.net.ssl.X509TrustManager
 @InstallIn(SingletonComponent::class)
 object RetrofitModule {
 
-    private const val BASE_URL = "https://interface.music.163.com/"
+    private const val APIDOMAIN = "https://interface.music.163.com/"
+    private const val DOMAIN="https://music.163.com"
     private const val DEBUG = true
 
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC
         }
 
         val encryptionInterceptor = Interceptor { chain ->
@@ -122,7 +125,7 @@ object RetrofitModule {
             // 根据加密方式加密请求数据
             val newRequest = when (crypto) {
                 "weapi" -> {
-                    headersBuilder.add("Referer", BASE_URL)
+                    headersBuilder.add("Referer", APIDOMAIN)
                     val encryptedData = encryptWeAPI(requestData)
                     val formBody = FormBody.Builder()
 
@@ -181,9 +184,8 @@ object RetrofitModule {
             if (crypto == "weapi") {
                 val decryptedResponseBody = responseBody?.let { body ->
                     Log.d("Decrypted Response", "weapi")
-                    Log.d("Decrypted Response", body.toString())
                     val encryptedBytes = body.bytes()
-                    val decryptedBytes = decryptEApi(encryptedBytes)
+                    val decryptedBytes = replaceRandomKey(decryptEApi(encryptedBytes))
                     decryptedBytes.toResponseBody(body.contentType())
                 }
 
@@ -220,7 +222,7 @@ object RetrofitModule {
                 hostnameVerifier(hostnameVerifier)
             }
 
-            addInterceptor(loggingInterceptor)
+//            addInterceptor(loggingInterceptor)
             addInterceptor(encryptionInterceptor)
             connectTimeout(30, TimeUnit.SECONDS)
             readTimeout(30, TimeUnit.SECONDS)
@@ -232,17 +234,34 @@ object RetrofitModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    @Named("WeApiRetrofit")
+    fun provideWeApiRetrofit(okHttpClient: OkHttpClient): Retrofit {
+
+
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
+            .baseUrl(APIDOMAIN)
+            .addConverterFactory(GsonConverterFactory.create()) // 仅 WeApiService 使用
             .client(okHttpClient)
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideWeApiService(retrofit: Retrofit): WeApiService {
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(DOMAIN)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(okHttpClient)
+            .build()
+    }
+
+
+
+
+    // WeApiService 使用特定的 Retrofit
+    @Provides
+    @Singleton
+    fun provideWeApiService(@Named("WeApiRetrofit") retrofit: Retrofit): WeApiService {
         return retrofit.create(WeApiService::class.java)
     }
 
@@ -337,10 +356,10 @@ private fun generateCookie(crypto: String, osInfo: OSInfo): String {
         "WNMCID" to getWNMCID(),
         "WEVNSM" to "1.0.0",
         "deviceId" to AppContext.instance.dataStore[DeviceIdKey],
-        "osver" to osInfo?.osver,
-        "os" to osInfo?.os,
-        "channel" to osInfo?.channel,
-        "appver" to osInfo?.appver,
+        "osver" to osInfo.osver,
+        "os" to osInfo.os,
+        "channel" to osInfo.channel,
+        "appver" to osInfo.appver,
         "NMTID" to createRandomKey(16),
         "MUSIC_U" to AppContext.instance.dataStore[CookieKey].toString()
     )
@@ -438,3 +457,40 @@ class DynamicMapDeserializer : JsonDeserializer<Map<String, Any>> {
     }
 }
 
+// 替换随机键
+//fun replaceRandomKey(json: String): String {
+//    val regex = Regex("\"(rcmd_rank_module|home_common_rcmd_songs_module)_[a-zA-Z0-9_-]+\"")
+//    return json.replace(regex)  { matchResult ->
+//        when (matchResult.value.substring(1,  matchResult.value.indexOf('_')))  {
+//            "rcmd_rank_module" -> "\"${SpecialKey.Rank}\""
+//            "home_common_rcmd_songs_module" -> "\"${SpecialKey.HomeCommon}\""
+//            else -> matchResult.value
+//        }
+//    }
+//}
+
+
+
+fun replaceRandomKey(json: String): String {
+    val regexRank = Regex("\"rcmd_rank_module_[a-zA-Z0-9]+\"")
+    val regexHomeCommon = Regex("\"home_common_rcmd_songs_module_[a-zA-Z0-9]+\"")
+
+    val replacements = mapOf(
+        regexRank to "\"${SpecialKey.Rank}\"",
+        regexHomeCommon to "\"${SpecialKey.HomeCommon}\""
+    )
+    var modifiedJson = json
+    replacements.forEach  { (regex, replacement) ->
+        val matches =regex.findAll(modifiedJson)
+        Log.d("replaceRandomKey", "regex: $regex, replacement: $replacement")
+        Log.d("replaceRandomKey", matches.count().toString())
+        Log.d("replaceRandomKey", matches.toString())
+        modifiedJson = modifiedJson.replace(regex,  replacement)
+    }
+    return modifiedJson
+}
+
+object SpecialKey {
+    const val Rank ="rank"
+    const val HomeCommon = "home_common"
+}

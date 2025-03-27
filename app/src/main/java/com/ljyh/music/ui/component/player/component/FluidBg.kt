@@ -57,13 +57,23 @@ fun Modifier.animatedGradient(animating: Boolean = true): Modifier = composed {
 
         // 缓存渐变色
         val brush1 = Brush.linearGradient(
-            colors = listOf(a1, a2),
+            colors = listOf(
+                a1,  // 主色
+                a1.copy(alpha = 0.7f),  // 过渡色1
+                a2.copy(alpha = 0.8f),  // 过渡色2
+                a2  // 对比色
+            ),
             start = centerOffset,
             end = centerOffset + Offset(rectSize * 0.7f, rectSize * 0.7f)
         )
 
         val brush2 = Brush.linearGradient(
-            colors = listOf(b1, b2),
+            colors = listOf(
+                b1,
+                b1.copy(alpha = 0.6f),
+                b2.copy(alpha = 0.7f),
+                b2
+            ),
             start = centerOffset + Offset(rectSize, 0f),
             end = centerOffset + Offset(0f, rectSize)
         )
@@ -91,7 +101,7 @@ fun Modifier.animatedGradient(animating: Boolean = true): Modifier = composed {
             }
 
             drawRotated(currentRotation) {
-                drawRect(brush2, blendMode = BlendMode.DstAtop,
+                drawRect(brush2, blendMode = BlendMode.Softlight,
                     topLeft = centerOffset, size = Size(rectSize, rectSize))
             }
         }

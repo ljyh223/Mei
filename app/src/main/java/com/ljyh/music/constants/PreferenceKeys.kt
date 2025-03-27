@@ -1,10 +1,14 @@
 package com.ljyh.music.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ljyh.music.playback.PlayMode
 import com.materialkolor.scheme.DynamicScheme
 
+val LastHomePageTime= longPreferencesKey("lastHomePageTime")
+val LastHomePageData_1= stringPreferencesKey("lastHomePageData_1")
+val LastHomePageData_2= stringPreferencesKey("lastHomePageData_2")
 val FirstLaunchKey = booleanPreferencesKey("firstLaunch")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")

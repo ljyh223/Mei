@@ -52,6 +52,7 @@ import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
 import com.ljyh.music.constants.UseQQMusicLyricKey
 import com.ljyh.music.data.model.Lyric
+import com.ljyh.music.data.model.MediaMetadata
 import com.ljyh.music.data.model.parseYrc
 import com.ljyh.music.data.model.qq.u.LyricResult
 import com.ljyh.music.data.network.Resource
@@ -72,6 +73,7 @@ import com.ljyh.music.ui.component.player.component.ShowMain
 import com.ljyh.music.ui.component.player.component.animatedGradient
 import com.ljyh.music.ui.component.rememberBottomSheetState
 import com.ljyh.music.ui.local.LocalPlayerConnection
+import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.TimeUtils.formatMilliseconds
 import com.ljyh.music.utils.encrypt.QRCUtils
 import com.ljyh.music.utils.rememberEnumPreference
@@ -86,7 +88,7 @@ fun BottomSheetPlayer(
     state: BottomSheetState,
     navController: NavController,
     modifier: Modifier = Modifier,
-    viewmodel: PlayerViewModel = hiltViewModel(),
+    playerViewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -144,11 +146,11 @@ fun BottomSheetPlayer(
     val lyricLine = remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
 
     // ViewModel state
-    val netLyricResult by viewmodel.lyric.collectAsState()
-    val searchResult by viewmodel.searchResult.collectAsState()
-    val qqLyricResult by viewmodel.lyricResult.collectAsState()
+    val netLyricResult by playerViewModel.lyric.collectAsState()
+    val searchResult by playerViewModel.searchResult.collectAsState()
+    val qqLyricResult by playerViewModel.lyricResult.collectAsState()
 
-    val qqSong by viewmodel.qqSong.collectAsState()
+    val qqSong by playerViewModel.qqSong.collectAsState()
     // UI state
     val pagerState = rememberPagerState(pageCount = { 2 })
 
@@ -197,8 +199,9 @@ fun BottomSheetPlayer(
 
     // Handle media metadata changes
     LaunchedEffect(mediaMetadata) {
-        viewmodel.clear()
+        playerViewModel.clear()
         lyricLine.value = createDefaultLyricData("歌词加载中")
+        playerViewModel.mediaMetadata= mediaMetadata
         mediaMetadata?.let {
             mediaInfo = MediaInfo(
                 id = it.id.toString(),
@@ -209,13 +212,13 @@ fun BottomSheetPlayer(
 
                 )
             // 获取网易云的歌词
-            viewmodel.getLyricV1(it.id.toString())
+            playerViewModel.getLyricV1(it.id.toString())
             // 如果启用QQ音乐歌词
             if (useQQMusicLyric) {
                 // 获取数据库中是否有这首歌的QQ音乐信息
-                viewmodel.fetchQQSong(it.id.toString())
+                playerViewModel.fetchQQSong(it.id.toString())
                 // 搜索歌曲
-                viewmodel.searchNew(it.title)
+                playerViewModel.searchNew(it.title)
             }
         }
     }
@@ -225,7 +228,7 @@ fun BottomSheetPlayer(
         if (qqSong != null) {
             // 如果有信息，那么自己获取并加载歌词了
             Log.d("qqSong", qqSong.toString())
-            viewmodel.getLyricNew(
+            playerViewModel.getLyricNew(
                 title = qqSong!!.title,
                 album = qqSong!!.album,
                 artist = qqSong!!.artist,
@@ -235,7 +238,7 @@ fun BottomSheetPlayer(
         }
     }
 
-    DialogSelect(id = mediaInfo.id, showDialog, searchResult, viewmodel, duration) {
+    DialogSelect(id = mediaInfo.id, showDialog, searchResult, playerViewModel, duration) {
         showDialog = false
     }
     // Queue sheet state
@@ -306,7 +309,7 @@ fun BottomSheetPlayer(
                                     verticalArrangement = Arrangement.Bottom
                                 ) {
                                     ShowMain(
-                                        viewModel=viewmodel,
+                                        viewModel=playerViewModel,
                                         playerConnection = playerConnection,
                                         mediaMetadata = it,
                                         modifier = Modifier.padding(bottom = 8.dp)

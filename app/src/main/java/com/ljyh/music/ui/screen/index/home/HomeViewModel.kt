@@ -2,9 +2,8 @@ package com.ljyh.music.ui.screen.index.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.music.data.model.HomePage
+import com.ljyh.music.AppContext
 import com.ljyh.music.data.model.HomePageResourceShow
-import com.ljyh.music.data.model.Recommend
 import com.ljyh.music.data.model.room.Color
 import com.ljyh.music.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.music.data.network.Resource
@@ -21,22 +20,23 @@ class HomeViewModel @Inject constructor(
     private val repository: HomeRepository,
     private val colorRepository: ColorRepository
 ) : ViewModel() {
-
+    val context= AppContext.instance
 
     private val _homePageResourceShow =
-        MutableStateFlow<Resource<HomePageResourceShow>>(Resource.Loading)
-    val homePageResourceShow: StateFlow<Resource<HomePageResourceShow>> = _homePageResourceShow
+        MutableStateFlow<Resource<List<HomePageResourceShow.Data.Block>>>(Resource.Loading)
+    val homePageResourceShow: StateFlow<Resource<List<HomePageResourceShow.Data.Block>>> = _homePageResourceShow
+
 
 
     init {
         homePageResourceShow()
     }
 
-    private fun homePageResourceShow() {
+    fun homePageResourceShow(refresh:Boolean=false) {
         viewModelScope.launch {
             _homePageResourceShow.value = Resource.Loading
             _homePageResourceShow.value =
-                repository.getHomePageResourceShow(res = GetHomePageResourceShow())
+                repository.getHomePageResourceShow(refresh)
         }
     }
 
@@ -49,6 +49,9 @@ class HomeViewModel @Inject constructor(
             colorRepository.insertColor(color)
         }
     }
+
+
+
 
 
 }

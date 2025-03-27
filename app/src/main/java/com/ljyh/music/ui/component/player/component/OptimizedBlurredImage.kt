@@ -4,6 +4,11 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -49,15 +54,24 @@ fun OptimizedBlurredImage(
     LaunchedEffect(isPlaying, dynamicStreamer) {
         if (dynamicStreamer)
             while (isPlaying) {
-                angle.value += 1f
-                delay(128L)
+                angle.value += 0.5f
+                delay(64L)
             }
     }
+
+    val animatedAngle by animateFloatAsState(
+        targetValue = if (isPlaying) angle.floatValue + 360f else angle.floatValue, // 一次完整旋转
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 30_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
 
     // 模糊背景图
     // 如果当前手机sdk大于Android 12 才使用RenderEffect
     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
-        val blurEffect by remember(blurRadius) {
+        val blurEffect = remember(blurRadius) {
             val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
 
             mutableStateOf(
@@ -77,8 +91,8 @@ fun OptimizedBlurredImage(
                 .fillMaxSize()
                 .scale(scale = calculateScaleToFit())
                 .graphicsLayer {
-                    rotationZ = angle.floatValue
-                    renderEffect = blurEffect
+                    rotationZ = animatedAngle
+                    renderEffect = blurEffect.value
                 },
 
             colorFilter = cf,
