@@ -34,7 +34,7 @@
 
 ### 界面截图
 
-更多软件界面可以看 
+更多软件界面可以看 [这里](https://github.com/ljyh223/Mei/tree/master/screenshot/2025-03-27)
 <div style="display: flex; flex-wrap: wrap;">
   <img src="./screenshot/player1.jpg" width="200" style="margin-right: 10px;" />
   <img src="./screenshot/lyric1.jpg" width="200" style="margin-right: 10px;" />
