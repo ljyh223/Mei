@@ -62,6 +62,7 @@ import com.ljyh.music.ui.component.BottomSheetState
 import com.ljyh.music.ui.component.player.component.Controls
 import com.ljyh.music.ui.component.player.component.Debug
 import com.ljyh.music.ui.component.player.component.DialogSelect
+import com.ljyh.music.ui.component.player.component.Head
 import com.ljyh.music.ui.component.player.component.LyricData
 import com.ljyh.music.ui.component.player.component.LyricLine
 import com.ljyh.music.ui.component.player.component.LyricScreen
@@ -278,6 +279,8 @@ fun BottomSheetPlayer(
                 modifier = Modifier.align(Alignment.TopStart)
                     .padding(10.dp)
             )
+
+        Spacer(Modifier.height(24.dp))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -289,9 +292,7 @@ fun BottomSheetPlayer(
                 }
 
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                .padding(bottom = queueSheetState.collapsedBound)
-
-
+                .padding(bottom = 24.dp)
         ) {
 
             Box(modifier = Modifier.weight(1f)) {
@@ -370,6 +371,13 @@ fun BottomSheetPlayer(
                     playMode =playMode.value,
                 )
             }
+
+            Queue(
+                state = queueSheetState,
+                playerBottomSheetState = state,
+                backgroundColor = backgroundColor,
+                navController = navController
+            )
 
             Spacer(Modifier.height(24.dp))
         }

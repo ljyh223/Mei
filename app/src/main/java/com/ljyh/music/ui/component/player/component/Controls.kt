@@ -82,7 +82,7 @@ fun Controls(
                 enabled = canSkipPrevious,
                 onClick = playerConnection::seekToPrevious,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
             ) {
@@ -91,6 +91,7 @@ fun Controls(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.align(Alignment.Center)
+                        .size(36.dp)
                 )
             }
         }
@@ -108,7 +109,7 @@ fun Controls(
                     }
                 },
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(64.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
             ) {
@@ -118,7 +119,7 @@ fun Controls(
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(48.dp)
+                        .size(64.dp)
                 )
             }
         }
@@ -131,7 +132,7 @@ fun Controls(
                 enabled = canSkipNext,
                 onClick = playerConnection::seekToNext,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
             ) {
@@ -140,6 +141,7 @@ fun Controls(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.align(Alignment.Center)
+                        .size(36.dp)
                 )
             }
         }

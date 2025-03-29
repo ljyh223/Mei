@@ -17,8 +17,8 @@ class SleepTimer(
     val player: Player,
 ) : Player.Listener {
     private var sleepTimerJob: Job? = null
-    private var triggerTime by mutableLongStateOf(-1L)
-    private var pauseWhenSongEnd by mutableStateOf(false)
+    var triggerTime by mutableLongStateOf(-1L)
+    var pauseWhenSongEnd by mutableStateOf(false)
     val isActive: Boolean
         get() = triggerTime != -1L || pauseWhenSongEnd
 

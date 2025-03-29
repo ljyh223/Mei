@@ -35,12 +35,13 @@ fun PlayerProgressSlider(
             onPositionChange(sliderPosition.toLong())
         },
         colors = MaterialSliderDefaults.materialColors(
-            activeTrackColor = SliderBrushColor(
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            ),
-            thumbColor = SliderBrushColor(
-                color = MaterialTheme.colorScheme.tertiaryContainer
-            )
+//            activeTrackColor = SliderBrushColor(
+//                color = MaterialTheme.colorScheme.primary
+//            ),
+//            thumbColor = SliderBrushColor(
+//                color = MaterialTheme.colorScheme.onPrimaryContainer
+//            ),
+
         )
     )
 }

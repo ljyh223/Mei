@@ -105,7 +105,7 @@ class MusicService : MediaLibraryService(),
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
 
-    private lateinit var sleepTimer: SleepTimer
+    lateinit var sleepTimer: SleepTimer
     private var scope = CoroutineScope(Dispatchers.Main) + Job()
     private lateinit var connectivityManager: ConnectivityManager
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
@@ -114,6 +114,7 @@ class MusicService : MediaLibraryService(),
     private val currentSong = currentMediaMetadata.flatMapLatest { mediaMetadata: MediaMetadata? ->
         database.songDao().getSong((mediaMetadata?.id ?: 0).toString())
     }.stateIn(scope, SharingStarted.Lazily, null)
+
 
     private val binder = MusicBinder()
 
@@ -169,7 +170,7 @@ class MusicService : MediaLibraryService(),
                 addListener(this@MusicService)
                 //睡眠定时
                 sleepTimer = SleepTimer(scope, this)
-//                addListener(sleepTimer)
+                addListener(sleepTimer)
                 //播放统计
                 addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
             }
