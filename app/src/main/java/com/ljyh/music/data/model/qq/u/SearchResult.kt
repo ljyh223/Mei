@@ -197,7 +197,7 @@ data class SearchResult(
                             @SerializedName("switch")
                             val switch: Int,
                             @SerializedName("switch2")
-                            val switch2: Int
+                            val switch2: Any
                         )
 
                         data class Album(

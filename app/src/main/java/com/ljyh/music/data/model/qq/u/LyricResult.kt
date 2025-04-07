@@ -279,7 +279,7 @@ data class LyricResult(
                     @SerializedName("msgpay")
                     val msgpay: Int,
                     @SerializedName("switch2")
-                    val switch2: Int,
+                    val switch2: Any,
                     @SerializedName("icon2")
                     val icon2: Int
                 )

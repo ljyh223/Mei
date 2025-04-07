@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -74,7 +75,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
-import com.kmpalette.rememberPaletteState
 import com.ljyh.music.constants.AppBarHeight
 import com.ljyh.music.constants.DeviceIdKey
 import com.ljyh.music.constants.DynamicThemeKey
@@ -179,8 +179,10 @@ class MainActivity : ComponentActivity() {
 
             //根据图片加载主题色
             val loader = rememberNetworkLoader()
+
             val dominantColorState = rememberDominantColorState(loader)
             val coverUrl = remember { mutableStateOf("") }
+            var isMeasured by remember { mutableStateOf(false) }
             val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
             LaunchedEffect(playerConnection) {
                 val playerConnection = playerConnection ?: return@LaunchedEffect
@@ -231,18 +233,29 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surface)
+                        .onSizeChanged {
+                            isMeasured = true
+                        }
                 ) {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
                     val windowsInsets = WindowInsets.systemBars
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val bottomInset = with(density) { windowsInsets.getBottom(density).toDp() }
+                    val bottomInset by remember {
+                        derivedStateOf {
+                            with(density) {
+                                windowsInsets.getBottom(density).toDp()
+                            }
+                        }
+                    }
+
                     val navigationItems = remember { Screen.MainScreens }
                     val showDialog = remember { mutableStateOf(false) }
                     val shouldShowNavigationBar = remember(navBackStackEntry, active) {
                         navBackStackEntry?.destination?.route == null ||
                                 navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } && !active
                     }
+
 
                     val searchBarFocusRequester = remember { FocusRequester() }
                     val shouldShowSearchBar = remember(active, navBackStackEntry) {
@@ -363,6 +376,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                     }
+                    LaunchedEffect(isMeasured, playerConnection) {
+                        if (isMeasured && playerConnection?.player?.currentMediaItem != null) {
+                            playerBottomSheetState.collapseSoft()
+                        }
+                    }
+
                     LaunchedEffect(navBackStackEntry) {
                         searchBarScrollBehavior.state.resetHeightOffset()
                         topAppBarScrollBehavior.state.resetHeightOffset()
@@ -386,6 +405,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
 
                     DisposableEffect(playerConnection, playerBottomSheetState) {
                         val player =

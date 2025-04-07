@@ -37,43 +37,41 @@ import com.ljyh.music.utils.smallImage
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
+import androidx.compose.animation.core.*
+import androidx.compose.runtime.*
+
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun OptimizedBlurredImage(
     cover: String,
     isPlaying: Boolean,
-    blurRadius: Dp = 50.dp // 动态控制模糊半径
+    blurRadius: Dp = 50.dp
 ) {
     val context = LocalContext.current
-    val angle = remember { mutableFloatStateOf(0f) }
     val isDarkTheme = isSystemInDarkTheme()
     val density = LocalDensity.current
     val cf = remember { imageWithDynamicFilter(isDarkTheme) }
     val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
-    // 动画控制，降低刷新频率
+    val rotation = remember { Animatable(0f) }
+
     LaunchedEffect(isPlaying, dynamicStreamer) {
-        if (dynamicStreamer)
-            while (isPlaying) {
-                angle.value += 0.5f
-                delay(64L)
-            }
+        if (dynamicStreamer && isPlaying) {
+            rotation.animateTo(
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 30_000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                )
+            )
+        } else {
+            rotation.stop() // 停止动画
+        }
     }
 
-    val animatedAngle by animateFloatAsState(
-        targetValue = if (isPlaying) angle.floatValue + 360f else angle.floatValue, // 一次完整旋转
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 30_000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
-
     // 模糊背景图
-    // 如果当前手机sdk大于Android 12 才使用RenderEffect
     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
         val blurEffect = remember(blurRadius) {
             val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
-
             mutableStateOf(
                 RenderEffect.createBlurEffect(
                     blurIntensity.roundToInt().toFloat(),
@@ -91,18 +89,18 @@ fun OptimizedBlurredImage(
                 .fillMaxSize()
                 .scale(scale = calculateScaleToFit())
                 .graphicsLayer {
-                    rotationZ = animatedAngle
+                    rotationZ = rotation.value
                     renderEffect = blurEffect.value
                 },
-
             colorFilter = cf,
             contentScale = ContentScale.Crop,
             contentDescription = null
         )
     } else {
+        // ... (旧的 AsyncImage 实现)
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .placeholderMemoryCacheKey(cover.smallImage()) // 先用小图占位
+                .placeholderMemoryCacheKey(cover.smallImage())
                 .data(cover.middleImage())
                 .transformations(BlurTransformation1(context, 15f, 5f))
                 .build(),
@@ -110,13 +108,12 @@ fun OptimizedBlurredImage(
                 .fillMaxSize()
                 .scale(scale = calculateScaleToFit())
                 .graphicsLayer {
-                    rotationZ = angle.floatValue
+                    rotationZ = rotation.value
                 },
             contentScale = ContentScale.Crop,
             colorFilter = cf,
             contentDescription = null
         )
-
     }
     Box(
         modifier = Modifier
@@ -124,4 +121,3 @@ fun OptimizedBlurredImage(
             .background(if (isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f))
     )
 }
-

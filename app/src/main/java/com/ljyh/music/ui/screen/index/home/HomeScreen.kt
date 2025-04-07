@@ -314,7 +314,6 @@ fun TripleLaneSlider(
         ) {
             songsArray[page].items.forEachIndexed { index, song ->
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

@@ -1,6 +1,7 @@
 package com.ljyh.music.ui.component.player
 
 import android.text.format.Formatter
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -34,14 +36,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.MultipleStop
 import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.TextSnippet
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -85,8 +95,10 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.navigation.NavController
+import com.ljyh.music.AppContext
 import com.ljyh.music.constants.ListItemHeight
 import com.ljyh.music.data.model.metadata
+import com.ljyh.music.playback.PlayMode
 import com.ljyh.music.ui.component.BottomSheet
 import com.ljyh.music.ui.component.BottomSheetState
 import com.ljyh.music.ui.component.LocalMenuState
@@ -107,6 +119,7 @@ import kotlin.math.roundToInt
 @Composable
 fun Queue(
     state: BottomSheetState,
+    playMode: PlayMode,
     playerBottomSheetState: BottomSheetState,
     backgroundColor: Color,
     navController: NavController,
@@ -122,7 +135,10 @@ fun Queue(
     var sleepTimerTimeLeft by remember {
         mutableLongStateOf(0L)
     }
-    val sleepTimerEnabled = remember(playerConnection.service.sleepTimer.triggerTime, playerConnection.service.sleepTimer.pauseWhenSongEnd) {
+    val sleepTimerEnabled = remember(
+        playerConnection.service.sleepTimer.triggerTime,
+        playerConnection.service.sleepTimer.pauseWhenSongEnd
+    ) {
         playerConnection.service.sleepTimer.isActive
     }
     LaunchedEffect(sleepTimerEnabled) {
@@ -140,14 +156,42 @@ fun Queue(
 
     Spacer(Modifier.height(16.dp))
     Row(
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
     ) {
+
+        IconButton(
+            onClick = {},
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.TextSnippet,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+        IconButton(
+            onClick = {
+                playerConnection.switchPlayMode(playMode)
+            },
+        ) {
+            Icon(
+                imageVector = when (playMode) {
+                    PlayMode.REPEAT_MODE_OFF -> Icons.Rounded.MultipleStop
+                    PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+                    PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
+                    PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+
+        }
         IconButton(onClick = { state.expandSoft() }) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                contentDescription = null
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
 
@@ -169,7 +213,8 @@ fun Queue(
                 IconButton(onClick = { showSleepTimerDialog = true }) {
                     Icon(
                         imageVector = Icons.Rounded.Bedtime,
-                        contentDescription = null
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
@@ -179,12 +224,12 @@ fun Queue(
         IconButton(onClick = {}) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
-                contentDescription = null
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
             )
         }
 
     }
-    val menuState = LocalMenuState.current
 
 }
 
@@ -193,9 +238,7 @@ fun SleepTimerDialog(
     onDismiss: () -> Unit,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
-    var sleepTimerValue by remember {
-        mutableFloatStateOf(30f)
-    }
+    var selectedOption by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -206,7 +249,7 @@ fun SleepTimerDialog(
             TextButton(
                 onClick = {
                     onDismiss()
-                    playerConnection.service.sleepTimer.start(sleepTimerValue.roundToInt())
+                    playerConnection.service.sleepTimer.start((selectedOption ?: "0").toInt())
                 }
             ) {
                 Text(stringResource(android.R.string.ok))
@@ -218,11 +261,20 @@ fun SleepTimerDialog(
             }
         },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                val pluralString = "${ sleepTimerValue.roundToInt()} 分钟"
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+
+                val options = listOf("5", "10", "20", "30", "45", "60")
+                val pluralString = "${selectedOption ?: "0"} 分钟"
                 val endTimeString = SimpleDateFormat
                     .getTimeInstance(SimpleDateFormat.SHORT, Locale.getDefault())
-                    .format(Date(System.currentTimeMillis() + (sleepTimerValue.roundToInt() * 60 * 1000).toLong()))
+                    .format(
+                        Date(
+                            System.currentTimeMillis() + ((selectedOption
+                                ?: "0").toInt() * 60 * 1000).toLong()
+                        )
+                    )
 
                 Text(
                     text = "$pluralString\n$endTimeString",
@@ -231,10 +283,15 @@ fun SleepTimerDialog(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
 
-                Slider(
-                    value = sleepTimerValue,
-                    onValueChange = { sleepTimerValue = it },
-                    valueRange = 5f..120f,
+
+
+
+                SingleSelectCapsuleChips(
+                    options = options,
+                    selectedOption = selectedOption,
+                    onOptionSelected = { option ->
+                        selectedOption = option
+                    }
                 )
 
                 OutlinedButton(
@@ -250,3 +307,23 @@ fun SleepTimerDialog(
     )
 }
 
+
+@Composable
+fun SingleSelectCapsuleChips(
+    options: List<String>,
+    selectedOption: String?,
+    onOptionSelected: (String) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { option ->
+            FilterChip(
+                selected = option == selectedOption,
+                onClick = { onOptionSelected(option) },
+                label = { Text(option) },
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
+    }
+}

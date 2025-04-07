@@ -129,65 +129,70 @@ fun LibraryScreen(
     }
 
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .wrapContentSize(Alignment.Center),
+            .verticalScroll(scrollState) // 如果需要整个屏幕可滚动，保留此项
+            .wrapContentSize(Alignment.Center) // 对 Column 本身进行 wrapContentSize，以便在 Box 中居中
     ) {
-        if (userId != "") {
-            User(
-                userId = userId,
-                userNickname = userNickname,
-                userAvatarUrl = userAvatarUrl,
-                userPhoto = userPhoto
-            )
-            Spacer(Modifier.height(10.dp))
-        } else if (cookie == "") {
-            Button(
-                onClick = {
-                    Screen.ContentSettings.navigate(navController)
-                },
-            ) {
-                Text("去填写cookie")
-            }
-        }
-
-
-        when (val result = userPlaylist) {
-            is Resource.Error -> {
-                Log.d("libraryScreen", result.toString())
+        Column(
+            modifier = Modifier
+                .wrapContentSize() // Column 的尺寸只包裹其内容
+        ) {
+            if (userId != "") {
+                User(
+                    userId = userId,
+                    userNickname = userNickname,
+                    userAvatarUrl = userAvatarUrl,
+                    userPhoto = userPhoto
+                )
+                Spacer(Modifier.height(10.dp))
+            } else if (cookie == "") {
+                Button(
+                    onClick = {
+                        Screen.ContentSettings.navigate(navController)
+                    },
+                ) {
+                    Text("去填写cookie")
+                }
             }
 
-            Resource.Loading -> {
-                Log.d("libraryScreen", result.toString())
-            }
 
-            is Resource.Success -> {
-                viewModel.insertPlaylist(result.data.playlist.map {
-                    Playlist(
-                        id = it.id.toString(),
-                        title = it.name,
-                        cover = it.coverImgUrl,
-                        author = it.creator.userId.toString(),
-                        count = it.trackCount,
-                    )
-                })
-                result.data.playlist.forEach {
-                    PlaylistItem(it) {
-                        Screen.PlayList.navigate(navController) {
-                            addPath(it.id.toString())
-                        }
-                    }
+            when (val result = userPlaylist) {
+                is Resource.Error -> {
+                    Log.d("libraryScreen", result.toString())
                 }
 
+                Resource.Loading -> {
+                    Log.d("libraryScreen", result.toString())
+                }
+
+                is Resource.Success -> {
+                    viewModel.insertPlaylist(result.data.playlist.map {
+                        Playlist(
+                            id = it.id.toString(),
+                            title = it.name,
+                            cover = it.coverImgUrl,
+                            author = it.creator.userId.toString(),
+                            count = it.trackCount,
+                        )
+                    })
+                    result.data.playlist.forEach {
+                        PlaylistItem(it) {
+                            Screen.PlayList.navigate(navController) {
+                                addPath(it.id.toString())
+                            }
+                        }
+                    }
+
+                }
             }
-        }
-        Spacer(
-            Modifier.height(
-                LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            Spacer(
+                Modifier.height(
+                    LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                )
             )
-        )
+        }
     }
 }
 

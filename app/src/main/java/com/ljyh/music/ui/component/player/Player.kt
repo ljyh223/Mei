@@ -352,34 +352,35 @@ fun BottomSheetPlayer(
 
                 Spacer(Modifier.height(12.dp))
 
-                if(shuffleModeEnabled){
-                    playMode.value=PlayMode.SHUFFLE_MODE_ALL
-                }else{
-                    playMode.value=when(repeatMode){
-                        Player.REPEAT_MODE_ONE -> PlayMode.REPEAT_MODE_ONE
-                        Player.REPEAT_MODE_ALL -> PlayMode.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_OFF -> PlayMode.REPEAT_MODE_OFF
-                        else -> PlayMode.REPEAT_MODE_OFF
-                    }
-                }
+
                 Controls(
                     playerConnection = playerConnection,
                     canSkipPrevious = canSkipPrevious,
                     canSkipNext = canSkipNext,
                     isPlaying = isPlaying,
                     playbackState = playbackState,
-                    playMode =playMode.value,
                 )
             }
 
+            if(shuffleModeEnabled){
+                playMode.value=PlayMode.SHUFFLE_MODE_ALL
+            }else{
+                playMode.value=when(repeatMode){
+                    Player.REPEAT_MODE_ONE -> PlayMode.REPEAT_MODE_ONE
+                    Player.REPEAT_MODE_ALL -> PlayMode.REPEAT_MODE_ALL
+                    Player.REPEAT_MODE_OFF -> PlayMode.REPEAT_MODE_OFF
+                    else -> PlayMode.REPEAT_MODE_OFF
+                }
+            }
             Queue(
                 state = queueSheetState,
+                playMode = playMode.value,
                 playerBottomSheetState = state,
                 backgroundColor = backgroundColor,
                 navController = navController
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

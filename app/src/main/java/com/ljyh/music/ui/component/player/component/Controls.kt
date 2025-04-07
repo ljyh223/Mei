@@ -1,5 +1,6 @@
 package com.ljyh.music.ui.component.player.component
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,7 +42,7 @@ fun Controls(
     canSkipNext: Boolean,
     isPlaying: Boolean,
     playbackState: Int,
-    playMode: PlayMode
+
 ){
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -49,32 +50,7 @@ fun Controls(
             .fillMaxWidth()
             .padding(horizontal = PlayerHorizontalPadding)
     ) {
-        Box(modifier = Modifier.weight(1f)) {
-            IconButton(
-                onClick = {
-                    playerConnection.switchPlayMode(playMode)
-                },
-                modifier = Modifier
-                    .size(24.dp)
-                    .align(Alignment.Center)
-                    .clip(RoundedCornerShape(4.dp))
-            ) {
-                Icon(
-                    imageVector = when (playMode) {
-                        PlayMode.REPEAT_MODE_OFF-> Icons.Rounded.MultipleStop
-                        PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
-                        PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
-                        PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle
-                    },
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(24.dp)
-                )
 
-            }
-        }
 
         //previous
         Box(modifier = Modifier.weight(1f)) {
@@ -95,7 +71,6 @@ fun Controls(
                 )
             }
         }
-
         Spacer(Modifier.width(8.dp))
         //play/pause
         Box(modifier = Modifier.weight(1f)) {
@@ -146,26 +121,5 @@ fun Controls(
             }
         }
 
-        // TODO 播放列表
-        Box(modifier = Modifier.weight(1f)) {
-
-            IconButton(
-                onClick = {},
-                modifier = Modifier
-                    .size(24.dp)
-                    .align(Alignment.Center)
-                    .clip(RoundedCornerShape(4.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(24.dp)
-                )
-
-            }
-        }
     }
 }
