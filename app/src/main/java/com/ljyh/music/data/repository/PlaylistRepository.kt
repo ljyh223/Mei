@@ -7,13 +7,18 @@ import com.ljyh.music.data.model.api.GetSongUrl
 import com.ljyh.music.data.model.api.GetSongUrlV1
 import com.ljyh.music.data.model.api.ManipulateTrack
 import com.ljyh.music.data.model.api.ManipulateTrackResult
+import com.ljyh.music.data.model.weapi.EveryDaySongs
 import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.Resource
+import com.ljyh.music.data.network.api.WeApiService
 import com.ljyh.music.data.network.safeApiCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class PlaylistRepository(private val apiService: ApiService) {
+class PlaylistRepository(
+    private val apiService: ApiService,
+    private val weApiService: WeApiService
+) {
     suspend fun getPlaylistDetail(id: String): Resource<PlaylistDetail> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
@@ -66,6 +71,15 @@ class PlaylistRepository(private val apiService: ApiService) {
                         imme = imme
                     )
                 )
+            }
+        }
+    }
+
+
+    suspend fun getEveryDayRecommendSongs(): Resource<EveryDaySongs> {
+        return withContext(Dispatchers.IO) {
+            safeApiCall {
+                weApiService.getEveryDayRecommendSongs()
             }
         }
     }

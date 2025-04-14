@@ -1,4 +1,6 @@
 package com.ljyh.music.data.model
+
+import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import com.ljyh.music.di.SpecialKey
 
@@ -81,7 +83,7 @@ data class HomePageResourceShow(
             @SerializedName("nativeConfig")
             val nativeConfig: Any,
             @SerializedName("dslData")
-            val dslData: DslData,
+            val dslData: JsonObject,
             @SerializedName("rnData")
             val rnData: Any,
             @SerializedName("nativeData")
@@ -210,6 +212,13 @@ data class HomePageResourceShow(
                 val rank: Rank,
                 @SerializedName(SpecialKey.HomeCommon)
                 val homeCommon: HomeCommon,
+
+
+                @SerializedName(SpecialKey.Radar)
+                val radar: BlockResource,
+
+                @SerializedName(SpecialKey.CommonPlaylist)
+                val commonPlaylist: BlockResource
             ) {
                 data class Rank(
                     @SerializedName("showMore")
@@ -268,6 +277,8 @@ data class HomePageResourceShow(
                     val playAll: Any
                 ) {
                     data class Resource(
+                        @SerializedName("moduleType")
+                        val moduleType: String,
                         @SerializedName("playBtnData")
                         val playBtnData: Any,
                         @SerializedName("resourceId")
@@ -303,7 +314,7 @@ data class HomePageResourceShow(
                         @SerializedName("logInfo")
                         val logInfo: Any,
                         @SerializedName("resourceInteractInfo")
-                        val resourceInteractInfo: ResourceInteractInfo,
+                        val resourceInteractInfo: ResourceInteractInfo? = null,
                         @SerializedName("tags")
                         val tags: List<Any>,
                         @SerializedName("tagImgUrl")
@@ -315,7 +326,7 @@ data class HomePageResourceShow(
                         @SerializedName("extMap")
                         val extMap: Any,
                         @SerializedName("singleLineTitle")
-                        val singleLineTitle:String,
+                        val singleLineTitle: String,
                     ) {
                         data class PlayBtnData(
                             @SerializedName("pauseType")
@@ -378,7 +389,7 @@ data class HomePageResourceShow(
 
                         data class ResourceInteractInfo(
                             @SerializedName("playCount")
-                            val playCount: String,
+                            val playCount: String? = null,
                             @SerializedName("likedCount")
                             val likedCount: Any,
                             @SerializedName("replyCount")

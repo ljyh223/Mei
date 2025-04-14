@@ -1,6 +1,7 @@
 package com.ljyh.music.di
 
 import android.util.Log
+import androidx.compose.ui.text.toLowerCase
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
@@ -34,6 +35,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.lang.reflect.Type
 import java.security.cert.X509Certificate
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -49,8 +51,8 @@ import javax.net.ssl.X509TrustManager
 @InstallIn(SingletonComponent::class)
 object RetrofitModule {
 
-    private const val APIDOMAIN = "https://interface.music.163.com/"
-    private const val DOMAIN="https://music.163.com"
+    private const val APIDOMAIN = "https://interface.music.163.com"
+    private const val DOMAIN = "https://music.163.com"
     private const val DEBUG = true
 
     @Provides
@@ -77,7 +79,7 @@ object RetrofitModule {
                 "api" -> "iphone"
                 else -> "pc"
             }
-            val osInfo = osMap[os]?:OSInfo("","","","")
+            val osInfo = osMap[os] ?: OSInfo("", "", "", "")
 
             // 模拟设置 Cookie 和其他头信息
             val cookie = generateCookie(crypto, osInfo) // 根据加密方式生成 Cookie
@@ -86,9 +88,9 @@ object RetrofitModule {
             if (crypto == "api") {
                 headersBuilder.apply {
                     add("User-Agent", chooseUserAgent(crypto, "iphone"))
-                    add("osver", osInfo.osver )
+                    add("osver", osInfo.osver)
                     add("deviceId", AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId())
-                    add("os", osInfo.os )
+                    add("os", osInfo.os)
                     add("appver", osInfo.appver)
                     add("versioncode", "140")
                     add("mobilename", "")
@@ -125,7 +127,7 @@ object RetrofitModule {
             // 根据加密方式加密请求数据
             val newRequest = when (crypto) {
                 "weapi" -> {
-                    headersBuilder.add("Referer", APIDOMAIN)
+                    headersBuilder.add("Referer", DOMAIN)
                     val encryptedData = encryptWeAPI(requestData)
                     val formBody = FormBody.Builder()
 
@@ -141,7 +143,8 @@ object RetrofitModule {
                 }
 
                 "eapi" -> {
-                    val encryptedData = encryptEApi(url, requestData)
+                    val api = url.replace(APIDOMAIN, "").replace("eapi", "api")
+                    val encryptedData = encryptEApi(api, requestData)
                     val formBody = FormBody.Builder()
                         .add("params", encryptedData.params)
                         .build()
@@ -181,11 +184,12 @@ object RetrofitModule {
             val response = chain.proceed(newRequest)
             val responseBody = response.body
             // 解密响应数据
-            if (crypto == "weapi") {
+            if (crypto == "eapi") {
                 val decryptedResponseBody = responseBody?.let { body ->
-                    Log.d("Decrypted Response", "weapi")
+                    Log.d("Decrypted Response", "eapi")
                     val encryptedBytes = body.bytes()
-                    val decryptedBytes = replaceRandomKey(decryptEApi(encryptedBytes))
+                    val decryptedBytes = decryptEApi(encryptedBytes)
+//                    val decryptedBytes = replaceRandomKey(decryptEApi(encryptedBytes))
                     decryptedBytes.toResponseBody(body.contentType())
                 }
 
@@ -222,7 +226,7 @@ object RetrofitModule {
                 hostnameVerifier(hostnameVerifier)
             }
 
-//            addInterceptor(loggingInterceptor)
+            addInterceptor(loggingInterceptor)
             addInterceptor(encryptionInterceptor)
             connectTimeout(30, TimeUnit.SECONDS)
             readTimeout(30, TimeUnit.SECONDS)
@@ -239,7 +243,7 @@ object RetrofitModule {
 
 
         return Retrofit.Builder()
-            .baseUrl(APIDOMAIN)
+            .baseUrl(DOMAIN)
             .addConverterFactory(GsonConverterFactory.create()) // 仅 WeApiService 使用
             .client(okHttpClient)
             .build()
@@ -249,13 +253,11 @@ object RetrofitModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(DOMAIN)
+            .baseUrl(APIDOMAIN)
             .addConverterFactory(GsonConverterFactory.create())
             .client(okHttpClient)
             .build()
     }
-
-
 
 
     // WeApiService 使用特定的 Retrofit
@@ -368,7 +370,6 @@ private fun generateCookie(crypto: String, osInfo: OSInfo): String {
 }
 
 
-
 data class OSInfo(
     val os: String,
     val appver: String,
@@ -470,27 +471,32 @@ class DynamicMapDeserializer : JsonDeserializer<Map<String, Any>> {
 //}
 
 
-
 fun replaceRandomKey(json: String): String {
     val regexRank = Regex("\"rcmd_rank_module_[a-zA-Z0-9]+\"")
     val regexHomeCommon = Regex("\"home_common_rcmd_songs_module_[a-zA-Z0-9]+\"")
+    val regexRadar=Regex("\"home_radar_playlist_module_[a-zA-Z0-9]+\"")
+    val regexCommonPlaylist=Regex("\"home_page_common_playlist_module_[a-zA-Z0-9]+\"")
 
     val replacements = mapOf(
         regexRank to "\"${SpecialKey.Rank}\"",
-        regexHomeCommon to "\"${SpecialKey.HomeCommon}\""
+        regexHomeCommon to "\"${SpecialKey.HomeCommon}\"",
+        regexRadar to "\"${SpecialKey.Radar}\"",
+        regexCommonPlaylist to "\"${SpecialKey.CommonPlaylist}\""
     )
     var modifiedJson = json
-    replacements.forEach  { (regex, replacement) ->
-        val matches =regex.findAll(modifiedJson)
+    replacements.forEach { (regex, replacement) ->
+        val matches = regex.findAll(modifiedJson)
         Log.d("replaceRandomKey", "regex: $regex, replacement: $replacement")
         Log.d("replaceRandomKey", matches.count().toString())
         Log.d("replaceRandomKey", matches.toString())
-        modifiedJson = modifiedJson.replace(regex,  replacement)
+        modifiedJson = modifiedJson.replace(regex, replacement)
     }
     return modifiedJson
 }
 
 object SpecialKey {
-    const val Rank ="rank"
+    const val Rank = "rank"
     const val HomeCommon = "home_common"
+    const val Radar = "radar"
+    const val CommonPlaylist="common_playlist"
 }

@@ -28,15 +28,15 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideHomeRepository(weApiService: WeApiService): HomeRepository {
-        return HomeRepository(weApiService)
+    fun provideHomeRepository(eApiService: EApiService): HomeRepository {
+        return HomeRepository(eApiService)
     }
 
 
     @Singleton
     @Provides
-    fun providePlaylistRepository(apiService: ApiService): PlaylistRepository {
-        return PlaylistRepository(apiService)
+    fun providePlaylistRepository(apiService: ApiService,weApiService: WeApiService): PlaylistRepository {
+        return PlaylistRepository(apiService,weApiService)
     }
 
     @Singleton

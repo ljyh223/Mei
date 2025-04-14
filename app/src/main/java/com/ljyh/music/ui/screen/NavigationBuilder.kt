@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.ljyh.music.ui.screen.index.home.HomeScreen
 import com.ljyh.music.ui.screen.index.library.LibraryScreen
+import com.ljyh.music.ui.screen.playlist.EveryDay
 import com.ljyh.music.ui.screen.playlist.PlaylistScreen
 import com.ljyh.music.ui.screen.setting.AppearanceSettings
 import com.ljyh.music.ui.screen.setting.ContentsSetting
@@ -44,6 +45,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.ContentSettings.route) {
         ContentsSetting(scrollBehavior)
+    }
+
+    composable(Screen.EveryDay.route){
+        EveryDay()
     }
 
     composable(

@@ -73,6 +73,7 @@ import com.google.gson.Gson
 import com.ljyh.music.AppContext
 import com.ljyh.music.R
 import com.ljyh.music.constants.UserIdKey
+import com.ljyh.music.data.model.MiniPlaylistDetail
 import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.data.model.SimplePlaylist
 import com.ljyh.music.data.model.api.GetLyric
@@ -80,6 +81,8 @@ import com.ljyh.music.data.model.api.GetSongDetails
 import com.ljyh.music.data.model.api.GetSongUrl
 import com.ljyh.music.data.model.parseString
 import com.ljyh.music.data.model.room.Like
+import com.ljyh.music.data.model.toMediaMetadata
+import com.ljyh.music.data.model.toMiniPlaylistDetail
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.extensions.mediaItems
 import com.ljyh.music.playback.queue.ListQueue
@@ -173,7 +176,7 @@ fun PlaylistScreen(
                             .toList())
                     }
                     item {
-                        PlaylistInfo(result.data, viewModel) {
+                        PlaylistInfo(result.data.toMiniPlaylistDetail(), viewModel) {
                             playerConnection.playQueue(
                                 ListQueue(
                                     title = result.data.playlist.name,
@@ -187,7 +190,7 @@ fun PlaylistScreen(
                     items(lazyPagingItems.itemCount) { index ->
                         val track = lazyPagingItems[index]
                         if (track != null) {
-                            Track(viewModel, track) {
+                            Track(viewModel, track.toMediaMetadata()) {
                                 playerConnection.player.mediaItems.forEachIndexed { i, mediaItem ->
                                     Log.d(
                                         "PlaylistScreen",
@@ -369,9 +372,10 @@ fun Official() {
     }
 }
 
+
 @Composable
 fun PlaylistInfo(
-    playlistDetail: PlaylistDetail,
+    playlistDetail: MiniPlaylistDetail,
     viewModel: PlaylistViewModel,
     play: () -> Unit
 ) {
@@ -396,13 +400,13 @@ fun PlaylistInfo(
                 modifier = Modifier
                     .size(144.dp)
                     .clip(RoundedCornerShape(6.dp)),
-                model = playlistDetail.playlist.coverImgUrl.largeImage(),
+                model = playlistDetail.cover.largeImage(),
                 contentDescription = null,
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
-                    text = playlistDetail.playlist.name,
+                    text = playlistDetail.name,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -411,7 +415,7 @@ fun PlaylistInfo(
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    text = "${playlistDetail.playlist.trackCount} 首歌曲\n${playlistDetail.playlist.description}",
+                    text = "${playlistDetail.count} 首歌曲\n${playlistDetail.description}",
                     color = MaterialTheme.colorScheme.secondary,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 12.sp,
@@ -431,11 +435,11 @@ fun PlaylistInfo(
 
                     Spacer(Modifier.width(8.dp))
 
-                    if (userId == playlistDetail.playlist.creator.userId.toString()
+                    if (userId == playlistDetail.creatorUserId.toString()
                     ) {
                         Button(onClick = {
 
-                            if (playlistDetail.playlist.trackCount > 500) {
+                            if (playlistDetail.count > 500) {
                                 Toast.makeText(context, "歌曲数量大于500", Toast.LENGTH_SHORT)
                                     .show()
                                 return@Button
@@ -450,15 +454,15 @@ fun PlaylistInfo(
                             val downloadDir =
                                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
                             val file = downloadDir.listFiles()
-                                ?.find { it.isFile && it.name == "${playlistDetail.playlist.Id}.json" }
+                                ?.find { it.isFile && it.name == "${playlistDetail.id}.json" }
                             if (file != null) {
                                 file.readText().let { json ->
                                     val playlist =
                                         Gson().fromJson(json, SimplePlaylist::class.java)
-                                    if (playlist.songs.size < playlistDetail.playlist.trackCount) {
+                                    if (playlist.songs.size < playlistDetail.count) {
                                         val difference =
-                                            playlistDetail.playlist.trackIds.filterNot { a ->
-                                                playlist.songs.any { s -> s.id == a.id.toString() }
+                                            playlistDetail.trackIds.filterNot { a ->
+                                                playlist.songs.any { s -> s.id == a.toString() }
                                             }
                                         if (difference.isEmpty()) {
                                             Toast.makeText(
@@ -472,7 +476,7 @@ fun PlaylistInfo(
                                         Log.d("PlaylistScreen", difference.toString())
                                         count.intValue = difference.size
                                         ids.value =
-                                            difference.joinToString(",") { it.id.toString() }
+                                            difference.joinToString(",")
                                         showDialog.value = true
 
                                     } else {
@@ -487,9 +491,9 @@ fun PlaylistInfo(
                                 }
                             } else {
 
-                                count.intValue = playlistDetail.playlist.trackCount
+                                count.intValue = playlistDetail.count
                                 ids.value =
-                                    playlistDetail.playlist.trackIds.joinToString(",") { it.id.toString() }
+                                    playlistDetail.trackIds.joinToString(",")
                                 showDialog.value = true
                             }
 
@@ -526,7 +530,7 @@ fun PlaylistInfo(
 fun prepare(
     ids: String,
     scope: CoroutineScope,
-    playlistDetail: PlaylistDetail,
+    playlistDetail: MiniPlaylistDetail,
     viewModel: PlaylistViewModel,
 ) {
     val context = AppContext.instance
@@ -568,8 +572,8 @@ fun prepare(
 
         DownloadManager.downloadSongs(
             SimplePlaylist(
-                id = playlistDetail.playlist.Id.toString(),
-                name = playlistDetail.playlist.name,
+                id = playlistDetail.id.toString(),
+                name = playlistDetail.name,
                 songs = tempSongs
             ),
             onProgress = { current, total, lose ->

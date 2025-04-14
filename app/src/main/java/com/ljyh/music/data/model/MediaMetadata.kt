@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.music.data.model.weapi.EveryDaySongs
 
 
 @Immutable
@@ -17,6 +18,7 @@ data class MediaMetadata(
     val duration: Int,
     val album: Album,
     val explicit: Boolean = false,
+    val tns:String?=null
 ) {
     data class Artist(
         val id: Long,
@@ -54,10 +56,28 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
     album = MediaMetadata.Album(
         id = al.Id,
         title = al.name
-    )
-
+    ),
+    tns= tns?.get(0)
 )
 
+
+fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
+    id = id,
+    title = name,
+    coverUrl=al.picUrl,
+    artists = ar.map {
+        MediaMetadata.Artist(
+            id = it.id,
+            name = it.name
+        )
+    },
+    duration = dt,
+    album = MediaMetadata.Album(
+        id = al.id,
+        title = al.name
+    ),
+    tns= tns?.get(0)
+)
 
 fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
     .setMediaId(id.toString())

@@ -1,6 +1,7 @@
 package com.ljyh.music.utils
 
 
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -12,15 +13,19 @@ object DateUtils {
         if (time == 0L) {
             return true
         }
-        return time < getTimestampOfSixAM()
+        val sixAM = getTimestampOfSixAM()
+        println("传入时间: ${Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault())}")
+        println("今天6点: ${Instant.ofEpochMilli(sixAM).atZone(ZoneId.systemDefault())}")
+        println("比较结果: ${time < sixAM}")
+        return time < sixAM
 
     }
     private fun getTimestampOfSixAM(): Long {
-        val today = LocalDate.now()  // 获取当前日期
-        val sixAM = LocalTime.of(6, 0)  // 创建上午 6 点的时间
-        val zonedDateTime =
-            ZonedDateTime.of(today, sixAM, ZoneId.systemDefault())  // 将日期和时间组合成带时区的日期时间对象
-        return zonedDateTime.toInstant().toEpochMilli()  // 转换为时间戳（毫秒）
+        val zoneId = ZoneId.of("Asia/Shanghai")  // 或你明确知道的时区
+        val today = LocalDate.now(zoneId)
+        val sixAM = LocalTime.of(6, 0)
+        val zonedDateTime = ZonedDateTime.of(today, sixAM, zoneId)
+        return zonedDateTime.toInstant().toEpochMilli()
     }
 
     //获取时间 MM-dd

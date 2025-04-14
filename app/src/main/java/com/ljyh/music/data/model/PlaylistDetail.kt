@@ -600,3 +600,29 @@ data class PlaylistDetail(
         )
     }
 }
+
+fun PlaylistDetail.toMiniPlaylistDetail():MiniPlaylistDetail{
+    return MiniPlaylistDetail(
+        cover = playlist.coverImgUrl,
+        name = playlist.name,
+        description = playlist.description,
+        id = playlist.Id,
+        tracks = playlist.tracks.map { it.toMediaMetadata() },
+        trackIds = playlist.trackIds.map { it.id },
+        count = playlist.trackCount,
+        creatorUserId = playlist.creator.userId
+    )
+}
+
+data class MiniPlaylistDetail(
+
+    val cover:String,
+    val name:String,
+    val description:String?,
+    val id:Long,
+    val tracks:List<MediaMetadata>,
+    val trackIds:List<Long>,
+    val count:Int,
+    val creatorUserId:Long
+
+)

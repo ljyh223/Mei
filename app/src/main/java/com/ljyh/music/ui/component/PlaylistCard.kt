@@ -1,6 +1,6 @@
 package com.ljyh.music.ui.component
 
-import androidx.annotation.OptIn
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,10 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.size.Size
 import com.ljyh.music.constants.PlaylistCardSize
 import com.ljyh.music.ui.local.LocalNavController
 import com.ljyh.music.utils.largeImage
@@ -51,8 +48,7 @@ fun PlaylistCard(
     showPlay: Boolean = false,
     subTitle: List<String>? = null,
     extInfo: String? = null,
-    imageSize:Boolean=true,
-//    viewModel:HomeViewModel,
+    imageSize: Boolean = true,
     onClick: () -> Unit
 ) {
 //    val playerConnection = LocalPlayerConnection.current ?: return
@@ -65,7 +61,13 @@ fun PlaylistCard(
             .clickable { onClick() }) {
             Box {
                 AsyncImage(
-                    model = if(imageSize) coverImg.largeImage() else coverImg,
+                    model = if (imageSize) {
+                        Log.d("imageSize",true.toString())
+                        coverImg.largeImage()
+                    } else {
+                        Log.d("imageSize",false.toString())
+                        coverImg
+                    },
                     modifier = Modifier
                         .size(PlaylistCardSize)
                         .clip(RoundedCornerShape(8.dp)),
@@ -87,7 +89,9 @@ fun PlaylistCard(
                                 lineHeight = 16.sp,
                                 style = TextStyle(
                                     shadow = Shadow(
-                                        color = Color.Black, offset = Offset(4f, 4f), blurRadius = 8f
+                                        color = Color.Black,
+                                        offset = Offset(4f, 4f),
+                                        blurRadius = 8f
                                     )
                                 )
                             )
@@ -98,7 +102,8 @@ fun PlaylistCard(
                 extInfo?.let {
 
                     Row(
-                        Modifier.height(IntrinsicSize.Min)
+                        Modifier
+                            .height(IntrinsicSize.Min)
                             .align(Alignment.TopStart)
                             .padding(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -108,10 +113,12 @@ fun PlaylistCard(
                         Icon(
                             imageVector = Icons.Filled.Headset,
                             contentDescription = "Headset",
-                            modifier = Modifier.size(12.dp).shadow(
-                                4.dp,
-                                RoundedCornerShape(4.dp)
-                            ),
+                            modifier = Modifier
+                                .size(12.dp)
+                                .shadow(
+                                    4.dp,
+                                    RoundedCornerShape(4.dp)
+                                ),
                             tint = Color.White
                         )
                         Text(

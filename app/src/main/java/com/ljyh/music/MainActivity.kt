@@ -73,6 +73,9 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.constants.AppBarHeight
@@ -119,6 +122,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Headers
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Response
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -169,6 +176,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        val headerInterceptor = Interceptor { chain ->
+            val newRequest = chain.request().newBuilder()
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0")
+                .build()
+            chain.proceed(newRequest)
+        }
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(headerInterceptor)
+            .build()
 
         setContent {
             val navController = rememberNavController()
@@ -184,6 +200,14 @@ class MainActivity : ComponentActivity() {
             val coverUrl = remember { mutableStateOf("") }
             var isMeasured by remember { mutableStateOf(false) }
             val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
+            setSingletonImageLoaderFactory {
+                ImageLoader.Builder(this)
+                    .components {
+                        add(OkHttpNetworkFetcherFactory(okHttpClient))
+                    }
+                    .build()
+
+            }
             LaunchedEffect(playerConnection) {
                 val playerConnection = playerConnection ?: return@LaunchedEffect
                 playerConnection.service.currentMediaMetadata.collectLatest { song ->
@@ -631,4 +655,3 @@ class MainActivity : ComponentActivity() {
 enum class NavigationTab {
     HOME, Library
 }
-

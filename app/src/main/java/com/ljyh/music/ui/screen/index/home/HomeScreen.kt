@@ -48,6 +48,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.ljyh.music.constants.UserIdKey
 import com.ljyh.music.data.model.HomePageResourceShow
 import com.ljyh.music.data.network.Resource
@@ -154,65 +156,127 @@ private fun RenderHomePageContent(
     navController: NavController,
     viewModel: HomeViewModel
 ) {
-
+    val gson = Gson()
     val sortedBlocks = homePageResource.sortedWith(positionComparator)
     val playerConnection = LocalPlayerConnection.current ?: return
     sortedBlocks.forEach { block ->
         Log.d("Block", block.positionCode)
         when (block.positionCode) {
             // 每日推荐
-            "PAGE_RECOMMEND_DAILY_RECOMMEND" -> BlockWithTitle(
-                title = getGreeting(),
-                resources = block.dslData.blockResource.resources
-            ) { resource ->
-                RecommendCard(
-                    cover = resource.coverImg,
-                    title = resource.singleLineTitle,
-                    extInfo = CardExtInfo(
-                        icon = resource.iconDesc.image,
-                        text = resource.subTitle
-                    ),
-                    viewModel = viewModel
-                ) {}
-            }
+            "PAGE_RECOMMEND_DAILY_RECOMMEND" -> {
+                val value = selectSpecialField(block.dslData) ?: return
 
-            "PAGE_RECOMMEND_RADAR" -> BlockWithTitle(
-                title = "雷达歌单",
-                resources = block.dslData.blockResource.resources
-            ) { resource ->
-                PlaylistCard(
-                    id = resource.resourceId,
-                    title = resource.title,
-                    coverImg = resource.coverImg,
-                    subTitle = resource.resourceExtInfo.coverText,
-                    showPlay = true,
-                    extInfo = resource.resourceInteractInfo.playCount
-                ) {
-                    Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                BlockWithTitle(
+                    title = getGreeting(),
+                    resources = value.get("resources").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                        )
+                    }
+                ) { resource ->
+                    RecommendCard(
+                        cover = resource.coverImg,
+                        title = resource.singleLineTitle,
+                        extInfo = CardExtInfo(
+                            icon = resource.iconDesc.image,
+                            text = resource.subTitle
+                        ),
+                        viewModel = viewModel
+                    ) {
+                        Log.d("PAGE_RECOMMEND_DAILY_RECOMMEND", resource.moduleType)
+                        if (resource.moduleType == "daily_song_rec") {
+                            Screen.EveryDay.navigate(navController)
+                        }
+                    }
+                }
+            }
+            // 雷达歌单
+            "PAGE_RECOMMEND_RADAR" -> {
+                val value = selectSpecialField(block.dslData) ?: return
+                BlockWithTitle(
+                    title = value.get("blockResource").asJsonObject.get("title").asString,
+                    resources = value.get("blockResource").asJsonObject.get("resources").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                        )
+                    }
+                ) { resource ->
+                    PlaylistCard(
+                        id = resource.resourceId,
+                        title = resource.title,
+                        coverImg = resource.coverImg,
+                        subTitle = resource.resourceExtInfo.coverText,
+                        showPlay = true,
+                        extInfo = resource.resourceInteractInfo?.playCount,
+                        imageSize = !resource.coverImg.contains("thumbnail"),
+                    ) {
+                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                    }
                 }
             }
 
             // 推荐歌单
-            "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST" -> BlockWithTitle(
-                title = "推荐歌单",
-                resources = block.dslData.blockResource.resources
-            ) { resource ->
-                PlaylistCard(
-                    id = resource.resourceId,
-                    title = resource.title,
-                    coverImg = resource.coverImg,
-                    showPlay = true,
-                    extInfo = resource.resourceInteractInfo.playCount
-                ) {
-                    Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+            "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST" -> {
+                val value = selectSpecialField(block.dslData) ?: return
+                BlockWithTitle(
+                    title = value.get("blockResource").asJsonObject.get("title").asString,
+                    resources = value.get("blockResource").asJsonObject.get("resources").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                        )
+                    }
+                ) { resource ->
+                    PlaylistCard(
+                        id = resource.resourceId,
+                        title = resource.title,
+                        coverImg = resource.coverImg,
+                        showPlay = true,
+                        extInfo = resource.resourceInteractInfo?.playCount,
+                        imageSize = !resource.coverImg.contains("thumbnail")
+                    ) {
+                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                    }
+                }
+            }
+
+            "PAGE_RECOMMEND_MIXED_ARTIST_PLAYLIST" -> {
+                val value = selectSpecialField(block.dslData) ?: return
+                BlockWithTitle(
+                    title = value.get("title").asString,
+                    resources = value.get("resources").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                        )
+                    }
+                ) { resource ->
+                    PlaylistCard(
+                        id = resource.resourceId,
+                        title = resource.title,
+                        coverImg = resource.coverImg,
+                        showPlay = true,
+                        extInfo = resource.resourceInteractInfo?.playCount,
+                        imageSize =  !resource.coverImg.contains("thumbnail")
+                    ) {
+                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                    }
                 }
             }
 
             "PAGE_RECOMMEND_RANK" -> {
                 Log.d("Rank", "${block.dslData}")
+                val value = selectSpecialField(block.dslData) ?: return
                 BlockWithTitle(
-                    title = "排行榜",
-                    resources = block.dslData.rank.resources
+                    title = value.get("title").asString,
+                    resources = value.get("resources").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                        )
+                    }
                 ) { resource ->
 
                     PlaylistCard(
@@ -220,7 +284,7 @@ private fun RenderHomePageContent(
                         title = resource.title,
                         coverImg = resource.coverImg,
                         showPlay = true,
-                        imageSize = false
+                        imageSize = !resource.coverImg.contains("thumbnail")
                     ) {
                         Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
                     }
@@ -230,9 +294,15 @@ private fun RenderHomePageContent(
 
 
             "PAGE_RECOMMEND_PRIVATE_RCMD_SONG" -> {
-                Title("为你推荐")
+                val value = selectSpecialField(block.dslData) ?: return
+                Title(value.get("header").asJsonObject.get("title").asString)
                 TripleLaneSlider(
-                    songsArray = block.dslData.homeCommon.content.items
+                    songsArray = value.get("content").asJsonObject.get("items").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item::class.java
+                        )
+                    }
                 ) { songs, index ->
 
                     val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
@@ -245,6 +315,52 @@ private fun RenderHomePageContent(
                 }
 
             }
+
+
+            "PAGE_RECOMMEND_RED_SIMILAR_SONG" -> {
+                val value = selectSpecialField(block.dslData) ?: return
+                Title(value.get("header").asJsonObject.get("title").asString)
+                TripleLaneSlider(
+                    songsArray = value.get("content").asJsonObject.get("items").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item::class.java
+                        )
+                    }
+                ) { songs, index ->
+                    val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
+                    playerConnection.playQueue(
+                        ListQueue(
+                            title = "RED_SIMILAR_SONG",
+                            items = rearrangeArray(index, flatSongs)
+                        )
+                    )
+                }
+            }
+
+//            "PAGE_RECOMMEND_MY_SHEET" -> {
+//                val value = selectSpecialField(block.dslData) ?: return
+//                BlockWithTitle(
+//                    title = value.get("title").asString,
+//                    resources = value.get("resources").asJsonArray.map {
+//                        gson.fromJson(
+//                            it.asJsonObject,
+//                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+//                        )
+//                    }
+//                ) { resource ->
+//                    PlaylistCard(
+//                        id = resource.resourceId?:"",
+//                        title = resource.title,
+//                        coverImg = resource.coverImg,
+//                        showPlay = true,
+//                        extInfo = resource.resourceInteractInfo?.playCount
+//                    ) {
+//                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+//                    }
+//                }
+//            }
+
         }
     }
 }
@@ -364,3 +480,17 @@ fun TripleLaneSlider(
     }
 }
 
+
+fun selectSpecialField(jsonObject: JsonObject): JsonObject? {
+    // 1. 优先返回 "blockResource"
+    if (jsonObject.has("blockResource")) {
+        return jsonObject.getAsJsonObject("blockResource")
+    }
+
+    // 2. 否则找键名最长的字段
+    val longestEntry = jsonObject.entrySet()
+        .maxByOrNull { it.key.length }
+
+    // 3. 确保值是 JsonObject（防止是基础类型或数组）
+    return longestEntry?.value?.asJsonObject
+}

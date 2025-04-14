@@ -1,5 +1,6 @@
 package com.ljyh.music.utils.encrypt
 
+import android.util.Log
 import korlibs.crypto.AES
 import korlibs.crypto.Padding
 import korlibs.crypto.md5
@@ -55,6 +56,8 @@ fun encryptEApi(
     url: String,
     data: String
 ) : EApi {
+    Log.d("Eapi", "data: $data")
+    Log.d("Eapi", "url: $url")
     val message = "nobody" + url + "use" + data + "md5forencrypt"
     val digest: String = message.toByteArray().md5().hex
     return EApi(

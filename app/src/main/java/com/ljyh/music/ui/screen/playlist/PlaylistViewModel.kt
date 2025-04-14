@@ -15,6 +15,7 @@ import com.ljyh.music.data.model.api.ManipulateTrack
 import com.ljyh.music.data.model.api.ManipulateTrackResult
 import com.ljyh.music.data.model.room.Like
 import com.ljyh.music.data.model.room.Playlist
+import com.ljyh.music.data.model.weapi.EveryDaySongs
 import com.ljyh.music.data.network.api.ApiService
 import com.ljyh.music.data.network.Resource
 import com.ljyh.music.data.repository.PlaylistRepository
@@ -47,6 +48,11 @@ class PlaylistViewModel @Inject constructor(
 
     private val _playlist = MutableStateFlow<List<Playlist>>(emptyList())
     val playlist: StateFlow<List<Playlist>> = _playlist
+
+
+    private val _everyDay = MutableStateFlow<Resource<EveryDaySongs>>(Resource.Loading)
+    val everyDay: StateFlow<Resource<EveryDaySongs>> = _everyDay
+
     fun getPlaylistDetail(id: String) {
         viewModelScope.launch {
             _playlistDetail.value = Resource.Loading
@@ -127,6 +133,14 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             _playlist.value = playlistRepository.getPlaylistByAuthor(userId)
         }
+    }
+
+    fun getEveryDayRecommendSongs() {
+        viewModelScope.launch {
+            _everyDay.value = Resource.Loading
+            _everyDay.value = repository.getEveryDayRecommendSongs()
+        }
+
     }
 
 

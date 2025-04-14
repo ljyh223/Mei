@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.ljyh.music.ui.component.player.component.animatedGradient
 
 
@@ -68,65 +69,79 @@ fun animateBrushRotation(
         }
     }
 }
+
+@Composable
+fun Test2(){
+    AsyncImage(
+        model = "https://p5.music.126.net/obj/wonDlsKUwrLClGjCm8Kx/33013382162/9706/80e4/105a/d1ac01d5ee46dbcad97051f0197c8b61.jpg?imageView=1&thumbnail=500y500",
+        contentDescription = null,
+        modifier = Modifier
+            .requiredSize(60.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, Color.White, RoundedCornerShape(16.dp))
+
+    )
+}
 @Composable
 fun Test(){
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        var size by remember { mutableStateOf(Size.Zero) }
-
-        val shaderA = LinearGradientShader(
-            Offset(size.width / 2f, 0f),
-            Offset(size.width / 2f, size.height),
-            listOf(
-                MaterialTheme.colorScheme.primaryContainer,           // 核心品牌色[6,7](@ref)
-                MaterialTheme.colorScheme.error   // 第三色浅调容器[4,6](@ref)
-            ),
-            listOf(0f, 1f)
-        )
-
-        val shaderB = LinearGradientShader(
-            Offset(size.width / 2f, 0f),
-            Offset(size.width / 2f, size.height),
-            listOf(
-                MaterialTheme.colorScheme.tertiaryContainer,     // 错误色浅调容器[3,7](@ref)
-                MaterialTheme.colorScheme.onSurfaceVariant    // 次色反色[3,6](@ref)
-            ),
-            listOf(0f, 1f)
-        )
-
-        val shaderMask = LinearGradientShader(
-            Offset(size.width / 2f, 0f),
-            Offset(size.width / 2f, size.height),
-            listOf(
-                Color.White,
-                Color.Transparent,
-            ),
-            listOf(0f, 1f)
-        )
-
-        val brushA by animateBrushRotation(shaderA, size, 20_000, true)
-        val brushB by animateBrushRotation(shaderB, size, 12_000, false)
-        val brushMask by animateBrushRotation(shaderMask, size, 15_000, true)
-
-        Box(
-            modifier = Modifier
-                .requiredSize(300.dp)
-                .onSizeChanged {
-                    size = Size(it.width.toFloat(), it.height.toFloat())
-                }
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.dp, Color.White, RoundedCornerShape(16.dp))
-                .animatedGradient(true),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                modifier = Modifier.border(1.dp, Color.White, RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
-                text = "FLUID",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Light
-            )
-        }
-    }
+    Test2()
+//    Surface(
+//        modifier = Modifier.fillMaxSize(),
+//        color = MaterialTheme.colorScheme.background
+//    ) {
+//        var size by remember { mutableStateOf(Size.Zero) }
+//
+//        val shaderA = LinearGradientShader(
+//            Offset(size.width / 2f, 0f),
+//            Offset(size.width / 2f, size.height),
+//            listOf(
+//                MaterialTheme.colorScheme.primaryContainer,           // 核心品牌色[6,7](@ref)
+//                MaterialTheme.colorScheme.error   // 第三色浅调容器[4,6](@ref)
+//            ),
+//            listOf(0f, 1f)
+//        )
+//
+//        val shaderB = LinearGradientShader(
+//            Offset(size.width / 2f, 0f),
+//            Offset(size.width / 2f, size.height),
+//            listOf(
+//                MaterialTheme.colorScheme.tertiaryContainer,     // 错误色浅调容器[3,7](@ref)
+//                MaterialTheme.colorScheme.onSurfaceVariant    // 次色反色[3,6](@ref)
+//            ),
+//            listOf(0f, 1f)
+//        )
+//
+//        val shaderMask = LinearGradientShader(
+//            Offset(size.width / 2f, 0f),
+//            Offset(size.width / 2f, size.height),
+//            listOf(
+//                Color.White,
+//                Color.Transparent,
+//            ),
+//            listOf(0f, 1f)
+//        )
+//
+//        val brushA by animateBrushRotation(shaderA, size, 20_000, true)
+//        val brushB by animateBrushRotation(shaderB, size, 12_000, false)
+//        val brushMask by animateBrushRotation(shaderMask, size, 15_000, true)
+//
+//        Box(
+//            modifier = Modifier
+//                .requiredSize(300.dp)
+//                .onSizeChanged {
+//                    size = Size(it.width.toFloat(), it.height.toFloat())
+//                }
+//                .clip(RoundedCornerShape(16.dp))
+//                .border(1.dp, Color.White, RoundedCornerShape(16.dp))
+//                .animatedGradient(true),
+//            contentAlignment = Alignment.Center
+//        ) {
+//            Text(
+//                modifier = Modifier.border(1.dp, Color.White, RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+//                text = "FLUID",
+//                style = MaterialTheme.typography.headlineLarge,
+//                fontWeight = FontWeight.Light
+//            )
+//        }
+//    }
 }

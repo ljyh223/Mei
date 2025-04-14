@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.music.data.model.MediaMetadata
-import com.ljyh.music.data.model.PlaylistDetail
 import com.ljyh.music.ui.component.player.component.TrackBottomSheet
 import com.ljyh.music.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.music.utils.TimeUtils.formatDuration
@@ -39,7 +38,7 @@ import com.ljyh.music.utils.smallImage
 @Composable
 fun Track(
     viewModel: PlaylistViewModel,
-    track: PlaylistDetail.Playlist.Track,
+    track: MediaMetadata,
     onclick: () -> Unit
 ) {
 
@@ -47,15 +46,7 @@ fun Track(
     TrackBottomSheet(
         showBottomSheet,
         viewModel,
-        MediaMetadata(
-            id = track.id,
-            title = track.name,
-            coverUrl = track.al.picUrl,
-            artists = track.ar.map { MediaMetadata.Artist(it.Id, it.name) },
-            duration = track.dt,
-            album = MediaMetadata.Album(track.al.Id, track.al.name),
-            explicit = false,
-        ),
+        track,
     ) {
         showBottomSheet = false
     }
@@ -69,7 +60,7 @@ fun Track(
 
         ) {
         AsyncImage(
-            model = track.al.picUrl.smallImage(),
+            model = track.coverUrl.smallImage(),
             contentDescription = null,
             modifier = Modifier
                 .size(48.dp)
@@ -81,7 +72,7 @@ fun Track(
         ) {
             Row {
                 Text(
-                    text = track.name,
+                    text = track.title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -91,7 +82,7 @@ fun Track(
 
                 if (!track.tns.isNullOrEmpty()) {
                     Text(
-                        text = "(${track.tns[0]})",
+                        text = "(${track.tns})",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.secondary,
                         maxLines = 1,
@@ -101,7 +92,7 @@ fun Track(
             }
 
             Text(
-                text = "${track.ar.joinToString(", ") { it.name }} • ${formatDuration(track.dt)}",
+                text = "${track.artists.joinToString(", ") { it.name }} • ${formatDuration(track.duration)}",
                 color = MaterialTheme.colorScheme.secondary,
                 fontSize = 12.sp,
                 maxLines = 1,
