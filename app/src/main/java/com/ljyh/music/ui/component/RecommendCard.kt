@@ -55,7 +55,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun RecommendCard(
     cover: String,
-    title: String?=null,
+    title: String? = null,
     extInfo: CardExtInfo,
     showPlay: Boolean = false,
     viewModel: HomeViewModel,
@@ -68,7 +68,7 @@ fun RecommendCard(
     val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
     LaunchedEffect(cover) {
 
-        withContext(Dispatchers.IO){
+        withContext(Dispatchers.IO) {
             val cachedColor = viewModel.getColors(cover)
             if (cachedColor != null) {
                 withContext(Dispatchers.Main) {
@@ -89,7 +89,7 @@ fun RecommendCard(
     // 颜色计算完成后存入数据库
     LaunchedEffect(dominantColorState.color) {
         if (!isColorLoaded.value) {
-            withContext(Dispatchers.IO){
+            withContext(Dispatchers.IO) {
                 viewModel.addColor(
                     com.ljyh.music.data.model.room.Color(
                         url = cover,
@@ -121,13 +121,25 @@ fun RecommendCard(
 
 
                     Row(
-                        Modifier
+                        modifier = Modifier
                             .height(IntrinsicSize.Min)
+                            .width(RecommendCardWidth)
                             .align(Alignment.TopStart)
-                            .padding(4.dp),
+
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        dominantColorState.color.copy(alpha = 0.8f),
+                                        dominantColorState.color.copy(alpha = 0.3f),
+                                        dominantColorState.color.copy(alpha = 0.2f),
+                                        dominantColorState.color.copy(alpha = 0.05f)
+                                    )
+                                ),
+                                shape = RoundedCornerShape(topEnd = 8.dp, topStart = 8.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 8.dp), // 内边距让内容不贴边
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
-
                     ) {
                         extInfo.icon?.let {
                             AsyncImage(
@@ -155,8 +167,8 @@ fun RecommendCard(
                                 )
                             )
                         )
-
                     }
+
                     if (showPlay) {
                         IconButton(modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -199,7 +211,7 @@ fun RecommendCard(
                     Text(
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center,
-                        text = title?:"",
+                        text = title ?: "",
                         modifier = Modifier.padding(8.dp),
                         maxLines = 1,
                         fontSize = 12.sp,

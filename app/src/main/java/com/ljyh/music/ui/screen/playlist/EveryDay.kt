@@ -32,7 +32,9 @@ fun EveryDay(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val lazyListState = rememberLazyListState()
 
-    viewModel.getEveryDayRecommendSongs()
+    LaunchedEffect(true) {
+        viewModel.getEveryDayRecommendSongs()
+    }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {

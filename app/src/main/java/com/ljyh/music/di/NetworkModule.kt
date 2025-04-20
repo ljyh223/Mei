@@ -96,7 +96,7 @@ object RetrofitModule {
                     add("mobilename", "")
                     add("buildver", System.currentTimeMillis().toString().substring(0, 10))
                     add("resolution", "1920x1080")
-                    add("__csrf", "")
+                    add("__csrf", "40ab38f0a305fc4c7ff68e636bcf34aa")
                     add("channel", osInfo.channel)
                     add(
                         "requestId",
@@ -109,7 +109,11 @@ object RetrofitModule {
                     }
                 }
 
-            } else {
+            }
+
+
+
+            else {
                 val userAgent = chooseUserAgent(crypto, "pc")
                 headersBuilder.add("User-Agent", userAgent)
             }
@@ -345,19 +349,23 @@ object RetrofitModule {
 private fun generateCookie(crypto: String, osInfo: OSInfo): String {
     // 根据加密方式生成 Cookie
     // 这里可以根据需要实现具体的 Cookie 生成逻辑
-    val MUSIC_U =
-        "006503750A4B416ACE83191355213EC46491BFF92105213CD7A0101B11154F3FED93F869B0D0825102E06C02015190F81595D4185F02B7731650640BEA3F9C7F2BEA930E6D0F38C7486D8AF272284E56ECAB1A5727A6ACD8626FD01F2F53081A35C698F3575AB57141D46503F32176EC64F51EAA2469577AD63278642866EC5A305F4B332ECE583EC28FF34476F6A11F46B7608E193D7E9ECA1700B285AE1F231CC8BCF9E0533F742F6B00B05B9254571CB4D506708CF3993607B69CEA8B8143402BBDC918B433E9ACE157578C1E95E568C1A0BE38FA2033E9EBB646C7AAB79D19760949851141F75A1F966ABB8714709137B58AFBF20289AF9C374B74CE569D7B9D51CC5CAB37C94385A31E30C002C039FB5EA6C18C94C84762F498B9D897396C3918429C846D502E3454A25BC9F5F5035986801A3FB92CE445BBE521437224DC10F60CFBE5323B0563A89D262D1AD82F"
-
 
     val _ntes_nuid = createRandomKey(32)
 
     val cookie = mapOf(
         "ntes_kaola_ad" to 1,
         "_ntes_nuid" to _ntes_nuid,
-        "_ntes_nnid" to "${_ntes_nuid},${System.currentTimeMillis()}",
         "WNMCID" to getWNMCID(),
+        "versioncode" to "6006066",
+        "URS_APPID" to "F2219AE9D7828A7D73E2006D000C61031D196A37DB497E3885B8298504867886B6F0E44087D61EFC06BE92279CD6EEC6",
+        "buildver" to System.currentTimeMillis().toString().substring(0, 10),
+        "resolution" to "2268x1080",
         "WEVNSM" to "1.0.0",
-        "deviceId" to AppContext.instance.dataStore[DeviceIdKey],
+        "sDeviceId" to "bnVsbAkwMjowMDowMDowMDowMDowMAk5MzQwMWVlNWU4MzBlODIzCWVhMmY2OTJlYTQ3NDFhZmQ%3D",
+        "mobilename" to "23013RK75C",
+        "deviceId" to "bnVsbAkwMjowMDowMDowMDowMDowMAk5MzQwMWVlNWU4MzBlODIzCWVhMmY2OTJlYTQ3NDFhZmQ%3D",
+        "__csrf" to "40ab38f0a305fc4c7ff68e636bcf34aa",
+        "NMDI" to "Q1NKTQkBDAAMIEF4coQMHcb6TLA7AAAAciOiJ%2F%2FOO4VQ7m%2FLvLJ1pD9CIsJP5mfzI4SusB%2BaNScGLpThEYBcPxGzj0pL5hLdZ7LqB2UVULdYgc0%3D",
         "osver" to osInfo.osver,
         "os" to osInfo.os,
         "channel" to osInfo.channel,

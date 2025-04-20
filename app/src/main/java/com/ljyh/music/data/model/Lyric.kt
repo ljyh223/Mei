@@ -1,5 +1,6 @@
 package com.ljyh.music.data.model
 
+import android.util.Log
 import com.google.gson.annotations.SerializedName
 import com.ljyh.music.data.model.LyricUtils.mergedLyric
 import com.ljyh.music.ui.component.player.component.LyricLine
@@ -109,10 +110,10 @@ val emptyLyric= Lyric(
  * <https://www.gnu.org/licenses/why-not-lgpl.html>.
  */
 object LyricUtils {
-    private val PATTERN_TIME = Pattern.compile("\\[(\\d\\d):(\\d\\d)\\.(\\d{1,6})]")
+    private val PATTERN_TIME = Pattern.compile("\\[(\\d\\d):(\\d\\d)[.:](\\d{1,6})]")
 
     // 行匹配
-    private val PATTERN_LINE = Pattern.compile("((\\[\\d\\d:\\d\\d\\.\\d{1,6}])+)(.+)")
+    private val PATTERN_LINE = Pattern.compile("((\\[\\d\\d:\\d\\d[.:]\\d{1,6}])+)(.+)")
 
     private const val MINUTE_IN_MILLIS = 60_000L
     private const val SECOND_IN_MILLIS = 1000L
@@ -224,33 +225,6 @@ object LyricUtils {
 
 }
 
-fun Lyric.parse(): MutableList<LyricLine> {
-    val lines = mutableListOf<LyricLine>()
-    lrc.lyric.split("\n")
-        .filter {
-            it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
-        }.forEach {
-            LyricUtils.parseLine(it)?.let { e ->
-                LyricLine(
-                    e.lyric,
-                    e.time,
-                    0L,
-                    emptyList(),
-                )
-            }
-        }
-
-    // 将翻译添加到歌词中
-    tlyric?.lyric?.split("\n")?.filter {
-        it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
-    }?.forEach {
-        LyricUtils.parseLine(it)?.let { e ->
-            lines.find { lyric -> lyric.startTimeMs == e.time }?.translation =
-                e.lyric
-        }
-    }
-    return lines
-}
 
 fun Lyric.parseString(): String {
     if ((pureMusic == null || pureMusic == false) && tlyric != null) {
@@ -263,10 +237,13 @@ fun Lyric.parseString(): String {
 fun Lyric.parseYrc(): List<LyricLine> {
 
     if (yrc == null) {
+        Log.d("Lyric Parse","yrc is null")
+        Log.d("Lyric Parse","parse lrc")
+        val regex="\\[\\d+:\\d+[.:]\\d+].+"
         val lines = mutableListOf<LyricLine>()
         lrc.lyric.split("\n")
             .filter {
-                it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
+                it.matches( Regex(regex))
             }.forEach {
                 LyricUtils.parseLine(it)?.let { e ->
                     lines.add(
@@ -282,7 +259,7 @@ fun Lyric.parseYrc(): List<LyricLine> {
 
         // 将翻译添加到歌词中
         tlyric?.lyric?.split("\n")?.filter {
-            it.matches(Regex("\\[\\d+:\\d+.\\d+].+"))
+            it.matches(Regex(regex))
         }?.forEach {
             LyricUtils.parseLine(it)?.let { e ->
                 lines.find { lyric -> lyric.startTimeMs == e.time }?.translation =

@@ -184,19 +184,28 @@ private fun RenderHomePageContent(
                         ),
                         viewModel = viewModel
                     ) {
-                        Log.d("PAGE_RECOMMEND_DAILY_RECOMMEND", resource.moduleType)
-                        if (resource.moduleType == "daily_song_rec") {
-                            Screen.EveryDay.navigate(navController)
+
+                        when(resource.moduleType){
+                            "daily_song_rec" -> {
+                                Screen.EveryDay.navigate(navController)
+                            }
+                            "radar","user_like","tag_daily_rec","mood","new_song_album","once_hear"->{
+                                Screen.PlayList.navigate(navController){
+                                    addPath(resource.resourceId)
+                                }
+                            }
                         }
                     }
                 }
             }
             // 雷达歌单
             "PAGE_RECOMMEND_RADAR" -> {
+                Log.d("PAGE_RECOMMEND_RADAR",block.dslData.toString())
                 val value = selectSpecialField(block.dslData) ?: return
+
                 BlockWithTitle(
-                    title = value.get("blockResource").asJsonObject.get("title").asString,
-                    resources = value.get("blockResource").asJsonObject.get("resources").asJsonArray.map {
+                    title = value.get("title").asString,
+                    resources = value.get("resources").asJsonArray.map {
                         gson.fromJson(
                             it.asJsonObject,
                             HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
@@ -215,20 +224,23 @@ private fun RenderHomePageContent(
                         Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
                     }
                 }
+
             }
 
             // 推荐歌单
             "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST" -> {
+                Log.d("PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",block.dslData.toString())
                 val value = selectSpecialField(block.dslData) ?: return
                 BlockWithTitle(
-                    title = value.get("blockResource").asJsonObject.get("title").asString,
-                    resources = value.get("blockResource").asJsonObject.get("resources").asJsonArray.map {
+                    title = value.get("title").asString,
+                    resources = value.get("resources").asJsonArray.map {
                         gson.fromJson(
                             it.asJsonObject,
                             HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
                         )
                     }
-                ) { resource ->
+                ) {resource ->
+
                     PlaylistCard(
                         id = resource.resourceId,
                         title = resource.title,
@@ -239,59 +251,10 @@ private fun RenderHomePageContent(
                     ) {
                         Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
                     }
-                }
-            }
-
-            "PAGE_RECOMMEND_MIXED_ARTIST_PLAYLIST" -> {
-                val value = selectSpecialField(block.dslData) ?: return
-                BlockWithTitle(
-                    title = value.get("title").asString,
-                    resources = value.get("resources").asJsonArray.map {
-                        gson.fromJson(
-                            it.asJsonObject,
-                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
-                        )
-                    }
-                ) { resource ->
-                    PlaylistCard(
-                        id = resource.resourceId,
-                        title = resource.title,
-                        coverImg = resource.coverImg,
-                        showPlay = true,
-                        extInfo = resource.resourceInteractInfo?.playCount,
-                        imageSize =  !resource.coverImg.contains("thumbnail")
-                    ) {
-                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
-                    }
-                }
-            }
-
-            "PAGE_RECOMMEND_RANK" -> {
-                Log.d("Rank", "${block.dslData}")
-                val value = selectSpecialField(block.dslData) ?: return
-                BlockWithTitle(
-                    title = value.get("title").asString,
-                    resources = value.get("resources").asJsonArray.map {
-                        gson.fromJson(
-                            it.asJsonObject,
-                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
-                        )
-                    }
-                ) { resource ->
-
-                    PlaylistCard(
-                        id = resource.resourceId,
-                        title = resource.title,
-                        coverImg = resource.coverImg,
-                        showPlay = true,
-                        imageSize = !resource.coverImg.contains("thumbnail")
-                    ) {
-                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
-                    }
 
                 }
-            }
 
+            }
 
             "PAGE_RECOMMEND_PRIVATE_RCMD_SONG" -> {
                 val value = selectSpecialField(block.dslData) ?: return
@@ -316,6 +279,59 @@ private fun RenderHomePageContent(
 
             }
 
+             "PAGE_RECOMMEND_MIXED_ARTIST_PLAYLIST" -> {
+                 val value = selectSpecialField(block.dslData) ?: return
+                 BlockWithTitle(
+                     title = value.get("title").asString,
+                     resources = value.get("resources").asJsonArray.map {
+                         gson.fromJson(
+                             it.asJsonObject,
+                             HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                         )
+                     }
+                 ) { resource ->
+                     PlaylistCard(
+                         id = resource.resourceId,
+                         title = resource.title,
+                         coverImg = resource.coverImg,
+                         showPlay = true,
+                         extInfo = resource.resourceInteractInfo?.playCount,
+                         imageSize =  !resource.coverImg.contains("thumbnail")
+                     ) {
+                         Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                     }
+                 }
+             }
+
+            "PAGE_RECOMMEND_RANK" -> {
+                Log.d("PAGE_RECOMMEND_RANK", "${block.dslData}")
+                val value = selectSpecialField(block.dslData) ?: return
+                BlockWithTitle(
+                    title = value.get("title").asString,
+                    resources = value.get("resources").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                        )
+                    }
+                ) {resource ->
+
+                    PlaylistCard(
+                        id = resource.resourceId,
+                        title = resource.title,
+                        coverImg = resource.coverImg,
+                        showPlay = true,
+                        imageSize = !resource.coverImg.contains("thumbnail")
+                    ) {
+                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                    }
+
+                }
+            }
+
+
+
+
 
             "PAGE_RECOMMEND_RED_SIMILAR_SONG" -> {
                 val value = selectSpecialField(block.dslData) ?: return
@@ -338,28 +354,27 @@ private fun RenderHomePageContent(
                 }
             }
 
-//            "PAGE_RECOMMEND_MY_SHEET" -> {
-//                val value = selectSpecialField(block.dslData) ?: return
-//                BlockWithTitle(
-//                    title = value.get("title").asString,
-//                    resources = value.get("resources").asJsonArray.map {
-//                        gson.fromJson(
-//                            it.asJsonObject,
-//                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
-//                        )
-//                    }
-//                ) { resource ->
-//                    PlaylistCard(
-//                        id = resource.resourceId?:"",
-//                        title = resource.title,
-//                        coverImg = resource.coverImg,
-//                        showPlay = true,
-//                        extInfo = resource.resourceInteractInfo?.playCount
-//                    ) {
-//                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
-//                    }
-//                }
-//            }
+            "PAGE_RECOMMEND_MY_SHEET" -> {
+                val value = selectSpecialField(block.dslData) ?: return
+                BlockWithTitle(
+                    title = value.get("title").asString,
+                    resources = value.get("resources").asJsonArray.map {
+                        gson.fromJson(
+                            it.asJsonObject,
+                            HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                        )
+                    }.dropLast(1)
+                ) { resource ->
+                    PlaylistCard(
+                        id = resource.resourceId?:"",
+                        title = resource.title,
+                        coverImg = resource.coverImg,
+                        showPlay = true,
+                    ) {
+                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                    }
+                }
+            }
 
         }
     }

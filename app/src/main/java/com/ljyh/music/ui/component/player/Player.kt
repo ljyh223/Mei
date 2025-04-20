@@ -195,6 +195,8 @@ fun BottomSheetPlayer(
 
         lyricLine.value = processLyrics(netLyric, qqLyric)
 
+        Log.d("lyricLine", lyricLine.value.toString())
+
 
     }
 

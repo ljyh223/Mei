@@ -12,10 +12,10 @@ data class GetHomePageResourceShow(
     val adExtJson: String = Gson().toJson(AdExtJson()),
     @SerializedName("callbackParameters")
     val callbackParameters: String = "",
-    @SerializedName("clientCacheBlockCode")
-    var clientCacheBlockCode: String? = null,
     @SerializedName("blockCodeOrderList")
-    var blockCodeOrderList: String = Gson().toJson(
+    var blockCodeOrderList: String? = null,
+    @SerializedName("clientCacheBlockCode")
+    var clientCacheBlockCode: String = Gson().toJson(
         listOf(
             "PAGE_RECOMMEND_MUSIC_FM_LIST",
             "PAGE_RECOMMEND_RANK",
@@ -53,7 +53,7 @@ data class GetHomePageResourceShow(
     @SerializedName("pageCode")
     val pageCode: String = "HOME_RECOMMEND_PAGE",
     @SerializedName("refresh")
-    val refresh: String = "false",
+    val refresh: String = "true",
     @SerializedName("reqTimeStamp")
     val reqTimeStamp: String = getCurrentTimestamp(),
     @SerializedName("widthDp")
@@ -72,9 +72,10 @@ data class GetHomePageResourceShow(
                     firstRequestPerLaunch = "false"
                 )
             )
-            clientCacheBlockCode = gson.toJson(BlockCodeOrderList.take(_cursor).flatten())
+            blockCodeOrderList = gson.toJson(BlockCodeOrderList[_cursor])
+
         }
-        blockCodeOrderList = gson.toJson(BlockCodeOrderList[_cursor])
+        clientCacheBlockCode = gson.toJson(BlockCodeOrderList.take(_cursor).flatten())
 
 
         cursor = when (_cursor) {
@@ -96,7 +97,7 @@ data class ExtJson(
     @SerializedName("currentNewUserExploreHomeType")
     val currentNewUserExploreHomeType: String = "main",
     @SerializedName("firstRequestPerLaunch")
-    var firstRequestPerLaunch: String = "false",
+    var firstRequestPerLaunch: String = "true",
     @SerializedName("forceFreshForNewUser")
     val forceFreshForNewUser: Boolean = false,
     @SerializedName("refreshAction")
