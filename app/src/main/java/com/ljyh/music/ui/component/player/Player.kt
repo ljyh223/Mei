@@ -47,6 +47,7 @@ import com.ljyh.music.constants.DebugKey
 import com.ljyh.music.constants.DynamicStreamerKey
 import com.ljyh.music.constants.DynamicStreamerType
 import com.ljyh.music.constants.DynamicStreamerTypeKey
+import com.ljyh.music.constants.PlayModeKey
 import com.ljyh.music.constants.PlayerHorizontalPadding
 import com.ljyh.music.constants.PureBlackKey
 import com.ljyh.music.constants.QueuePeekHeight
@@ -62,14 +63,12 @@ import com.ljyh.music.ui.component.BottomSheetState
 import com.ljyh.music.ui.component.player.component.Controls
 import com.ljyh.music.ui.component.player.component.Debug
 import com.ljyh.music.ui.component.player.component.DialogSelect
-import com.ljyh.music.ui.component.player.component.Head
 import com.ljyh.music.ui.component.player.component.LyricData
 import com.ljyh.music.ui.component.player.component.LyricLine
 import com.ljyh.music.ui.component.player.component.LyricScreen
 import com.ljyh.music.ui.component.player.component.LyricSource
 import com.ljyh.music.ui.component.player.component.OptimizedBlurredImage
 import com.ljyh.music.ui.component.player.component.PlayerProgressSlider
-import com.ljyh.music.ui.component.player.component.PlayerTimeDisplay
 import com.ljyh.music.ui.component.player.component.ShowMain
 import com.ljyh.music.ui.component.player.component.animatedGradient
 import com.ljyh.music.ui.component.rememberBottomSheetState
@@ -99,9 +98,13 @@ fun BottomSheetPlayer(
     val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
     val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
     val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
-    val dynamicStreamerType by rememberEnumPreference(DynamicStreamerTypeKey, defaultValue = DynamicStreamerType.Image)
+    val dynamicStreamerType by rememberEnumPreference(
+        DynamicStreamerTypeKey,
+        defaultValue = DynamicStreamerType.Image
+    )
     val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
     val debug by rememberPreference(DebugKey, defaultValue = false)
+    val playMode by rememberPreference(PlayModeKey, defaultValue = 3)
 
     // Derived state for background color
     val useBlackBackground = remember(isSystemInDarkTheme, darkTheme, pureBlack) {
@@ -121,11 +124,12 @@ fun BottomSheetPlayer(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val repeatMode by playerConnection.repeatMode.collectAsState()
     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
+
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
-    val playMode = remember { mutableStateOf(PlayMode.REPEAT_MODE_ALL) }
+//    val playMode = remember { mutableStateOf(PlayMode.REPEAT_MODE_ALL) }
 
 
     var position by rememberSaveable(playbackState) {
@@ -152,6 +156,13 @@ fun BottomSheetPlayer(
     val qqLyricResult by playerViewModel.lyricResult.collectAsState()
 
     val qqSong by playerViewModel.qqSong.collectAsState()
+
+    if (PlayMode.fromInt(playMode) == PlayMode.SHUFFLE_MODE_ALL) {
+        playerConnection.player.shuffleModeEnabled = true
+    } else {
+        playerConnection.player.shuffleModeEnabled = false
+        playerConnection.player.repeatMode = playMode
+    }
     // UI state
     val pagerState = rememberPagerState(pageCount = { 2 })
 
@@ -204,7 +215,7 @@ fun BottomSheetPlayer(
     LaunchedEffect(mediaMetadata) {
         playerViewModel.clear()
         lyricLine.value = createDefaultLyricData("歌词加载中")
-        playerViewModel.mediaMetadata= mediaMetadata
+        playerViewModel.mediaMetadata = mediaMetadata
         mediaMetadata?.let {
             mediaInfo = MediaInfo(
                 id = it.id.toString(),
@@ -268,9 +279,9 @@ fun BottomSheetPlayer(
             )
         }
     ) {
-        if(dynamicStreamerType==DynamicStreamerType.Image)
-             OptimizedBlurredImage(mediaInfo.cover, isPlaying, 100.dp)
-        if(debug)
+        if (dynamicStreamerType == DynamicStreamerType.Image)
+            OptimizedBlurredImage(mediaInfo.cover, isPlaying, 100.dp)
+        if (debug)
             Debug(
                 title = mediaInfo.title,
                 artist = mediaInfo.artist,
@@ -278,7 +289,8 @@ fun BottomSheetPlayer(
                 duration = formatMilliseconds(duration).toString(),
                 id = mediaInfo.id,
                 qid = qqSong?.qid ?: "null",
-                modifier = Modifier.align(Alignment.TopStart)
+                modifier = Modifier
+                    .align(Alignment.TopStart)
                     .padding(10.dp)
             )
 
@@ -288,7 +300,7 @@ fun BottomSheetPlayer(
             modifier = Modifier
 
                 .let {
-                    if(dynamicStreamerType==DynamicStreamerType.FluidBg)
+                    if (dynamicStreamerType == DynamicStreamerType.FluidBg)
                         it.animatedGradient(dynamicStreamer)
                     else it
                 }
@@ -307,12 +319,13 @@ fun BottomSheetPlayer(
                         0 -> {
                             mediaMetadata?.let {
                                 Column(
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier
+                                        .fillMaxSize()
                                         .padding(horizontal = PlayerHorizontalPadding),
                                     verticalArrangement = Arrangement.Bottom
                                 ) {
                                     ShowMain(
-                                        viewModel=playerViewModel,
+                                        viewModel = playerViewModel,
                                         playerConnection = playerConnection,
                                         mediaMetadata = it,
                                         modifier = Modifier.padding(bottom = 8.dp)
@@ -344,12 +357,8 @@ fun BottomSheetPlayer(
                         position = newPosition
                         playerConnection.player.seekTo(newPosition)
                     },
+                    trackId = mediaInfo.id,
                     modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
-                )
-
-                PlayerTimeDisplay(
-                    position = position,
-                    duration = duration
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -364,19 +373,9 @@ fun BottomSheetPlayer(
                 )
             }
 
-            if(shuffleModeEnabled){
-                playMode.value=PlayMode.SHUFFLE_MODE_ALL
-            }else{
-                playMode.value=when(repeatMode){
-                    Player.REPEAT_MODE_ONE -> PlayMode.REPEAT_MODE_ONE
-                    Player.REPEAT_MODE_ALL -> PlayMode.REPEAT_MODE_ALL
-                    Player.REPEAT_MODE_OFF -> PlayMode.REPEAT_MODE_OFF
-                    else -> PlayMode.REPEAT_MODE_OFF
-                }
-            }
+
             Queue(
                 state = queueSheetState,
-                playMode = playMode.value,
                 playerBottomSheetState = state,
                 backgroundColor = backgroundColor,
                 navController = navController
@@ -406,9 +405,6 @@ private fun processLyrics(
     netLyric: Lyric?,
     qqLyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data?
 ): LyricData {
-//    Log.d("lyric load", "start")
-//    Log.d("lyric load netLyric ->", netLyric.toString())
-//    Log.d("lyric load qqLyric  ->", qqLyric.toString())
     when {
         netLyric?.yrc != null && netLyric.tlyric != null -> {
             Log.d("lyric load", "YRC found")
@@ -429,6 +425,7 @@ private fun processLyrics(
                 )
             )
         }
+
         qqLyric?.lyric != null -> {
             Log.d("lyric load", "QRC-1 found")
             return LyricData(
@@ -437,6 +434,7 @@ private fun processLyrics(
                 lyricLine = QRCUtils.parse(QRCUtils.decodeLyric(qqLyric.lyric), "")
             )
         }
+
         netLyric?.lrc != null -> {
             Log.d("lyric load", "LRC found")
             return LyricData(
@@ -445,9 +443,6 @@ private fun processLyrics(
                 lyricLine = netLyric.parseYrc()
             )
         }
-
-
-
 
 
         else -> {

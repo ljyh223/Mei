@@ -62,6 +62,7 @@ import com.ljyh.music.extensions.currentMetadata
 import com.ljyh.music.playback.queue.EmptyQueue
 import com.ljyh.music.playback.queue.Queue
 import com.ljyh.music.utils.CoilBitmapLoader
+import com.ljyh.music.utils.dataStore
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +71,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -193,11 +195,7 @@ class MusicService : MediaLibraryService(),
             .setBitmapLoader(CoilBitmapLoader(this))
             .build()
 
-        player.repeatMode = REPEAT_MODE_OFF
 
-        val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
-        val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-        controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
 
 
         connectivityManager = getSystemService(ConnectivityManager::class.java)

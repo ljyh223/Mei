@@ -71,7 +71,6 @@ fun Controls(
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
         //play/pause
         Box(modifier = Modifier.weight(1f)) {
             IconButton(
@@ -100,7 +99,6 @@ fun Controls(
         }
 
 
-        Spacer(Modifier.width(8.dp))
         //next
         Box(modifier = Modifier.weight(1f)) {
             IconButton(

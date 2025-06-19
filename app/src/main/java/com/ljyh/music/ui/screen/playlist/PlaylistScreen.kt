@@ -4,6 +4,8 @@ import android.app.Activity
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Message
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.rounded.AddTask
 import androidx.compose.material.icons.rounded.PlayCircle
@@ -87,6 +90,7 @@ import com.ljyh.music.data.network.Resource
 import com.ljyh.music.extensions.mediaItems
 import com.ljyh.music.playback.queue.ListQueue
 import com.ljyh.music.ui.component.ConfirmationDialog
+import com.ljyh.music.ui.component.FinalPerfectCollage
 import com.ljyh.music.ui.component.Track
 import com.ljyh.music.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.music.ui.component.shimmer.ListItemPlaceHolder
@@ -99,7 +103,6 @@ import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.DownloadManager
 import com.ljyh.music.utils.NotificationHelper
 import com.ljyh.music.utils.PermissionsUtils.checkAndRequestFilesPermissions
-import com.ljyh.music.utils.largeImage
 import com.ljyh.music.utils.rearrangeArray
 import com.ljyh.music.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
@@ -205,7 +208,9 @@ fun PlaylistScreen(
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = result.data.playlist.name,
-                                        items = rearrangeArray(index, lazyPagingItems.itemSnapshotList.items.map { it.id.toString() })
+                                        items = rearrangeArray(
+                                            index,
+                                            lazyPagingItems.itemSnapshotList.items.map { it.id.toString() })
                                     )
                                 )
                             }
@@ -270,7 +275,7 @@ fun Official() {
 
         Column(
             modifier = Modifier
-            .align(Alignment.BottomCenter)
+                .align(Alignment.BottomCenter)
                 .padding(16.dp)
         ) {
             Column {
@@ -328,8 +333,9 @@ fun Official() {
             }
             Spacer(Modifier.height(16.dp))
             Row {
-                Button (
-                    modifier = Modifier.weight(1f)
+                Button(
+                    modifier = Modifier
+                        .weight(1f)
                         .alpha(0.5f),
                     onClick = {}
                 ) {
@@ -343,7 +349,8 @@ fun Official() {
                 Spacer(Modifier.widthIn(16.dp))
 
                 Button(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
                         .alpha(0.5f),
                     onClick = {}
                 ) {
@@ -357,7 +364,8 @@ fun Official() {
                 Spacer(Modifier.widthIn(16.dp))
 
                 Button(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
                         .alpha(0.5f),
                     onClick = {}
                 ) {
@@ -394,136 +402,179 @@ fun PlaylistInfo(
         onDismiss = { Toast.makeText(context, "取消了下载", Toast.LENGTH_SHORT).show() },
         openDialog = showDialog
     )
-    Column {
-        Row {
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (playlistDetail.cover.size < 5) {
             AsyncImage(
-                modifier = Modifier
-                    .size(144.dp)
-                    .clip(RoundedCornerShape(6.dp)),
-                model = playlistDetail.cover.largeImage(),
+                model = playlistDetail.cover[0],
                 contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(160.dp)
+                    .clip(RoundedCornerShape(16.dp))
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = playlistDetail.name,
-                    fontWeight = FontWeight.Bold,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
-                )
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = "${playlistDetail.count} 首歌曲\n${playlistDetail.description}",
-                    color = MaterialTheme.colorScheme.secondary,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 12.sp,
-                    maxLines = 3
-                )
-
-
-
-                Row {
-                    Button(onClick = { play() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Shuffle,
-                            contentDescription = null,
-                            modifier = Modifier.size(ButtonDefaults.IconSize)
-                        )
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    if (userId == playlistDetail.creatorUserId.toString()
-                    ) {
-                        Button(onClick = {
-
-                            if (playlistDetail.count > 500) {
-                                Toast.makeText(context, "歌曲数量大于500", Toast.LENGTH_SHORT)
-                                    .show()
-                                return@Button
-                            }
-
-                            if (!checkAndRequestFilesPermissions(context as Activity)) {
-                                Toast.makeText(context, "没有权限", Toast.LENGTH_SHORT).show()
-                                return@Button
-                            }
-
-
-                            val downloadDir =
-                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-                            val file = downloadDir.listFiles()
-                                ?.find { it.isFile && it.name == "${playlistDetail.id}.json" }
-                            if (file != null) {
-                                file.readText().let { json ->
-                                    val playlist =
-                                        Gson().fromJson(json, SimplePlaylist::class.java)
-                                    if (playlist.songs.size < playlistDetail.count) {
-                                        val difference =
-                                            playlistDetail.trackIds.filterNot { a ->
-                                                playlist.songs.any { s -> s.id == a.toString() }
-                                            }
-                                        if (difference.isEmpty()) {
-                                            Toast.makeText(
-                                                context,
-                                                "没有需要下载的",
-                                                Toast.LENGTH_SHORT
-                                            )
-                                                .show()
-                                            return@Button
-                                        }
-                                        Log.d("PlaylistScreen", difference.toString())
-                                        count.intValue = difference.size
-                                        ids.value =
-                                            difference.joinToString(",")
-                                        showDialog.value = true
-
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "没有需要下载的",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        return@Button
-                                    }
-
-                                }
-                            } else {
-
-                                count.intValue = playlistDetail.count
-                                ids.value =
-                                    playlistDetail.trackIds.joinToString(",")
-                                showDialog.value = true
-                            }
-
-
-                        }) {
-                            Icon(
-                                imageVector = Icons.Filled.Download,
-                                contentDescription = null,
-                                modifier = Modifier.size(ButtonDefaults.IconSize)
-                            )
-                        }
-
-                    } else {
-                        Button(onClick = {
-
-                        }) {
-                            Icon(
-                                imageVector = Icons.Filled.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(ButtonDefaults.IconSize)
-                            )
-                        }
-
-                    }
-
-
-                }
-            }
+        } else {
+            FinalPerfectCollage(
+                imageUrls = playlistDetail.cover,
+                modifier = Modifier
+                    .size(160.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            )
         }
+
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = playlistDetail.name,
+            fontWeight = FontWeight.Bold,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = "${playlistDetail.count} 首歌曲 | 创建者: ${playlistDetail.createUserName}",
+            color = MaterialTheme.colorScheme.secondary,
+            overflow = TextOverflow.Ellipsis,
+            fontSize = 12.sp,
+            maxLines = 2
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "播放量: ${playlistDetail.playCount}",
+                color = MaterialTheme.colorScheme.secondary,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 12.sp,
+                maxLines = 1
+            )
+            Text(
+                text = "收藏量: ${playlistDetail.subscribedCount}",
+                color = MaterialTheme.colorScheme.secondary,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 12.sp,
+                maxLines = 1
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(onClick = { play() }) {
+                Icon(
+                    imageVector = Icons.Filled.Shuffle,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+            }
+
+
+            Button(onClick = {
+
+            }) {
+                Icon(
+                    imageVector = Icons.Filled.Favorite,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+            }
+
+            if (userId == playlistDetail.creatorUserId.toString()
+            ) {
+                Button(onClick = {
+
+                    if (playlistDetail.count > 500) {
+                        Toast.makeText(context, "歌曲数量大于500", Toast.LENGTH_SHORT)
+                            .show()
+                        return@Button
+                    }
+
+                    if (!checkAndRequestFilesPermissions(context as Activity)) {
+                        Toast.makeText(context, "没有权限", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+
+                    val downloadDir =
+                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                    val file = downloadDir.listFiles()
+                        ?.find { it.isFile && it.name == "${playlistDetail.id}.json" }
+                    if (file != null) {
+                        file.readText().let { json ->
+                            val playlist =
+                                Gson().fromJson(json, SimplePlaylist::class.java)
+                            if (playlist.songs.size < playlistDetail.count) {
+                                val difference =
+                                    playlistDetail.trackIds.filterNot { a ->
+                                        playlist.songs.any { s -> s.id == a.toString() }
+                                    }
+                                if (difference.isEmpty()) {
+                                    Toast.makeText(
+                                        context,
+                                        "没有需要下载的",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                    return@Button
+                                }
+                                Log.d("PlaylistScreen", difference.toString())
+                                count.intValue = difference.size
+                                ids.value =
+                                    difference.joinToString(",")
+                                showDialog.value = true
+
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "没有需要下载的",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@Button
+                            }
+
+                        }
+                    } else {
+
+                        count.intValue = playlistDetail.count
+                        ids.value =
+                            playlistDetail.trackIds.joinToString(",")
+                        showDialog.value = true
+                    }
+
+
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Download,
+                        contentDescription = null,
+                        modifier = Modifier.size(ButtonDefaults.IconSize)
+                    )
+                }
+
+            } else {
+                Button(onClick = {
+
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(ButtonDefaults.IconSize)
+                    )
+                }
+
+            }
+
+
+        }
+
     }
+
 }
 
 

@@ -129,14 +129,27 @@ class PlayerConnection
         player.playWhenReady = true
     }
 
-    fun switchPlayMode(mode: PlayMode) {
-        when (mode) {
+    fun switchPlayMode(mode: PlayMode): Int {
+        return when (mode) {
             // OFF -> ALL -> SHUFFLE -> ONE
-            PlayMode.REPEAT_MODE_OFF -> player.repeatMode = REPEAT_MODE_ALL
-            PlayMode.REPEAT_MODE_ALL -> player.shuffleModeEnabled = true
-            PlayMode.SHUFFLE_MODE_ALL -> player.repeatMode = REPEAT_MODE_ONE
-            PlayMode.REPEAT_MODE_ONE -> player.repeatMode = REPEAT_MODE_OFF
+            PlayMode.REPEAT_MODE_OFF -> {
+                player.repeatMode = REPEAT_MODE_ALL
+                player.repeatMode
+            }
+            PlayMode.REPEAT_MODE_ALL -> {
+                player.shuffleModeEnabled = true
+                3
+            }
+            PlayMode.SHUFFLE_MODE_ALL -> {
+                player.repeatMode = REPEAT_MODE_ONE
+                player.repeatMode
+            }
+            PlayMode.REPEAT_MODE_ONE -> {
+                player.repeatMode = REPEAT_MODE_OFF
+                player.repeatMode
+            }
         }
+
     }
 
 
@@ -207,16 +220,22 @@ class PlayerConnection
     }
 }
 
-enum class PlayMode {
+enum class PlayMode(val mode: Int) {
     // 整个播放列表循环播放。
-    REPEAT_MODE_ALL,
+    REPEAT_MODE_ALL(2),
 
     // 播放列表按顺序播放，播放完最后一首后停止。
-    REPEAT_MODE_OFF,
+    REPEAT_MODE_OFF(0),
 
     // 单曲循环播放。
-    REPEAT_MODE_ONE,
+    REPEAT_MODE_ONE(1),
 
     // 播放列表随机播放。
-    SHUFFLE_MODE_ALL
+    SHUFFLE_MODE_ALL(3);
+
+    companion object {
+        fun fromInt(value: Int): PlayMode? {
+            return entries.find { it.mode == value }
+        }
+    }
 }

@@ -89,7 +89,7 @@ fun LyricScreen(
                 ) {}
             }
         }
-        val parentWidthDp = maxWidth
+
 
         LazyColumn(
             Modifier
@@ -128,7 +128,7 @@ fun LyricScreen(
                     },
                     textBold = lyricTextBold,
                     textAlign = lyricTextAlignment,
-                    parentWidthDp = parentWidthDp,
+                    maxWidthDp = maxWidth,
                     currentTimeMs = if (isActiveLine) position else -1,
                 ) {
                     playerConnection.player.seekTo(lyric.startTimeMs)

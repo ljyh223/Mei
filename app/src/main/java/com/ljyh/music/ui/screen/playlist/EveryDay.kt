@@ -62,12 +62,15 @@ fun EveryDay(
                             playlistDetail = MiniPlaylistDetail(
                                 id = result.data.data.dailySongs[0].id,
                                 name = "每日推荐",
-                                cover = result.data.data.dailySongs[0].al.picUrl,
+                                cover = result.data.data.dailySongs.take(5).map { it.al.picUrl },
                                 description = "",
                                 tracks = result.data.data.dailySongs.map { it.toMediaMetadata() },
                                 trackIds = result.data.data.dailySongs.map { it.id },
                                 creatorUserId = result.data.data.dailySongs[0].ar[0].id,
+                                createUserName = result.data.data.dailySongs[0].ar[0].name,
                                 count = result.data.data.dailySongs.size,
+                                playCount = 0,
+                                subscribedCount = 0
                             ), viewModel = viewModel
                         ) {
                             playerConnection.playQueue(

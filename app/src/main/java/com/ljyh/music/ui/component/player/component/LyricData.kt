@@ -1,5 +1,7 @@
 package com.ljyh.music.ui.component.player.component
 
+import androidx.compose.ui.text.TextLayoutResult
+
 
 // 单句歌词（对应 [] 包裹的内容）
 data class LyricLine(
@@ -8,7 +10,12 @@ data class LyricLine(
     val durationMs: Long,    // 句子总时长（毫秒）
     val words: List<LyricWord>, // 逐字列表
     var measuredWidth: Float? = null, // 句子宽度（px）
-    var translation: String? = null
+    var translation: String? = null,
+
+    // 新增：用于缓存测量结果的字段
+    @Volatile var textLayoutResult: TextLayoutResult? = null,
+    @Volatile var wordMeasures: List<WordMeasure>? = null,
+    @Volatile var translationLayoutResult: TextLayoutResult? = null
 )
 
 data class LyricWord(
@@ -35,3 +42,12 @@ enum class LyricSource {
     NetEaseCloudMusic,
     QQMusic
 }
+data class SungState(
+    val fullyHighlightedLines: Int, // 已被完全高亮的行数
+    val partialHighlightWidth: Float   // 最后活动行上的高亮宽度 (像素)
+)
+data class WordMeasure(
+    val text: String,
+    val startOffset: Float, // 单词在整行文本中的起始X坐标
+    val endOffset: Float    // 单词在整行文本中的结束X坐标
+)

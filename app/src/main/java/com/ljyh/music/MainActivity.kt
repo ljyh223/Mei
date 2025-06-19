@@ -75,7 +75,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
+import coil3.disk.DiskCache
+import coil3.disk.directory
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
 import com.ljyh.music.constants.AppBarHeight
@@ -122,10 +125,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.Headers
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.Response
+import java.io.File
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -164,11 +166,6 @@ class MainActivity : ComponentActivity() {
         isBound = true
     }
 
-    override fun onStop() {
-        super.onStop()
-        if (isBound) unbindService(serviceConnection)
-
-    }
 
     @RequiresApi(Build.VERSION_CODES.S)
     @OptIn(ExperimentalMaterial3Api::class)
@@ -204,6 +201,13 @@ class MainActivity : ComponentActivity() {
                 ImageLoader.Builder(this)
                     .components {
                         add(OkHttpNetworkFetcherFactory(okHttpClient))
+                    }
+                    .crossfade(true)
+                    .diskCache {
+                        DiskCache.Builder()
+                            .directory(File(this@MainActivity.cacheDir, "image_cache"))
+                            .maxSizePercent(0.1)
+                            .build()
                     }
                     .build()
 

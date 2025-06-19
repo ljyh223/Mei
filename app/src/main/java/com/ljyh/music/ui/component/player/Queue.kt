@@ -97,6 +97,7 @@ import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
 import androidx.navigation.NavController
 import com.ljyh.music.AppContext
 import com.ljyh.music.constants.ListItemHeight
+import com.ljyh.music.constants.PlayModeKey
 import com.ljyh.music.data.model.metadata
 import com.ljyh.music.playback.PlayMode
 import com.ljyh.music.ui.component.BottomSheet
@@ -104,6 +105,7 @@ import com.ljyh.music.ui.component.BottomSheetState
 import com.ljyh.music.ui.component.LocalMenuState
 import com.ljyh.music.ui.local.LocalPlayerConnection
 import com.ljyh.music.utils.TimeUtils.makeTimeString
+import com.ljyh.music.utils.dataStore
 import com.ljyh.music.utils.rememberPreference
 
 import kotlinx.coroutines.Dispatchers
@@ -119,14 +121,16 @@ import kotlin.math.roundToInt
 @Composable
 fun Queue(
     state: BottomSheetState,
-    playMode: PlayMode,
     playerBottomSheetState: BottomSheetState,
     backgroundColor: Color,
     navController: NavController,
     modifier: Modifier = Modifier,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
+    val context = LocalContext.current
     var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var playModeValue by rememberPreference(PlayModeKey, 3)
+    val playMode = PlayMode.fromInt(playModeValue)!!
     if (showSleepTimerDialog) {
         SleepTimerDialog(
             onDismiss = { showSleepTimerDialog = false }
@@ -161,18 +165,10 @@ fun Queue(
         modifier = Modifier
     ) {
 
-        IconButton(
-            onClick = {},
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.TextSnippet,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
+
         IconButton(
             onClick = {
-                playerConnection.switchPlayMode(playMode)
+                playModeValue = playerConnection.switchPlayMode(playMode)
             },
         ) {
             Icon(
@@ -204,6 +200,7 @@ fun Queue(
                 Text(
                     text = makeTimeString(sleepTimerTimeLeft),
                     style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
                         .clickable(onClick = playerConnection.service.sleepTimer::clear)
@@ -220,14 +217,6 @@ fun Queue(
             }
         }
 
-        // 添加到歌单
-        IconButton(onClick = {}) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.PlaylistAdd,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
 
     }
 

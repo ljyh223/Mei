@@ -1,6 +1,7 @@
 package com.ljyh.music.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ljyh.music.playback.PlayMode
@@ -38,7 +39,7 @@ val LyricTextBoldKey = booleanPreferencesKey("lyricTextBold")
 val DynamicStreamerKey = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
-val PlayModeKey= stringPreferencesKey("playMode")
+val PlayModeKey= intPreferencesKey("playMode")
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
 
