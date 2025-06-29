@@ -16,12 +16,12 @@ plugins {
 
 
 android {
-    namespace = "com.ljyh.music"
+    namespace = "com.ljyh.mei"
     compileSdk = 35
 
 
     defaultConfig {
-        applicationId = "com.ljyh.music"
+        applicationId = "com.ljyh.mei"
         minSdk = 29
         targetSdk = 35
         versionCode = 1
@@ -86,9 +86,10 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.coil.compose)
+    implementation(libs.coil.core)
     implementation(libs.coil.network.okhttp)
     implementation(libs.converter.gson)
-
+    implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.retrofit)
     implementation(libs.retrofit.scalars)
     ksp(libs.androidx.room.compiler)

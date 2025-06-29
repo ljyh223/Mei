@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.ljyh.music",
+  "applicationId": "com.ljyh.mei",
   "variantName": "release",
   "elements": [
     {
@@ -12,7 +12,7 @@
       "filters": [],
       "attributes": [],
       "versionCode": 1,
-      "versionName": "1.32",
+      "versionName": "1.35",
       "outputFile": "app-release.apk"
     }
   ],

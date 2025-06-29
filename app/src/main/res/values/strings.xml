@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">music</string>
+    <string name="app_name">梅</string>
     <string name="music_player">Music Player</string>
     <string name="error_no_internet">No network connection</string>
     <string name="error_timeout">Timeout</string>
