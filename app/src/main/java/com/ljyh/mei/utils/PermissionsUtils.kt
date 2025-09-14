@@ -2,6 +2,7 @@ package com.ljyh.mei.utils
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -54,7 +55,7 @@ object PermissionsUtils {
 
 
 
-    fun checkFilesPermissions(activity: Activity): Boolean {
+    fun checkFilesPermissions(activity: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else {
