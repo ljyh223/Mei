@@ -75,6 +75,7 @@ fun EveryDay(
                         ) {
                             playerConnection.playQueue(
                                 ListQueue(
+                                    id = "everyday",
                                     title = "每日推荐",
                                     items = result.data.data.dailySongs.map { it.id.toString() }
                                 )
@@ -89,6 +90,7 @@ fun EveryDay(
                             val trackIds = result.data.data.dailySongs.map { it.id.toString() }
                             playerConnection.playQueue(
                                 ListQueue(
+                                    id = "everyday",
                                     title = "每日推荐",
                                     items = rearrangeArray(index, trackIds)
                                 )

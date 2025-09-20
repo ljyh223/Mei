@@ -122,7 +122,8 @@ class MusicService : MediaLibraryService(),
 
     private val binder = MusicBinder()
 
-    private var currentQueue: Queue = EmptyQueue
+    private lateinit var queueManager: PlaybackQueueManager
+    private lateinit var playlistStateManager: PlaylistStateManager
     var queueTitle: String? = null
     private var isAudioEffectSessionOpened = false
 
@@ -203,6 +204,15 @@ class MusicService : MediaLibraryService(),
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
 
         connectivityManager = getSystemService(ConnectivityManager::class.java)
+        
+        // 初始化队列管理器
+        queueManager = PlaybackQueueManager(this, player, apiService, scope)
+        
+        // 初始化预加载策略管理器
+        queueManager.preloadStrategyManager = PreloadStrategyManager(player, scope)
+        
+        // 初始化歌单状态管理器
+        playlistStateManager = PlaylistStateManager()
     }
 
 
@@ -258,80 +268,47 @@ class MusicService : MediaLibraryService(),
     }
 
     fun playNext(items: List<MediaItem>) {
-        player.addMediaItems(
-            if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
-            items
-        )
-        player.prepare()
+        scope.launch {
+            queueManager.playNext(items)
+        }
     }
 
     fun addToQueue(items: List<MediaItem>) {
-        player.addMediaItems(items)
-        player.prepare()
-    }
-
-
-
-    fun playQueue(queue: Queue, playWhenReady: Boolean = true, batchSize: Int = 10) {
-        if (!scope.isActive) {
-            scope = CoroutineScope(Dispatchers.Main) + Job()
-        }
-        currentQueue = queue
-        queueTitle = null
-        player.shuffleModeEnabled = false
-
-        scope.launch(SilentHandler) {
-            val initialStatus = queue.getInitialStatus()
-            if (queue.preloadItem != null && player.playbackState == STATE_IDLE) return@launch
-            if (initialStatus.title != null) {
-                queueTitle = initialStatus.title
-            }
-
-
-            val firstBatch = initialStatus.ids.take(batchSize)
-            val remainingItems = initialStatus.ids.drop(batchSize)
-
-            val firstItems =
-                apiService.getSongDetail(
-                    GetSongDetails(
-                        c = firstBatch.joinToString(",")
-                    )
-                ).songs.map {
-                    it.toMediaItem()
-                }
-            // 设置第一批歌曲
-            player.setMediaItems(firstItems, 0, initialStatus.position.toLong())
-            player.prepare()
-            player.playWhenReady = playWhenReady
-
-            // 监听播放进度，动态加载后续歌曲
-            monitorPlayback(remainingItems, batchSize)
+        scope.launch {
+            queueManager.addToQueue(items)
         }
     }
 
-    private fun monitorPlayback(remainingItems: List<String>, batchSize: Int) {
-        var remaining = remainingItems.toMutableList()
 
-        player.addListener(object : Player.Listener {
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                val lastIndex = player.currentMediaItemIndex
-                val totalItems = player.mediaItemCount
 
-                // 当播放到倒数第 2 首时，加载下一批
-                if (lastIndex >= totalItems - 2 && remaining.isNotEmpty()) {
-                    val nextBatch = remaining.take(batchSize)
-                    scope.launch {
-                        val nextItem =
-                            apiService.getSongDetail(GetSongDetails(c = nextBatch.joinToString(","))).songs.map {
-                                it.toMediaItem()
-                            }
-                        remaining = remaining.drop(batchSize).toMutableList()
-                        player.addMediaItems(nextItem)
-                    }
+    /**
+     * 播放队列
+     */
+    fun playQueue(queue: com.ljyh.mei.playback.queue.Queue, playWhenReady: Boolean = true, startPosition: Int = 0) {
+        scope.launch {
+            queueManager.playQueue(queue, playWhenReady, startPosition)
+            queueTitle = queue.title
+        }
+    }
 
-                }
-            }
-        })
+    /**
+     * 播放播放列表
+     */
+    fun playPlaylist(playlistDetail: com.ljyh.mei.data.model.PlaylistDetail, playWhenReady: Boolean = true, startPosition: Int = 0) {
+        scope.launch {
+            val trackIds = playlistDetail.playlist.trackIds.map { it.id }
+            val playlistQueue = com.ljyh.mei.playback.queue.PlaylistQueue(
+                id = playlistDetail.playlist.Id.toString(),
+                title = playlistDetail.playlist.name,
+                trackIds = trackIds,
+                batchSize = 20
+            )
+            queueManager.playQueue(playlistQueue, playWhenReady, startPosition)
+            queueTitle = playlistDetail.playlist.name
+            
+            // 更新歌单状态
+            playlistStateManager.setCurrentPlaylist(playlistDetail, startPosition)
+        }
     }
 
     override fun onDestroy() {
@@ -339,6 +316,11 @@ class MusicService : MediaLibraryService(),
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)
+        queueManager.release()
+        
+        // 保存播放状态
+        playlistStateManager.savePlaybackState()
+        
         player.release()
         super.onDestroy()
     }

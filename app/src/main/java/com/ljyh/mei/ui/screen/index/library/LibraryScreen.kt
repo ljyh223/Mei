@@ -230,15 +230,15 @@ fun User(
         }
 
 
-        AsyncImage(
-            model = userAvatarUrl.largeImage(),
-            contentDescription = null,
-            modifier = Modifier
-                .size(72.dp)
-                .align(Alignment.Center)
-                .clickable { Screen.Setting.navigate(navController) }
-                .clip(RoundedCornerShape(36.dp)),
-        )
+//        AsyncImage(
+//            model = userAvatarUrl.largeImage(),
+//            contentDescription = null,
+//            modifier = Modifier
+//                .size(72.dp)
+//                .align(Alignment.Center)
+//                .clickable { Screen.Setting.navigate(navController) }
+//                .clip(RoundedCornerShape(36.dp)),
+//        )
         Text(
             text = userNickname,
             style = TextStyle(
@@ -249,7 +249,7 @@ fun User(
                 ),
             ),
             fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.W900,
             maxLines = 1,
             color = Color.White,
             overflow = TextOverflow.Ellipsis,

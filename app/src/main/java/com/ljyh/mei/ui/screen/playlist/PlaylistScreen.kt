@@ -179,6 +179,7 @@ fun PlaylistScreen(
                         PlaylistInfo(result.data.toMiniPlaylistDetail(), viewModel) {
                             playerConnection.playQueue(
                                 ListQueue(
+                                    id = "playlist_${result.data.playlist.Id}",
                                     title = result.data.playlist.name,
                                     items = ids.value
                                 )
@@ -204,6 +205,7 @@ fun PlaylistScreen(
                                 }
                                 playerConnection.playQueue(
                                     ListQueue(
+                                        id = "playlist_${result.data.playlist.Id}",
                                         title = result.data.playlist.name,
                                         items = rearrangeArray(
                                             index,

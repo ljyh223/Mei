@@ -66,6 +66,7 @@ import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.positionComparator
 import com.ljyh.mei.utils.rearrangeArray
 import com.ljyh.mei.utils.rememberPreference
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -274,6 +275,7 @@ private fun RenderHomePageContent(
                     val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
                     playerConnection.playQueue(
                         ListQueue(
+                            id = UUID.randomUUID().toString(),
                             title = "PRIVATE_RCMD_SONG",
                             items = rearrangeArray(index, flatSongs)
                         )
@@ -347,6 +349,7 @@ private fun RenderHomePageContent(
                     val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
                     playerConnection.playQueue(
                         ListQueue(
+                            id = UUID.randomUUID().toString(),
                             title = "RED_SIMILAR_SONG",
                             items = rearrangeArray(index, flatSongs)
                         )
