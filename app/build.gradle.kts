@@ -25,7 +25,7 @@ android {
         minSdk = 29
         targetSdk = 35
         versionCode = 1
-        versionName = "1.36"
+        versionName = "1.37"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -130,6 +130,7 @@ dependencies {
     implementation(kotlin("reflect"))
 
     implementation(libs.android.gpuimage)
+    implementation(libs.reorderable)
 
 
 
