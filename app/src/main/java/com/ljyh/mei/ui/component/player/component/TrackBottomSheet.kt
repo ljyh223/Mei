@@ -138,7 +138,7 @@ fun TrackBottomSheet (
     }
     if (showBottomSheet) {
         ModalBottomSheet(
-            shape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp),
+            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
             onDismissRequest = onDismiss,
             sheetState = sheetState
         ) {

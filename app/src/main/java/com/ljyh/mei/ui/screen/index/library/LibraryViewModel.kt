@@ -24,7 +24,11 @@ class LibraryViewModel @Inject constructor(
     private val _account = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
     val account: StateFlow<Resource<UserAccount>> = _account
 
+    private val _playlists=MutableStateFlow<Resource<UserPlaylist>>(Resource.Loading)
+    val playlists:StateFlow<Resource<UserPlaylist>> = _playlists
 
+    private val _photoAlbum=MutableStateFlow<Resource<AlbumPhoto>>(Resource.Loading)
+    val photoAlbum:StateFlow<Resource<AlbumPhoto>> = _photoAlbum
     fun getUserAccount() {
         if (account.value is Resource.Success) return
         viewModelScope.launch {
@@ -34,8 +38,7 @@ class LibraryViewModel @Inject constructor(
     }
 
 
-    private val _playlists=MutableStateFlow<Resource<UserPlaylist>>(Resource.Loading)
-    val playlists:StateFlow<Resource<UserPlaylist>> = _playlists
+
     fun getUserPlaylist(uid:String){
         viewModelScope.launch {
             _playlists.value = Resource.Loading
@@ -43,8 +46,7 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    private val _photoAlbum=MutableStateFlow<Resource<AlbumPhoto>>(Resource.Loading)
-    val photoAlbum:StateFlow<Resource<AlbumPhoto>> = _photoAlbum
+
 
     fun getPhotoAlbum(id:String){
         viewModelScope.launch {
@@ -59,5 +61,5 @@ class LibraryViewModel @Inject constructor(
             playlistRepository.insertPlaylists(playlist)
         }
     }
-    val allPlaylist = playlistRepository.getAllPlaylist()
+
 }

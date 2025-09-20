@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,45 +64,60 @@ fun RecommendCard(
     viewModel: HomeViewModel,
     onClick: () -> Unit = {}
 ) {
+
     val context = LocalContext.current
     val loader = rememberNetworkLoader()
     val dominantColorState = rememberDominantColorState(loader)
 
-    val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
+// 使用 remember 来保持加载状态，key 为 cover
+    val isColorLoaded = remember(cover) { mutableStateOf(false) }
+
     LaunchedEffect(cover) {
+        if (isColorLoaded.value) return@LaunchedEffect
 
         withContext(Dispatchers.IO) {
+            // 先尝试从数据库获取
             val cachedColor = viewModel.getColors(cover)
             if (cachedColor != null) {
                 withContext(Dispatchers.Main) {
                     dominantColorState.updateFrom(Url(cover))
-                    isColorLoaded.value = true // 颜色已加载，避免重复存储
+                    isColorLoaded.value = true
                 }
             } else {
+                // 没有缓存，计算新颜色
                 withContext(Dispatchers.Main) {
                     val demoImageUrl = Url(cover)
                     loader.load(demoImageUrl)
                     dominantColorState.updateFrom(demoImageUrl)
-                    isColorLoaded.value = false // 颜色未加载，将在下一个 LaunchedEffect 存入数据库
+                }
+
+                // 计算完成后保存到数据库
+                if (dominantColorState.color != Color.Unspecified) {
+                    viewModel.addColor(
+                        com.ljyh.mei.data.model.room.Color(
+                            url = cover,
+                            color = dominantColorState.color.toArgb()
+                        )
+                    )
+                    isColorLoaded.value = true
                 }
             }
         }
-
     }
-    // 颜色计算完成后存入数据库
-    LaunchedEffect(dominantColorState.color) {
-        if (!isColorLoaded.value) {
-            withContext(Dispatchers.IO) {
-                viewModel.addColor(
-                    com.ljyh.mei.data.model.room.Color(
-                        url = cover,
-                        color = dominantColorState.color.toArgb()
-                    )
-                )
-            }
-            isColorLoaded.value = true
-        }
-    }
+//// 颜色计算完成后存入数据库
+//    LaunchedEffect(dominantColorState.color) {
+//        if (dominantColorState.color != Color.Unspecified && !isColorLoaded.value) {
+//            withContext(Dispatchers.IO) {
+//                viewModel.addColor(
+//                    com.ljyh.mei.data.model.room.Color(
+//                        url = cover,
+//                        color = dominantColorState.color.toArgb()
+//                    )
+//                )
+//            }
+//            isColorLoaded.value = true
+//        }
+//    }
     Row {
         Column(
             modifier = Modifier.fillMaxWidth(),

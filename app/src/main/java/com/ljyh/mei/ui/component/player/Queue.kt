@@ -103,6 +103,7 @@ import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.component.BottomSheet
 import com.ljyh.mei.ui.component.BottomSheetState
 import com.ljyh.mei.ui.component.LocalMenuState
+import com.ljyh.mei.ui.component.player.component.PlaylistSheet
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.dataStore
@@ -129,6 +130,7 @@ fun Queue(
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var showPlaylistSheet by remember { mutableStateOf(false) }
     var playModeValue by rememberPreference(PlayModeKey, 3)
     val playMode = PlayMode.fromInt(playModeValue)!!
     if (showSleepTimerDialog) {
@@ -136,6 +138,12 @@ fun Queue(
             onDismiss = { showSleepTimerDialog = false }
         )
     }
+
+    PlaylistSheet(
+        showBottomSheet = showPlaylistSheet,
+        onDismiss = { showPlaylistSheet = false }
+    )
+
     var sleepTimerTimeLeft by remember {
         mutableLongStateOf(0L)
     }
@@ -183,7 +191,9 @@ fun Queue(
             )
 
         }
-        IconButton(onClick = { state.expandSoft() }) {
+        IconButton(onClick = {
+            showPlaylistSheet = true
+        }) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                 contentDescription = null,

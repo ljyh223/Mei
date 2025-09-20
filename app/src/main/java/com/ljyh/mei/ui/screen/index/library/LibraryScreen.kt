@@ -85,14 +85,23 @@ fun LibraryScreen(
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
         }
     }
-    LaunchedEffect(key1 = userId) {
-        Log.d("libraryScreen", "userId: $userId")
-        if (userId != "") {
+    LaunchedEffect(key1 = userId, key2 = userPlaylist) {
+        if (userId.isNotEmpty() && userPlaylist !is Resource.Success) {
+            Log.d("libraryScreen", "Loading user playlist for userId: $userId")
             viewModel.getUserPlaylist(userId)
-            if (userPhoto == "") {
-                viewModel.getPhotoAlbum(userId)
-            }
-        } else if (cookie != "") {
+        }
+    }
+
+    LaunchedEffect(key1 = userId, key2 = userPhoto, key3 = photoAlbum) {
+        if (userId.isNotEmpty() && userPhoto.isEmpty() && photoAlbum !is Resource.Success) {
+            Log.d("libraryScreen", "Loading photo album for userId: $userId")
+            viewModel.getPhotoAlbum(userId)
+        }
+    }
+
+    LaunchedEffect(key1 = cookie, key2 = account) {
+        if (cookie.isNotEmpty() && account !is Resource.Success) {
+            Log.d("libraryScreen", "Loading user account with cookie")
             viewModel.getUserAccount()
         }
     }

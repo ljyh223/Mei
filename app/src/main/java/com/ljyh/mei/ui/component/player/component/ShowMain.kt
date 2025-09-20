@@ -70,7 +70,7 @@ fun ShowMain(
     playerConnection: PlayerConnection,
     mediaMetadata: MediaMetadata,
     modifier: Modifier,
-    playlistViewModel: PlaylistViewModel= hiltViewModel()
+    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
@@ -130,7 +130,7 @@ fun ShowMain(
             TrackBottomSheet(
                 showBottomSheet = showTrackBottomSheet,
                 viewModel = playlistViewModel,
-                mediaMetadata=it,
+                mediaMetadata = it,
             ) {
                 showTrackBottomSheet = false
             }
@@ -179,7 +179,7 @@ fun ShowMain(
                 Box(modifier = Modifier.weight(1f)) {
                     IconButton(
                         onClick = {
-                            showTrackBottomSheet=true
+                            showTrackBottomSheet = true
                         },
                         modifier = Modifier
                             .size(32.dp)

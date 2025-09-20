@@ -27,19 +27,16 @@ class HomeViewModel @Inject constructor(
     val homePageResourceShow: StateFlow<Resource<List<HomePageResourceShow.Data.Block>>> = _homePageResourceShow
 
 
-
-    init {
-        homePageResourceShow()
-    }
-
-    fun homePageResourceShow(refresh:Boolean=false) {
+    fun homePageResourceShow(refresh: Boolean = false) {
         viewModelScope.launch {
+            // 如果不是刷新且有成功数据，则不加载
+            val currentData = _homePageResourceShow.value
+            if (!refresh && currentData is Resource.Success) return@launch
+
             _homePageResourceShow.value = Resource.Loading
-            _homePageResourceShow.value =
-                repository.getHomePageResourceShow(refresh)
+            _homePageResourceShow.value = repository.getHomePageResourceShow(refresh)
         }
     }
-
     fun getColors(url: String): Color? {
         return colorRepository.getColor(url)
     }
