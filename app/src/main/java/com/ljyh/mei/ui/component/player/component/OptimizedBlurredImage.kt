@@ -39,6 +39,8 @@ import kotlin.math.roundToInt
 
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.*
+import kotlin.math.min
+import kotlin.math.sqrt
 
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
@@ -53,7 +55,13 @@ fun OptimizedBlurredImage(
     val cf = remember { imageWithDynamicFilter(isDarkTheme) }
     val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
     val rotation = remember { Animatable(0f) }
-
+    val scaleFactor = with(density) {
+        val screenW = LocalContext.current.resources.displayMetrics.widthPixels
+        val screenH = LocalContext.current.resources.displayMetrics.heightPixels
+        val diagonal = sqrt((screenW * screenW + screenH * screenH).toDouble())
+        val baseScale = (diagonal / min(screenW, screenH)).toFloat()
+        baseScale * 1.15f
+    }
     LaunchedEffect(isPlaying, dynamicStreamer) {
         if (dynamicStreamer && isPlaying) {
             rotation.animateTo(
@@ -97,7 +105,8 @@ fun OptimizedBlurredImage(
             contentDescription = null
         )
     } else {
-        // ... (旧的 AsyncImage 实现)
+
+
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .placeholderMemoryCacheKey(cover.smallImage())
@@ -106,9 +115,10 @@ fun OptimizedBlurredImage(
                 .build(),
             modifier = Modifier
                 .fillMaxSize()
-                .scale(scale = calculateScaleToFit())
+                    .scale(scale = scaleFactor)
                 .graphicsLayer {
                     rotationZ = rotation.value
+                    clip = false
                 },
             contentScale = ContentScale.Crop,
             colorFilter = cf,
