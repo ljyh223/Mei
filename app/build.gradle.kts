@@ -40,12 +40,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlinOptions {
         freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
     buildFeatures {
         buildConfig = true
@@ -114,7 +114,6 @@ dependencies {
     implementation(libs.material.kolor)
     implementation(libs.kmpalette.core)
     implementation(libs.kmpalette.extensions.network)
-
     implementation (libs.compose.colorful.sliders)
 
     implementation(libs.ktor.client.core)
@@ -132,6 +131,8 @@ dependencies {
     implementation(libs.android.gpuimage)
     implementation(libs.reorderable)
 
+    implementation("com.mocharealm.accompanist:lyrics-core:0.3.4")
+    implementation("com.mocharealm.accompanist:lyrics-ui:1.0.6")
 
 
 }
