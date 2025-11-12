@@ -22,11 +22,12 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        maven { url =uri("https://jitpack.io") }
+        gradlePluginPortal()
         google()
         mavenCentral()
 
-        maven{ url =uri ("https://oss.sonatype.org/content/repositories/snapshots")}
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots") }
 
     }
 }
