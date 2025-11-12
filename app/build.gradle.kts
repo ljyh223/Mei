@@ -131,8 +131,8 @@ dependencies {
     implementation(libs.android.gpuimage)
     implementation(libs.reorderable)
 
-    implementation("com.mocharealm.accompanist:lyrics-core:0.3.4")
-    implementation("com.mocharealm.accompanist:lyrics-ui:1.0.6")
+    implementation(libs.lyrics.core)
+    implementation(libs.lyrics.ui)
 
 
 }

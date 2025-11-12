@@ -1,6 +1,8 @@
 package com.ljyh.mei.ui.component.player.component
 
 import androidx.compose.ui.text.TextLayoutResult
+import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
+import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
 
 
 // 单句歌词（对应 [] 包裹的内容）
@@ -34,7 +36,7 @@ data class LyricLineA(
 data class LyricData(
     val isVerbatim: Boolean = false,
     val source: LyricSource = LyricSource.Empty,
-    val lyricLine: List<LyricLine>
+    val lyricLine: SyncedLyrics
 )
 
 enum class LyricSource {

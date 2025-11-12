@@ -1,20 +1,14 @@
 package com.ljyh.mei.utils.encrypt
 
 import android.util.Log
-import com.ljyh.mei.data.model.LyricUtils
-import com.ljyh.mei.ui.component.player.component.LyricLine
-import com.ljyh.mei.ui.component.player.component.LyricWord
 import java.io.ByteArrayInputStream
 import java.util.zip.InflaterInputStream
-import kotlin.math.abs
 
 object QRCUtils {
     enum class DESMode {
         DES_ENCRYPT,
         DES_DECRYPT
     }
-
-
     private fun bitNum(a: ByteArray, b: Int, c: Int): Long {
         val byteIndex = (b / 32) * 4 + 3 - (b % 32) / 8
         val bitPosition = 7 - (b % 8)
@@ -508,7 +502,7 @@ object QRCUtils {
         return bytes.joinToString("") { "%02X".format(it) }
     }
 
-    //传入歌词xml
+    //传入歌词
     fun decodeLyric(data: String,isTranslation:Boolean=false): String {
         if(data=="") return ""
         try {
@@ -531,93 +525,5 @@ object QRCUtils {
             Log.e("QRCUtils", "decodeLyric: ${e.message}")
             return ""
         }
-
-    }
-
-
-    fun parse(lyric: String, translations: String): List<LyricLine> {
-
-        val regex = "\\[(\\d+),(\\d+)\\](.*)".toRegex()
-        val wordRegex = "([^\\(\\)]*)\\((\\d+),(\\d+)\\)".toRegex()
-        // ✅ 解析逐字歌词
-        val yrc = lyric.lineSequence()
-            .mapNotNull { line ->
-                val match = regex.matchEntire(line) ?: return@mapNotNull null
-                val (lineStart, lineDuration, wordsText) = match.destructured
-
-                val words = wordRegex.findAll(wordsText)
-                    .map { wordMatch ->
-                        val (wordText, wordStart, wordDuration) = wordMatch.destructured
-                        LyricWord(
-                            startTimeMs = wordStart.toLong(),
-                            durationMs = wordDuration.toLong(),
-                            text = wordText
-                        )
-                    }
-                    .toList()
-
-                LyricLine(
-                    lyric = words.joinToString("") { it.text },
-                    startTimeMs = lineStart.toLong(),
-                    durationMs = lineDuration.toLong(),
-                    words = words
-                )
-            }
-            .toList()
-
-
-        val mTranslations = translations.lineSequence()
-            .mapNotNull { line -> LyricUtils.parseLine(line) }
-            .toList()
-        if (translations.isEmpty()) return yrc
-        Log.d("parse","有翻译")
-        // ✅ 用双指针优化匹配翻译歌词（O(N) 复杂度）
-        var j = 0 // 翻译歌词的索引
-        for (i in yrc.indices) {
-            val lyricLine = yrc[i]
-
-            while (j < mTranslations.size - 1 &&
-                abs(mTranslations[j].time - lyricLine.startTimeMs) > abs(mTranslations[j + 1].time - lyricLine.startTimeMs)
-            ) {
-                j++
-            }
-
-            if (j < mTranslations.size && !mTranslations[j].lyric.startsWith("//")) {
-                yrc[i].translation = mTranslations[j].lyric
-            }
-        }
-        return yrc
-
-    }
-
-
-    fun addTranslation(lyric:List<LyricLine>, translations: String):List<LyricLine>{
-        val mTranslations = translations.lineSequence()
-            .mapNotNull { line -> LyricUtils.parseLine(line) }
-            .toList()
-
-        if (translations.isEmpty()) return lyric
-
-        var j = 0
-        for (i in lyric.indices) {
-            val lyricLine = lyric[i]
-            while (j < mTranslations.size - 1 &&
-                abs(mTranslations[j].time - lyricLine.startTimeMs) > abs(mTranslations[j + 1].time - lyricLine.startTimeMs)
-            ) {
-                j++
-            }
-            if (j < mTranslations.size && !mTranslations[j].lyric.startsWith("//")) {
-                lyric[i].translation = mTranslations[j].lyric
-            }
-
-        }
-        return lyric
-    }
-
-
-    enum class Content{
-        LYRIC,
-        LYRIC_TRANSLATION,
-        LYRIC_ROMA
     }
 }

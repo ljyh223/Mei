@@ -48,7 +48,7 @@ class PlayerRepository(
                 qqMusicUApiService.getLyric(
                     GetLyricData(
                         comm = GetLyricData.Comm(),
-                        GetLyricData.GetPlayLyricInfo(
+                        getPlayLyricInfo =GetLyricData.GetPlayLyricInfo(
                             param = GetLyricData.GetPlayLyricInfo.GetLyric(
                                 singerName = artist,
                                 songName = title,

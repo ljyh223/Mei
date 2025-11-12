@@ -40,7 +40,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.C
-import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import com.ljyh.mei.constants.DarkModeKey
@@ -54,8 +53,6 @@ import com.ljyh.mei.constants.PureBlackKey
 import com.ljyh.mei.constants.QueuePeekHeight
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.parseYrc
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayMode
@@ -66,7 +63,6 @@ import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.Debug
 import com.ljyh.mei.ui.component.player.component.DialogSelect
 import com.ljyh.mei.ui.component.player.component.LyricData
-import com.ljyh.mei.ui.component.player.component.LyricLine
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.LyricSource
 import com.ljyh.mei.ui.component.player.component.OptimizedBlurredImage
@@ -75,11 +71,14 @@ import com.ljyh.mei.ui.component.player.component.ShowMain
 import com.ljyh.mei.ui.component.player.component.animatedGradient
 import com.ljyh.mei.ui.component.rememberBottomSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.encrypt.QRCUtils
+import com.ljyh.mei.utils.lyric.QrcParser
+import com.ljyh.mei.utils.lyric.YrcParser
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
+import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
+import com.mocharealm.accompanist.lyrics.core.parser.LrcParser
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -202,7 +201,14 @@ fun BottomSheetPlayer(
             is Resource.Error -> {}
             Resource.Loading -> {}
             is Resource.Success -> {
-                qqLyric = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data
+                val lyricData = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data
+
+                lyricData.copy(
+                    lyric = QRCUtils.decodeLyric(lyricData.lyric),
+                    trans = QRCUtils.decodeLyric(lyricData.trans, true),
+                    roma = QRCUtils.decodeLyric(lyricData.roma),
+                )
+                qqLyric = lyricData
             }
         }
 
@@ -354,8 +360,7 @@ fun BottomSheetPlayer(
 
                                 lyricData = lyricLine.value,
                                 playerConnection = playerConnection,
-                                position = position
-                            ) {
+                            ){
                                 showDialog = true
                             }
                         }
@@ -405,13 +410,11 @@ fun BottomSheetPlayer(
 private fun createDefaultLyricData(message: String): LyricData {
     return LyricData(
         isVerbatim = false,
-        lyricLine = listOf(
-            LyricLine(
-                lyric = message,
-                startTimeMs = 0,
-                durationMs = 0,
-                words = emptyList()
-            )
+        lyricLine = SyncedLyrics(
+            lines = listOf(),
+            title =  "",
+            id = "0",
+            artists = null
         )
     )
 }
@@ -420,33 +423,36 @@ private fun processLyrics(
     netLyric: Lyric?,
     qqLyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data?
 ): LyricData {
+
+    Log.d("Lyric Parse","YRC 10: ${netLyric?.yrc?.lyric?.take(10)}")
+    Log.d("Lyric Parse","QRC 10: ${netLyric?.tlyric?.lyric?.take(10)}")
+    Log.d("Lyric Parse","QRC 10: ${qqLyric?.lyric?.take(10)}")
     when {
         netLyric?.yrc != null && netLyric.tlyric != null -> {
             Log.d("lyric load", "YRC found")
             return LyricData(
                 isVerbatim = true,
                 source = LyricSource.NetEaseCloudMusic,
-                lyricLine = netLyric.parseYrc()
+                lyricLine = YrcParser.parse(netLyric.yrc.lyric, netLyric.tlyric.lyric)
             )
         }
 
-        qqLyric?.lyric != null && qqLyric.trans != "" -> {
+        qqLyric?.lyric != null && qqLyric.lyric != "" && qqLyric.trans != "" -> {
             Log.d("lyric load", "QRC found")
             return LyricData(
                 isVerbatim = true,
                 source = LyricSource.QQMusic,
-                lyricLine = QRCUtils.parse(
-                    QRCUtils.decodeLyric(qqLyric.lyric), QRCUtils.decodeLyric(qqLyric.trans, true)
-                )
+                lyricLine = QrcParser.parse(qqLyric.lyric, qqLyric.trans)
             )
         }
 
-        qqLyric?.lyric != null -> {
+
+        qqLyric?.lyric != "" && qqLyric?.lyric != null && netLyric?.tlyric?.lyric!=null -> {
             Log.d("lyric load", "QRC-1 found")
             return LyricData(
                 isVerbatim = true,
                 source = LyricSource.QQMusic,
-                lyricLine = QRCUtils.parse(QRCUtils.decodeLyric(qqLyric.lyric), "")
+                lyricLine = QrcParser.parse(qqLyric.lyric, netLyric.tlyric.lyric,)
             )
         }
 
@@ -455,7 +461,9 @@ private fun processLyrics(
             return LyricData(
                 isVerbatim = false,
                 source = LyricSource.NetEaseCloudMusic,
-                lyricLine = netLyric.parseYrc()
+                lyricLine = LrcParser.parse(
+                    netLyric.lrc.lyric
+                )
             )
         }
 
@@ -464,8 +472,6 @@ private fun processLyrics(
             Log.d("lyric load", "No lyric found")
             return createDefaultLyricData("暂无歌词")
         }
-
-
     }
 
 }

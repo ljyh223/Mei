@@ -79,7 +79,6 @@ import com.ljyh.mei.data.model.SimplePlaylist
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.GetSongUrl
-import com.ljyh.mei.data.model.parseString
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.model.toMiniPlaylistDetail
@@ -449,59 +448,59 @@ fun prepare(
     val context = AppContext.instance
     val notificationHelper = NotificationHelper(context)
     Log.d("download", ids)
-    Toast.makeText(context, "正在准备资源", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, "正在建设中", Toast.LENGTH_SHORT).show()
 
-    scope.launch {
-        val result = viewModel.apiService.getSongDetail(
-            GetSongDetails(ids)
-        )
-        val tempSongs = ArrayList<SimplePlaylist.Song>()
-        tempSongs.addAll(
-            result.songs.map { s ->
-                val lyric = viewModel.apiService.getLyric(
-                    GetLyric(
-                        id = s.id.toString()
-                    )
-                )
-                SimplePlaylist.Song(
-                    id = s.id.toString(),
-                    name = s.name,
-                    artist = s.ar.joinToString(",") { it.name },
-                    album = s.al.name,
-                    picUrl = s.al.picUrl,
-                    lyric = lyric.parseString(),
-                    url = ""
-                )
-            }
-        )
-
-        val songUrls = viewModel.apiService.getSongUrl(GetSongUrl(ids))
-        tempSongs.forEach { song ->
-            songUrls.data.find { it.id.toString() == song.id }?.let {
-                song.url = it.url.toString()
-            } ?: ""
-        }
-
-
-        DownloadManager.downloadSongs(
-            SimplePlaylist(
-                id = playlistDetail.id.toString(),
-                name = playlistDetail.name,
-                songs = tempSongs
-            ),
-            onProgress = { current, total, lose ->
-                notificationHelper.showProgressNotification(
-                    current,
-                    total,
-                    lose
-                )
-            },
-            onComplete = {
-                notificationHelper.showCompletionNotification()
-            }
-        )
-
-    }
+//    scope.launch {
+//        val result = viewModel.apiService.getSongDetail(
+//            GetSongDetails(ids)
+//        )
+//        val tempSongs = ArrayList<SimplePlaylist.Song>()
+//        tempSongs.addAll(
+//            result.songs.map { s ->
+//                val lyric = viewModel.apiService.getLyric(
+//                    GetLyric(
+//                        id = s.id.toString()
+//                    )
+//                )
+//                SimplePlaylist.Song(
+//                    id = s.id.toString(),
+//                    name = s.name,
+//                    artist = s.ar.joinToString(",") { it.name },
+//                    album = s.al.name,
+//                    picUrl = s.al.picUrl,
+//                    lyric = lyric.parseString(),
+//                    url = ""
+//                )
+//            }
+//        )
+//
+//        val songUrls = viewModel.apiService.getSongUrl(GetSongUrl(ids))
+//        tempSongs.forEach { song ->
+//            songUrls.data.find { it.id.toString() == song.id }?.let {
+//                song.url = it.url.toString()
+//            } ?: ""
+//        }
+//
+//
+//        DownloadManager.downloadSongs(
+//            SimplePlaylist(
+//                id = playlistDetail.id.toString(),
+//                name = playlistDetail.name,
+//                songs = tempSongs
+//            ),
+//            onProgress = { current, total, lose ->
+//                notificationHelper.showProgressNotification(
+//                    current,
+//                    total,
+//                    lose
+//                )
+//            },
+//            onComplete = {
+//                notificationHelper.showCompletionNotification()
+//            }
+//        )
+//
+//    }
 }
 
 @Composable

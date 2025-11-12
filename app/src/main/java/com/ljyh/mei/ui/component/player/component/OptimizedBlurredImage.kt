@@ -39,6 +39,8 @@ import kotlin.math.roundToInt
 
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.*
+import com.ljyh.mei.ui.component.BackgroundVisualState
+import com.ljyh.mei.ui.component.FlowingLightBackground
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -76,58 +78,64 @@ fun OptimizedBlurredImage(
         }
     }
 
-    // 模糊背景图
-    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
-        val blurEffect = remember(blurRadius) {
-            val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
-            mutableStateOf(
-                RenderEffect.createBlurEffect(
-                    blurIntensity.roundToInt().toFloat(),
-                    blurIntensity.roundToInt().toFloat(),
-                    Shader.TileMode.CLAMP
-                ).asComposeRenderEffect()
-            )
-        }
-
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(cover.smallImage())
-                .build(),
-            modifier = Modifier
-                .fillMaxSize()
-                .scale(scale = calculateScaleToFit())
-                .graphicsLayer {
-                    rotationZ = rotation.value
-                    renderEffect = blurEffect.value
-                },
-            colorFilter = cf,
-            contentScale = ContentScale.Crop,
-            contentDescription = null
-        )
-    } else {
-
-
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .placeholderMemoryCacheKey(cover.smallImage())
-                .data(cover.middleImage())
-                .transformations(BlurTransformation1(context, 15f, 5f))
-                .build(),
-            modifier = Modifier
-                .fillMaxSize()
-                    .scale(scale = scaleFactor)
-                .graphicsLayer {
-                    rotationZ = rotation.value
-                    clip = false
-                },
-            contentScale = ContentScale.Crop,
-            colorFilter = cf,
-            contentDescription = null
-        )
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f))
+    FlowingLightBackground(
+        state = BackgroundVisualState(
+            cover, true),
+        modifier = Modifier.fillMaxSize()
     )
+
+    // 模糊背景图
+//    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
+//        val blurEffect = remember(blurRadius) {
+//            val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
+//            mutableStateOf(
+//                RenderEffect.createBlurEffect(
+//                    blurIntensity.roundToInt().toFloat(),
+//                    blurIntensity.roundToInt().toFloat(),
+//                    Shader.TileMode.CLAMP
+//                ).asComposeRenderEffect()
+//            )
+//        }
+//
+//        AsyncImage(
+//            model = ImageRequest.Builder(context)
+//                .data(cover.smallImage())
+//                .build(),
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .scale(scale = calculateScaleToFit())
+//                .graphicsLayer {
+//                    rotationZ = rotation.value
+//                    renderEffect = blurEffect.value
+//                },
+//            colorFilter = cf,
+//            contentScale = ContentScale.Crop,
+//            contentDescription = null
+//        )
+//    } else {
+//
+//
+//        AsyncImage(
+//            model = ImageRequest.Builder(context)
+//                .placeholderMemoryCacheKey(cover.smallImage())
+//                .data(cover.middleImage())
+//                .transformations(BlurTransformation1(context, 15f, 5f))
+//                .build(),
+//            modifier = Modifier
+//                .fillMaxSize()
+//                    .scale(scale = scaleFactor)
+//                .graphicsLayer {
+//                    rotationZ = rotation.value
+//                    clip = false
+//                },
+//            contentScale = ContentScale.Crop,
+//            colorFilter = cf,
+//            contentDescription = null
+//        )
+//    }
+//    Box(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .background(if (isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f))
+//    )
 }

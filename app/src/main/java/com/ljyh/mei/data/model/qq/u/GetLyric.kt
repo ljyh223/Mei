@@ -89,6 +89,4 @@ data class GetLyricData(
             val type: Int = 0
         )
     }
-
-
 }

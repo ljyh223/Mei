@@ -46,8 +46,6 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.PlaylistDetail
-import com.ljyh.mei.data.model.api.GetLyric
-import com.ljyh.mei.data.model.parseString
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.GridMenu
 import com.ljyh.mei.ui.component.GridMenuItem
@@ -186,43 +184,43 @@ fun TrackBottomSheet (
                     icon = Icons.Rounded.Lyrics,
                     title = "更新本地歌词",
                     onClick = {
-                        when (val result = playlistDetail) {
-                            is Resource.Success -> {
-                                val path = DownloadManager.isExist(
-                                    result.data.playlist.Id.toString(),
-                                    result.data.playlist.name,
-                                    mediaMetadata.id.toString()
-                                )
-                                if (path != "") {
-                                    scope.launch {
-                                        val lyric =
-                                            viewModel.apiService.getLyric(
-                                                GetLyric(
-                                                    id = mediaMetadata.id.toString()
-                                                )
-                                            )
-                                        val mLyric = lyric.parseString()
-                                        if (mLyric.isEmpty()) {
-                                            Toast.makeText(
-                                                context,
-                                                "找不到可用的歌词",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            return@launch
-                                        }
-                                        SongMate.writeLyric(path, mLyric)
-                                        Toast.makeText(context, "已更新", Toast.LENGTH_SHORT).show()
-                                    }
-                                } else {
-                                    Toast.makeText(context, "找不到文件", Toast.LENGTH_SHORT).show()
-                                }
-
-                            }
-
-                            else -> {
-
-                            }
-                        }
+//                        when (val result = playlistDetail) {
+//                            is Resource.Success -> {
+//                                val path = DownloadManager.isExist(
+//                                    result.data.playlist.Id.toString(),
+//                                    result.data.playlist.name,
+//                                    mediaMetadata.id.toString()
+//                                )
+//                                if (path != "") {
+//                                    scope.launch {
+//                                        val lyric =
+//                                            viewModel.apiService.getLyric(
+//                                                GetLyric(
+//                                                    id = mediaMetadata.id.toString()
+//                                                )
+//                                            )
+//                                        val mLyric = lyric.parseString()
+//                                        if (mLyric.isEmpty()) {
+//                                            Toast.makeText(
+//                                                context,
+//                                                "找不到可用的歌词",
+//                                                Toast.LENGTH_SHORT
+//                                            ).show()
+//                                            return@launch
+//                                        }
+//                                        SongMate.writeLyric(path, mLyric)
+//                                        Toast.makeText(context, "已更新", Toast.LENGTH_SHORT).show()
+//                                    }
+//                                } else {
+//                                    Toast.makeText(context, "找不到文件", Toast.LENGTH_SHORT).show()
+//                                }
+//
+//                            }
+//
+//                            else -> {
+//
+//                            }
+//                        }
                     }
                 )
 

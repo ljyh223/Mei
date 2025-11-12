@@ -31,7 +31,7 @@
 
 ### 已实现
 
-- 逐字歌词(网易云 && QQ音乐歌词)
+- 逐字歌词(网易云 && QQ音乐歌词)(使用[accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui)实现)
 - 播放列表
 - 喜欢音乐
 - 首页推荐
