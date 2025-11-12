@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component
+package com.ljyh.mei.ui.component.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
-import androidx.compose.material.icons.rounded.PlaylistPlay
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -25,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,11 +40,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.size.Size
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
 import com.ljyh.mei.constants.RecommendCardHeight
+import com.ljyh.mei.constants.RecommendCardSpacing
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.ui.screen.index.home.HomeViewModel
 import com.ljyh.mei.utils.largeImage
@@ -245,10 +241,8 @@ fun RecommendCard(
                     )
                 }
             }
-
-
         }
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(RecommendCardSpacing))
     }
 
 }

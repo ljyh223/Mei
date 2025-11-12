@@ -7,6 +7,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -58,9 +59,9 @@ import com.ljyh.mei.constants.QueuePeekHeight
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayMode
-import com.ljyh.mei.ui.component.BottomSheet
-import com.ljyh.mei.ui.component.BottomSheetState
-import com.ljyh.mei.ui.component.HorizontalSwipeDirection
+import com.ljyh.mei.ui.component.sheet.BottomSheet
+import com.ljyh.mei.ui.component.sheet.BottomSheetState
+import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
@@ -69,7 +70,7 @@ import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.LyricSourceData
 import com.ljyh.mei.ui.component.player.component.OptimizedBlurredImage
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
-import com.ljyh.mei.ui.component.rememberBottomSheetState
+import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.encrypt.QRCUtils
@@ -263,8 +264,8 @@ fun BottomSheetPlayer(
         },
         onHorizontalSwipe = { direction ->
             when (direction) {
-                HorizontalSwipeDirection.Left -> playerConnection.seekToPrevious()
-                HorizontalSwipeDirection.Right -> playerConnection.seekToNext()
+                HorizontalSwipeDirection.Left -> playerConnection.seekToNext()
+                HorizontalSwipeDirection.Right -> playerConnection.seekToPrevious()
             }
         },
         collapsedContent = {
@@ -317,20 +318,36 @@ fun BottomSheetPlayer(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.basicMarquee()
                     )
-                    if (metadata.artists.isNotEmpty()) {
-                        Text(
-                            text = metadata.artists.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.basicMarquee()
-                        )
+
+                    Row {
+                        if (metadata.artists.isNotEmpty()) {
+                            Text(
+                                text = metadata.artists.joinToString(", ") { it.name },
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee()
+                            )
+                        }
+
+                        if(metadata.album.title.isNotEmpty()){
+                            Text(" - ")
+                            Text(
+                                text = metadata.album.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee()
+                            )
+                        }
                     }
+
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+
 
             // 中间封面 + 歌词（可滑动）
             HorizontalPager(

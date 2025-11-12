@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component
+package com.ljyh.mei.ui.component.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +25,7 @@ import com.ljyh.mei.utils.smallImage
 @Composable
 fun PlaylistItem(
     playlist: UserPlaylist.Playlist,
+    isPlaying: Boolean = false,
     onclick: () -> Unit
 ) {
 
@@ -37,6 +38,14 @@ fun PlaylistItem(
         verticalAlignment = Alignment.CenterVertically,
 
         ) {
+
+//        PlayingImageView(
+//            imageUrl = playlist.coverImgUrl.smallImage(), // 替换为您的图片URL
+//            isPlaying = isPlaying,
+//            modifier = Modifier
+//                .size(48.dp)
+//                .clip(RoundedCornerShape(6.dp))
+//        )
         AsyncImage(
             model = playlist.coverImgUrl.smallImage(),
             contentDescription = null,

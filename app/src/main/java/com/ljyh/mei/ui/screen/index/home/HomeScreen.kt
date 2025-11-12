@@ -20,7 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,7 +35,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.fastFlatMap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -54,10 +52,13 @@ import com.google.gson.JsonObject
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.HomePageResourceShow
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.extensions.togglePlayPause
+import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.CardExtInfo
-import com.ljyh.mei.ui.component.PlaylistCard
-import com.ljyh.mei.ui.component.RecommendCard
+import com.ljyh.mei.ui.component.home.CardExtInfo
+import com.ljyh.mei.ui.component.home.PlaylistCard
+import com.ljyh.mei.ui.component.home.RecommendCard
+import com.ljyh.mei.ui.component.playlist.PlayingImageView
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -66,6 +67,7 @@ import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.positionComparator
 import com.ljyh.mei.utils.rearrangeArray
 import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.smallImage
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -269,17 +271,27 @@ private fun RenderHomePageContent(
                             it.asJsonObject,
                             HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item::class.java
                         )
+                    },
+                    isPlaying = { id->
+                        playerConnection.isPlaying(id)
                     }
                 ) { songs, index ->
 
+
+
                     val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
-                    playerConnection.playQueue(
-                        ListQueue(
-                            id = UUID.randomUUID().toString(),
-                            title = "PRIVATE_RCMD_SONG",
-                            items = rearrangeArray(index, flatSongs)
+                    if(playerConnection.isPlaying(flatSongs[index])){
+                        playerConnection.player.togglePlayPause()
+                    }else{
+                        playerConnection.playQueue(
+                            ListQueue(
+                                id = UUID.randomUUID().toString(),
+                                title = "PRIVATE_RCMD_SONG",
+                                items = rearrangeArray(index, flatSongs)
+                            )
                         )
-                    )
+                    }
+
                 }
 
             }
@@ -344,6 +356,9 @@ private fun RenderHomePageContent(
                             it.asJsonObject,
                             HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item::class.java
                         )
+                    },
+                    isPlaying = { id->
+                        playerConnection.isPlaying(id)
                     }
                 ) { songs, index ->
                     val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
@@ -424,7 +439,8 @@ fun Title(text: String) {
         text = text,
         fontSize = 18.sp,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1
     )
     Spacer(modifier = Modifier.height(10.dp))
 }
@@ -433,6 +449,7 @@ fun Title(text: String) {
 @Composable
 fun TripleLaneSlider(
     songsArray: List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>,
+    isPlaying: @Composable (String) -> Boolean,
     onClick: (List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>, Int) -> Unit
 ) {
     val pagerState = rememberPagerState(
@@ -451,14 +468,14 @@ fun TripleLaneSlider(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    AsyncImage(
-                        model = song.coverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                    PlayingImageView(
+                        imageUrl = song.coverUrl,
+                        isPlaying = isPlaying(song.resourceId),
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(6.dp))
                     )
+
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
@@ -488,7 +505,7 @@ fun TripleLaneSlider(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.PlayArrow,
+                            imageVector = if(isPlaying(song.resourceId)) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.secondary
                         )
@@ -514,7 +531,7 @@ fun selectSpecialField(jsonObject: JsonObject): JsonObject? {
         .maxByOrNull { it.key.length }
 
     // 3. 确保值是 JsonObject（防止是基础类型或数组）
-    if(longestEntry?.value?.asJsonObject?.get("blockResource")!=null)
+    if (longestEntry?.value?.asJsonObject?.get("blockResource") != null)
         return longestEntry.value.asJsonObject?.get("blockResource")?.asJsonObject
     return longestEntry?.value?.asJsonObject
 }

@@ -82,7 +82,7 @@ data class EveryDaySongs(
             @SerializedName("copyright")
             val copyright: Int,
             @SerializedName("s_id")
-            val sId: Int,
+            val sId: Long,
             @SerializedName("mark")
             val mark: Long,
             @SerializedName("originCoverType")

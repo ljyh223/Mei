@@ -4,36 +4,26 @@ import android.app.Activity
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Message
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.rounded.AddTask
-import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,13 +44,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,14 +58,9 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
 import com.google.gson.Gson
 import com.ljyh.mei.AppContext
-import com.ljyh.mei.R
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.MiniPlaylistDetail
-import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.SimplePlaylist
-import com.ljyh.mei.data.model.api.GetLyric
-import com.ljyh.mei.data.model.api.GetSongDetails
-import com.ljyh.mei.data.model.api.GetSongUrl
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.model.toMiniPlaylistDetail
@@ -86,17 +68,15 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.ConfirmationDialog
-import com.ljyh.mei.ui.component.FinalPerfectCollage
-import com.ljyh.mei.ui.component.Track
+import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
+import com.ljyh.mei.ui.component.playlist.Track
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ListItemPlaceHolder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
-import com.ljyh.mei.ui.component.utils.fadingEdge
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.utils.DownloadManager
 import com.ljyh.mei.utils.NotificationHelper
 import com.ljyh.mei.utils.PermissionsUtils.checkAndRequestFilesPermissions
 import com.ljyh.mei.utils.rearrangeArray
@@ -104,7 +84,6 @@ import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
 
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -190,7 +169,11 @@ fun PlaylistScreen(
                     items(lazyPagingItems.itemCount) { index ->
                         val track = lazyPagingItems[index]
                         if (track != null) {
-                            Track(viewModel, track.toMediaMetadata()) {
+                            Track(
+                                viewModel,
+                                track.toMediaMetadata(),
+                                isPlaying = playerConnection.mediaMetadata.collectAsState().value?.id == track.id
+                            ) {
                                 playerConnection.player.mediaItems.forEachIndexed { i, mediaItem ->
                                     Log.d(
                                         "PlaylistScreen",

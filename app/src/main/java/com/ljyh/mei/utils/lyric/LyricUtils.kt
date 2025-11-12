@@ -11,16 +11,8 @@ import com.mocharealm.accompanist.lyrics.core.parser.LrcParser
 fun createDefaultLyricData(message: String): LyricData {
     return LyricData(
         isVerbatim = false,
-        lyricLine = SyncedLyrics(
-            lines = listOf(
-                UncheckedSyncedLine(
-                    start = 0,
-                    end = 0,
-                    content = message,
-                    translation = null
-                ).toSyncedLine()
-            )
-        )
+        lyricLine = SyncedLyrics(lines = listOf())
+//        lyricLine = LrcParser.parse("[00:00.00]${message}")
     )
 }
 

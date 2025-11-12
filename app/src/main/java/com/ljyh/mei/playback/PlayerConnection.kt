@@ -98,6 +98,12 @@ class PlayerConnection
         repeatMode.value = player.repeatMode
     }
 
+    fun isPlaying(id: String): Boolean {
+        return mediaMetadata.value?.id.toString() == id &&
+                player.playbackState == Player.STATE_READY &&  // 播放器就绪
+                player.playWhenReady  // 用户希望播放（未暂停）
+    }
+
 
     fun playQueue(queue: Queue) {
         service.playQueue(queue)

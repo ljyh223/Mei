@@ -97,7 +97,7 @@ import com.ljyh.mei.ui.component.ConfirmationDialog
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
-import com.ljyh.mei.ui.component.rememberBottomSheetState
+import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.component.utils.appBarScrollBehavior
 import com.ljyh.mei.ui.component.utils.resetHeightOffset
 import com.ljyh.mei.ui.local.LocalDatabase

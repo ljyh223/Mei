@@ -1,6 +1,5 @@
-package com.ljyh.mei.ui.component
+package com.ljyh.mei.ui.component.home
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material3.Icon
@@ -37,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCardSize
+import com.ljyh.mei.constants.PlaylistCardSpacing
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.utils.largeImage
 
@@ -176,7 +175,7 @@ fun PlaylistCard(
             )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(PlaylistCardSpacing))
     }
 
 

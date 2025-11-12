@@ -5,8 +5,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-val RecommendCardWidth = 200.dp
-val RecommendCardHeight = 250.dp
+val RecommendCardWidth = 160.dp
+val RecommendCardHeight = 200.dp
+
+val RecommendCardSpacing = 24.dp
+val PlaylistCardSpacing = 16.dp
 
 val PlaylistCardSize = 100.dp
 

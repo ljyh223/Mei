@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component
+package com.ljyh.mei.ui.component.playlist
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,7 @@ import com.ljyh.mei.utils.smallImage
 fun Track(
     viewModel: PlaylistViewModel,
     track: MediaMetadata,
+    isPlaying: Boolean = false,
     onclick: () -> Unit
 ) {
 
@@ -59,9 +59,10 @@ fun Track(
         verticalAlignment = Alignment.CenterVertically,
 
         ) {
-        AsyncImage(
-            model = track.coverUrl.smallImage(),
-            contentDescription = null,
+
+        PlayingImageView(
+            imageUrl = track.coverUrl.smallImage(), // 替换为您的图片URL
+            isPlaying = isPlaying,
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(6.dp))
@@ -111,10 +112,4 @@ fun Track(
             )
         }
     }
-}
-
-
-enum class Quality {
-    HR,
-    SQ
 }

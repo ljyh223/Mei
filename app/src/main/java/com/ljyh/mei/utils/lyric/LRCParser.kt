@@ -8,9 +8,9 @@ import kotlin.math.abs
 
 private data class TranslationLine(val time: Int, val text: String)
 object LRCParser : ILyricsParser {
-    private val lrcLineRegex = Regex("\\[(\\d{1,2}:\\d{1,2}\\.\\d{2,3})](.*)")
+    private val lrcLineRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[:.]\\d{2,3})](.*)")
     // A separate regex for parsing translation files
-    private val translationLrcRegex = Regex("\\[(\\d{2}):(\\d{2})[.:](\\d{2,3})\\](.*)")
+    private val translationLrcRegex = Regex("\\[(\\d{2}):(\\d{2})[.:](\\d{2,3})](.*)")
 
     /**
      * 【推荐使用】解析 LRC 主歌词并合并一个可选的、独立的 LRC 翻译文件。

@@ -10,16 +10,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.MiniPlaylistDetail
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.Track
+import com.ljyh.mei.ui.component.playlist.Track
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.rearrangeArray
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +86,11 @@ fun EveryDay(
 
                     items(result.data.data.dailySongs.size) { index ->
                         val track = result.data.data.dailySongs[index]
-                        Track(viewModel = viewModel, track = track.toMediaMetadata()) {
+                        Track(
+                            viewModel = viewModel,
+                            track = track.toMediaMetadata(),
+                            isPlaying = playerConnection.mediaMetadata.collectAsState().value?.id == track.id
+                        ) {
                             val trackIds = result.data.data.dailySongs.map { it.id.toString() }
                             playerConnection.playQueue(
                                 ListQueue(

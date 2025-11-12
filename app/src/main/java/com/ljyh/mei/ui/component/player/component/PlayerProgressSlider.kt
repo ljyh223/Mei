@@ -124,7 +124,7 @@ fun PlayerProgressSlider(
             Text(
                 text = makeTimeString(sliderPosition.toLong()),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
@@ -141,7 +141,7 @@ fun PlayerProgressSlider(
             Text(
                 text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
