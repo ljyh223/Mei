@@ -35,6 +35,11 @@ ye？  又好了? 经过测试，其实还有较小的可能触发anr卡死的�
 - 主页更多推荐
 - 播放记录
 - 优化性能
+- 自选个人主页图片
+- FM播放
+- 红心模式
+- 专辑页面
+- 歌单管理
 
 
 ### 已实现
@@ -49,10 +54,10 @@ ye？  又好了? 经过测试，其实还有较小的可能触发anr卡死的�
 
 更多软件界面可以看 [这里](https://github.com/ljyh223/Mei/tree/master/screenshot/2025-03-27)
 <div style="display: flex; flex-wrap: wrap;">
-  <img src="./screenshot/player1.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/lyric1.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/player2.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/lyric2.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/2025-11-12/player.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/2025-11-12/lyric.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/2025-11-12/player1.jpg" width="200" style="margin-right: 10px;" />
+  <img src="./screenshot/2025-11-12/lyric1.jpg" width="200" style="margin-right: 10px;" />
   <img src="./screenshot/home.jpg" width="200" style="margin-right: 10px;" />
   <img src="./screenshot/playlist.jpg" width="200" style="margin-right: 10px;" />
   <img src="./screenshot/me.jpg" width="200" />
