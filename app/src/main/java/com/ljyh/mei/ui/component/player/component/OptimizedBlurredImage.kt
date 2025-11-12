@@ -136,6 +136,6 @@ fun OptimizedBlurredImage(
 //    Box(
 //        modifier = Modifier
 //            .fillMaxSize()
-//            .background(if (isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.6f))
+//            .background(if (isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.Black.copy(alpha = 0.6f))
 //    )
 }

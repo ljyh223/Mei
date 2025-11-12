@@ -63,10 +63,8 @@ fun PlaylistCard(
             Box {
                 AsyncImage(
                     model = if (imageSize) {
-                        Log.d("imageSize",true.toString())
                         coverImg.largeImage()
                     } else {
-                        Log.d("imageSize",false.toString())
                         coverImg
                     },
                     modifier = Modifier

@@ -1,23 +1,14 @@
 package com.ljyh.mei.ui.component.player.component
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
-import androidx.compose.material.icons.rounded.MultipleStop
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Replay
-import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
@@ -29,10 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player.STATE_ENDED
-import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.extensions.togglePlayPause
-import com.ljyh.mei.extensions.toggleRepeatMode
-import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.playback.PlayerConnection
 
 @Composable
@@ -48,7 +36,6 @@ fun Controls(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PlayerHorizontalPadding)
     ) {
 
 
@@ -58,16 +45,17 @@ fun Controls(
                 enabled = canSkipPrevious,
                 onClick = playerConnection::seekToPrevious,
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(48.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
             ) {
                 Icon(
                     imageVector = Icons.Rounded.SkipPrevious,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.align(Alignment.Center)
-                        .size(36.dp)
+                        .size(48.dp)
+
                 )
             }
         }
@@ -83,17 +71,17 @@ fun Controls(
                     }
                 },
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(84.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
             ) {
                 Icon(
                     imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(64.dp)
+                        .size(84.dp)
                 )
             }
         }
@@ -105,16 +93,16 @@ fun Controls(
                 enabled = canSkipNext,
                 onClick = playerConnection::seekToNext,
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(48.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
             ) {
                 Icon(
                     imageVector = Icons.Rounded.SkipNext,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.align(Alignment.Center)
-                        .size(36.dp)
+                        .size(48.dp)
                 )
             }
         }

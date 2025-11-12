@@ -43,8 +43,8 @@ coreAnimation = "1.0.0"
 compose-settings = "2.10.0"
 reorderable = "3.0.0"
 
-lyricsCore="0.2.1"
-lyricsUI="1.0.6"
+composeIcons = "1.1.1"
+
 [libraries]
 android-gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimageVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -109,7 +109,7 @@ composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-
 composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
 
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
-
+composeIcons-evaIcons = { module = "br.com.devsrsouza.compose.icons:eva-icons", version.ref = "composeIcons" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

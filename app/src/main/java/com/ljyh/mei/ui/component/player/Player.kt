@@ -3,25 +3,27 @@ package com.ljyh.mei.ui.component.player
 
 import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.C
@@ -52,33 +56,27 @@ import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.PureBlackKey
 import com.ljyh.mei.constants.QueuePeekHeight
 import com.ljyh.mei.constants.UseQQMusicLyricKey
-import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.component.BottomSheet
 import com.ljyh.mei.ui.component.BottomSheetState
 import com.ljyh.mei.ui.component.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.player.component.Controls
+import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
 import com.ljyh.mei.ui.component.player.component.DialogSelect
-import com.ljyh.mei.ui.component.player.component.LyricData
 import com.ljyh.mei.ui.component.player.component.LyricScreen
-import com.ljyh.mei.ui.component.player.component.LyricSource
+import com.ljyh.mei.ui.component.player.component.LyricSourceData
 import com.ljyh.mei.ui.component.player.component.OptimizedBlurredImage
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
-import com.ljyh.mei.ui.component.player.component.ShowMain
-import com.ljyh.mei.ui.component.player.component.animatedGradient
 import com.ljyh.mei.ui.component.rememberBottomSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.encrypt.QRCUtils
-import com.ljyh.mei.utils.lyric.QrcParser
-import com.ljyh.mei.utils.lyric.YrcParser
+import com.ljyh.mei.utils.lyric.createDefaultLyricData
+import com.ljyh.mei.utils.lyric.mergeLyrics
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
-import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
-import com.mocharealm.accompanist.lyrics.core.parser.LrcParser
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -167,6 +165,7 @@ fun BottomSheetPlayer(
     // UI state
     val pagerState = rememberPagerState(pageCount = { 2 })
 
+
     // Update position and duration
     LaunchedEffect(playbackState) {
         if (playbackState == STATE_READY) {
@@ -186,37 +185,25 @@ fun BottomSheetPlayer(
     }
 
     LaunchedEffect(netLyricResult, qqLyricResult) {
-        var netLyric: Lyric? = null
-        var qqLyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data? = null
+        val sources = mutableListOf<LyricSourceData>()
 
-        when (val result = netLyricResult) {
-            is Resource.Error -> {}
-            Resource.Loading -> {}
-            is Resource.Success -> {
-                netLyric = result.data
-            }
+        (netLyricResult as? Resource.Success)?.data?.let {
+            sources.add(LyricSourceData.NetEase(it))
         }
 
-        when (val result = qqLyricResult) {
-            is Resource.Error -> {}
-            Resource.Loading -> {}
-            is Resource.Success -> {
-                val lyricData = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data
+        (qqLyricResult as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
+            // 此时的歌词还没有解密
+            val qrc=it.copy(
+                lyric = QRCUtils.decodeLyric(it.lyric),
+                trans = QRCUtils.decodeLyric(it.trans, true),
+                roma  = QRCUtils.decodeLyric(it.roma)
+            )
 
-                lyricData.copy(
-                    lyric = QRCUtils.decodeLyric(lyricData.lyric),
-                    trans = QRCUtils.decodeLyric(lyricData.trans, true),
-                    roma = QRCUtils.decodeLyric(lyricData.roma),
-                )
-                qqLyric = lyricData
-            }
+            sources.add(LyricSourceData.QQMusic(qrc))
         }
 
-        lyricLine.value = processLyrics(netLyric, qqLyric)
-
+        lyricLine.value = mergeLyrics(sources)
         Log.d("lyricLine", lyricLine.value.toString())
-
-
     }
 
     // Handle media metadata changes
@@ -230,16 +217,11 @@ fun BottomSheetPlayer(
                 cover = it.coverUrl,
                 artist = it.artists[0].name,
                 title = it.title,
-                album = it.album.title,
-
-                )
-            // 获取网易云的歌词
+                album = it.album.title
+            )
             playerViewModel.getLyricV1(it.id.toString())
-            // 如果启用QQ音乐歌词
             if (useQQMusicLyric) {
-                // 获取数据库中是否有这首歌的QQ音乐信息
                 playerViewModel.fetchQQSong(it.id.toString())
-                // 搜索歌曲
                 playerViewModel.searchNew(it.title)
             }
         }
@@ -281,28 +263,22 @@ fun BottomSheetPlayer(
         },
         onHorizontalSwipe = { direction ->
             when (direction) {
-                HorizontalSwipeDirection.Left -> {
-                    Toast.makeText(context, "left", Toast.LENGTH_SHORT).show()
-                    playerConnection.seekToPrevious()
-                }
-                HorizontalSwipeDirection.Right -> {
-                    Toast.makeText(context, "right", Toast.LENGTH_SHORT).show()
-
-                    playerConnection.seekToNext()
-                }
+                HorizontalSwipeDirection.Left -> playerConnection.seekToPrevious()
+                HorizontalSwipeDirection.Right -> playerConnection.seekToNext()
             }
         },
         collapsedContent = {
-
             MiniPlayer(
                 position = position,
                 duration = duration,
             )
         }
     ) {
+        // 背景渲染
         if (dynamicStreamerType == DynamicStreamerType.Image)
             OptimizedBlurredImage(mediaInfo.cover, isPlaying, 100.dp)
-        if (debug)
+
+        if (debug) {
             Debug(
                 title = mediaInfo.title,
                 artist = mediaInfo.artist,
@@ -314,167 +290,124 @@ fun BottomSheetPlayer(
                     .align(Alignment.TopStart)
                     .padding(10.dp)
             )
+        }
 
-        Spacer(Modifier.height(24.dp))
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-
-                .let {
-                    if (dynamicStreamerType == DynamicStreamerType.FluidBg)
-                        it.animatedGradient(dynamicStreamer)
-                    else it
-                }
-
+                .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                .padding(bottom = 24.dp)
+                .padding(horizontal = PlayerHorizontalPadding, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            Box(modifier = Modifier.weight(1f)) {
-                HorizontalPager(
-                    state = pagerState,
+            // 顶部标题栏
+            mediaMetadata?.let { metadata ->
+                Column(
+                    horizontalAlignment = Alignment.Start,
                     modifier = Modifier
-                        .fillMaxSize()
-                ) { page ->
-                    when (page) {
-                        0 -> {
-                            mediaMetadata?.let {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = PlayerHorizontalPadding),
-                                    verticalArrangement = Arrangement.Bottom
-                                ) {
-                                    ShowMain(
-                                        viewModel = playerViewModel,
-                                        playerConnection = playerConnection,
-                                        mediaMetadata = it,
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
-                                }
-                            }
-                        }
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(vertical = 8.dp)
+                ) {
+                    Text(
+                        text = metadata.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.basicMarquee()
+                    )
+                    if (metadata.artists.isNotEmpty()) {
+                        Text(
+                            text = metadata.artists.joinToString(", ") { it.name },
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee()
+                        )
+                    }
+                }
+            }
 
-                        1 -> {
-                            LyricScreen(
+            Spacer(Modifier.height(8.dp))
 
-                                lyricData = lyricLine.value,
+            // 中间封面 + 歌词（可滑动）
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        mediaMetadata?.let {
+                            Cover(
+                                viewModel = playerViewModel,
                                 playerConnection = playerConnection,
-                            ){
-                                showDialog = true
-                            }
+                                mediaMetadata = it,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                            )
+                        }
+                    }
+
+                    1 -> {
+                        LyricScreen(
+                            lyricData = lyricLine.value,
+                            playerConnection = playerConnection,
+                        ) {
+                            showDialog = true
                         }
                     }
                 }
             }
 
-            // Player controls
-            mediaMetadata?.let {
-                PlayerProgressSlider(
-                    position = position,
-                    duration = duration,
-                    onPositionChange = { newPosition ->
-                        position = newPosition
-                        playerConnection.player.seekTo(newPosition)
-                    },
-                    trackId = mediaInfo.id,
-                    modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
-                )
+            Spacer(Modifier.height(16.dp))
 
-                Spacer(Modifier.height(12.dp))
+            // 进度条
+            PlayerProgressSlider(
+                position = position,
+                duration = duration,
+                onPositionChange = { newPosition ->
+                    position = newPosition
+                    playerConnection.player.seekTo(newPosition)
+                },
+                trackId = mediaInfo.id,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            )
 
+            Spacer(Modifier.height(12.dp))
 
-                Controls(
-                    playerConnection = playerConnection,
-                    canSkipPrevious = canSkipPrevious,
-                    canSkipNext = canSkipNext,
-                    isPlaying = isPlaying,
-                    playbackState = playbackState,
-                )
-            }
+            // 播放控制区
+            Controls(
+                playerConnection = playerConnection,
+                canSkipPrevious = canSkipPrevious,
+                canSkipNext = canSkipNext,
+                isPlaying = isPlaying,
+                playbackState = playbackState,
+            )
 
+            Spacer(Modifier.height(12.dp))
 
             Queue(
                 state = queueSheetState,
                 playerBottomSheetState = state,
                 backgroundColor = backgroundColor,
-                navController = navController
+                navController = navController,
+                playerViewModel = playerViewModel,
+                mediaMetadata = mediaMetadata
             )
 
             Spacer(Modifier.height(8.dp))
         }
     }
-}
-
-// Helper functions
-private fun createDefaultLyricData(message: String): LyricData {
-    return LyricData(
-        isVerbatim = false,
-        lyricLine = SyncedLyrics(
-            lines = listOf(),
-            title =  "",
-            id = "0",
-            artists = null
-        )
-    )
-}
-
-private fun processLyrics(
-    netLyric: Lyric?,
-    qqLyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data?
-): LyricData {
-
-    Log.d("Lyric Parse","YRC 10: ${netLyric?.yrc?.lyric?.take(10)}")
-    Log.d("Lyric Parse","QRC 10: ${netLyric?.tlyric?.lyric?.take(10)}")
-    Log.d("Lyric Parse","QRC 10: ${qqLyric?.lyric?.take(10)}")
-    when {
-        netLyric?.yrc != null && netLyric.tlyric != null -> {
-            Log.d("lyric load", "YRC found")
-            return LyricData(
-                isVerbatim = true,
-                source = LyricSource.NetEaseCloudMusic,
-                lyricLine = YrcParser.parse(netLyric.yrc.lyric, netLyric.tlyric.lyric)
-            )
-        }
-
-        qqLyric?.lyric != null && qqLyric.lyric != "" && qqLyric.trans != "" -> {
-            Log.d("lyric load", "QRC found")
-            return LyricData(
-                isVerbatim = true,
-                source = LyricSource.QQMusic,
-                lyricLine = QrcParser.parse(qqLyric.lyric, qqLyric.trans)
-            )
-        }
-
-
-        qqLyric?.lyric != "" && qqLyric?.lyric != null && netLyric?.tlyric?.lyric!=null -> {
-            Log.d("lyric load", "QRC-1 found")
-            return LyricData(
-                isVerbatim = true,
-                source = LyricSource.QQMusic,
-                lyricLine = QrcParser.parse(qqLyric.lyric, netLyric.tlyric.lyric,)
-            )
-        }
-
-        netLyric?.lrc != null -> {
-            Log.d("lyric load", "LRC found")
-            return LyricData(
-                isVerbatim = false,
-                source = LyricSource.NetEaseCloudMusic,
-                lyricLine = LrcParser.parse(
-                    netLyric.lrc.lyric
-                )
-            )
-        }
-
-
-        else -> {
-            Log.d("lyric load", "No lyric found")
-            return createDefaultLyricData("暂无歌词")
-        }
-    }
 
 }
+
 
 
 data class MediaInfo(

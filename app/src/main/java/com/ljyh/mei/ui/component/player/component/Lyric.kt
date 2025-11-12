@@ -5,12 +5,15 @@ import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -57,8 +60,6 @@ fun LyricScreen(
 ) {
     val listState = rememberLazyListState()
     var animatedPosition by remember { mutableLongStateOf(0L) }
-
-
     LaunchedEffect(playerConnection.isPlaying) {
         if (playerConnection.isPlaying.value) {
             while (true) {
@@ -72,50 +73,37 @@ fun LyricScreen(
             animatedPosition = playerConnection.player.currentPosition
         }
     }
-    Log.d("LyricScreen", "LyricScreen: ${lyricData.lyricLine.lines.size}")
-    Log.d("LyricScreen", "LyricSource: ${lyricData.source}")
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
 
-    if(lyricData.lyricLine.lines.isNotEmpty()){
-        KaraokeLyricsView(
-            listState = listState,
-            lyrics = lyricData.lyricLine,
-            currentPosition = animatedPosition,
-            onLineClicked = { line ->
-                playerConnection.player.seekTo(line.start.toLong())
-            },
-            onLinePressed = { line ->
-
-            },
+        // 歌词内容区域
+        Box(
             modifier = Modifier
-                .padding(horizontal = 12.dp)
-                .graphicsLayer {
-                    blendMode = BlendMode.Plus
-                    compositingStrategy = CompositingStrategy.Offscreen
-                },
-        )
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            if(lyricData.lyricLine.lines.isNotEmpty()){
+                KaraokeLyricsView(
+                    listState = listState,
+                    lyrics = lyricData.lyricLine,
+                    currentPosition = animatedPosition,
+                    onLineClicked = { line ->
+                        playerConnection.player.seekTo(line.start.toLong())
+                    },
+                    onLinePressed = { line ->
+                        // 按下
+                    },
+                    modifier = Modifier
+                        .graphicsLayer {
+                            blendMode = BlendMode.Plus
+                            compositingStrategy = CompositingStrategy.Offscreen
+                        },
+                )
+            }
+
+        }
     }
-
-    BoxWithConstraints {
-        val maxWidth = maxWidth
-
-
-
-        Icon(
-            painter = painterResource(
-                when (lyricData.source) {
-                    LyricSource.Empty -> R.drawable.cloud
-                    LyricSource.NetEaseCloudMusic -> R.drawable.cloud
-                    LyricSource.QQMusic -> R.drawable.qq
-                }
-            ),
-            contentDescription = "source",
-            modifier = Modifier
-                .padding(0.dp, 0.dp)
-                .align(Alignment.BottomEnd)
-                .size(16.dp)
-                .clickable { switchLyric() }
-        )
-    }
-
-
 }

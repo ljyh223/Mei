@@ -5,6 +5,9 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,7 +42,10 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.MultipleStop
 import androidx.compose.material.icons.rounded.PlaylistAdd
@@ -78,6 +84,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -98,16 +105,21 @@ import androidx.navigation.NavController
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.ListItemHeight
 import com.ljyh.mei.constants.PlayModeKey
+import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.component.BottomSheet
 import com.ljyh.mei.ui.component.BottomSheetState
 import com.ljyh.mei.ui.component.LocalMenuState
 import com.ljyh.mei.ui.component.player.component.PlaylistSheet
+import com.ljyh.mei.ui.component.player.component.TrackBottomSheet
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.rememberPreference
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.ljyh.mei.ui.component.player.PlayerViewModel
+import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -125,6 +137,8 @@ fun Queue(
     playerBottomSheetState: BottomSheetState,
     backgroundColor: Color,
     navController: NavController,
+    playerViewModel: PlayerViewModel? = null,
+    mediaMetadata: MediaMetadata? = null,
     modifier: Modifier = Modifier,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -133,6 +147,18 @@ fun Queue(
     var showPlaylistSheet by remember { mutableStateOf(false) }
     var playModeValue by rememberPreference(PlayModeKey, 3)
     val playMode = PlayMode.fromInt(playModeValue)!!
+    
+    // 喜欢状态和歌单相关
+    val isLiked by playerViewModel?.like?.collectAsState(initial = null) ?: remember { mutableStateOf(null) }
+    var showTrackBottomSheet by remember { mutableStateOf(false) }
+    val playlistViewModel: PlaylistViewModel = hiltViewModel()
+    
+    // 监听当前歌曲变化，更新喜欢状态
+    LaunchedEffect(mediaMetadata?.id) {
+        mediaMetadata?.let {
+            playerViewModel?.getLike(it.id.toString())
+        }
+    }
     if (showSleepTimerDialog) {
         SleepTimerDialog(
             onDismiss = { showSleepTimerDialog = false }
@@ -170,64 +196,132 @@ fun Queue(
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = Modifier.fillMaxWidth()
     ) {
 
-
-        IconButton(
-            onClick = {
-                playModeValue = playerConnection.switchPlayMode(playMode)
-            },
-        ) {
-            Icon(
-                imageVector = when (playMode) {
-                    PlayMode.REPEAT_MODE_OFF -> Icons.Rounded.MultipleStop
-                    PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
-                    PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
-                    PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle
+        // 播放模式按钮
+        Box(modifier = Modifier.weight(1f)) {
+            IconButton(
+                onClick = {
+                    playModeValue = playerConnection.switchPlayMode(playMode)
                 },
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-
-        }
-        IconButton(onClick = {
-            showPlaylistSheet = true
-        }) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
-
-
-        AnimatedContent(
-            label = "sleepTimer",
-            targetState = sleepTimerEnabled
-        ) { sleepTimerEnabled ->
-            if (sleepTimerEnabled) {
-                Text(
-                    text = makeTimeString(sleepTimerTimeLeft),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .clickable(onClick = playerConnection.service.sleepTimer::clear)
-                        .padding(8.dp)
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                Icon(
+                    imageVector = when (playMode) {
+                        PlayMode.REPEAT_MODE_OFF -> Icons.Rounded.MultipleStop
+                        PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
+                        PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
+                        PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
-            } else {
-                IconButton(onClick = { showSleepTimerDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Bedtime,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            }
+        }
+        
+        // 播放列表按钮
+        Box(modifier = Modifier.weight(1f)) {
+            IconButton(
+                onClick = {
+                    showPlaylistSheet = true
+                },
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        // 睡眠定时器按钮
+        Box(modifier = Modifier.weight(1f)) {
+            AnimatedContent(
+                label = "sleepTimer",
+                targetState = sleepTimerEnabled
+            ) { sleepTimerEnabled ->
+                if (sleepTimerEnabled) {
+                    Text(
+                        text = makeTimeString(sleepTimerTimeLeft),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable(onClick = playerConnection.service.sleepTimer::clear)
+                            .padding(8.dp)
+                            .align(Alignment.Center)
                     )
+                } else {
+                    IconButton(
+                        onClick = { showSleepTimerDialog = true },
+                        modifier = Modifier.align(Alignment.Center)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Bedtime,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
             }
         }
 
+        // 喜欢按钮
+        Box(modifier = Modifier.weight(1f)) {
+            val icon = if (isLiked!=null) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
+            IconButton(
+                onClick = {
+                    mediaMetadata?.let {
+                        playerViewModel?.like(id = it.id.toString())
+                    }
+                },
+                modifier = Modifier
+                    .size(32.dp)
+                    .align(Alignment.Center)
+                    .clip(RoundedCornerShape(4.dp))
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
 
+        // 添加到歌单按钮
+        Box(modifier = Modifier.weight(1f)) {
+            IconButton(
+                onClick = {
+                    showTrackBottomSheet = true
+                },
+                modifier = Modifier
+                    .size(32.dp)
+                    .align(Alignment.Center)
+                    .clip(RoundedCornerShape(4.dp))
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
+
+    }
+    
+    // 歌曲底部弹窗
+    mediaMetadata?.let {
+        TrackBottomSheet(
+            showBottomSheet = showTrackBottomSheet,
+            viewModel = playlistViewModel,
+            mediaMetadata = it,
+        ) {
+            showTrackBottomSheet = false
+        }
     }
 
 }
@@ -326,3 +420,6 @@ fun SingleSelectCapsuleChips(
         }
     }
 }
+
+
+

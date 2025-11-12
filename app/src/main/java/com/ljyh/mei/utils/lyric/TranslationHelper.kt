@@ -1,7 +1,9 @@
 package com.ljyh.mei.utils.lyric
 
 import com.mocharealm.accompanist.lyrics.core.model.ISyncedLine
+import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
+import com.mocharealm.accompanist.lyrics.core.model.synced.UncheckedSyncedLine
 import kotlin.math.abs
 
 /**
@@ -83,4 +85,38 @@ internal object TranslationHelper {
         }
         return finalLines
     }
+
+    fun mergeLRC(lrcLines: List<UncheckedSyncedLine>, translationLrc: String?): List<ISyncedLine> {
+        if (translationLrc.isNullOrBlank()) {
+            return lrcLines
+        }
+
+        val translationLines = parseTranslation(translationLrc)
+        if (translationLines.isEmpty()) {
+            return lrcLines
+        }
+
+        val finalLines = mutableListOf<ISyncedLine>()
+        var j = 0 // 翻译歌词的索引
+
+        for (karaokeLine in lrcLines) {
+            // 移动翻译指针 j，使其指向与当前主歌词行时间戳最接近的翻译行
+            while (j < translationLines.size - 1 &&
+                abs(translationLines[j].time - karaokeLine.start) > abs(translationLines[j + 1].time - karaokeLine.start)
+            ) {
+                j++
+            }
+
+            // 如果找到了匹配的翻译行，则通过 copy 创建一个带翻译的新对象
+            if (j < translationLines.size) {
+                finalLines.add(karaokeLine.copy(translation = translationLines[j].text))
+            } else {
+                finalLines.add(karaokeLine)
+            }
+        }
+        return finalLines
+
+    }
+
+
 }
