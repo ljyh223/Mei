@@ -75,7 +75,6 @@ fun LyricScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
     ) {
 
         // 歌词内容区域

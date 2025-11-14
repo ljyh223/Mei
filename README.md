@@ -15,7 +15,13 @@
 ~~ye？  又好了? 经过测试，其实还有较小的可能触发anr卡死的，但是目前没有找到原因。那就先这样，过几天再更新~~
 
 小部分更新，自选背景、随机播放修复了一些(bushi,一些？)、一部分歌单管理、99音乐歌词回归(在+号里面)，还有一些小细节(期待呢)
+
+感谢圣人开源[amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db/tree/main)提供优质歌词数据。
+感谢圣人开源[accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui)稊关精美的歌词组件
+
+关于歌词优先级，优先tmll歌词，其此网易云逐字，如果选择99音乐歌词，那么99歌词优先（反正就是优先逐字歌词）
 ### 关于开发
+- **1.40** 添加了新的歌词组件、以及部分功能优化
 - **1.37** 添加了播放列表功能
 - **1.36** 优化播放服务
 - **1.35** 优化了逐字歌词性能以及播放界面。
@@ -45,7 +51,7 @@
 
 ### 已实现
 
-- 逐字歌词(网易云 && QQ音乐歌词)(使用[accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui)实现)
+- 逐字歌词(网易云 && 99音乐歌词)(使用[accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui)实现)
 - 播放列表
 - 喜欢音乐
 - 首页推荐
