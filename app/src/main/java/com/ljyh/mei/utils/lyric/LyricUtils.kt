@@ -6,7 +6,9 @@ import com.ljyh.mei.ui.component.player.component.LyricSource
 import com.ljyh.mei.ui.component.player.component.LyricSourceData
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 import com.mocharealm.accompanist.lyrics.core.model.synced.UncheckedSyncedLine
+import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
 import com.mocharealm.accompanist.lyrics.core.parser.LrcParser
+import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
 
 fun createDefaultLyricData(message: String): LyricData {
     return LyricData(
@@ -19,6 +21,16 @@ fun createDefaultLyricData(message: String): LyricData {
 fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
 //    Log.d("LyricUtils", "mergeLyrics: $sources")
     // 找到 NetEase 的逐字歌词（yrc + tlyric）
+    val amSource = sources.filterIsInstance<LyricSourceData.AM>().firstOrNull()
+    if (amSource != null) {
+        val a = amSource.lyric
+        Log.d("LyricUtils", "TMLL")
+        return LyricData(
+            isVerbatim = true,
+            source = LyricSource.AM,
+            lyricLine = TTMLParser.parse(a)
+        )
+    }
     val neteaseSource = sources.filterIsInstance<LyricSourceData.NetEase>().firstOrNull()
     if (neteaseSource != null) {
         val n = neteaseSource.lyric

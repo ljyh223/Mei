@@ -153,6 +153,7 @@ fun BottomSheetPlayer(
     val netLyricResult by playerViewModel.lyric.collectAsState()
     val searchResult by playerViewModel.searchResult.collectAsState()
     val qqLyricResult by playerViewModel.lyricResult.collectAsState()
+    val amLyrcResult by playerViewModel.amLyric.collectAsState()
 
     val qqSong by playerViewModel.qqSong.collectAsState()
 
@@ -184,8 +185,11 @@ fun BottomSheetPlayer(
         }
     }
 
-    LaunchedEffect(netLyricResult, qqLyricResult) {
+    LaunchedEffect(netLyricResult, qqLyricResult, amLyrcResult) {
         val sources = mutableListOf<LyricSourceData>()
+        (amLyrcResult as? Resource.Success)?.let {
+            sources.add(LyricSourceData.AM(it.data))
+        }
 
         (netLyricResult as? Resource.Success)?.data?.let {
             sources.add(LyricSourceData.NetEase(it))
@@ -220,6 +224,7 @@ fun BottomSheetPlayer(
                 album = it.album.title
             )
             playerViewModel.getLyricV1(it.id.toString())
+            playerViewModel.getAMLLyric(it.id.toString())
             if (useQQMusicLyric) {
                 playerViewModel.fetchQQSong(it.id.toString())
                 playerViewModel.searchNew(it.title)

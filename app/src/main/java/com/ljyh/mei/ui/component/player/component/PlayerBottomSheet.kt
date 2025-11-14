@@ -267,10 +267,22 @@ fun PlayerBottomSheet(
 
                 GridMenuItem(
                     icon = Icons.Rounded.Lyrics,
-                    title = "选择歌词",
+                    title = "QRC",
                     onClick = {
                         onDismiss()
                         showQQMusicSelect = true
+                    }
+                )
+
+
+                GridMenuItem(
+                    icon = Icons.Rounded.Lyrics,
+                    title = "AMLL",
+                    onClick = {
+                        onDismiss()
+                        val url="https://amlldb.bikonoo.com/ncm-lyrics/${mediaMetadata.id}.ttml"
+
+
                     }
                 )
             }

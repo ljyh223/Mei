@@ -44,18 +44,24 @@ data class LyricData(
 
 sealed class LyricSourceData(val source: LyricSource, val priority: Int) {
     data class NetEase(val lyric: Lyric) : LyricSourceData(LyricSource.NetEaseCloudMusic, 2)
-    data class QQMusic(val lyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data) : LyricSourceData(LyricSource.QQMusic, 1)
+    data class QQMusic(val lyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data) :
+        LyricSourceData(LyricSource.QQMusic, 1)
+
+    data class AM(val lyric: String) : LyricSourceData(LyricSource.AM, 3)
 }
 
 enum class LyricSource {
     Empty,
     NetEaseCloudMusic,
-    QQMusic
+    QQMusic,
+    AM,
 }
+
 data class SungState(
     val fullyHighlightedLines: Int, // 已被完全高亮的行数
     val partialHighlightWidth: Float   // 最后活动行上的高亮宽度 (像素)
 )
+
 data class WordMeasure(
     val text: String,
     val startOffset: Float, // 单词在整行文本中的起始X坐标

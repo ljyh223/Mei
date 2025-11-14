@@ -69,7 +69,8 @@ fun EveryDay(
                                 createUserName = result.data.data.dailySongs[0].ar[0].name,
                                 count = result.data.data.dailySongs.size,
                                 playCount = 0,
-                                subscribedCount = 0
+                                subscribedCount = 0,
+                                subscribed = false
                             ), viewModel = viewModel
                         ) {
                             playerConnection.playQueue(

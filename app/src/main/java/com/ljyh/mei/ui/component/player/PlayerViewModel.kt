@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.room.Like
@@ -14,14 +13,10 @@ import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.di.LikeRepository
 import com.ljyh.mei.di.QQSongRepository
-import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -40,6 +35,9 @@ class PlayerViewModel @Inject constructor(
 
     private val _lyric = MutableStateFlow<Resource<Lyric>>(Resource.Loading)
     val lyric: StateFlow<Resource<Lyric>> = _lyric
+
+    private val _amLyric = MutableStateFlow<Resource<String>>(Resource.Loading)
+    val amLyric: StateFlow<Resource<String>> = _amLyric
 
     private val _like = MutableStateFlow<Like?>(null)
     val like: StateFlow<Like?> = _like
@@ -137,6 +135,13 @@ class PlayerViewModel @Inject constructor(
     fun insertSong(song: QQSong) {
         viewModelScope.launch {
             qqSongRepository.insertSong(song)
+        }
+    }
+
+    fun getAMLLyric(id: String) {
+        viewModelScope.launch {
+            _amLyric.value = Resource.Loading
+            _amLyric.value = repository.getAMLLyric(id)
         }
     }
 
