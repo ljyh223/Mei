@@ -17,7 +17,7 @@
 小部分更新，自选背景、随机播放修复了一些(bushi,一些？)、一部分歌单管理、99音乐歌词回归(在+号里面)，还有一些小细节(期待呢)
 
 感谢圣人开源[amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db/tree/main)提供优质歌词数据。
-感谢圣人开源[accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui)稊关精美的歌词组件
+感谢圣人开源[accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui)提供精美的歌词组件
 
 关于歌词优先级，优先tmll歌词，其此网易云逐字，如果选择99音乐歌词，那么99歌词优先（反正就是优先逐字歌词）
 ### 关于开发
