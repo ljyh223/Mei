@@ -4,7 +4,6 @@ import androidx.compose.ui.text.TextLayoutResult
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
-import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
 
 
 // 单句歌词（对应 [] 包裹的内容）

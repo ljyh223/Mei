@@ -24,7 +24,9 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -49,7 +51,6 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.GridMenu
 import com.ljyh.mei.ui.component.GridMenuItem
 import com.ljyh.mei.ui.component.ListDialog
-import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
@@ -72,6 +73,19 @@ fun TrackBottomSheet(
     var showDialog by remember {
         mutableStateOf(false)
     }
+
+    var showSheet by remember { mutableStateOf(false) }
+
+    EditPlaylistSheet(
+        isVisible = showSheet,
+        defaultText = "",
+        defaultHidden = false,
+        onDismiss = { showSheet = false },
+        onConfirm = { text, hide ->
+            showSheet = false
+            viewModel.createPlaylist(text, hide)
+        }
+    )
 
     if (showDialog) {
         ListDialog(

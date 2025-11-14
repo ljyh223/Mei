@@ -163,7 +163,7 @@ class PlaylistViewModel @Inject constructor(
      */
     fun createPlaylist(
         name: String,
-        privacy: String = "0", // 0 普通歌单, 10 隐私歌单
+        privacy: Boolean =  false, // 0 普通歌单, 10 隐私歌单
         type: String = "NORMAL" // 默认 NORMAL, VIDEO 视频歌单, SHARED 共享歌单
     ) {
         viewModelScope.launch {

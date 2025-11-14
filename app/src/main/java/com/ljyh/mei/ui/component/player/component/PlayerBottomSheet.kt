@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -36,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -50,6 +52,7 @@ import com.ljyh.mei.ui.component.GridMenu
 import com.ljyh.mei.ui.component.GridMenuItem
 import com.ljyh.mei.ui.component.ListDialog
 import com.ljyh.mei.ui.component.player.PlayerViewModel
+import com.ljyh.mei.ui.component.playlist.EditPlaylistSheet
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
@@ -78,6 +81,18 @@ fun PlayerBottomSheet(
     var showQQMusicSelect by remember {
         mutableStateOf(false)
     }
+    var showSheet by remember { mutableStateOf(false) }
+
+    EditPlaylistSheet(
+        isVisible = showSheet,
+        defaultText = "",
+        defaultHidden = false,
+        onDismiss = { showSheet = false },
+        onConfirm = { text, hide ->
+            showSheet = false
+            viewModel.createPlaylist(text, hide)
+        }
+    )
     if (showDialog) {
         ListDialog(
             modifier = Modifier.padding(16.dp),
@@ -85,6 +100,32 @@ fun PlayerBottomSheet(
                 showDialog = false
             }
         ) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clickable(onClick = {
+                            onDismiss()
+                            showDialog = false
+                            showSheet= true
+                        }),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        text = "创建歌单",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+
+                }
+            }
             items(allMePlaylist) {
                 Row(
                     modifier = Modifier
@@ -271,18 +312,6 @@ fun PlayerBottomSheet(
                     onClick = {
                         onDismiss()
                         showQQMusicSelect = true
-                    }
-                )
-
-
-                GridMenuItem(
-                    icon = Icons.Rounded.Lyrics,
-                    title = "AMLL",
-                    onClick = {
-                        onDismiss()
-                        val url="https://amlldb.bikonoo.com/ncm-lyrics/${mediaMetadata.id}.ttml"
-
-
                     }
                 )
             }

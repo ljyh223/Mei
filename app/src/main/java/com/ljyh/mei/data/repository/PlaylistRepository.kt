@@ -94,7 +94,7 @@ class PlaylistRepository(
 
     suspend fun createPlaylist(
         name: String,
-        privacy: String = "0", // 0 普通歌单, 10 隐私歌单
+        privacy: Boolean, // 0 普通歌单, 10 隐私歌单
         type: String = "NORMAL" // 默认 NORMAL, VIDEO 视频歌单, SHARED 共享歌单
     ): Resource<CreatePlaylistResult> {
         return withContext(Dispatchers.IO) {
@@ -102,7 +102,7 @@ class PlaylistRepository(
                 apiService.createPlaylist(
                     CreatePlaylist(
                         name = name,
-                        privacy = privacy,
+                        privacy = if ( privacy) "10" else "0",
                         type = type
                     )
                 )
