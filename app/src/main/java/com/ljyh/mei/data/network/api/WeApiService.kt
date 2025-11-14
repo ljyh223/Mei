@@ -1,6 +1,7 @@
 package com.ljyh.mei.data.network.api
 
 
+import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import retrofit2.http.Body
 import retrofit2.http.POST

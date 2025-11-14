@@ -56,14 +56,13 @@ import kotlinx.coroutines.android.awaitFrame
 fun LyricScreen(
     lyricData: LyricData,
     playerConnection: PlayerConnection,
-    switchLyric: () -> Unit
 ) {
     val listState = rememberLazyListState()
     var animatedPosition by remember { mutableLongStateOf(0L) }
     LaunchedEffect(playerConnection.isPlaying) {
         if (playerConnection.isPlaying.value) {
             while (true) {
-                val elapsed = System.currentTimeMillis() - playerConnection.player.currentPosition
+                // val elapsed = System.currentTimeMillis() - playerConnection.player.currentPosition
                 animatedPosition = (playerConnection.player.currentPosition ).coerceAtMost(
                     playerConnection.player.duration
                 )

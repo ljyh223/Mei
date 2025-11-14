@@ -7,6 +7,11 @@ import com.ljyh.mei.data.model.SongUrl
 import com.ljyh.mei.data.model.TrackAll
 import com.ljyh.mei.data.model.UserAccount
 import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.api.BaseMessageResponse
+import com.ljyh.mei.data.model.api.BaseResponse
+import com.ljyh.mei.data.model.api.CreatePlaylist
+import com.ljyh.mei.data.model.api.CreatePlaylistResult
+import com.ljyh.mei.data.model.api.DeletePlaylist
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
@@ -17,6 +22,8 @@ import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
 import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
+import com.ljyh.mei.data.model.api.SubscribePlaylist
+import com.ljyh.mei.data.model.api.SubscribePlaylistResult
 import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.model.weapi.LikeResult
 import retrofit2.http.Body
@@ -123,10 +130,8 @@ interface ApiService {
     @POST("/api/song/enhance/player/url/v1")
     suspend fun getSongUrlV1(@Body body: GetSongUrlV1): SongUrl
 
-
     @POST("/api/song/enhance/player/url")
     suspend fun getSongUrl(@Body body: GetSongUrl): SongUrl
-
 
     @POST("/api/user/photo/album/get")
     suspend fun getUserPhotoAlbum(@Body body: GetUserPhotoAlbum): AlbumPhoto
@@ -137,5 +142,17 @@ interface ApiService {
     @POST("/api/playlist/manipulate/tracks")
     suspend fun manipulateTracks(@Body body: ManipulateTrack): ManipulateTrackResult
 
+    @POST("/api/playlist/create")
+    suspend fun createPlaylist(@Body body: CreatePlaylist): CreatePlaylistResult
+
+    @POST("/api/playlist/subscribe")
+    suspend fun subscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+
+
+    @POST("/api/playlist/unsubscribe")
+    suspend fun unSubscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+
+    @POST("/api/playlist/remove")
+    suspend fun deletePlaylist(@Body body: DeletePlaylist): BaseMessageResponse
 
 }

@@ -129,8 +129,10 @@ dependencies {
     implementation(kotlin("reflect"))
 
     implementation(libs.android.gpuimage)
+    // 列表拖拽
     implementation(libs.reorderable)
 
+    // 歌词组件
     implementation(libs.lyrics.core)
     implementation(libs.lyrics.ui)
 //    implementation(libs.composeIcons.evaIcons)

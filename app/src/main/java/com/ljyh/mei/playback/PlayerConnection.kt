@@ -21,11 +21,13 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.getCurrentQueueIndex
 import com.ljyh.mei.extensions.getQueueWindows
+import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.reportException
+import com.ljyh.mei.utils.shuffleExceptOne
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,7 +79,7 @@ class PlayerConnection
     val currentWindowIndex = MutableStateFlow(-1)
 
     val shuffleModeEnabled = MutableStateFlow(false)
-    val repeatMode = MutableStateFlow(REPEAT_MODE_OFF)
+    val repeatMode = MutableStateFlow(REPEAT_MODE_ALL)
 
     val canSkipPrevious = MutableStateFlow(true)
     val canSkipNext = MutableStateFlow(true)
@@ -105,8 +107,11 @@ class PlayerConnection
     }
 
 
-    fun playQueue(queue: Queue) {
+    fun playQueue(queue: ListQueue) {
         service.playQueue(queue)
+        if(repeatMode.value == PlayMode.SHUFFLE_MODE_ALL.mode){
+            service.setShuffleModeEnabled( true)
+        }
     }
 
     fun playNext(item: MediaItem) = playNext(listOf(item))
@@ -136,23 +141,29 @@ class PlayerConnection
     }
 
     fun switchPlayMode(mode: PlayMode): Int {
+        // 切换到指定模式并返回当前模式
         return when (mode) {
-            // OFF -> ALL -> SHUFFLE -> ONE
-            PlayMode.REPEAT_MODE_OFF -> {
-                player.repeatMode = REPEAT_MODE_ALL
-                player.repeatMode
-            }
+            //  ALL -> SHUFFLE -> ONE
+
+            // 整个播放列表循环播放。
             PlayMode.REPEAT_MODE_ALL -> {
-                player.shuffleModeEnabled = true
-                3
+                // 因为会手动打乱，并且需要处理播放列表可见，所以就不再内部随机了
+                player.repeatMode = REPEAT_MODE_ALL
+                repeatMode.value = PlayMode.SHUFFLE_MODE_ALL.mode
+                service.setShuffleModeEnabled( true )
+                repeatMode.value
             }
             PlayMode.SHUFFLE_MODE_ALL -> {
                 player.repeatMode = REPEAT_MODE_ONE
-                player.repeatMode
+                repeatMode.value = PlayMode.REPEAT_MODE_ONE.mode
+                service.setShuffleModeEnabled( false )
+                repeatMode.value
             }
             PlayMode.REPEAT_MODE_ONE -> {
-                player.repeatMode = REPEAT_MODE_OFF
-                player.repeatMode
+                player.repeatMode = REPEAT_MODE_ALL
+                repeatMode.value = PlayMode.REPEAT_MODE_ALL.mode
+                service.setShuffleModeEnabled( false )
+                repeatMode.value
             }
         }
 
@@ -230,8 +241,6 @@ enum class PlayMode(val mode: Int) {
     // 整个播放列表循环播放。
     REPEAT_MODE_ALL(2),
 
-    // 播放列表按顺序播放，播放完最后一首后停止。
-    REPEAT_MODE_OFF(0),
 
     // 单曲循环播放。
     REPEAT_MODE_ONE(1),

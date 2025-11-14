@@ -81,6 +81,7 @@ class PlayerViewModel @Inject constructor(
             }
         }
     }
+
     fun clear() {
         _searchResult.value = Resource.Loading
         _lyricResult.value = Resource.Loading

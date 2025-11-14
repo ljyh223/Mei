@@ -65,7 +65,6 @@ import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
-import com.ljyh.mei.ui.component.player.component.DialogSelect
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.LyricSourceData
 import com.ljyh.mei.ui.component.player.component.OptimizedBlurredImage
@@ -243,9 +242,7 @@ fun BottomSheetPlayer(
         }
     }
 
-    DialogSelect(id = mediaInfo.id, showDialog, searchResult, playerViewModel, duration) {
-        showDialog = false
-    }
+
     // Queue sheet state
     val queueSheetState = rememberBottomSheetState(
         dismissedBound = QueuePeekHeight + WindowInsets.systemBars.asPaddingValues()
@@ -332,7 +329,7 @@ fun BottomSheetPlayer(
                         }
 
                         if(metadata.album.title.isNotEmpty()){
-                            Text(" - ")
+                            Text(" - ", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
                             Text(
                                 text = metadata.album.title,
                                 style = MaterialTheme.typography.titleMedium,
@@ -374,9 +371,7 @@ fun BottomSheetPlayer(
                         LyricScreen(
                             lyricData = lyricLine.value,
                             playerConnection = playerConnection,
-                        ) {
-                            showDialog = true
-                        }
+                        )
                     }
                 }
             }
@@ -399,7 +394,6 @@ fun BottomSheetPlayer(
 
             Spacer(Modifier.height(12.dp))
 
-            // 播放控制区
             Controls(
                 playerConnection = playerConnection,
                 canSkipPrevious = canSkipPrevious,

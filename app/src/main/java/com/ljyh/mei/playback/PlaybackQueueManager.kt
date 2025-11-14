@@ -17,6 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -52,50 +53,63 @@ class PlaybackQueueManager(
     // 智能预加载策略管理器
     lateinit var preloadStrategyManager: PreloadStrategyManager
 
+    private var originalMediaItems: List<MediaItem> = emptyList()
+    private var shuffledMediaItems: List<MediaItem> = emptyList()
+
+    private val _isShuffleModeEnabled = MutableStateFlow(false)
+    val isShuffleModeEnabled: StateFlow<Boolean> = _isShuffleModeEnabled.asStateFlow()
+
+
+// PlaybackQueueManager.kt
+
     /**
-     * 播放指定队列
+     * 播放一个新队列
+     * @param queue 要播放的队列
+     * @param startInShuffleMode 是否以随机模式开始播放，默认为 false
+     * @param playWhenReady 是否准备好后立即播放
      */
     suspend fun playQueue(
         queue: Queue,
+        startInShuffleMode: Boolean = false,
         playWhenReady: Boolean = true,
-        startPosition: Int = 0
     ) {
         _queueState.value = QueueState.Loading(queue.title ?: "播放列表")
 
         try {
-            // 停止之前的预加载
             preloadJob?.cancel()
-
-            // 设置当前队列
             currentQueue = queue
             queueTitle = queue.title
 
-            // 获取初始状态
             val status = queue.getInitialStatus()
             if (status.ids.isEmpty()) {
                 _queueState.value = QueueState.Empty
                 return
             }
 
-            // 加载第一批歌曲
-            val firstBatch = loadSongDetails(status.ids)
-            if (firstBatch.isEmpty()) {
+            val mediaItems = loadSongDetails(status.ids)
+            if (mediaItems.isEmpty()) {
                 _queueState.value = QueueState.Error("无法加载歌曲")
                 return
             }
 
-            // 设置播放器
-            val actualStartPosition = if (startPosition in firstBatch.indices) startPosition else 0
-            player.setMediaItems(firstBatch, actualStartPosition, status.position.toLong())
+            // 1. 无论如何，都先保存原始顺序的列表
+            originalMediaItems = mediaItems
+
+            // 2. 设置初始的播放模式状态
+            _isShuffleModeEnabled.value = startInShuffleMode
+
+            // 3. 调用我们已经写好的核心函数来更新播放器
+            // 这个函数会根据 _isShuffleModeEnabled 的值来决定是使用原始列表还是生成并使用随机列表
+            updatePlayerQueue(
+                startMediaId = status.ids.getOrNull(status.mediaItemIndex),
+                startPositionMs = status.position.toLong()
+            )
+
             player.prepare()
             player.playWhenReady = playWhenReady
 
-            _queueState.value = QueueState.Playing(queue.title ?: "播放列表", firstBatch.size)
-
-            // 开始预加载监听
+            _queueState.value = QueueState.Playing(queue.title ?: "播放列表", player.mediaItemCount)
             startPreloadMonitoring()
-            
-            // 开始智能预加载策略监控
             preloadStrategyManager.startMonitoring()
 
         } catch (e: Exception) {
@@ -107,7 +121,7 @@ class PlaybackQueueManager(
     /**
      * 添加到队列末尾
      */
-    suspend fun addToQueue(items: List<MediaItem>) {
+    fun addToQueue(items: List<MediaItem>) {
         player.addMediaItems(items)
         if (player.playbackState == androidx.media3.common.Player.STATE_IDLE) {
             player.prepare()
@@ -117,11 +131,54 @@ class PlaybackQueueManager(
     /**
      * 在下一首播放
      */
-    suspend fun playNext(items: List<MediaItem>) {
+    fun playNext(items: List<MediaItem>) {
         val insertIndex = if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1
         player.addMediaItems(insertIndex, items)
         if (player.playbackState == androidx.media3.common.Player.STATE_IDLE) {
             player.prepare()
+        }
+    }
+    /**
+     * 切换随机播放模式
+     * @param enabled 是否开启随机播放
+     */
+    fun setShuffleModeEnabled(enabled: Boolean) {
+        if (_isShuffleModeEnabled.value == enabled) return
+
+        _isShuffleModeEnabled.value = enabled
+
+        // 获取当前播放状态，用于无缝切换
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val currentPosition = player.currentPosition.coerceAtLeast(0)
+
+        updatePlayerQueue(currentMediaId, currentPosition)
+        player.prepare()
+    }
+
+    private fun updatePlayerQueue(startMediaId: String?, startPositionMs: Long) {
+        val mediaItemsToSet: List<MediaItem>
+        var newIndex = 0
+
+        if (_isShuffleModeEnabled.value) {
+            // 生成随机列表，并将当前歌曲放在第一位，其余随机
+            val currentItem = originalMediaItems.find { it.mediaId == startMediaId }
+            shuffledMediaItems = if (currentItem != null) {
+                val otherItems = originalMediaItems.filter { it.mediaId != startMediaId }
+                listOf(currentItem) + otherItems.shuffled()
+            } else {
+                originalMediaItems.shuffled()
+            }
+            mediaItemsToSet = shuffledMediaItems
+            // 新的索引永远是0，因为我们把当前歌曲放到了第一位
+            newIndex = mediaItemsToSet.indexOfFirst { it.mediaId == startMediaId }.coerceAtLeast(0)
+        } else {
+            // 使用原始顺序列表
+            mediaItemsToSet = originalMediaItems
+            newIndex = originalMediaItems.indexOfFirst { it.mediaId == startMediaId }.coerceAtLeast(0)
+        }
+
+        if (mediaItemsToSet.isNotEmpty()) {
+            player.setMediaItems(mediaItemsToSet, newIndex, startPositionMs)
         }
     }
 

@@ -18,7 +18,6 @@ import com.ljyh.mei.ui.component.playlist.Track
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.utils.rearrangeArray
 import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +95,8 @@ fun EveryDay(
                                 ListQueue(
                                     id = "everyday",
                                     title = "每日推荐",
-                                    items = rearrangeArray(index, trackIds)
+                                    items = trackIds,
+                                    startIndex = index
                                 )
                             )
                         }

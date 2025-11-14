@@ -65,7 +65,6 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.positionComparator
-import com.ljyh.mei.utils.rearrangeArray
 import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.smallImage
 import java.util.UUID
@@ -287,7 +286,8 @@ private fun RenderHomePageContent(
                             ListQueue(
                                 id = UUID.randomUUID().toString(),
                                 title = "PRIVATE_RCMD_SONG",
-                                items = rearrangeArray(index, flatSongs)
+                                items = flatSongs,
+                                startIndex = index
                             )
                         )
                     }
@@ -366,7 +366,8 @@ private fun RenderHomePageContent(
                         ListQueue(
                             id = UUID.randomUUID().toString(),
                             title = "RED_SIMILAR_SONG",
-                            items = rearrangeArray(index, flatSongs)
+                            items = flatSongs,
+                            startIndex = index
                         )
                     )
                 }

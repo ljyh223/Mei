@@ -3,21 +3,21 @@ package com.ljyh.mei.ui.screen.playlist
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.PlaylistDetail
-import com.ljyh.mei.data.model.SongUrl
-import com.ljyh.mei.data.model.api.ManipulateTrack
+import com.ljyh.mei.data.model.api.BaseMessageResponse
+import com.ljyh.mei.data.model.api.BaseResponse
+import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
-import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.di.LikeRepository
 import com.ljyh.mei.utils.dataStore
@@ -52,6 +52,21 @@ class PlaylistViewModel @Inject constructor(
 
     private val _everyDay = MutableStateFlow<Resource<EveryDaySongs>>(Resource.Loading)
     val everyDay: StateFlow<Resource<EveryDaySongs>> = _everyDay
+
+    // 创建歌单状态
+    private val _createPlaylist = MutableStateFlow<Resource<CreatePlaylistResult>>(Resource.Loading)
+    val createPlaylist: StateFlow<Resource<CreatePlaylistResult>> = _createPlaylist
+
+    // 收藏/取消收藏歌单状态
+    private val _subscribePlaylist = MutableStateFlow<Resource<BaseResponse>>(Resource.Loading)
+    val subscribePlaylist: StateFlow<Resource<BaseResponse>> = _subscribePlaylist
+
+    private val _unSubscribePlaylist = MutableStateFlow<Resource<BaseResponse>>(Resource.Loading)
+    val unSubscribePlaylist: StateFlow<Resource<BaseResponse>> = _unSubscribePlaylist
+
+    // 删除歌单状态
+    private val _deletePlaylist = MutableStateFlow<Resource<BaseMessageResponse>>(Resource.Loading)
+    val deletePlaylist: StateFlow<Resource<BaseMessageResponse>> = _deletePlaylist
 
     fun getPlaylistDetail(id: String) {
         viewModelScope.launch {
@@ -141,6 +156,50 @@ class PlaylistViewModel @Inject constructor(
             _everyDay.value = repository.getEveryDayRecommendSongs()
         }
 
+    }
+
+    /*
+     * 创建歌单
+     */
+    fun createPlaylist(
+        name: String,
+        privacy: String = "0", // 0 普通歌单, 10 隐私歌单
+        type: String = "NORMAL" // 默认 NORMAL, VIDEO 视频歌单, SHARED 共享歌单
+    ) {
+        viewModelScope.launch {
+            _createPlaylist.value = Resource.Loading
+            _createPlaylist.value = repository.createPlaylist(name, privacy, type)
+        }
+    }
+
+    /*
+     * 收藏歌单
+     */
+    fun subscribePlaylist(id: String) {
+        viewModelScope.launch {
+            _subscribePlaylist.value = Resource.Loading
+            _subscribePlaylist.value = repository.subscribePlaylist(id)
+        }
+    }
+
+    /*
+     * 取消收藏歌单
+     */
+    fun unsubscribePlaylist(id: String) {
+        viewModelScope.launch {
+            _subscribePlaylist.value = Resource.Loading
+            _subscribePlaylist.value = repository.subscribePlaylist(id)
+        }
+    }
+
+    /*
+     * 删除歌单
+     */
+    fun deletePlaylist(id: String) {
+        viewModelScope.launch {
+            _deletePlaylist.value = Resource.Loading
+            _deletePlaylist.value = repository.deletePlaylist(id)
+        }
     }
 
 

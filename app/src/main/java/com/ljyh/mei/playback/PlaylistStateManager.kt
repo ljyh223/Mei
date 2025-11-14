@@ -27,6 +27,7 @@ class PlaylistStateManager {
     /**
      * 设置当前歌单
      */
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun setCurrentPlaylist(playlistDetail: PlaylistDetail, startPosition: Int = 0) {
         currentPosition = startPosition
         _playlistState.value = PlaylistState.Playing(

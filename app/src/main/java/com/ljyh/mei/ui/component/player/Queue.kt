@@ -53,11 +53,11 @@ import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.player.component.PlaylistSheet
-import com.ljyh.mei.ui.component.player.component.TrackBottomSheet
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.rememberPreference
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ljyh.mei.ui.component.player.component.PlayerBottomSheet
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
 import kotlinx.coroutines.delay
@@ -73,7 +73,7 @@ fun Queue(
     playerBottomSheetState: BottomSheetState,
     backgroundColor: Color,
     navController: NavController,
-    playerViewModel: PlayerViewModel? = null,
+    playerViewModel: PlayerViewModel,
     mediaMetadata: MediaMetadata? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -85,14 +85,14 @@ fun Queue(
     val playMode = PlayMode.fromInt(playModeValue)!!
     
     // 喜欢状态和歌单相关
-    val isLiked by playerViewModel?.like?.collectAsState(initial = null) ?: remember { mutableStateOf(null) }
+    val isLiked by playerViewModel.like.collectAsState(initial = null)
     var showTrackBottomSheet by remember { mutableStateOf(false) }
     val playlistViewModel: PlaylistViewModel = hiltViewModel()
     
     // 监听当前歌曲变化，更新喜欢状态
     LaunchedEffect(mediaMetadata?.id) {
         mediaMetadata?.let {
-            playerViewModel?.getLike(it.id.toString())
+            playerViewModel.getLike(it.id.toString())
         }
     }
     if (showSleepTimerDialog) {
@@ -145,7 +145,6 @@ fun Queue(
             ) {
                 Icon(
                     imageVector = when (playMode) {
-                        PlayMode.REPEAT_MODE_OFF -> Icons.Rounded.MultipleStop
                         PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
                         PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
                         PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle
@@ -210,7 +209,7 @@ fun Queue(
             IconButton(
                 onClick = {
                     mediaMetadata?.let {
-                        playerViewModel?.like(id = it.id.toString())
+                        playerViewModel.like(id = it.id.toString())
                     }
                 },
                 modifier = Modifier
@@ -251,9 +250,10 @@ fun Queue(
     
     // 歌曲底部弹窗
     mediaMetadata?.let {
-        TrackBottomSheet(
+        PlayerBottomSheet(
             showBottomSheet = showTrackBottomSheet,
             viewModel = playlistViewModel,
+            playerViewModel = playerViewModel,
             mediaMetadata = it,
         ) {
             showTrackBottomSheet = false

@@ -88,7 +88,7 @@ interface LikeDao{
 }
 
 
-@Database(entities = [Color::class, Song::class, Like::class, QQSong::class, Playlist::class], version = 7)
+@Database(entities = [Color::class, Song::class, Like::class, QQSong::class, Playlist::class], version = 8)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
     abstract fun songDao(): SongDao

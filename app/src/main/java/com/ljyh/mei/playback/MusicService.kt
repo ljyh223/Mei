@@ -279,14 +279,18 @@ class MusicService : MediaLibraryService(),
         }
     }
 
+    fun setShuffleModeEnabled(isShuffle: Boolean) {
+        queueManager.setShuffleModeEnabled(isShuffle)
+    }
+
 
 
     /**
      * 播放队列
      */
-    fun playQueue(queue: com.ljyh.mei.playback.queue.Queue, playWhenReady: Boolean = true, startPosition: Int = 0) {
+    fun playQueue(queue: Queue, playWhenReady: Boolean = true) {
         scope.launch {
-            queueManager.playQueue(queue, playWhenReady, startPosition)
+            queueManager.playQueue(queue, playWhenReady)
             queueTitle = queue.title
         }
     }
@@ -294,7 +298,7 @@ class MusicService : MediaLibraryService(),
     /**
      * 播放播放列表
      */
-    fun playPlaylist(playlistDetail: com.ljyh.mei.data.model.PlaylistDetail, playWhenReady: Boolean = true, startPosition: Int = 0) {
+    fun playPlaylist(playlistDetail: com.ljyh.mei.data.model.PlaylistDetail, playWhenReady: Boolean = true) {
         scope.launch {
             val trackIds = playlistDetail.playlist.trackIds.map { it.id }
             val playlistQueue = com.ljyh.mei.playback.queue.PlaylistQueue(
@@ -303,11 +307,11 @@ class MusicService : MediaLibraryService(),
                 trackIds = trackIds,
                 batchSize = 20
             )
-            queueManager.playQueue(playlistQueue, playWhenReady, startPosition)
+            queueManager.playQueue(playlistQueue, playWhenReady)
             queueTitle = playlistDetail.playlist.name
             
             // 更新歌单状态
-            playlistStateManager.setCurrentPlaylist(playlistDetail, startPosition)
+            playlistStateManager.setCurrentPlaylist(playlistDetail)
         }
     }
 

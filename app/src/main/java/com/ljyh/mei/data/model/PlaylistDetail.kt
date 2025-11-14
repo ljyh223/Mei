@@ -613,7 +613,8 @@ fun PlaylistDetail.toMiniPlaylistDetail():MiniPlaylistDetail{
         creatorUserId = playlist.creator.userId,
         createUserName = playlist.creator.nickname,
         playCount = playlist.playCount,
-        subscribedCount = playlist.subscribedCount
+        subscribedCount = playlist.subscribedCount,
+        subscribed = playlist.subscribed
     )
 }
 
@@ -629,6 +630,7 @@ data class MiniPlaylistDetail(
     val creatorUserId:Long,
     val createUserName:String,
     val playCount:Long,
-    val subscribedCount:Long
+    val subscribedCount:Long,
+    val subscribed:Boolean
 
 )

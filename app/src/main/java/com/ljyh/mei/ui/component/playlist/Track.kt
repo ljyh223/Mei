@@ -26,9 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.ui.component.player.component.TrackBottomSheet
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.smallImage

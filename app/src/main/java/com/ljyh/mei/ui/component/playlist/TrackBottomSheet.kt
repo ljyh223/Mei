@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component.player.component
+package com.ljyh.mei.ui.component.playlist
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -30,7 +30,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,22 +49,20 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.GridMenu
 import com.ljyh.mei.ui.component.GridMenuItem
 import com.ljyh.mei.ui.component.ListDialog
+import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
-import com.ljyh.mei.utils.DownloadManager
-import com.ljyh.mei.utils.SongMate
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.smallImage
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrackBottomSheet (
+fun TrackBottomSheet(
     showBottomSheet: Boolean,
     viewModel: PlaylistViewModel,
     mediaMetadata: MediaMetadata,
     onDismiss: () -> Unit
-){
+) {
     val userId = LocalContext.current.dataStore[UserIdKey] ?: ""
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -75,10 +72,10 @@ fun TrackBottomSheet (
     var showDialog by remember {
         mutableStateOf(false)
     }
+
     if (showDialog) {
         ListDialog(
             modifier = Modifier.padding(16.dp),
-
             onDismiss = {
                 showDialog = false
             }
@@ -126,7 +123,7 @@ fun TrackBottomSheet (
                             maxLines = 1,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.secondary
-                            )
+                        )
 
                     }
                 }
@@ -134,6 +131,8 @@ fun TrackBottomSheet (
 
         }
     }
+
+
     if (showBottomSheet) {
         ModalBottomSheet(
             shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
@@ -155,8 +154,10 @@ fun TrackBottomSheet (
                     icon = Icons.Rounded.Add,
                     title = "添加到歌单",
                     onClick = {
+
                         viewModel.getAllMePlaylist()
                         showDialog = true
+                        onDismiss()
                     }
                 )
 
@@ -168,7 +169,10 @@ fun TrackBottomSheet (
                         title = "删除此歌曲",
                         onClick = {
                             onDismiss()
-                            Log.d("Playlist DEL", "删除的歌曲id:${mediaMetadata.id} 名字:${mediaMetadata.title}")
+                            Log.d(
+                                "Playlist DEL",
+                                "删除的歌曲id:${mediaMetadata.id} 名字:${mediaMetadata.title}"
+                            )
                             viewModel.deleteSongFromPlaylist(
                                 pid = (playlistDetail as Resource.Success<PlaylistDetail>).data.playlist.Id.toString(),
                                 trackIds = mediaMetadata.id.toString()
@@ -249,10 +253,10 @@ fun TrackBottomSheet (
                         Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
                     }
                 )
+
             }
         }
     }
-
 
 
 }

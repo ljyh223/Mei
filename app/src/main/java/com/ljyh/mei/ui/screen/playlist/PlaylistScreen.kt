@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -79,7 +81,6 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.NotificationHelper
 import com.ljyh.mei.utils.PermissionsUtils.checkAndRequestFilesPermissions
-import com.ljyh.mei.utils.rearrangeArray
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -189,9 +190,8 @@ fun PlaylistScreen(
                                     ListQueue(
                                         id = "playlist_${result.data.playlist.Id}",
                                         title = result.data.playlist.name,
-                                        items = rearrangeArray(
-                                            index,
-                                            lazyPagingItems.itemSnapshotList.items.map { it.id.toString() })
+                                        items = lazyPagingItems.itemSnapshotList.items.map { it.id.toString() },
+                                        startIndex = index
                                     )
                                 )
                             }
@@ -313,7 +313,7 @@ fun PlaylistInfo(
         ) {
             Button(onClick = { play() }) {
                 Icon(
-                    imageVector = Icons.Filled.Shuffle,
+                    imageVector = Icons.Filled.PlayArrow,
                     contentDescription = null,
                     modifier = Modifier.size(ButtonDefaults.IconSize)
                 )
@@ -321,10 +321,20 @@ fun PlaylistInfo(
 
 
             Button(onClick = {
-
+                if (userId == playlistDetail.creatorUserId.toString()
+                ) {
+                    Toast.makeText(context, "不能收藏自己创建的歌单", Toast.LENGTH_SHORT).show()
+                    return@Button
+                } else if (playlistDetail.subscribed) {
+                    viewModel.unsubscribePlaylist(playlistDetail.id.toString())
+                    Toast.makeText(context, "取消收藏成功", Toast.LENGTH_SHORT).show()
+                } else {
+                    viewModel.subscribePlaylist(playlistDetail.id.toString())
+                    Toast.makeText(context, "收藏成功", Toast.LENGTH_SHORT).show()
+                }
             }) {
                 Icon(
-                    imageVector = Icons.Filled.Favorite,
+                    imageVector = if (playlistDetail.subscribed) Icons.Filled.FavoriteBorder else Icons.Filled.Favorite,
                     contentDescription = null,
                     modifier = Modifier.size(ButtonDefaults.IconSize)
                 )

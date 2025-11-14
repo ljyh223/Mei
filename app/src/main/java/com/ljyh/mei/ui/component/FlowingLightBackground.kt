@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.ui.CompatBlurImage
+import com.ljyh.mei.ui.component.player.component.CompatBlurImage
 
 
 @Stable

@@ -10,5 +10,7 @@ data class Playlist(
     val title:String,
     val cover:String,
     val author:String,
+    val authorName: String,
+    val authorAvatar: String,
     val count:Int
 )
