@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrains.kotlin.kapt)
-
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 
@@ -17,7 +16,7 @@ plugins {
 
 android {
     namespace = "com.ljyh.mei"
-    compileSdk = 35
+    compileSdk = 36
 
 
     defaultConfig {
