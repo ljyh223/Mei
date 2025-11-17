@@ -10,8 +10,11 @@ import com.ljyh.mei.constants.LastHomePageData_1
 import com.ljyh.mei.constants.LastHomePageData_2
 import com.ljyh.mei.constants.LastHomePageTime
 import com.ljyh.mei.data.model.HomePageResourceShow
+import com.ljyh.mei.data.model.api.GetSearch
+import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
@@ -24,7 +27,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class HomeRepository(private val eApiService: EApiService) {
+class HomeRepository(private val eApiService: EApiService, private val apiService: ApiService) {
 
     val context = AppContext.instance
     suspend fun getHomePageResourceShow(
@@ -102,5 +105,12 @@ class HomeRepository(private val eApiService: EApiService) {
         val preferences = context.dataStore.data.first()
         Log.d("getLastFetchTime", (preferences[LastHomePageTime] ?: 0L).toString())
         return preferences[LastHomePageTime] ?: 0L
+    }
+
+    suspend fun search( keyword: String): Resource<List<SearchResult.Result.Song>> {
+        val result = apiService.search(GetSearch(keyword))
+        return safeApiCall {
+            result.result.songs
+        }
     }
 }

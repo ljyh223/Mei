@@ -15,6 +15,7 @@ import com.ljyh.mei.data.model.api.DeletePlaylist
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
+import com.ljyh.mei.data.model.api.GetSearch
 import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.GetSongUrl
 import com.ljyh.mei.data.model.api.GetSongUrlV1
@@ -22,6 +23,7 @@ import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
 import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
+import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.api.SubscribePlaylistResult
 import com.ljyh.mei.data.model.weapi.Like
@@ -126,6 +128,17 @@ interface ApiService {
     suspend fun getUserPlaylist(
         @Body body: GetUserPlaylist
     ): UserPlaylist
+
+    @POST("/api/search/get")
+    suspend fun search(
+        @Body body: GetSearch
+    ): SearchResult
+
+
+    @POST("/api/search/suggest/")
+    suspend fun searchSuggest(
+        @Body body: GetSearch
+    ): SearchResult
 
 
 

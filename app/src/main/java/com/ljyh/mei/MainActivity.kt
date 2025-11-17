@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import androidx.datastore.preferences.core.edit
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -108,6 +109,7 @@ import com.ljyh.mei.ui.local.LocalUserData
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.screen.index.home.HomeViewModel
 import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.MusicUtils
@@ -188,6 +190,7 @@ class MainActivity : ComponentActivity() {
             var active by rememberSaveable {
                 mutableStateOf(false)
             }
+            val viewModel = hiltViewModel<HomeViewModel>()
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
 
             //根据图片加载主题色
@@ -532,6 +535,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                         IconButton(
                                             onClick = {
+
                                                 Toast.makeText(
                                                     this@MainActivity,
                                                     "还未实现",

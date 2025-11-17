@@ -8,10 +8,12 @@ import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -298,6 +300,7 @@ class MusicService : MediaLibraryService(),
     /**
      * 播放播放列表
      */
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun playPlaylist(playlistDetail: com.ljyh.mei.data.model.PlaylistDetail, playWhenReady: Boolean = true) {
         scope.launch {
             val trackIds = playlistDetail.playlist.trackIds.map { it.id }
@@ -349,7 +352,7 @@ class MusicService : MediaLibraryService(),
                     OkHttpDataSource.Factory(OkHttpClient.Builder().build())
                 )
             )
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
     }
     private fun createDataSourceFactory(): DataSource.Factory {
 

@@ -16,5 +16,6 @@
 .cxx
 local.properties
 *.zip
-app/release
-app/debug
+/app/release
+/app/debug
+*.log
