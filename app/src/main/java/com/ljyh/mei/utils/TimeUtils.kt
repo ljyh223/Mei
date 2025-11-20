@@ -60,4 +60,11 @@ object TimeUtils {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         return dateFormat.format(now)
     }
+
+    // 时间戳转日期
+    fun timestampToDate(timestamp: Long): String {
+        val date = Date(timestamp)
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return dateFormat.format(date)
+    }
 }

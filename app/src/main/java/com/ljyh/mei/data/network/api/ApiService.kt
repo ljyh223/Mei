@@ -1,17 +1,20 @@
 package com.ljyh.mei.data.network.api
 
+import com.ljyh.mei.data.model.AlbumDetail
 import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.SongUrl
 import com.ljyh.mei.data.model.TrackAll
 import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.DeletePlaylist
+import com.ljyh.mei.data.model.api.GetAlbumList
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
@@ -30,6 +33,7 @@ import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.model.weapi.LikeResult
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface ApiService {
 //    @GET("/homepage/block/page") // 示例 endpoint
@@ -87,13 +91,13 @@ interface ApiService {
     * 获取歌单详情
     * */
     @POST("/api/v6/playlist/detail")
-    suspend fun getPlaylistDetail(@Body body: GetPlaylistDetail):PlaylistDetail
+    suspend fun getPlaylistDetail(@Body body: GetPlaylistDetail): PlaylistDetail
 
     /*
     * 获取歌单详情
     * */
     @POST("/api/v3/song/detail")
-    suspend fun getSongDetail(@Body body: GetSongDetails):TrackAll
+    suspend fun getSongDetail(@Body body: GetSongDetails): TrackAll
 
 
     /*
@@ -109,8 +113,6 @@ interface ApiService {
     suspend fun getLyric(
         @Body body: GetLyric
     ): Lyric
-
-
 
 
     /*
@@ -129,6 +131,15 @@ interface ApiService {
         @Body body: GetUserPlaylist
     ): UserPlaylist
 
+    @POST("/api/album/sublist")
+    suspend fun getCollectAlbumList(@Body body: GetAlbumList): UserAlbumList
+
+    @POST("/api/v1/album/{id}")
+    suspend fun getAlbumDetail(
+        @Body body: Map<String,String> = emptyMap(),
+        @Path("id") id: String
+    ): AlbumDetail
+
     @POST("/api/search/get")
     suspend fun search(
         @Body body: GetSearch
@@ -139,7 +150,6 @@ interface ApiService {
     suspend fun searchSuggest(
         @Body body: GetSearch
     ): SearchResult
-
 
 
     @POST("/api/song/enhance/player/url/v1")

@@ -1,5 +1,6 @@
 package com.ljyh.mei.data.repository
 
+import com.ljyh.mei.data.model.AlbumDetail
 import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.SongUrl
 import com.ljyh.mei.data.model.api.BaseMessageResponse
@@ -150,5 +151,17 @@ class PlaylistRepository(
             }
         }
     }
+
+
+    suspend fun getAlbumDetail(id: String): Resource<AlbumDetail> {
+        return withContext(Dispatchers.IO) {
+            safeApiCall {
+                apiService.getAlbumDetail(
+                    id = id
+                )
+            }
+        }
+    }
+
 
 }

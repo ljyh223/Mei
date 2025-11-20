@@ -1,4 +1,7 @@
 @file:Suppress("UnstableApiUsage")
+
+include(":accompanist-lyrics-core")
+
 pluginManagement {
     repositories {
 //        maven { url=uri("https://maven.aliyun.com/repository/public") }
@@ -22,6 +25,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         google()
         mavenCentral()

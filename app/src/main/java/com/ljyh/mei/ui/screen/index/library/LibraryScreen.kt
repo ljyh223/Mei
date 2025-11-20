@@ -1,11 +1,14 @@
 package com.ljyh.mei.ui.screen.index.library
 
+import android.R.attr.onClick
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -14,10 +17,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -46,12 +52,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.CookieKey
@@ -59,6 +64,7 @@ import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
+import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.SingleImagePickerSheet
@@ -68,6 +74,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.smallImage
 import kotlinx.coroutines.launch
 
 
@@ -83,6 +90,7 @@ fun LibraryScreen(
     val navController = LocalNavController.current
     val photoAlbum by viewModel.photoAlbum.collectAsState()
     val localPlaylists by viewModel.localPlaylists.collectAsState()
+    val albumList by viewModel.albumList.collectAsState()
     val networkState by viewModel.networkPlaylistsState.collectAsState()
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
     val (userNickname, setUserNickname) = rememberPreference(UserNicknameKey, "")
@@ -95,8 +103,8 @@ fun LibraryScreen(
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
     val scrollState = rememberScrollState()
     var showPhotoPicker by remember { mutableStateOf(false) }
-    val pagerState = rememberPagerState(pageCount = { 2 })
-    val tabTitles = listOf("创建的歌单", "收藏的歌单")
+    val pagerState = rememberPagerState(pageCount = { 3 })
+    val tabTitles = listOf("创建的歌单", "收藏的歌单", "收藏的专辑")
     val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
         if (userId.isEmpty()) {
             Pair(emptyList(), emptyList())
@@ -115,6 +123,7 @@ fun LibraryScreen(
             Log.d("libraryScreen", "Syncing user playlist for userId: $userId")
             viewModel.syncUserPlaylists(userId) // 调用新的同步函数
             viewModel.getPhotoAlbum(userId)
+            viewModel.getAlbumList()
         }
     }
     LaunchedEffect(photoAlbum) {
@@ -125,6 +134,9 @@ fun LibraryScreen(
             }
         }
     }
+
+
+
 
 
     LaunchedEffect(key1 = cookie, key2 = account) {
@@ -185,12 +197,35 @@ fun LibraryScreen(
                 }
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
                 ) { page ->
-                    val currentList = if (page == 0) createdPlaylists else collectedPlaylists
-                    PlaylistPage(playlists = currentList,networkState is Resource.Loading, navController = navController)
+                    when (page) {
+                        0 -> {
+                            val currentList = createdPlaylists
+                            PlaylistPage(
+                                playlists = currentList,
+                                isLoading = networkState is Resource.Loading,
+                                navController = navController
+                            )
+                        }
+                        1 -> {
+                            val currentList = collectedPlaylists
+                            PlaylistPage(
+                                playlists = currentList,
+                                isLoading = networkState is Resource.Loading,
+                                navController = navController
+                            )
+                        }
+                        2 -> {
+                            AlbumPage(
+                                albumList = albumList,
+                                isLoading = albumList is Resource.Loading,
+                                navController = navController
+                            )
+                        }
+                    }
                 }
+
                 Spacer(
                     Modifier.height(
                         LocalPlayerAwareWindowInsets.current.asPaddingValues()
@@ -288,6 +323,107 @@ fun PlaylistPage(playlists: List<Playlist>,isLoading: Boolean, navController: Na
 
     }
 }
+
+
+@Composable
+fun AlbumPage(
+    albumList: Resource<UserAlbumList>, // 如果你是 List 就改成 List
+    isLoading: Boolean,
+    navController: NavController
+) {
+    when (albumList) {
+        is Resource.Success -> {
+            val albums = albumList.data.data // ← 按照你接口结构修改
+
+            if (albums.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "这里什么都没有哦",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    albums.forEach { album ->
+                        AlbumItem(album) { id ->
+                            Screen.Album.navigate(navController) {
+                                addPath(id.toString())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        is Resource.Error -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("加载失败，请下拉刷新")
+            }
+        }
+        Resource.Loading -> {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun AlbumItem(album: UserAlbumList.Data, onClick: (Long) -> Unit) {
+    Row(
+        modifier = Modifier
+            .padding(8.dp)
+            .height(48.dp)
+            .clickable { onClick(album.id) },
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+
+        ) {
+        AsyncImage(
+            model = album.picUrl.smallImage(),
+            contentDescription = null,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(6.dp))
+        )
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = album.name,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+//            Text(
+//                text = "${playlist.count} • ${playlist.authorName}",
+//                color = MaterialTheme.colorScheme.secondary,
+//                fontSize = 12.sp,
+//                maxLines = 1,
+//                overflow = TextOverflow.Ellipsis
+//            )
+        }
+
+    }
+}
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

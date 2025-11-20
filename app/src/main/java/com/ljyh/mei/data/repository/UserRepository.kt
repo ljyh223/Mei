@@ -2,7 +2,9 @@ package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.api.GetAlbumList
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
 import com.ljyh.mei.data.network.api.ApiService
@@ -38,6 +40,16 @@ class UserRepository(private val apiService: ApiService,private val eApiService:
                     GetUserPhotoAlbum(
                         userId = id
                     )
+                )
+            }
+        }
+    }
+
+    suspend fun getAlbumList(): Resource<UserAlbumList> {
+        return withContext(Dispatchers.IO) {
+            safeApiCall {
+                apiService.getCollectAlbumList(
+                    GetAlbumList()
                 )
             }
         }
