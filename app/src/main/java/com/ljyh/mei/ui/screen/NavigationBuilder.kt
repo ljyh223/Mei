@@ -9,6 +9,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.ljyh.mei.ui.screen.album.AlbumScreen
 import com.ljyh.mei.ui.screen.index.home.HomeScreen
 import com.ljyh.mei.ui.screen.index.library.LibraryScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
@@ -60,6 +61,18 @@ fun NavGraphBuilder.navigationBuilder(
         )
     ) {
         PlaylistScreen(id = it.arguments!!.getLong("id"))
+    }
+
+
+    composable(
+        route = "${Screen.Album.route}/{id}",
+        arguments = listOf(
+            navArgument("id") {
+                type = NavType.LongType
+            }
+        )
+    ) {
+        AlbumScreen(id = it.arguments!!.getLong("id"))
     }
 }
 

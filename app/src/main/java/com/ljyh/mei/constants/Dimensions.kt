@@ -6,12 +6,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 val RecommendCardWidth = 160.dp
-val RecommendCardHeight = 200.dp
+val RecommendCardHeight = 160.dp
 
 val RecommendCardSpacing = 24.dp
 val PlaylistCardSpacing = 16.dp
 
-val PlaylistCardSize = 100.dp
+val PlaylistCardSize = 120.dp
 
 val NavigationBarHeight = 80.dp
 val MiniPlayerHeight = 64.dp

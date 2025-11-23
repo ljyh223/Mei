@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.PlaylistRepository
+import com.mocharealm.accompanist.lyrics.ui.Res
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +34,9 @@ class LibraryViewModel @Inject constructor(
 
     private val _networkPlaylistsState = MutableStateFlow<Resource<UserPlaylist>>(Resource.Loading)
     val networkPlaylistsState: StateFlow<Resource<UserPlaylist>> = _networkPlaylistsState
+
+    private val _albumList = MutableStateFlow<Resource<UserAlbumList>>(Resource.Loading)
+    val albumList: StateFlow<Resource<UserAlbumList>> = _albumList
 
     val localPlaylists: StateFlow<List<Playlist>> = playlistRepository.getAllPlaylist()
         .stateIn(
@@ -80,6 +85,13 @@ class LibraryViewModel @Inject constructor(
                 }
                 Resource.Loading -> { /* Do nothing */ }
             }
+        }
+    }
+
+    fun getAlbumList(){
+        viewModelScope.launch {
+            _albumList.value= Resource.Loading
+            _albumList.value=repository.getAlbumList()
         }
     }
 }

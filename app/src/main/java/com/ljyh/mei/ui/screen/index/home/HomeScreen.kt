@@ -131,13 +131,6 @@ fun HomeScreen(
                         )
                     }
                 }
-
-
-                // 测试按钮
-                Button(onClick = { Screen.Test.navigate(navController) }) {
-                    Text("Go Test")
-                }
-
                 Spacer(
                     modifier = Modifier.height(
                         LocalPlayerAwareWindowInsets.current.asPaddingValues()

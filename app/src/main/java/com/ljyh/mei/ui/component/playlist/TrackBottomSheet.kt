@@ -59,9 +59,9 @@ import com.ljyh.mei.utils.smallImage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackBottomSheet(
-    showBottomSheet: Boolean,
+    show: Boolean,
     viewModel: PlaylistViewModel,
-    mediaMetadata: MediaMetadata,
+    track: MediaMetadata,
     onDismiss: () -> Unit
 ) {
     val userId = LocalContext.current.dataStore[UserIdKey] ?: ""
@@ -104,11 +104,11 @@ fun TrackBottomSheet(
                             Toast.makeText(context, "添加成功", Toast.LENGTH_SHORT).show()
                             Log.d(
                                 "Playlist ADD",
-                                "添加的歌曲id:${mediaMetadata.id} 名字:${mediaMetadata.title} playlistId:${it.id} playlistName:${it.title}"
+                                "添加的歌曲id:${track.id} 名字:${track.title} playlistId:${it.id} playlistName:${it.title}"
                             )
                             viewModel.addSongToPlaylist(
                                 pid = it.id,
-                                trackIds = mediaMetadata.id.toString()
+                                trackIds = track.id.toString()
                             )
                         }
                 ) {
@@ -147,7 +147,7 @@ fun TrackBottomSheet(
     }
 
 
-    if (showBottomSheet) {
+    if (show) {
         ModalBottomSheet(
             shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
             onDismissRequest = onDismiss,
@@ -185,11 +185,11 @@ fun TrackBottomSheet(
                             onDismiss()
                             Log.d(
                                 "Playlist DEL",
-                                "删除的歌曲id:${mediaMetadata.id} 名字:${mediaMetadata.title}"
+                                "删除的歌曲id:${track.id} 名字:${track.title}"
                             )
                             viewModel.deleteSongFromPlaylist(
                                 pid = (playlistDetail as Resource.Success<PlaylistDetail>).data.playlist.Id.toString(),
-                                trackIds = mediaMetadata.id.toString()
+                                trackIds = track.id.toString()
                             )
                             Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
                         }
@@ -249,7 +249,7 @@ fun TrackBottomSheet(
                         onDismiss()
                         val clipboard =
                             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("id", mediaMetadata.id.toString())
+                        val clip = ClipData.newPlainText("id", track.id.toString())
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
                     }
@@ -262,7 +262,7 @@ fun TrackBottomSheet(
                         onDismiss()
                         val clipboard =
                             context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("name", mediaMetadata.title)
+                        val clip = ClipData.newPlainText("name", track.title)
                         clipboard.setPrimaryClip(clip)
                         Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
                     }

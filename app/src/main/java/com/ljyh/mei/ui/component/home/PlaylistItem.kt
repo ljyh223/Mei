@@ -41,7 +41,7 @@ fun PlaylistItem(
             model = playlist.cover.smallImage(),
             contentDescription = null,
             modifier = Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .clip(RoundedCornerShape(6.dp))
         )
 

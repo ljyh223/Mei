@@ -60,6 +60,22 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
     tns= tns?.get(0)
 )
 
+fun AlbumDetail.Song.toMediaMetadata() = MediaMetadata(
+    id = id,
+    title = name,
+    coverUrl= al.picStr,
+    artists = ar.map {
+        MediaMetadata.Artist(
+            id = it.id,
+            name = it.name
+        )
+    },
+    duration = dt,
+    album = MediaMetadata.Album(
+        id = id,
+        title = name
+    )
+)
 
 fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
     id = id,
