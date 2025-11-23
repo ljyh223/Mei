@@ -1,42 +1,29 @@
 package com.ljyh.mei.ui.screen.album
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
@@ -46,23 +33,24 @@ import com.ljyh.mei.data.model.toMiniAlbumDetail
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.ui.component.playlist.PlaylistBackground
 import com.ljyh.mei.ui.component.playlist.Track
-import com.ljyh.mei.ui.component.shimmer.ListItemPlaceHolder
+import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.screen.playlist.ActionButton
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.TimeUtils.timestampToDate
-import com.ljyh.mei.utils.smallImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumScreen(
     id: Long,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel= hiltViewModel()
+    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     // 请求数据
     LaunchedEffect(id) {
@@ -70,41 +58,60 @@ fun AlbumScreen(
     }
 
     val albumDetail by viewModel.albumDetail.collectAsState()
-
-
     val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val listState = rememberLazyListState()
 
-    val showTitle by remember {
+    // 只有滑动超过头部后，才显示 TopBar 的标题和背景
+    val showTopBarTitle by remember {
         derivedStateOf { listState.firstVisibleItemIndex > 0 }
     }
 
     Box(Modifier.fillMaxSize()) {
+
+        // 1. 背景层
+        val coverUrl = (albumDetail as? Resource.Success)?.data?.album?.picUrl
+        PlaylistBackground(coverUrl = coverUrl)
+
+        // 2. 内容层
         LazyColumn(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
-            state = listState
+            // 移除 horizontal padding，让 Track 的波纹撑满屏幕
+            contentPadding = PaddingValues(
+                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 16.dp
+            ),
+            state = listState,
+            modifier = Modifier.fillMaxSize()
         ) {
             when (val res = albumDetail) {
-
                 Resource.Loading -> {
-                    item { AlbumShimmer() }
+                    item {
+                        // 适配骨架屏位置
+                        Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+                        Spacer(Modifier.height(64.dp))
+                        AlbumShimmer()
+                    }
                 }
 
                 is Resource.Error -> {
                     item {
-                        Text("加载失败: ${res.message}")
+                        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                            Text("加载失败: ${res.message}", color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
 
                 is Resource.Success -> {
                     val album = res.data
+                    val miniAlbum = album.toMiniAlbumDetail()
 
                     item {
-                        AlbumInfo(
-                            album = album.toMiniAlbumDetail(),
+                        // 状态栏适配
+                        Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
+                        // 预留 TopBar 高度
+                        Spacer(Modifier.height(64.dp))
+
+                        AlbumHeaderInfo(
+                            album = miniAlbum,
                             playAll = {
                                 playerConnection.playQueue(
                                     ListQueue(
@@ -115,25 +122,26 @@ fun AlbumScreen(
                                 )
                             },
                             onCollect = {
-                                //viewModel.toggleCollect(album.id)
+//                                viewModel.toggleCollect(album.album.id)
                             }
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
 
                     items(album.songs.size) { i ->
                         val track = album.songs[i]
                         Track(
                             viewModel = playlistViewModel,
-                            track = track.toMediaMetadata(),
+                            // 专辑内单曲通常没有封面，或者封面就是专辑封面，这里传入专辑封面
+                            track = track.toMediaMetadata().copy(coverUrl = album.album.picUrl),
                             isPlaying = playerConnection.mediaMetadata.collectAsState().value?.id == track.id
                         ) {
-                            // 播放单曲
+                            // 播放单曲逻辑优化
                             val player = playerConnection.player
-                            val index = player.mediaItems.indexOfFirst {
-                                it.mediaId == track.id.toString()
-                            }
-                            if (index != -1) {
+                            val currentItems = player.mediaItems
+                            val index = currentItems.indexOfFirst { it.mediaId == track.id.toString() }
+
+                            // 如果当前播放列表就是这张专辑，且包含了这首歌，直接 seek
+                            if (index != -1 && playerConnection.queueTitle.value == album.album.name) {
                                 player.seekToDefaultPosition(index)
                                 player.play()
                             } else {
@@ -152,80 +160,125 @@ fun AlbumScreen(
             }
         }
 
-        TopAppBar(
+        // 3. 沉浸式 TopAppBar
+        val titleText = (albumDetail as? Resource.Success)?.data?.album?.name ?: "专辑详情"
+        CenterAlignedTopAppBar(
             title = {
-                if (showTitle) Text("专辑详情")
+                AnimatedVisibility(visible = showTopBarTitle, enter = fadeIn(), exit = fadeOut()) {
+                    Text(titleText, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             },
             navigationIcon = {
-                IconButton(onClick = navController::navigateUp) {
+                IconButton(onClick = { navController.navigateUp() }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = null
+                        contentDescription = "Back"
                     )
                 }
             },
-            scrollBehavior = scrollBehavior
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface
+            ),
+            modifier = Modifier.align(Alignment.TopCenter)
         )
     }
 }
 
-
 @Composable
-fun AlbumInfo(
+fun AlbumHeaderInfo(
     album: MiniAlbumDetail,
     playAll: () -> Unit,
     onCollect: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp)
     ) {
+        // 1. 专辑封面 (带阴影)
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            modifier = Modifier.size(220.dp)
+        ) {
+            AsyncImage(
+                model = album.picUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
 
-        AsyncImage(
-            model = album.picUrl.smallImage(),
-            contentDescription = null,
-            modifier = Modifier
-                .size(170.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            contentScale = ContentScale.Crop
+        Spacer(Modifier.height(24.dp))
+
+        // 2. 标题
+        Text(
+            text = album.name,
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         Spacer(Modifier.height(8.dp))
 
-        Text(
-            text = album.name,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1
-        )
-
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "歌手: ${album.artist.joinToString(", ") { it.name }}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.secondary
-        )
-
-        Text(
-            text = "发行时间: ${timestampToDate(album.publishTime)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.secondary
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-
-            Button(onClick = playAll) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
-            }
-
-            Button(onClick = onCollect) {
-                Icon(
-                    if (album.collected) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = null
-                )
-            }
+        // 3. 歌手 · 年份
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = album.artist.joinToString(" / ") { it.name },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = " · ${timestampToDate(album.publishTime)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+
+        Spacer(Modifier.height(24.dp))
+
+        // 4. 按钮组 (收藏 - 播放 - 分享)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 收藏
+            ActionButton(
+                icon = if (album.collected) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                text = if (album.collected) "已收藏" else "收藏",
+                color = if (album.collected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = onCollect
+            )
+
+            // 播放全部
+            Button(
+                onClick = playAll,
+                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("播放全部")
+            }
+
+            // 分享 (模拟功能)
+            ActionButton(
+                icon = Icons.Filled.Share,
+                text = "分享",
+                onClick = { /* Share Logic */ }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -233,18 +286,71 @@ fun AlbumInfo(
 @Composable
 fun AlbumShimmer() {
     ShimmerHost {
-        Row(
-            modifier = Modifier.padding(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 封面
             TextPlaceholder(
-                Modifier
-                    .size(144.dp)
-                    .padding(end = 16.dp)
+                modifier = Modifier
+                    .size(220.dp)
+                    .clip(RoundedCornerShape(16.dp))
             )
-            Column {
-                repeat(3) { TextPlaceholder() }
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 标题
+            TextPlaceholder(
+                modifier = Modifier
+                    .height(32.dp)
+                    .width(180.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 歌手信息
+            TextPlaceholder(
+                modifier = Modifier
+                    .height(16.dp)
+                    .width(120.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 按钮组
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ButtonPlaceholder(modifier = Modifier.size(48.dp))
+                TextPlaceholder(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                )
+                ButtonPlaceholder(modifier = Modifier.size(48.dp))
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 列表
+            repeat(6) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextPlaceholder(Modifier.size(50.dp).clip(RoundedCornerShape(8.dp)))
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        TextPlaceholder(Modifier.height(16.dp).fillMaxWidth(0.6f))
+                        Spacer(Modifier.height(8.dp))
+                        TextPlaceholder(Modifier.height(12.dp).fillMaxWidth(0.4f))
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    ButtonPlaceholder(Modifier.size(24.dp))
+                }
             }
         }
-        repeat(10) { ListItemPlaceHolder() }
     }
 }
