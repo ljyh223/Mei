@@ -19,6 +19,7 @@ import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
 import com.ljyh.mei.data.model.api.GetSearch
+import com.ljyh.mei.data.model.api.GetSearchSuggest
 import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.GetSongUrl
 import com.ljyh.mei.data.model.api.GetSongUrlV1
@@ -27,6 +28,7 @@ import com.ljyh.mei.data.model.api.GetUserPlaylist
 import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.api.SearchResult
+import com.ljyh.mei.data.model.api.SearchSuggest
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.api.SubscribePlaylistResult
 import com.ljyh.mei.data.model.weapi.Like
@@ -146,10 +148,10 @@ interface ApiService {
     ): SearchResult
 
 
-    @POST("/api/search/suggest/")
+    @POST("/api/search/suggest/web/")
     suspend fun searchSuggest(
-        @Body body: GetSearch
-    ): SearchResult
+        @Body body: GetSearchSuggest
+    ): SearchSuggest
 
 
     @POST("/api/song/enhance/player/url/v1")

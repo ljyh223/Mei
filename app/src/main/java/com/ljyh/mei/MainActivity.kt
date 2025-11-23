@@ -111,6 +111,7 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.index.home.HomeViewModel
 import com.ljyh.mei.ui.screen.navigationBuilder
+import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.MusicUtils
 import com.ljyh.mei.utils.PermissionsUtils.checkAndRequestFilesPermissions
@@ -190,7 +191,6 @@ class MainActivity : ComponentActivity() {
             var active by rememberSaveable {
                 mutableStateOf(false)
             }
-            val viewModel = hiltViewModel<HomeViewModel>()
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
 
             //根据图片加载主题色
@@ -338,7 +338,7 @@ class MainActivity : ComponentActivity() {
                     val onSearch: (String) -> Unit = {
                         if (it.isNotEmpty()) {
                             onActiveChange(false)
-                            navController.navigate("search/${it.urlEncode()}")
+//                            navController.navigate("search/${it.urlEncode()}")
                         }
                     }
 
@@ -569,6 +569,17 @@ class MainActivity : ComponentActivity() {
                                 focusRequester = searchBarFocusRequester,
                                 modifier = Modifier.align(Alignment.TopCenter),
                             ) {
+
+                                SearchScreen(
+                                    query = query.text,
+                                    onQueryChange = onQueryChange,
+                                    onSearch = {
+//                                        navController.navigate(Screen.Search.route)
+                                    },
+                                    onDismiss = {
+                                        onActiveChange(false)
+                                    }
+                                )
 
                             }
                         }

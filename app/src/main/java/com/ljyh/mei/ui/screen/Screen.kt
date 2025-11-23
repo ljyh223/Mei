@@ -9,7 +9,7 @@ import androidx.navigation.NavController
 sealed class Screen(val route:String) {
     data object Home:Screen("home")
     data object Library:Screen("library")
-    data object Search:Screen("search")
+    data object SearchResult:Screen("search_result")
     data object PlayList:Screen("playlist")
     data object Setting:Screen("setting")
     data object ContentSettings:Screen(("setting/content"))

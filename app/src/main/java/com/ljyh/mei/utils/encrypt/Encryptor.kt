@@ -76,6 +76,35 @@ fun createRandomKey(length: Int = 16) = StringBuilder().apply {
 }.toString()
 
 
+
+fun encryptId(id: String): String {
+    val keyBytes = "3go8&$8*3*3h0k(2)2".toByteArray()
+    val idBytes = id.toByteArray()
+
+    val xored = ByteArray(idBytes.size)
+    for (i in idBytes.indices) {
+        xored[i] = (idBytes[i].toInt() xor keyBytes[i % keyBytes.size].toInt()).toByte()
+    }
+    return  xored.md5().base64.replace("/", "_").replace("+", "-")
+
+}
+
+
+
+
+fun getResourceLink(id: String, extension: String): String {
+    val encrypted = encryptId(id)
+
+    val seed = id.last().digitToInt()
+    val p = when {
+        seed < 2.5 -> 1
+        seed < 5 -> 2
+        seed < 7.5 -> 3
+        else -> 4
+    }
+
+    return "http://p$p.music.126.net/$encrypted/$id.$extension"
+}
 data class WeApi(
     val params: String,
     val encSecKey: String

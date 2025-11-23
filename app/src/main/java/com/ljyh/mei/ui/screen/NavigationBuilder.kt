@@ -14,6 +14,7 @@ import com.ljyh.mei.ui.screen.index.home.HomeScreen
 import com.ljyh.mei.ui.screen.index.library.LibraryScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
+import com.ljyh.mei.ui.screen.search.SearchResultScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettings
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.SettingScreen
@@ -52,6 +53,23 @@ fun NavGraphBuilder.navigationBuilder(
         EveryDay()
     }
 
+    composable(
+        route = "${Screen.SearchResult.route}/{query}/{type}",
+        arguments = listOf(
+            navArgument("query") {
+                type = NavType.StringType
+            }
+            ,
+            navArgument("type") {
+                type = NavType.IntType
+            }
+        )
+    ) {
+        SearchResultScreen(
+            query = it.arguments!!.getString("query")!!,
+            type= it.arguments!!.getInt("type"),
+        )
+    }
     composable(
         route = "${Screen.PlayList.route}/{id}",
         arguments = listOf(

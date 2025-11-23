@@ -66,6 +66,7 @@ private val AppTypography = Typography(
 )
 @Composable
 fun MusicTheme(
+    isDark: Boolean = isSystemInDarkTheme(),
     seedColor: Color,
     paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
     useDarkTheme: Boolean = isSystemInDarkTheme(),
@@ -78,11 +79,10 @@ fun MusicTheme(
         shapes = AppShapes,
         content = {
             DynamicMaterialTheme(
-                animate = true,
                 seedColor = seedColor,
-                useDarkTheme = useDarkTheme,
-                style = paletteStyle,
-                content = content
+                isDark = isDark,
+                animate = true,
+                content = content,
             )
         }
     )

@@ -189,7 +189,7 @@ object RetrofitModule {
             val responseBody = response.body
             // 解密响应数据
             if (crypto == "eapi") {
-                val decryptedResponseBody = responseBody?.let { body ->
+                val decryptedResponseBody = responseBody.let { body ->
                     Log.d("Decrypted Response", "eapi")
                     val encryptedBytes = body.bytes()
                     val decryptedBytes = decryptEApi(encryptedBytes)
