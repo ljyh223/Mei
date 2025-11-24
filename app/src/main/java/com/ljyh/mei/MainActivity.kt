@@ -547,7 +547,7 @@ class MainActivity : ComponentActivity() {
                                                 painter = painterResource(
                                                     R.drawable.cloud
                                                 ),
-                                                contentDescription = null
+                                                contentDescription = "neteasecloud"
                                             )
                                         }
                                     } else if (navBackStackEntry?.destination?.route in topLevelScreens) {
@@ -573,8 +573,11 @@ class MainActivity : ComponentActivity() {
                                 SearchScreen(
                                     query = query.text,
                                     onQueryChange = onQueryChange,
-                                    onSearch = {
-//                                        navController.navigate(Screen.Search.route)
+                                    onSearch = { query, type ->
+                                        Screen.SearchResult.navigate(navController){
+                                            addPath(query)
+                                            addPath(type.toString())
+                                        }
                                     },
                                     onDismiss = {
                                         onActiveChange(false)

@@ -142,7 +142,7 @@ interface ApiService {
         @Path("id") id: String
     ): AlbumDetail
 
-    @POST("/api/search/get")
+    @POST("/api/search/get/")
     suspend fun search(
         @Body body: GetSearch
     ): SearchResult

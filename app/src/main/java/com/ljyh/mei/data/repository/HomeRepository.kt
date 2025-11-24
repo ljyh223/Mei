@@ -106,11 +106,4 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
         Log.d("getLastFetchTime", (preferences[LastHomePageTime] ?: 0L).toString())
         return preferences[LastHomePageTime] ?: 0L
     }
-
-    suspend fun search( keyword: String): Resource<List<SearchResult.Result.Song>> {
-        val result = apiService.search(GetSearch(keyword))
-        return safeApiCall {
-            result.result.songs
-        }
-    }
 }

@@ -1,6 +1,9 @@
 package com.ljyh.mei.ui.screen.search
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.api.SearchResult
@@ -26,6 +29,10 @@ class SearchViewModel @Inject constructor(
 
 
     private val _query = MutableStateFlow("")
+    var currentTab by mutableStateOf(SearchType.Song)
+    private val cache = mutableMapOf<SearchType, Resource<SearchResult>>()
+    var uiState by mutableStateOf<SearchResult?>(null)
+        private set
     private val _searchSuggest = MutableStateFlow<Resource<SearchSuggest>>(Resource.Loading)
 
     private val _searchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
@@ -52,14 +59,27 @@ class SearchViewModel @Inject constructor(
             initialValue = Resource.Loading
         )
 
+    fun onTabChange(type: SearchType) {
+        currentTab = type
+        search(_query.value, type.type)
+    }
     fun updateQuery(query: String) {
         _query.value = query
     }
 
-    fun search(keyword: String, type: Int, limit: Int = 10) {
-        viewModelScope.launch {
-            _searchResult.value = searchRepository.search(keyword, type, limit)
+    fun search(keyword: String, type: Int, limit: Int = 30) {
+        if(keyword.isEmpty() || keyword.isBlank()) return
+        if (cache[currentTab]!=null && cache[currentTab] is Resource.Success){
+            _searchResult.value = cache[currentTab]!!
+
+        }else{
+            viewModelScope.launch {
+                val result=searchRepository.search(keyword, type, limit)
+                cache[currentTab] = result
+                _searchResult.value = result
+            }
         }
+
     }
 
 
