@@ -64,11 +64,11 @@ fun AlbumScreen(
                 title = album.name,
                 count = album.size,
                 subscriberCount = -1,
-                coverUrl = songs.take(6).map { it.al.picStr},
+                coverUrl = listOf(album.picUrl),
                 creatorName = album.artists.joinToString(", ") { it.name },
                 isCreate = false,
                 description = album.description,
-                tracks = songs.map { it.toMediaMetadata() },
+                tracks = songs.map { it.toMediaMetadata().copy(coverUrl = album.picUrl) },
                 playCount = -1,
                 isSubscribed = false
             )
