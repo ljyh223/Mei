@@ -42,6 +42,8 @@ annotations = "26.0.2-1"
 coreAnimation = "1.0.0"
 compose-settings = "2.15.0"
 reorderable = "3.0.0"
+runtime = "1.9.5"
+runtimeVersion = "1.9.5"
 
 [libraries]
 android-gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimageVersion" }

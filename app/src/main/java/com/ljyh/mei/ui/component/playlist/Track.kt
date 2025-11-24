@@ -43,19 +43,9 @@ fun Track(
     viewModel: PlaylistViewModel,
     track: MediaMetadata,
     isPlaying: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onMoreClick: () -> Unit
 ) {
-    var showBottomSheet by remember { mutableStateOf(false) }
-
-    // 建议：如果 TrackBottomSheet 比较重，可以考虑将其状态提升到 PlaylistScreen
-    if (showBottomSheet) {
-        TrackBottomSheet(
-            show = showBottomSheet,
-            viewModel = viewModel,
-            track = track,
-            onDismiss = { showBottomSheet = false }
-        )
-    }
 
     Row(
         modifier = Modifier
@@ -70,8 +60,8 @@ fun Track(
             imageUrl = track.coverUrl.smallImage(),
             isPlaying = isPlaying,
             modifier = Modifier
-                .size(TrackThumbnailSize) // 稍微加大一点尺寸
-                .clip(RoundedCornerShape(CommonImageRadius)) // 圆角稍微大一点，更圆润
+                .size(TrackThumbnailSize)
+                .clip(RoundedCornerShape(CommonImageRadius))
         )
 
         // 2. 文字信息区域
@@ -90,7 +80,7 @@ fun Track(
                     color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false) // 让标题优先显示，但不强占所有空间
+                    modifier = Modifier.weight(1f, fill = false)
                 )
 
                 // 别名/翻译 (TNS)
@@ -106,29 +96,23 @@ fun Track(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp)) // 标题和副标题之间的间距
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // 副标题行 (歌手 • 时长)
             Text(
                 text = buildString {
-                    append(track.artists.joinToString(" / ") { it.name }) // 通常使用 / 分隔歌手
-                    // 如果有专辑名也可以加在这里
-                    // append(" - ${track.album}")
+                    append(track.artists.joinToString(" / ") { it.name })
                 },
-                color = MaterialTheme.colorScheme.onSurfaceVariant, // 使用 Variant 颜色，对比度更好
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        // 3. 右侧操作区 (时长 或 菜单)
-        // 建议：可以在这里显示时长，把菜单放在最右边，或者只放菜单
-        // 这里我保留了你的菜单按钮，但你可以考虑把 formatDuration 放在这里，如果不拥挤的话
 
         IconButton(
-            onClick = { showBottomSheet = true },
-            modifier = Modifier.size(24.dp) // 限制 IconButton 的点击区域视觉大小，防止占位太大
+            onClick = onMoreClick,
+            modifier = Modifier.size(24.dp)
         ) {
             Icon(
                 imageVector = Icons.Filled.MoreVert,
