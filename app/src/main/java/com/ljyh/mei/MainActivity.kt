@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -291,7 +293,7 @@ class MainActivity : ComponentActivity() {
                     val searchBarFocusRequester = remember { FocusRequester() }
                     val shouldShowSearchBar = remember(active, navBackStackEntry) {
                         active || navBackStackEntry?.destination?.route == Screen.Home.route ||
-                                navBackStackEntry?.destination?.route?.startsWith("search/") == true
+                                navBackStackEntry?.destination?.route?.startsWith("search_result/") == true
                     }
 
                     val collapsedBound = remember(shouldShowNavigationBar) {
@@ -312,13 +314,13 @@ class MainActivity : ComponentActivity() {
                     )
                     val searchBarScrollBehavior = appBarScrollBehavior(
                         canScroll = {
-                            navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                            navBackStackEntry?.destination?.route?.startsWith("search_result/") == false &&
                                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                         }
                     )
                     val topAppBarScrollBehavior = appBarScrollBehavior(
                         canScroll = {
-                            navBackStackEntry?.destination?.route?.startsWith("search/") == false &&
+                            navBackStackEntry?.destination?.route?.startsWith("search_result/") == false &&
                                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                         }
                     )
@@ -338,7 +340,10 @@ class MainActivity : ComponentActivity() {
                     val onSearch: (String) -> Unit = {
                         if (it.isNotEmpty()) {
                             onActiveChange(false)
-//                            navController.navigate("search/${it.urlEncode()}")
+                            Screen.SearchResult.navigate(navController){
+                                addPath(query.text)
+                                addPath("1") // 默认所搜单曲
+                            }
                         }
                     }
 
@@ -535,12 +540,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                         IconButton(
                                             onClick = {
-
-                                                Toast.makeText(
-                                                    this@MainActivity,
-                                                    "还未实现",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                                                onSearch(query.text)
                                             }
                                         ) {
                                             Icon(

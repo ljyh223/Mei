@@ -97,7 +97,7 @@ data class SearchResult(
                     @SerializedName("albumSize")
                     val albumSize: Int,
                     @SerializedName("picId")
-                    val picId: Int
+                    val picId: Long
                 )
             }
 
@@ -115,7 +115,7 @@ data class SearchResult(
                 @SerializedName("albumSize")
                 val albumSize: Int,
                 @SerializedName("picId")
-                val picId: Int
+                val picId: Long
             )
         }
 
@@ -215,9 +215,9 @@ data class SearchResult(
                 @SerializedName("id")
                 val id: Int,
                 @SerializedName("picId")
-                val picId: Int,
+                val picId: Long,
                 @SerializedName("img1v1Id")
-                val img1v1Id: Int,
+                val img1v1Id: Long,
                 @SerializedName("briefDesc")
                 val briefDesc: String,
                 @SerializedName("picUrl")

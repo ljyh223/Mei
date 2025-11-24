@@ -3,10 +3,14 @@ package com.ljyh.mei.ui.screen.search
 import android.R.attr.onClick
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,8 +41,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.ljyh.mei.constants.SearchFilterHeight
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.utils.encrypt.getResourceLink
 import com.ljyh.mei.utils.smallImage
 
@@ -50,39 +56,75 @@ fun SearchResultScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchState by viewModel.searchResult.collectAsState()
-    val pagerState = rememberPagerState(pageCount = { SearchType.entries.size - 1 }) // 去掉搜索历史
-    val scope = rememberCoroutineScope()
-    val types = SearchType.entries.toTypedArray()
-    // query 变化时自动触发搜索
-    LaunchedEffect(query) {
+    val selectedType = viewModel.currentTab
+
+    // 当 query 变化，或者 type 变化时重新搜索
+    LaunchedEffect(query, selectedType) {
         if (query.isNotBlank()) {
-            viewModel.search(query, type, limit = 20)
+            viewModel.search(query, selectedType.type, limit = 30)
         }
     }
 
-    HorizontalPager(
-        state = pagerState,
-    ) { index ->
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = LocalPlayerAwareWindowInsets.current
+            .add(WindowInsets(top = 24.dp))
+            .asPaddingValues(),
+    ) {
 
-        val type = types[index]
-
-        // 当页面变更时更换类型并搜索
-        LaunchedEffect(index) {
-            viewModel.onTabChange(type)
+        // 顶部 Filter Chips
+        item {
+            SearchTypeFilterRow(
+                selected = selectedType,
+                onSelect = { viewModel.onTabChange(it) }
+            )
         }
+        when (val result = searchState) {
+            is Resource.Loading -> {
+                item {
+                    Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator() }
+                }
 
-        when(val result=searchState){
+            }
+
             is Resource.Error -> {
+                item {
+                    Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) { Text("加载失败：${result.message}") }
 
-            }
-            Resource.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
                 }
             }
+
             is Resource.Success -> {
-                Log.d("SearchResultScreen", "result: $result")
-                SearchResultList(type = type, data = result.data)
+                val data = result.data
+                when (type) {
+                    SearchType.Song.type -> {
+                        val songs = data.result.songs ?: emptyList()
+                        items(songs) { SongItem(song = it, onClick = {}) }
+                    }
+
+                    SearchType.Artist.type -> {
+                        val artists = data.result.artists ?: emptyList()
+                        items(artists) { ArtistItem(artist = it, onClick = {}) }
+                    }
+
+                    SearchType.Album.type -> {
+                        val albums = data.result.albums ?: emptyList()
+                        items(albums) { AlbumItem(album = it, onClick = {}) }
+                    }
+
+                    SearchType.Playlist.type -> {
+                        val playlists = data.result.playlists ?: emptyList()
+                        items(playlists) { PlaylistItem(playlist = it, onClick = {}) }
+                    }
+
+                    SearchType.History.type -> {}
+                }
             }
         }
 
@@ -90,105 +132,30 @@ fun SearchResultScreen(
     }
 }
 
-@Composable
-fun SearchResultList(type: SearchType, data: SearchResult) {
-
-    when (type) {
-        SearchType.Song -> data.result.songs?.let {
-            SongList(songs = it, onSongClick = { song ->
-                // 跳转到歌曲详情页
-            })
-        }
-
-        SearchType.Artist -> data.result.artists?.let {
-            ArtistList(
-                artists = it,
-                onClick = {
-
-                }
-            )
-        }
-
-        SearchType.Album -> data.result.albums?.let {
-            AlbumList(
-                albums = it,
-                onClick = {}
-            )
-        }
-
-        SearchType.Playlist -> data.result.playlists?.let {
-            PlaylistList(
-                playlists = it,
-                onClick = {}
-            )
-        }
-
-        SearchType.History -> {
-
-        }
-    }
-}
-
 
 @Composable
-fun SongList(
-    songs: List<SearchResult.Result.Song>,
-    onSongClick: (SearchResult.Result.Song) -> Unit
+fun SearchTypeFilterRow(
+    selected: SearchType,
+    onSelect: (SearchType) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(songs) { song ->
-            SongItem(song = song, onClick = { onSongClick(song) })
-        }
+        SearchType.entries
+            .filter { it != SearchType.History }
+            .forEach { type ->
+                androidx.compose.material3.FilterChip(
+                    selected = selected == type,
+                    onClick = { onSelect(type) },
+                    label = { Text(type.displayName) }
+                )
+            }
     }
 }
 
-
-@Composable
-fun AlbumList(
-    albums: List<SearchResult.Result.Album>,
-    onClick: (Long) -> Unit
-) {
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(albums) { album ->
-            AlbumItem(album = album, onClick = { onClick(album.id) })
-        }
-    }
-}
-
-@Composable
-fun ArtistList(
-    artists: List<SearchResult.Result.Artist>,
-    onClick: (Long) -> Unit
-) {
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(artists) { artist ->
-            ArtistItem(artist = artist, onClick = { onClick(artist.id) })
-        }
-    }
-}
-
-@Composable
-fun PlaylistList(
-    playlists: List<SearchResult.Result.Playlist>,
-    onClick: (Long) -> Unit
-) {
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(playlists) { playlist ->
-            PlaylistItem(playlist = playlist, onClick = { onClick(playlist.id) })
-        }
-    }
-}
 
 @Composable
 fun PlaylistItem(
@@ -320,7 +287,6 @@ fun SongItem(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 封面
         AsyncImage(
             model = getResourceLink(song.album.picId.toString(), "jpg"),
             contentDescription = song.name,
@@ -332,9 +298,8 @@ fun SongItem(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(Modifier.weight(1f)) {
 
-            // 歌名 + 翻译名
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = song.name,
@@ -345,36 +310,31 @@ fun SongItem(
                 )
 
                 if (song.transNames?.isNotEmpty() == true) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "(${song.transNames.joinToString(", ")})",
+                        text = "(${song.transNames.joinToString()})",
                         fontSize = 14.sp,
-                        color = Color.Gray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = Color.Gray
                     )
                 }
             }
 
-            // 艺人
             Text(
                 text = song.artists.joinToString(" / ") { it.name },
-                fontSize = 14.sp,
                 color = Color.Gray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                fontSize = 14.sp,
+                maxLines = 1
             )
 
-            // 别名 alias
             if (song.alias.isNotEmpty()) {
                 Text(
                     text = song.alias.joinToString(" / "),
-                    fontSize = 12.sp,
                     color = Color.Gray,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    fontSize = 12.sp,
+                    maxLines = 1
                 )
             }
         }
     }
 }
+

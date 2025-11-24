@@ -50,7 +50,7 @@ import coil3.compose.AsyncImage
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.ljyh.mei.constants.UserIdKey
-import com.ljyh.mei.data.model.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayerConnection

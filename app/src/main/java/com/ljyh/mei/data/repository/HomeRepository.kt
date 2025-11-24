@@ -9,7 +9,7 @@ import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.LastHomePageData_1
 import com.ljyh.mei.constants.LastHomePageData_2
 import com.ljyh.mei.constants.LastHomePageTime
-import com.ljyh.mei.data.model.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.api.GetSearch
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow

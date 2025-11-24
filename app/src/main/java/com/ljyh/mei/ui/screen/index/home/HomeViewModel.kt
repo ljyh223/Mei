@@ -3,7 +3,7 @@ package com.ljyh.mei.ui.screen.index.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.AppContext
-import com.ljyh.mei.data.model.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.room.Color
 import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.mei.data.network.Resource

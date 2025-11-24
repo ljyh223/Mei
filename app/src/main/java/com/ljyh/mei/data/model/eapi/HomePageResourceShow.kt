@@ -1,9 +1,8 @@
-package com.ljyh.mei.data.model
+package com.ljyh.mei.data.model.eapi
 
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import com.ljyh.mei.di.SpecialKey
-
 
 data class HomePageResourceShow(
     @SerializedName("code")

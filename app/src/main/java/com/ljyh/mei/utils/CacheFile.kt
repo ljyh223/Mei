@@ -2,7 +2,7 @@ package com.ljyh.mei.utils
 
 import com.google.gson.Gson
 import com.ljyh.mei.AppContext
-import com.ljyh.mei.data.model.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.utils.DateUtils.isWithinSameDayWindow
 import java.io.File
 import java.io.IOException

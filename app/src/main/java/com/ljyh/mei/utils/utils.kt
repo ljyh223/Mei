@@ -1,6 +1,6 @@
 package com.ljyh.mei.utils
 
-import com.ljyh.mei.data.model.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 
 
 fun reportException(throwable: Throwable) {
