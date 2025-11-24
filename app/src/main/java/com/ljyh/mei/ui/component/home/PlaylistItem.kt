@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.ljyh.mei.constants.CommonImageRadius
+import com.ljyh.mei.constants.PlaylistThumbnailSize
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.utils.smallImage
 
@@ -30,10 +32,8 @@ fun PlaylistItem(
 
     Row(
         modifier = Modifier
-            .padding(8.dp)
-            .height(48.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
             .clickable { onclick(playlist.id) },
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
 
         ) {
@@ -41,12 +41,14 @@ fun PlaylistItem(
             model = playlist.cover.smallImage(),
             contentDescription = null,
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .size(PlaylistThumbnailSize)
+                .clip(RoundedCornerShape(CommonImageRadius))
         )
 
         Column(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 16.dp)
         ) {
             Text(
                 text = playlist.title,

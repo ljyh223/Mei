@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.data.model.room.Playlist
 
 val RecommendCardWidth = 160.dp
 val RecommendCardHeight = 160.dp
@@ -25,8 +26,10 @@ val ListThumbnailSize = 48.dp
 val GridThumbnailHeight = 128.dp
 val SmallGridThumbnailHeight = 92.dp
 
-val AlbumThumbnailSize = 144.dp
-
+val AlbumThumbnailSize = 56.dp
+val PlaylistThumbnailSize = 56.dp
+val TrackThumbnailSize = 56.dp
+val CommonImageRadius = 8.dp
 val ThumbnailCornerRadius = 6.dp
 
 val PlayerHorizontalPadding = 32.dp

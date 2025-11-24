@@ -31,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ljyh.mei.constants.CommonImageRadius
+import com.ljyh.mei.constants.TrackThumbnailSize
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.TimeUtils.formatDuration
@@ -58,10 +60,9 @@ fun Track(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // 如果正在播放，可以给一个淡淡的背景色（可选）
             .background(if (isPlaying) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else Color.Transparent)
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 10.dp), // 增加垂直间距，更符合手指触控
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 1. 封面图 / 播放状态
@@ -69,15 +70,14 @@ fun Track(
             imageUrl = track.coverUrl.smallImage(),
             isPlaying = isPlaying,
             modifier = Modifier
-                .size(50.dp) // 稍微加大一点尺寸
-                .clip(RoundedCornerShape(8.dp)) // 圆角稍微大一点，更圆润
+                .size(TrackThumbnailSize) // 稍微加大一点尺寸
+                .clip(RoundedCornerShape(CommonImageRadius)) // 圆角稍微大一点，更圆润
         )
-
-        Spacer(modifier = Modifier.width(16.dp))
 
         // 2. 文字信息区域
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f)
+                .padding(start = 16.dp),
             verticalArrangement = Arrangement.Center
         ) {
             // 标题行

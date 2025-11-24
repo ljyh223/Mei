@@ -13,6 +13,7 @@ data class GetSearch(
     val offset: Int = 0
 
 )
+
 data class SearchResult(
     @SerializedName("result")
     val result: Result,
@@ -126,7 +127,7 @@ data class SearchResult(
             @SerializedName("name")
             val name: String,
             @SerializedName("picUrl")
-            val picUrl: String,
+            val picUrl: String? = null,
             @SerializedName("alias")
             val alias: List<String>,
             @SerializedName("albumSize")

@@ -1,7 +1,6 @@
 package com.ljyh.mei.ui.screen.search
 
-import android.R.attr.onClick
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,8 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -29,22 +26,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
-import com.ljyh.mei.constants.SearchFilterHeight
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.ui.component.player.Queue
+import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.encrypt.getResourceLink
 import com.ljyh.mei.utils.smallImage
 
@@ -52,13 +53,22 @@ import com.ljyh.mei.utils.smallImage
 @Composable
 fun SearchResultScreen(
     query: String,
-    type: Int,
+    type: Int, // Initial type if needed, but we mostly use ViewModel state
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchState by viewModel.searchResult.collectAsState()
     val selectedType = viewModel.currentTab
+    val playerConnection = LocalPlayerConnection.current
+    val navController = LocalNavController.current
+    val context = LocalContext.current
 
-    // 当 query 变化，或者 type 变化时重新搜索
+    LaunchedEffect(Unit) {
+        val initialType = SearchType.entries.find { it.type == type } ?: SearchType.Song
+        if (viewModel.currentTab != initialType) {
+            viewModel.onTabChange(initialType)
+        }
+    }
+
     LaunchedEffect(query, selectedType) {
         if (query.isNotBlank()) {
             viewModel.search(query, selectedType.type, limit = 30)
@@ -68,70 +78,100 @@ fun SearchResultScreen(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = LocalPlayerAwareWindowInsets.current
-            .add(WindowInsets(top = 24.dp))
-            .asPaddingValues(),
+            .add(WindowInsets(top = 4.dp))
+            .asPaddingValues()
     ) {
-
-        // 顶部 Filter Chips
         item {
             SearchTypeFilterRow(
                 selected = selectedType,
-                onSelect = { viewModel.onTabChange(it) }
+                onSelect = {
+                    viewModel.onTabChange(it)
+                }
             )
         }
+
         when (val result = searchState) {
             is Resource.Loading -> {
                 item {
                     Box(
-                        Modifier.fillMaxSize(),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(top = 50.dp),
                         contentAlignment = Alignment.Center
-                    ) { CircularProgressIndicator() }
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
-
             }
 
             is Resource.Error -> {
                 item {
                     Box(
-                        Modifier.fillMaxSize(),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(top = 50.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("加载失败：${result.message}") }
-
+                    ) {
+                        Text("加载失败：${result.message}")
+                    }
                 }
             }
 
             is Resource.Success -> {
                 val data = result.data
-                when (type) {
+                when (selectedType.type) {
                     SearchType.Song.type -> {
                         val songs = data.result.songs ?: emptyList()
-                        items(songs) { SongItem(song = it, onClick = {}) }
+                        items(songs) {
+                            SongItem(song = it, onClick = {
+                                playerConnection?.playQueue(
+                                    ListQueue(
+                                        id = "SearchQueue",
+                                        title = "搜索结果",
+                                        items = songs.map { s -> s.id.toString() },
+                                        startIndex = songs.indexOfFirst { s -> s.id == it.id },
+                                        position = 0
+                                    )
+                                )
+                            })
+                        }
                     }
 
                     SearchType.Artist.type -> {
                         val artists = data.result.artists ?: emptyList()
-                        items(artists) { ArtistItem(artist = it, onClick = {}) }
+                        items(artists) { ArtistItem(artist = it, onClick = {
+                            Toast.makeText(context, "正在建设中: ${it.name}", Toast.LENGTH_SHORT).show()
+                        }) }
                     }
 
                     SearchType.Album.type -> {
                         val albums = data.result.albums ?: emptyList()
-                        items(albums) { AlbumItem(album = it, onClick = {}) }
+                        items(albums) {
+                            AlbumItem(album = it, onClick = {
+                                Screen.Album.navigate(navController) {
+                                    addPath(it.id.toString())
+                                }
+                            })
+                        }
                     }
 
                     SearchType.Playlist.type -> {
                         val playlists = data.result.playlists ?: emptyList()
-                        items(playlists) { PlaylistItem(playlist = it, onClick = {}) }
+                        items(playlists) {
+                            PlaylistItem(playlist = it, onClick = {
+                                Screen.PlayList.navigate(navController) {
+                                    addPath(it.id.toString())
+                                }
+                            })
+                        }
                     }
 
-                    SearchType.History.type -> {}
+                    else -> {}
                 }
             }
         }
-
-
     }
 }
-
 
 @Composable
 fun SearchTypeFilterRow(
@@ -213,14 +253,16 @@ fun ArtistItem(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+
         AsyncImage(
-            model = artist.picUrl.smallImage(),
+            model = artist.picUrl?.smallImage(),
             contentDescription = null,
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(8.dp)),
+                .clip(RoundedCornerShape(28.dp)),
             contentScale = ContentScale.Crop
         )
+        Spacer(modifier = Modifier.width(8.dp))
 
         Text(
             text = artist.name,
