@@ -7,23 +7,61 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -31,7 +69,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.paging.PagingData
@@ -53,19 +90,15 @@ import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
 import com.ljyh.mei.ui.component.playlist.Track
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
-import com.ljyh.mei.ui.component.shimmer.ListItemPlaceHolder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.utils.NotificationHelper
 import com.ljyh.mei.utils.PermissionsUtils.checkAndRequestFilesPermissions
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,7 +150,8 @@ fun PlaylistScreen(
                 LazyColumn(
                     state = lazyListState,
                     contentPadding = PaddingValues(
-                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 16.dp
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+                            .calculateBottomPadding() + 16.dp
                     ),
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -154,7 +188,8 @@ fun PlaylistScreen(
                                 onClick = {
                                     // Optimized seek logic
                                     val currentMediaItems = playerConnection.player.mediaItems
-                                    val foundIndex = currentMediaItems.indexOfFirst { it.mediaId == track.id.toString() }
+                                    val foundIndex =
+                                        currentMediaItems.indexOfFirst { it.mediaId == track.id.toString() }
 
                                     if (foundIndex != -1) {
                                         playerConnection.player.seekToDefaultPosition(foundIndex)
@@ -178,7 +213,11 @@ fun PlaylistScreen(
                 // Custom TopAppBar
                 CenterAlignedTopAppBar(
                     title = {
-                        AnimatedVisibility(visible = showTopBarTitle, enter = fadeIn(), exit = fadeOut()) {
+                        AnimatedVisibility(
+                            visible = showTopBarTitle,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
                             Text(text = detail.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     },
@@ -187,7 +226,7 @@ fun PlaylistScreen(
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                         }
                     },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
                         scrolledContainerColor = MaterialTheme.colorScheme.surface
                     ),
@@ -200,13 +239,16 @@ fun PlaylistScreen(
                     Text("Error: ${result.message}")
                 }
             }
+
             Resource.Loading -> {
-                // Keep Scaffolding for shimmer
                 Scaffold(
                     topBar = {
                         TopAppBar(title = {}, navigationIcon = {
                             IconButton(onClick = { navController.navigateUp() }) {
-                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.ArrowBack,
+                                    contentDescription = "Back"
+                                )
                             }
                         })
                     }
@@ -218,9 +260,6 @@ fun PlaylistScreen(
     }
 }
 
-/**
- * 背景模糊层
- */
 
 @Composable
 fun PlaylistHeaderInfo(
@@ -230,12 +269,34 @@ fun PlaylistHeaderInfo(
 ) {
     val context = LocalContext.current
     val userId by rememberPreference(UserIdKey, "")
-    val scope = rememberCoroutineScope() // Use rememberCoroutineScope inside composable
+    val scope = rememberCoroutineScope()
+    var isSubscribed by remember(playlistDetail.subscribed) {
+        mutableStateOf(playlistDetail.subscribed)
+    }
 
-    // State for Download Dialog
     val showDownloadDialog = remember { mutableStateOf(false) }
     val downloadCount = remember { mutableIntStateOf(0) }
     val downloadIds = remember { mutableStateOf("") }
+    val subscriberState by viewModel.subscribePlaylist.collectAsState()
+    val unSubscriberState by viewModel.unSubscribePlaylist.collectAsState()
+
+    LaunchedEffect(subscriberState) {
+        if (subscriberState is Resource.Error) {
+            Toast.makeText(context, "收藏失败: ${(subscriberState as Resource.Error).message}", Toast.LENGTH_SHORT).show()
+            // 可选：如果失败了，把状态改回去
+            isSubscribed = false
+        }
+    }
+
+    LaunchedEffect(unSubscriberState) {
+        if (unSubscriberState is Resource.Error) {
+            Toast.makeText(context, "取消收藏失败: ${(unSubscriberState as Resource.Error).message}", Toast.LENGTH_SHORT).show()
+            // 可选：如果失败了，把状态改回去
+            isSubscribed = true
+        }
+    }
+
+
 
     ConfirmationDialog(
         title = "确认下载",
@@ -322,7 +383,7 @@ fun PlaylistHeaderInfo(
         ) {
             // Subscribe Button
             val isCreator = userId == playlistDetail.creatorUserId.toString()
-            val isSubscribed = playlistDetail.subscribed
+
 
             ActionButton(
                 icon = if (isSubscribed) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
@@ -332,11 +393,16 @@ fun PlaylistHeaderInfo(
                     if (isCreator) {
                         Toast.makeText(context, "不能收藏自己创建的歌单", Toast.LENGTH_SHORT).show()
                     } else {
-                        if (isSubscribed) viewModel.unsubscribePlaylist(playlistDetail.id.toString())
-                        else viewModel.subscribePlaylist(playlistDetail.id.toString())
+                        isSubscribed = !isSubscribed
+                        if (isSubscribed) {
+                            viewModel.subscribePlaylist(playlistDetail.id.toString())
+                        } else {
+                            viewModel.unsubscribePlaylist(playlistDetail.id.toString())
+                        }
                     }
                 }
             )
+
 
             // Play All Button (Prominent)
             Button(
@@ -344,7 +410,11 @@ fun PlaylistHeaderInfo(
                 contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
+                Icon(
+                    Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("播放全部")
             }

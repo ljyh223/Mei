@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.ljyh.mei.constants.CommonImageRadius
+import com.ljyh.mei.constants.TrackThumbnailSize
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
@@ -262,13 +264,29 @@ fun ArtistItem(
                 .clip(RoundedCornerShape(28.dp)),
             contentScale = ContentScale.Crop
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-        Text(
-            text = artist.name,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-        )
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ){
+            Text(
+                text = artist.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = artist.alias.joinToString(separator = " "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+
     }
 }
 
@@ -315,13 +333,11 @@ fun AlbumItem(
         }
     }
 }
-
 @Composable
 fun SongItem(
     song: SearchResult.Result.Song,
     onClick: () -> Unit
 ) {
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -333,39 +349,48 @@ fun SongItem(
             model = getResourceLink(song.album.picId.toString(), "jpg"),
             contentDescription = song.name,
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(6.dp)),
+                .size(TrackThumbnailSize)
+                .clip(RoundedCornerShape(CommonImageRadius)),
             contentScale = ContentScale.Crop
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
         Column(Modifier.weight(1f)) {
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(
                     text = song.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
 
                 if (song.transNames?.isNotEmpty() == true) {
                     Spacer(Modifier.width(6.dp))
+
                     Text(
-                        text = "(${song.transNames.joinToString()})",
+                        text = "(${song.transNames[0]})",
                         fontSize = 14.sp,
-                        color = Color.Gray
+                        color = Color.Gray,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
+
 
             Text(
                 text = song.artists.joinToString(" / ") { it.name },
                 color = Color.Gray,
                 fontSize = 14.sp,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             if (song.alias.isNotEmpty()) {
@@ -373,10 +398,10 @@ fun SongItem(
                     text = song.alias.joinToString(" / "),
                     color = Color.Gray,
                     fontSize = 12.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
     }
 }
-

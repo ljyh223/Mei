@@ -188,7 +188,7 @@ class PlaylistViewModel @Inject constructor(
     fun unsubscribePlaylist(id: String) {
         viewModelScope.launch {
             _subscribePlaylist.value = Resource.Loading
-            _subscribePlaylist.value = repository.subscribePlaylist(id)
+            _subscribePlaylist.value = repository.unSubscribePlaylist(id)
         }
     }
 
