@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.UserIdKey
+import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
@@ -15,6 +17,7 @@ import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
@@ -78,48 +81,33 @@ class PlaylistViewModel @Inject constructor(
     // 分页加载，不是根据歌单id加载，而是根据歌曲id加载
     fun getPlaylistTracks(
         id: String,
-        currentUserId: String, // 因为锁国属于本人歌单，直接返回完整的歌曲数据，否则使用分页加载
+        currentUserId: String,
         playlistDetailResource: Resource<PlaylistDetail>
-    ): Flow<PagingData<PlaylistDetail.Playlist.Track>> {
+    ): Flow<PagingData<MediaMetadata>> { // 返回类型改为 MediaMetadata
         return when (playlistDetailResource) {
             is Resource.Success -> {
-                Log.d("PlaylistViewModel", "getPlaylistTracks: 成功")
                 val playlistDetail = playlistDetailResource.data
+
+                // 逻辑保持：本人歌单全量，他人歌单分页
                 if (currentUserId == playlistDetail.playlist.creator.userId.toString()) {
-                    // ✅ 本人歌单：直接返回完整的歌曲数据
-                    flowOf(PagingData.from(playlistDetail.playlist.tracks))
+                    // 本人歌单直接用 PagingData.from 包装全量 List
+                    flowOf(PagingData.from(playlistDetail.playlist.tracks.map { it.toMediaMetadata() }))
                 } else {
-                    // ❌ 非本人歌单：使用分页加载
                     Pager(
-                        config = PagingConfig(
-                            pageSize = 20, // 每页加载的数据量
-                            prefetchDistance = 5, // 预加载距离
-                            enablePlaceholders = true // 是否启用占位符
-                        ),
-                        // 这里似乎一次性加载了所有的歌曲，似乎没必要
+                        config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                         pagingSourceFactory = {
                             PlaylistTrackSource(
                                 apiService,
-                                playlistDetail.playlist.tracks,
-                                playlistDetail.playlist.trackIds.map { it.id.toString() }.toList()
+                                playlistDetail.playlist.tracks, // 前20条
+                                playlistDetail.playlist.trackIds.map { it.id.toString() } // 所有ID
                             )
                         }
                     ).flow
                 }
             }
-
-            is Resource.Loading -> {
-                // 处于加载状态时，返回空的数据流
-                Log.d("PlaylistViewModel", "getPlaylistTracks: 正在加载")
-                flowOf(PagingData.empty())
-            }
-
-            is Resource.Error -> {
-                // 出错时，返回空的数据流
-                Log.d("PlaylistViewModel", "getPlaylistTracks: 出错")
-                flowOf(PagingData.empty())
-            }
+            else -> flowOf(PagingData.empty())
         }
+            .cachedIn(viewModelScope)
     }
 
 

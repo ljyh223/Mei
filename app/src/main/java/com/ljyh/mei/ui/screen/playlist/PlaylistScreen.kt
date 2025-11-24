@@ -56,7 +56,7 @@ fun PlaylistScreen(
     }
     val lazyPagingItems = pagingFlow.collectAsLazyPagingItems()
 
-    val lazyListState = rememberLazyListState()
+    val isLoading = playlistDetail is Resource.Loading
     val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
 
@@ -127,7 +127,7 @@ fun PlaylistScreen(
         CommonSongListScreen(
             uiData = uiData,
             pagingItems = lazyPagingItems,
-            isLoading = false,
+            isLoading = isLoading,
             onPlayAll = {
                 val allIds = (playlistDetail as Resource.Success).data.playlist.trackIds.map { it.id.toString() }
                 playerConnection.playQueue(

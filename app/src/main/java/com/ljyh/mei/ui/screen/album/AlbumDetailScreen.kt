@@ -51,6 +51,7 @@ fun AlbumScreen(
     val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
 
+    val isLoading = albumDetail is Resource.Loading
 
 
 
@@ -93,7 +94,7 @@ fun AlbumScreen(
         CommonSongListScreen(
             uiData = uiData,
             pagingItems = null,
-            isLoading = false,
+            isLoading = isLoading,
             onPlayAll = {
                 val allIds = (albumDetail as Resource.Success).data.songs.map { it.id.toString() }
                 playerConnection.playQueue(

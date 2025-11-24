@@ -34,7 +34,7 @@ fun EveryDay(
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
 
-
+    val isLoading = everyDaySongs is Resource.Loading
     LaunchedEffect(true) {
         viewModel.getEveryDayRecommendSongs()
     }
@@ -77,7 +77,7 @@ fun EveryDay(
         CommonSongListScreen(
             uiData = uiData,
             pagingItems = null,
-            isLoading = false,
+            isLoading = isLoading,
             onPlayAll = {
                 val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map { it.id.toString() }
                 playerConnection.playQueue(
