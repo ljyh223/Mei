@@ -41,9 +41,6 @@ fun AlbumScreen(
         viewModel.getAlbumDetail(id.toString())
     }
     val context = LocalContext.current
-    var menuTargetTrack by remember { mutableStateOf<MediaMetadata?>(null) }
-    var trackToAdd by remember { mutableStateOf<MediaMetadata?>(null) }
-    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
 
     val albumDetail by viewModel.albumDetail.collectAsState()
     val allMePlaylist by playlistViewModel.playlist.collectAsState()
