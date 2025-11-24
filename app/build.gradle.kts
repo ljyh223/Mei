@@ -24,7 +24,7 @@ android {
         minSdk = 29
         targetSdk = 35
         versionCode = 1
-        versionName = "1.40"
+        versionName = "1.42"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -132,10 +132,10 @@ dependencies {
     implementation(libs.reorderable)
 
     // 歌词组件
-//    implementation(libs.lyrics.core)
-//    implementation(libs.lyrics.ui)
-    implementation("com.mocharealm.accompanist:lyrics-core:0.3.5-local")
-    implementation("com.mocharealm.accompanist:lyrics-ui:1.0.9-local")
+    implementation(libs.lyrics.core)
+    implementation(libs.lyrics.ui)
+//    implementation("com.mocharealm.accompanist:lyrics-core:0.3.5-local")
+//    implementation("com.mocharealm.accompanist:lyrics-ui:1.0.9-local")
 //    implementation(libs.composeIcons.evaIcons)
 
 
