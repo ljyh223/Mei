@@ -236,7 +236,6 @@ fun BottomSheetPlayer(
     ) {
         val coverUrl = mediaMetadata?.coverUrl
         SmoothCoverBackground(
-            coverUrl = coverUrl,
             seedColor = rawSeedColor
         )
 

@@ -4,16 +4,13 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,98 +28,63 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
 
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun SmoothCoverBackground(
-    coverUrl: String?,
     seedColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val isSystemDark = isSystemInDarkTheme()
+    val isDark = isSystemInDarkTheme()
+    val colorScheme = rememberDynamicColorScheme(seedColor = seedColor, isDark = isDark)
+    val targetColors = remember(seedColor) {
+        listOf(
+            colorScheme.primary,
+            colorScheme.tertiary,
+            colorScheme.secondary
+        )
+    }
 
-    val colorScheme = rememberDynamicColorScheme(
-        seedColor = seedColor,
-        isDark = isSystemDark,
-        style = PaletteStyle.TonalSpot // 这种风格颜色更丰富
+    FluidGradientBackground(
+        targetColors = targetColors,
+        modifier = Modifier.fillMaxSize()
     )
 
-    AnimatedContent(
-        targetState = coverUrl,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(600)) togetherWith
-                    fadeOut(animationSpec = tween(600))
-        },
-        label = "FluidBgAnim"
-    ) { targetUrl ->
 
-        val currentFluidColors = remember(targetUrl, seedColor) {
-            if (targetUrl != null) {
-                listOf(
-                    colorScheme.primary,
-                    colorScheme.tertiary, // Tertiary 通常对比度高，很好看
-                    colorScheme.secondary
-                )
-            } else {
-                listOf(Color.Blue, Color.Cyan, Color.Magenta)
-            }
-        }
-
-        Box(modifier = Modifier.fillMaxSize()) {
-            // 1. 流体背景层
-            FluidGradientBackground(
-                colors = currentFluidColors,
-                modifier = Modifier.fillMaxSize()
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0.0f to Color.Transparent,       // 顶部保持原色/通透
-                            0.5f to Color.Transparent,       // 中间依然通透
-                            0.8f to Color.Black.copy(alpha = 0.3f), // 进度条附近开始变暗
-                            1.0f to Color.Black.copy(alpha = 0.7f)  // 底部控制栏区域较暗
-                        )
+    if (!isDark) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0.0f to Color.Black.copy(alpha = 0.2f),
+                        0.2f to Color.Transparent
                     )
-            )
-
-            // 可选：如果是浅色模式，顶部状态栏可能也需要一点点遮罩来让白色文字可见
-            if (!isSystemDark) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0.0f to Color.Black.copy(alpha = 0.2f),
-                                0.2f to Color.Transparent
-                            )
-                        )
                 )
-            }
-        }
+        )
     }
 }
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun FluidGradientBackground(
-    colors: List<Color>,
+    targetColors: List<Color>,
     modifier: Modifier = Modifier
 ) {
     // 如果颜色不够，用默认补齐，防止崩溃
-    val safeColors = remember(colors) {
-        if (colors.isEmpty()) listOf(Color.Blue, Color.Cyan, Color.Magenta)
-        else if (colors.size < 3) colors + colors
-        else colors
+    val safeTargetColors = remember(targetColors) {
+        if (targetColors.isEmpty()) listOf(Color.Blue, Color.Cyan, Color.Magenta)
+        else if (targetColors.size < 3) targetColors + targetColors
+        else targetColors
     }
+
+    val color1 by animateColorAsState(safeTargetColors[0], tween(1500), label = "c1")
+    val color2 by animateColorAsState(safeTargetColors[1], tween(1500), label = "c2")
+    val color3 by animateColorAsState(safeTargetColors[2], tween(1500), label = "c3")
 
     val density = LocalDensity.current
     val isDark = isSystemInDarkTheme()
 
-    // 定义动画：这里使用三个独立的 InfiniteTransition 来控制三个球
-    // 使用不同的时长和缓动，制造出“永远不重复”的无序流动感
     val infiniteTransition = rememberInfiniteTransition(label = "fluid_anim")
 
     // 球1的运动轨迹 (X 和 Y 使用不同周期，形成不规则椭圆)
@@ -178,7 +140,7 @@ fun FluidGradientBackground(
 
             val alphaBase = if (isDark) 0.6f else 0.7f
             drawCircle(
-                color = safeColors[0].copy(alpha = alphaBase), // 保持高透明度让颜色叠加
+                color = color1.copy(alpha = alphaBase), // 保持高透明度让颜色叠加
                 radius = w * 0.6f,
                 center = Offset(
                     x = w * 0.2f + (w * 0.6f) * offset1X,
@@ -187,7 +149,7 @@ fun FluidGradientBackground(
             )
 
             drawCircle(
-                color = safeColors[1 % safeColors.size].copy(alpha = 0.6f),
+                color =  color2.copy(alpha = 0.6f),
                 radius = w * 0.5f,
                 center = Offset(
                     x = w * 0.1f + (w * 0.7f) * offset2X,
@@ -195,10 +157,22 @@ fun FluidGradientBackground(
                 )
             )
             drawCircle(
-                color  = if(isDark) Color.White.copy(alpha = 0.2f) else safeColors[2 % safeColors.size].copy(alpha = 0.5f),
+                color  = if(isDark) Color.White.copy(alpha = 0.2f) else color3.copy(alpha = 0.5f),
                 radius = w * 0.4f * scale3,
                 center = Offset(w * 0.5f, h * 0.5f)
             )
         }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0.0f to Color.Transparent,
+                        0.5f to Color.Transparent,
+                        0.8f to Color.Black.copy(alpha = 0.3f),
+                        1.0f to Color.Black.copy(alpha = 0.7f)
+                    )
+                )
+        )
     }
 }

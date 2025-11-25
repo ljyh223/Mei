@@ -8,9 +8,12 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,9 +22,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -53,9 +58,10 @@ fun Cover(
         defaultValue = false
     )
     AnimatedContent(
+        modifier=modifier,
         targetState = mediaMetadata.coverUrl,
         transitionSpec = {
-            fadeIn(tween(400)) togetherWith fadeOut(tween(400))
+            fadeIn(tween(500)) togetherWith fadeOut(tween(500))
         },
         label = "CoverTransition"
     ){ url ->
@@ -63,25 +69,11 @@ fun Cover(
             modifier = modifier,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .placeholderMemoryCacheKey(url.smallImage()) // 先用小图占位
-                    .data(
-                        if (originalCover) url else url.size1600()
-                    )
-                    .crossfade(true) // 平滑过渡
-                    .build(),
-                contentScale = ContentScale.Crop,
-                contentDescription = "Loaded Image",
+            Surface(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .aspectRatio(1f)
-                    .clip(
-                        when (coverStyle) {
-                            CoverStyle.Square -> RoundedCornerShape(ThumbnailCornerRadius * 6)
-                            CoverStyle.Circle -> CircleShape
-                        }
-                    )
+                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(12.dp))
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onDoubleTap = { offset ->
@@ -92,8 +84,26 @@ fun Cover(
                                 }
                             }
                         )
-                    }
-            )
+                    },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            ){
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .placeholderMemoryCacheKey(url.smallImage()) // 先用小图占位
+                        .data(
+                            if (originalCover) url else url.size1600()
+                        )
+                        .crossfade(false)// 平滑过渡
+                        .build(),
+                    contentScale = ContentScale.Crop,
+                    contentDescription = "Loaded Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+
+                )
+            }
+
         }
     }
     
