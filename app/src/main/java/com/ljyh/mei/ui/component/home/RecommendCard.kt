@@ -90,7 +90,7 @@ fun RecommendCard(
                 // 计算完成后保存到数据库
                 if (dominantColorState.color != Color.Unspecified) {
                     viewModel.addColor(
-                        com.ljyh.mei.data.model.room.Color(
+                        com.ljyh.mei.data.model.room.CacheColor(
                             url = cover,
                             color = dominantColorState.color.toArgb()
                         )
@@ -100,20 +100,6 @@ fun RecommendCard(
             }
         }
     }
-//// 颜色计算完成后存入数据库
-//    LaunchedEffect(dominantColorState.color) {
-//        if (dominantColorState.color != Color.Unspecified && !isColorLoaded.value) {
-//            withContext(Dispatchers.IO) {
-//                viewModel.addColor(
-//                    com.ljyh.mei.data.model.room.Color(
-//                        url = cover,
-//                        color = dominantColorState.color.toArgb()
-//                    )
-//                )
-//            }
-//            isColorLoaded.value = true
-//        }
-//    }
     Row {
         Column(
             modifier = Modifier.fillMaxWidth(),

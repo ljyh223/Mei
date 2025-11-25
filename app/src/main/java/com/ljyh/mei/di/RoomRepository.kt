@@ -1,25 +1,117 @@
 package com.ljyh.mei.di
 
-import com.ljyh.mei.data.model.room.Color
+import android.content.Context
+import android.util.Log
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.paging.LOG_TAG
+import androidx.palette.graphics.Palette
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
+import com.ljyh.mei.data.model.room.CacheColor
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.room.Song
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import javax.inject.Singleton
 
-
+@Singleton
 class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
+    // 内存缓存 (L1)
+    private val memoryCache = ConcurrentHashMap<String, Color>()
 
-    fun getColor(url:String): Color? {
-        return colorDao.getColor(url)
+    /**
+     * 1. 【同步方法】只查内存
+     * 专门给 UI 层的 Composable 使用，绝不阻塞主线程。
+     * 如果返回 null，说明内存里没有，UI 应该显示默认色，并触发后台加载。
+     */
+    fun getFromMemory(url: String): Color? {
+        Log.d("ColorRepository", "开始查询: $url")
+        if (url.isEmpty()) return null
+        Log.d("ColorRepository", "返回: ${memoryCache[url]}")
+        Log.d("ColorRepository", "memoryCache: ${memoryCache}")
+        return memoryCache[url]
     }
-    suspend fun insertColor(color: Color) {
+
+    /**
+     * 2. 【挂起方法】完整流程：内存 -> 数据库 -> 网络提取
+     * 专门给 ViewModel 或 LaunchedEffect 在后台使用。
+     * 自动处理线程切换 (Dispatchers.IO)。
+     */
+    suspend fun getColorOrExtract(
+        context: Context,
+        url: String
+    ): Color = withContext(Dispatchers.IO) { // 强制切换到 IO 线程
+        if (url.isEmpty()) return@withContext Color.Black
+
+        // A. 再次检查内存 (防止并发时别人已经加载好了)
+        memoryCache[url]?.let {
+            Log.d("ColorRepository", "内存中已经有了: $url")
+            return@withContext it }
+
+        // B. 查数据库 (L2)
+        val dbEntity = colorDao.getColor(url)
+        if (dbEntity != null) {
+            Log.d("ColorRepository", "数据库中已经有了: $url")
+            val color = Color(dbEntity.color)
+            memoryCache[url] = color // 回填内存
+            return@withContext color
+        }
+        Log.d("ColorRepository", "都没有，开始网络提取: $url")
+
+        // C. 数据库没有 -> 网络下载并提取
+        val loader = context.imageLoader
+        val request = ImageRequest.Builder(context)
+            .data(url)
+            .allowHardware(false) // 关硬件加速以读取像素
+            .size(128)            // 读小图，提速
+            .build()
+
+        val result = loader.execute(request)
+        val extractedColor = if (result is coil3.request.SuccessResult) {
+            val bitmap = result.image.toBitmap()
+            val palette = Palette.from(bitmap).generate()
+            // 提取逻辑：鲜艳色 -> 主色 -> 黑色兜底
+            val targetInt = palette.getVibrantColor(
+                palette.getDominantColor(android.graphics.Color.BLACK)
+            )
+            Log.d("ColorRepository", "提取到颜色: $url -> $targetInt")
+            Color(targetInt)
+        } else {
+            Log.d("ColorRepository", "网络请求失败: $url")
+            Color.Black
+        }
+
+        // D. 存入 L1 内存
+        memoryCache[url] = extractedColor
+
+        // E. 存入 L2 数据库
+        colorDao.insertColor(
+            CacheColor(url = url, color = extractedColor.toArgb())
+        )
+
+        extractedColor
+    }
+
+    fun getDbColor(url:String): Color? {
+        return colorDao.getColor(url)?.let {
+            Color(it.color)
+        }
+    }
+
+    suspend fun insertColor(color: CacheColor) {
         colorDao.insertColor(color)
     }
-}
 
+
+}
 class QQSongRepository @Inject constructor(private val qqSongDao: QQSongDao) {
     fun getQQSong(id: String): Flow<QQSong?> {
         return qqSongDao.getSong(id)

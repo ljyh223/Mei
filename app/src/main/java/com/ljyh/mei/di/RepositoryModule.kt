@@ -1,9 +1,5 @@
 package com.ljyh.mei.di
 
-import com.ljyh.mei.data.model.room.Color
-import com.ljyh.mei.data.model.room.Like
-import com.ljyh.mei.data.model.room.QQSong
-import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.QQMusicCApiService
 import com.ljyh.mei.data.network.QQMusicUApiService
@@ -19,8 +15,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.Flow
-import javax.inject.Inject
 import javax.inject.Singleton
 
 @Module

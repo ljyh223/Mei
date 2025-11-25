@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
-import com.ljyh.mei.data.model.room.Color
-import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow
+import com.ljyh.mei.data.model.room.CacheColor
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.HomeRepository
 import com.ljyh.mei.di.ColorRepository
@@ -37,11 +36,11 @@ class HomeViewModel @Inject constructor(
             _homePageResourceShow.value = repository.getHomePageResourceShow(refresh)
         }
     }
-    fun getColors(url: String): Color? {
-        return colorRepository.getColor(url)
+    fun getColors(url: String): androidx.compose.ui.graphics.Color? {
+        return colorRepository.getDbColor(url)
     }
 
-    fun addColor(color: Color) {
+    fun addColor(color: CacheColor) {
         viewModelScope.launch {
             colorRepository.insertColor(color)
         }

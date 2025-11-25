@@ -14,12 +14,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -56,8 +55,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -68,8 +68,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import androidx.datastore.preferences.core.edit
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -82,8 +83,6 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
-import com.kmpalette.loader.rememberNetworkLoader
-import com.kmpalette.rememberDominantColorState
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.constants.DynamicThemeKey
@@ -92,8 +91,8 @@ import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import com.ljyh.mei.constants.NavigationBarHeight
 import com.ljyh.mei.data.model.UserData
-import com.ljyh.mei.data.model.room.Color
 import com.ljyh.mei.di.AppDatabase
+import com.ljyh.mei.di.ColorRepository
 import com.ljyh.mei.playback.MusicService
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.component.ConfirmationDialog
@@ -111,23 +110,20 @@ import com.ljyh.mei.ui.local.LocalUserData
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
-import com.ljyh.mei.ui.screen.index.home.HomeViewModel
 import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.MusicUtils
 import com.ljyh.mei.utils.PermissionsUtils.checkAndRequestFilesPermissions
 import com.ljyh.mei.utils.PermissionsUtils.checkFilesPermissions
-import com.ljyh.mei.utils.StringUtils.urlEncode
+import com.ljyh.mei.utils.cache.preloadImage
 import com.ljyh.mei.utils.checkAndRequestNotificationPermission
 import com.ljyh.mei.utils.createNotificationChannel
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
-import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Interceptor
@@ -140,36 +136,10 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var database: AppDatabase
+
+    @Inject
+    lateinit var colorRepository: ColorRepository
     private var userData by mutableStateOf(UserData.VISITOR)
-    private var playerConnection by mutableStateOf<PlayerConnection?>(null)
-
-    private var isBound = false
-    private var serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            if (service is MusicService.MusicBinder) {
-                playerConnection =
-                    PlayerConnection(this@MainActivity, service, database, lifecycleScope)
-            }
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            playerConnection?.dispose()
-            playerConnection = null
-        }
-    }
-
-
-    override fun onStart() {
-        super.onStart()
-        startService(Intent(this, MusicService::class.java))
-
-        bindService(
-            Intent(this, MusicService::class.java),
-            serviceConnection,
-            Context.BIND_AUTO_CREATE
-        )
-        isBound = true
-    }
 
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -189,19 +159,50 @@ class MainActivity : ComponentActivity() {
             .build()
 
         setContent {
+            val context = this@MainActivity
+            val lifecycleOwner = LocalLifecycleOwner.current
             val navController = rememberNavController()
             var active by rememberSaveable {
                 mutableStateOf(false)
             }
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
+            var playerConnection by remember { mutableStateOf<PlayerConnection?>(null) }
 
-            //根据图片加载主题色
-            val loader = rememberNetworkLoader()
-
-            val dominantColorState = rememberDominantColorState(loader)
-            val coverUrl = remember { mutableStateOf("") }
             var isMeasured by remember { mutableStateOf(false) }
-            val isColorLoaded = remember { mutableStateOf(false) } // 记录颜色是否已从数据库加载
+            DisposableEffect(Unit) {
+                val intent = Intent(context, MusicService::class.java)
+
+                val connection = object : ServiceConnection {
+                    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                        Log.d("MainActivity", "Service Connected") // 添加日志
+                        if (service is MusicService.MusicBinder) {
+                            // 更新 State，触发 Recomposition
+                            playerConnection = PlayerConnection(
+                                context,
+                                service,
+                                database,
+                                lifecycleOwner.lifecycleScope
+                            )
+                        }
+                    }
+
+                    override fun onServiceDisconnected(name: ComponentName?) {
+                        Log.d("MainActivity", "Service Disconnected")
+                        playerConnection?.dispose() // 假设你有 dispose 方法清理资源
+                        playerConnection = null
+                    }
+                }
+
+                // 启动并绑定服务
+                context.startService(intent)
+                context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+
+                onDispose {
+                    // Compose 销毁时解绑
+                    context.unbindService(connection)
+                    playerConnection = null
+                }
+            }
             setSingletonImageLoaderFactory {
                 ImageLoader.Builder(this)
                     .components {
@@ -215,52 +216,43 @@ class MainActivity : ComponentActivity() {
                             .build()
                     }
                     .build()
-
             }
+            var targetThemeColor by remember { mutableStateOf(Color.Black) }
+
             LaunchedEffect(playerConnection) {
+                Log.d("MainActivity", "playerConnection: $playerConnection")
                 val playerConnection = playerConnection ?: return@LaunchedEffect
-                playerConnection.service.currentMediaMetadata.collectLatest { song ->
+                val player = playerConnection.service.player
+                playerConnection.service.currentMediaMetadata.collect { song->
                     if (dynamicTheme && song != null) {
-                        coverUrl.value = song.coverUrl
-                        withContext(Dispatchers.IO) {
-                            val cachedColor = database.colorDao().getColor(song.coverUrl)
-                            if (cachedColor != null) {
-                                // 不能直接赋值 color，改用 updateFrom 触发更新
-                                withContext(Dispatchers.Main) {
-                                    dominantColorState.updateFrom(Url(song.coverUrl))
-                                    isColorLoaded.value = true // 颜色已加载，避免重复存储
-                                }
-                            } else {
-                                withContext(Dispatchers.Main) {
-                                    val demoImageUrl = Url(song.coverUrl)
-                                    loader.load(demoImageUrl)
-                                    dominantColorState.updateFrom(demoImageUrl)
-                                    isColorLoaded.value = false // 颜色未加载，将在下一个 LaunchedEffect 存入数据库
+                        val context = this@MainActivity
+                        launch {
+                            Log.d("MainActivity", "获取当前歌曲颜色: $song")
+                            val color = colorRepository.getColorOrExtract(context, song.coverUrl)
+                            targetThemeColor = color
+                        }
+                        Log.d("MainActivity", "获取歌曲颜色: $targetThemeColor")
+
+                        val nextIndex = player.nextMediaItemIndex
+                        if (nextIndex != C.INDEX_UNSET) {
+                            val nextUrl = player.getMediaItemAt(nextIndex).mediaMetadata.artworkUri?.toString()
+                            if (!nextUrl.isNullOrEmpty()) {
+                                Log.d("MainActivity", "获取下一首歌曲颜色: $nextUrl")
+                                launch(Dispatchers.IO) {
+                                    colorRepository.getColorOrExtract(context, nextUrl)
+                                    preloadImage(context, nextUrl)
                                 }
                             }
                         }
+                    }
+                }
 
-                    }
-                }
-            }
-            // 颜色计算完成后存入数据库
-            LaunchedEffect(dominantColorState.color) {
-                if (coverUrl.value.isNotEmpty() && !isColorLoaded.value) {
-                    withContext(Dispatchers.IO) {
-                        database.colorDao().insertColor(
-                            Color(
-                                url = coverUrl.value,
-                                color = dominantColorState.color.toArgb()
-                            )
-                        )
-                    }
-                    isColorLoaded.value = true
-                }
             }
 
 
             MusicTheme(
-                seedColor = dominantColorState.color,
+                seedColor = targetThemeColor,
+                isDark = isSystemInDarkTheme()
             ) {
                 BoxWithConstraints(
                     modifier = Modifier
@@ -659,12 +651,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+    }
     override fun onDestroy() {
         super.onDestroy()
-        if (isBound) {
-            unbindService(serviceConnection)
-            isBound = false
-        }
     }
 
     companion object {

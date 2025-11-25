@@ -114,7 +114,7 @@ fun PlayerProgressSlider(
             interactionSource = interactionSource,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(32.dp), // 增加一点高度给波浪
+                .height(24.dp), // 增加一点高度给波浪
             enabled = isDurationValid,
 
             // 隐藏原本的 Thumb (圆球)，我们自己画在 Track 里，或者不需要 Thumb
@@ -130,7 +130,7 @@ fun PlayerProgressSlider(
                 Canvas(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(32.dp) // 确保有足够空间画波峰波谷
+                        .height(24.dp) // 确保有足够空间画波峰波谷
                 ) {
                     val width = size.width
                     val height = size.height

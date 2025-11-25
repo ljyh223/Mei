@@ -8,7 +8,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.ljyh.mei.data.model.room.Color
+import com.ljyh.mei.data.model.room.CacheColor
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
@@ -19,10 +19,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ColorDao {
     @Query("SELECT * FROM color where url=:url")
-    fun getColor(url: String): Color?
+    fun getColor(url: String): CacheColor?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertColor(color: Color)
+    suspend fun insertColor(color: CacheColor)
 }
 
 @Dao
@@ -88,7 +88,7 @@ interface LikeDao{
 }
 
 
-@Database(entities = [Color::class, Song::class, Like::class, QQSong::class, Playlist::class], version = 8)
+@Database(entities = [CacheColor::class, Song::class, Like::class, QQSong::class, Playlist::class], version = 8)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
     abstract fun songDao(): SongDao

@@ -68,7 +68,7 @@ fun DynamicThemeHandler(
         if (coverUrl.isNotEmpty() && !isColorLoaded.value) {
             withContext(Dispatchers.IO) {
                 database.colorDao().insertColor(
-                    com.ljyh.mei.data.model.room.Color(
+                    com.ljyh.mei.data.model.room.CacheColor(
                         url = coverUrl,
                         color = dominantColorState.color.toArgb()
                     )

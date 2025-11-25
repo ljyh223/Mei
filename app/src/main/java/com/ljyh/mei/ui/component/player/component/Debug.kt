@@ -23,6 +23,7 @@ fun Debug(
     artist: String,
     duration: String,
     qid: String,
+    color: String,
     modifier: Modifier
 ) {
     val context= LocalContext.current
@@ -36,18 +37,19 @@ fun Debug(
             Text(text = "ARTIST: $artist")
             Text(text = "DURATION: $duration")
             Text(text = "QQ_ID: $qid")
-            Button(
-                onClick = {
-                    val text = "ID :$id\nTITLE: $title\nALBUM: $album\nARTIST: $artist\nDURATION: $duration\nQQ_ID: $qid"
-                    val clipboard =
-                        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText("info", text)
-                    clipboard.setPrimaryClip(clip)
-
-                }
-            ) {
-                Text(text="Copy")
-            }
+            Text(text = "COLOR: $color")
+//            Button(
+//                onClick = {
+//                    val text = "ID :$id\nTITLE: $title\nALBUM: $album\nARTIST: $artist\nDURATION: $duration\nQQ_ID: $qid"
+//                    val clipboard =
+//                        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+//                    val clip = ClipData.newPlainText("info", text)
+//                    clipboard.setPrimaryClip(clip)
+//
+//                }
+//            ) {
+//                Text(text="Copy")
+//            }
         }
     }
 

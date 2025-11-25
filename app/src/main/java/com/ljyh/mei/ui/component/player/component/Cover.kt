@@ -1,5 +1,10 @@
 package com.ljyh.mei.ui.component.player.component
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -37,71 +42,61 @@ import com.ljyh.mei.utils.smallImage
 
 @Composable
 fun Cover(
-    viewModel: PlayerViewModel,
     playerConnection: PlayerConnection,
     mediaMetadata: MediaMetadata,
     modifier: Modifier,
-    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
-    val enabledIrregularityCoverKey by rememberPreference(
-        IrregularityCoverKey,
-        defaultValue = false
-    )
-
     val originalCover by rememberPreference(
         OriginalCoverKey,
         defaultValue = false
     )
-    
-    var showTrackBottomSheet by remember { mutableStateOf(false) }
-    
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .placeholderMemoryCacheKey(mediaMetadata.coverUrl.smallImage()) // 先用小图占位
-                .data(
-                    if (originalCover) mediaMetadata.coverUrl else mediaMetadata.coverUrl.size1600()
-                )
-                .crossfade(true) // 平滑过渡
-                .build(),
-            contentScale = ContentScale.Crop,
-            contentDescription = "Loaded Image",
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(
-                    when (coverStyle) {
-                        CoverStyle.Square -> RoundedCornerShape(ThumbnailCornerRadius * 6)
-                        CoverStyle.Circle -> CircleShape
-                    }
-                )
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onDoubleTap = { offset ->
-                            if (offset.x < size.width / 2) {
-                                playerConnection.player.seekBack()
-                            } else {
-                                playerConnection.player.seekForward()
-                            }
+    AnimatedContent(
+        targetState = mediaMetadata.coverUrl,
+        transitionSpec = {
+            fadeIn(tween(400)) togetherWith fadeOut(tween(400))
+        },
+        label = "CoverTransition"
+    ){ url ->
+        Column(
+            modifier = modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .placeholderMemoryCacheKey(url.smallImage()) // 先用小图占位
+                    .data(
+                        if (originalCover) url else url.size1600()
+                    )
+                    .crossfade(true) // 平滑过渡
+                    .build(),
+                contentScale = ContentScale.Crop,
+                contentDescription = "Loaded Image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(
+                        when (coverStyle) {
+                            CoverStyle.Square -> RoundedCornerShape(ThumbnailCornerRadius * 6)
+                            CoverStyle.Circle -> CircleShape
                         }
                     )
-                }
-        )
-
-//        viewModel.mediaMetadata?.let {
-//            TrackBottomSheet(
-//                showBottomSheet = showTrackBottomSheet,
-//                viewModel = playlistViewModel,
-//                mediaMetadata = it,
-//            ) {
-//                showTrackBottomSheet = false
-//            }
-//        }
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = { offset ->
+                                if (offset.x < size.width / 2) {
+                                    playerConnection.player.seekBack()
+                                } else {
+                                    playerConnection.player.seekForward()
+                                }
+                            }
+                        )
+                    }
+            )
+        }
     }
+    
+
 }
 

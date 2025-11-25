@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.component.player
 
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -36,18 +37,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.Player.STATE_READY
-import androidx.navigation.NavController
 import com.ljyh.mei.constants.DebugKey
-import com.ljyh.mei.constants.DynamicStreamerType
-import com.ljyh.mei.constants.DynamicStreamerTypeKey
-import com.ljyh.mei.constants.PlayModeKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
@@ -56,18 +53,17 @@ import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
 import com.ljyh.mei.ui.component.player.component.Header
 import com.ljyh.mei.ui.component.player.component.LyricScreen
-import com.ljyh.mei.ui.component.player.component.LyricSourceData
-import com.ljyh.mei.ui.component.player.component.OptimizedBlurredImage
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
+import com.ljyh.mei.ui.component.player.component.SmoothCoverBackground
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.model.LyricSourceData
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.encrypt.QRCUtils
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.lyric.mergeLyrics
-import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -82,6 +78,7 @@ fun BottomSheetPlayer(
     playerViewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
+    val context = LocalContext.current
 
     // --- 1. Preferences & Theme ---
     val isSystemInDarkTheme = isSystemInDarkTheme()
@@ -109,6 +106,11 @@ fun BottomSheetPlayer(
 
     // 歌词最终状态 (默认为加载中)
     var lyricLine by remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
+    var rawSeedColor by remember {
+        mutableStateOf(
+            Color.White
+        )
+    }
 
     // 更新进度条与时长
     LaunchedEffect(playbackState, isPlaying, isDragging) {
@@ -132,8 +134,8 @@ fun BottomSheetPlayer(
             lyricLine = createDefaultLyricData("歌词加载中")
 
             // 触发 ViewModel 获取数据
-            playerViewModel.clear() // 建议把这个移到 VM 内部，设置 meta 时自动 clear
-            playerViewModel.mediaMetadata = meta // 同上
+            playerViewModel.clear()
+            playerViewModel.mediaMetadata = meta
 
             playerViewModel.getLyricV1(meta.id.toString())
             playerViewModel.getAMLLyric(meta.id.toString())
@@ -142,9 +144,19 @@ fun BottomSheetPlayer(
                 playerViewModel.fetchQQSong(meta.id.toString())
                 playerViewModel.searchNew(meta.title)
             }
+            Log.d("Player", "MediaMetadata: $meta")
+            Log.d("Player", "MediaMetadata: cover ${meta.coverUrl}")
+            val color= playerViewModel.getColor(meta.coverUrl)
+            if(color == null){
+                Log.d("Player", "Raw seed color is null")
+                rawSeedColor = Color.White
+            }else{
+                rawSeedColor = color
+                Log.d("Player", "Raw seed color: $rawSeedColor")
+            }
+
         }
     }
-
     // 监听 QQSong 变化，获取新歌词
     LaunchedEffect(qqSong) {
         qqSong?.let { song ->
@@ -195,7 +207,7 @@ fun BottomSheetPlayer(
     val colorScheme = MaterialTheme.colorScheme
     val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
         if (isSystemInDarkTheme && state.value > state.collapsedBound) {
-             lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
+            lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
         } else {
             colorScheme.surfaceContainer
         }
@@ -223,12 +235,10 @@ fun BottomSheetPlayer(
         }
     ) {
         val coverUrl = mediaMetadata?.coverUrl
-        if (coverUrl != null) {
-            OptimizedBlurredImage(
-                cover = coverUrl,
-                isPlaying = isPlaying
-            )
-        }
+        SmoothCoverBackground(
+            coverUrl = coverUrl,
+            seedColor = rawSeedColor
+        )
 
         // 2. Debug 信息层
         if (debug && mediaMetadata != null) {
@@ -239,9 +249,9 @@ fun BottomSheetPlayer(
                 duration = formatMilliseconds(duration).toString(),
                 id = mediaMetadata!!.id.toString(),
                 qid = qqSong?.qid ?: "null",
+                color = rawSeedColor.value.toString(),
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(10.dp)
                     .statusBarsPadding()
             )
         }
@@ -260,10 +270,9 @@ fun BottomSheetPlayer(
                     mediaMetadata = it,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = PlayerHorizontalPadding,),
+                        .padding(horizontal = PlayerHorizontalPadding),
                     onNavigateToAlbum = {},
                     onNavigateToArtist = {},
-
                 )
             }
 
@@ -286,30 +295,33 @@ fun BottomSheetPlayer(
                         ) {
                             mediaMetadata?.let {
                                 Cover(
-                                    viewModel = playerViewModel,
                                     playerConnection = playerConnection,
                                     mediaMetadata = it,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
-                                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(12.dp))
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .shadow(
+                                            elevation = 12.dp,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
                                 )
                             }
                         }
                     }
+
                     1 -> {
                         LyricScreen(
                             lyricData = lyricLine,
                             playerConnection = playerConnection,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
                                 .padding(horizontal = PlayerHorizontalPadding)
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(24.dp)) // 增加间距，让布局更舒展
+            Spacer(Modifier.height(8.dp)) // 增加间距，让布局更舒展
 
             // Progress Bar
             PlayerProgressSlider(
@@ -321,8 +333,6 @@ fun BottomSheetPlayer(
                     playerConnection.player.seekTo(newPosition)
                     sliderPosition = newPosition.toFloat()
                 },
-                // 如果你的 Slider 内部实现了 isDragging 状态回传更好，
-                // 或者简单处理：PlayerProgressSlider 内部处理 isDragging UI 变化
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding + 8.dp)
@@ -337,7 +347,8 @@ fun BottomSheetPlayer(
                 canSkipNext = playerConnection.canSkipNext.collectAsState().value,
                 isPlaying = isPlaying,
                 playbackState = playbackState,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding)
             )
 

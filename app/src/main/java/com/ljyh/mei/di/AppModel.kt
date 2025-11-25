@@ -7,6 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 
 @Module
@@ -19,6 +20,7 @@ object AppModule {
         Room.databaseBuilder(appContext, AppDatabase::class.java, "app_database").build()
 
     @Provides
+    @Singleton
     fun provideColorDao(db: AppDatabase): ColorRepository =
         ColorRepository(db.colorDao())
 

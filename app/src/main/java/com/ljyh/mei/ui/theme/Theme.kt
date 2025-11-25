@@ -4,6 +4,7 @@ import android.app.Activity
 import android.graphics.Bitmap
 import android.os.Build
 import android.util.Log
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -66,25 +67,18 @@ private val AppTypography = Typography(
 )
 @Composable
 fun MusicTheme(
+    seedColor: Color, // 传入已经平滑过渡好的颜色，或者普通颜色
     isDark: Boolean = isSystemInDarkTheme(),
-    seedColor: Color,
-    paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
-    useDarkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable() () -> Unit,
+    content: @Composable () -> Unit,
 ) {
-
-
-    MaterialTheme(
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = {
-            DynamicMaterialTheme(
-                seedColor = seedColor,
-                isDark = isDark,
-                animate = true,
-                content = content,
-            )
-        }
+    // MaterialKolor 提供的组件
+    DynamicMaterialTheme(
+        seedColor = seedColor,
+        isDark = isDark,
+        animate = true, // MaterialKolor 自带了颜色方案的插值动画，非常丝滑
+        animationSpec = tween(600), // 可以自定义动画时长
+        typography = AppTypography, // 在这里传入你的字体
+        // shapes = AppShapes, // 如果你有自定义形状
+        content = content
     )
-
 }

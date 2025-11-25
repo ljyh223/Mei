@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.component.player
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.Lyric
@@ -11,6 +12,7 @@ import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
+import com.ljyh.mei.di.ColorRepository
 import com.ljyh.mei.di.LikeRepository
 import com.ljyh.mei.di.QQSongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +27,8 @@ class PlayerViewModel @Inject constructor(
     private val repository: PlayerRepository,
     private val qqSongRepository: QQSongRepository,
     private val playlistRepository: PlaylistRepository,
-    private val likeRepository: LikeRepository
+    private val likeRepository: LikeRepository,
+    private val colorRepository: ColorRepository
 ) : ViewModel() {
     private val _searchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
     val searchResult: StateFlow<Resource<SearchResult>> = _searchResult
@@ -145,10 +148,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-
-
-
-
-
-
+    fun getColor(url: String): Color? {
+        return colorRepository.getFromMemory(url)
+    }
 }

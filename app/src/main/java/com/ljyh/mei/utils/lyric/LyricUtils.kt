@@ -1,9 +1,9 @@
 package com.ljyh.mei.utils.lyric
 
 import android.util.Log
-import com.ljyh.mei.ui.component.player.component.LyricData
-import com.ljyh.mei.ui.component.player.component.LyricSource
-import com.ljyh.mei.ui.component.player.component.LyricSourceData
+import com.ljyh.mei.ui.model.LyricData
+import com.ljyh.mei.ui.model.LyricSource
+import com.ljyh.mei.ui.model.LyricSourceData
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
 
