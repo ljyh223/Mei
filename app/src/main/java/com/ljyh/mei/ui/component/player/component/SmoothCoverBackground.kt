@@ -46,7 +46,7 @@ fun SmoothCoverBackground(
         )
     }
 
-    FluidGradientBackground(
+    StateDrivenFluidBackground(
         targetColors = targetColors,
         modifier = Modifier.fillMaxSize()
     )
@@ -67,7 +67,7 @@ fun SmoothCoverBackground(
 }
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
-fun FluidGradientBackground(
+fun StateDrivenFluidBackground(
     targetColors: List<Color>,
     modifier: Modifier = Modifier
 ) {
