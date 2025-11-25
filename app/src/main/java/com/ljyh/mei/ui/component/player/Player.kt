@@ -2,42 +2,46 @@ package com.ljyh.mei.ui.component.player
 
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.media3.common.C
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import com.ljyh.mei.constants.DebugKey
@@ -45,10 +49,8 @@ import com.ljyh.mei.constants.DynamicStreamerType
 import com.ljyh.mei.constants.DynamicStreamerTypeKey
 import com.ljyh.mei.constants.PlayModeKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
-import com.ljyh.mei.constants.QueuePeekHeight
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
@@ -60,7 +62,6 @@ import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
-import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.encrypt.QRCUtils
@@ -68,175 +69,138 @@ import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.lyric.mergeLyrics
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-
+import kotlinx.coroutines.withContext
 
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun BottomSheetPlayer(
     state: BottomSheetState,
-    navController: NavController,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
-    val context = LocalContext.current
 
-    // Theme preferences
+    // --- 1. Preferences & Theme ---
     val isSystemInDarkTheme = isSystemInDarkTheme()
-
-
     val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
-    val dynamicStreamerType by rememberEnumPreference(
-        DynamicStreamerTypeKey,
-        defaultValue = DynamicStreamerType.Image
-    )
     val debug by rememberPreference(DebugKey, defaultValue = false)
-    val playMode by rememberPreference(PlayModeKey, defaultValue = 3)
 
 
-
-    val backgroundColor = if (isSystemInDarkTheme && state.value > state.collapsedBound) {
-        lerp(MaterialTheme.colorScheme.surfaceContainer, Color.Black, state.progress)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainer
-    }
-
-    // Player state
+    // --- 2. Player State Collection ---
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
-    val repeatMode by playerConnection.repeatMode.collectAsState()
-    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
-
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
-    val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
-    var position by rememberSaveable(playbackState) {
-        mutableLongStateOf(playerConnection.player.currentPosition)
-    }
-    // Media info state
-    var mediaInfo by rememberSaveable(stateSaver = MediaInfoSaver) {
-        mutableStateOf(
-            MediaInfo()
-        )
-    }
+    // --- 3. UI Local State ---
+    // 进度条状态：直接使用 Float 避免频繁 Long 转换，且分离 UI 状态与播放器真实状态
+    var sliderPosition by remember { mutableFloatStateOf(0f) }
+    var duration by remember { mutableLongStateOf(0L) }
+    // 标记用户是否正在拖动进度条，拖动时不自动更新
+    var isDragging by remember { mutableStateOf(false) }
 
-    var duration by rememberSaveable(playbackState) {
-        mutableLongStateOf(playerConnection.player.duration)
-    }
-
-    val lyricLine = remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
-
+    // 歌词数据源
     val netLyricResult by playerViewModel.lyric.collectAsState()
     val qqLyricResult by playerViewModel.lyricResult.collectAsState()
-    val amLyrcResult by playerViewModel.amLyric.collectAsState()
-
-
+    val amLyricResult by playerViewModel.amLyric.collectAsState()
     val qqSong by playerViewModel.qqSong.collectAsState()
 
-    if (PlayMode.fromInt(playMode) == PlayMode.SHUFFLE_MODE_ALL) {
-        playerConnection.player.shuffleModeEnabled = true
-    } else {
-        playerConnection.player.shuffleModeEnabled = false
-        playerConnection.player.repeatMode = playMode
-    }
-    // UI state
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    // 歌词最终状态 (默认为加载中)
+    var lyricLine by remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
 
-
-    // Update position and duration
-    LaunchedEffect(playbackState) {
-        if (playbackState == STATE_READY) {
+    // 更新进度条与时长
+    LaunchedEffect(playbackState, isPlaying, isDragging) {
+        if (playbackState == STATE_READY && isPlaying && !isDragging) {
             while (isActive) {
-                delay(100)
-                position = playerConnection.player.currentPosition
-                duration = playerConnection.player.duration
+                sliderPosition = playerConnection.player.currentPosition.toFloat()
+                duration = playerConnection.player.duration.coerceAtLeast(1L)
+                delay(50)
             }
+        } else if (!isPlaying && !isDragging) {
+            // 暂停时同步一次，防止状态不一致
+            sliderPosition = playerConnection.player.currentPosition.toFloat()
+            duration = playerConnection.player.duration.coerceAtLeast(1L)
         }
     }
 
-    // Reset position when duration is invalid
-    LaunchedEffect(position, duration) {
-        if (position == 0L || duration == C.TIME_UNSET) {
-            position = 0L
-        }
-    }
-
-    LaunchedEffect(netLyricResult, qqLyricResult, amLyrcResult) {
-        val sources = mutableListOf<LyricSourceData>()
-        (amLyrcResult as? Resource.Success)?.let {
-            sources.add(LyricSourceData.AM(it.data))
-        }
-
-        (netLyricResult as? Resource.Success)?.data?.let {
-            sources.add(LyricSourceData.NetEase(it))
-        }
-
-        (qqLyricResult as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
-            // 此时的歌词还没有解密
-            val qrc = it.copy(
-                lyric = QRCUtils.decodeLyric(it.lyric),
-                trans = QRCUtils.decodeLyric(it.trans, true),
-                roma = QRCUtils.decodeLyric(it.roma)
-            )
-
-            sources.add(LyricSourceData.QQMusic(qrc))
-        }
-
-        lyricLine.value = mergeLyrics(sources)
-        Log.d("lyricLine", lyricLine.value.toString())
-    }
-
-    // Handle media metadata changes
+    // 处理 Metadata 变化：加载歌词、重置状态
     LaunchedEffect(mediaMetadata) {
-        playerViewModel.clear()
-        lyricLine.value = createDefaultLyricData("歌词加载中")
-        playerViewModel.mediaMetadata = mediaMetadata
-        mediaMetadata?.let {
-            mediaInfo = MediaInfo(
-                id = it.id.toString(),
-                cover = it.coverUrl,
-                artist = it.artists[0].name,
-                title = it.title,
-                album = it.album.title
-            )
-            playerViewModel.getLyricV1(it.id.toString())
-            playerViewModel.getAMLLyric(it.id.toString())
+        mediaMetadata?.let { meta ->
+            // 重置歌词状态
+            lyricLine = createDefaultLyricData("歌词加载中")
+
+            // 触发 ViewModel 获取数据
+            playerViewModel.clear() // 建议把这个移到 VM 内部，设置 meta 时自动 clear
+            playerViewModel.mediaMetadata = meta // 同上
+
+            playerViewModel.getLyricV1(meta.id.toString())
+            playerViewModel.getAMLLyric(meta.id.toString())
+
             if (useQQMusicLyric) {
-                playerViewModel.fetchQQSong(it.id.toString())
-                playerViewModel.searchNew(it.title)
+                playerViewModel.fetchQQSong(meta.id.toString())
+                playerViewModel.searchNew(meta.title)
             }
         }
-
-
     }
 
-    // 观察 来自数据库中的数据
+    // 监听 QQSong 变化，获取新歌词
     LaunchedEffect(qqSong) {
-        if (qqSong != null) {
-            // 如果有信息，那么自己获取并加载歌词了
-            Log.d("qqSong", qqSong.toString())
+        qqSong?.let { song ->
             playerViewModel.getLyricNew(
-                title = qqSong!!.title,
-                album = qqSong!!.album,
-                artist = qqSong!!.artist,
-                duration = qqSong!!.duration,
-                id = qqSong!!.qid.toInt()
+                title = song.title,
+                album = song.album,
+                artist = song.artist,
+                duration = song.duration,
+                id = song.qid.toInt()
             )
         }
     }
 
+    LaunchedEffect(netLyricResult, qqLyricResult, amLyricResult) {
+        withContext(Dispatchers.Default) {
+            val sources = mutableListOf<LyricSourceData>()
 
-    // Queue sheet state
-    val queueSheetState = rememberBottomSheetState(
-        dismissedBound = QueuePeekHeight + WindowInsets.systemBars.asPaddingValues()
-            .calculateBottomPadding(),
-        expandedBound = state.expandedBound,
-    )
+            (amLyricResult as? Resource.Success)?.let {
+                sources.add(LyricSourceData.AM(it.data))
+            }
+            (netLyricResult as? Resource.Success)?.data?.let {
+                sources.add(LyricSourceData.NetEase(it))
+            }
+            (qqLyricResult as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
+                try {
+                    val qrc = it.copy(
+                        lyric = QRCUtils.decodeLyric(it.lyric),
+                        trans = QRCUtils.decodeLyric(it.trans, true),
+                        roma = QRCUtils.decodeLyric(it.roma)
+                    )
+                    sources.add(LyricSourceData.QQMusic(qrc))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
 
-    // Main UI
+            val merged = mergeLyrics(sources)
+            // 切换回主线程更新 UI
+            withContext(Dispatchers.Main) {
+                lyricLine = merged
+            }
+        }
+    }
+
+    // --- 5. UI Rendering ---
+
+    // 背景颜色计算
+    val colorScheme = MaterialTheme.colorScheme
+    val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
+        if (isSystemInDarkTheme && state.value > state.collapsedBound) {
+             lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
+        } else {
+            colorScheme.surfaceContainer
+        }
+    }
+
     BottomSheet(
         state = state,
         modifier = modifier,
@@ -253,109 +217,141 @@ fun BottomSheetPlayer(
         },
         collapsedContent = {
             MiniPlayer(
-                position = position,
+                position = sliderPosition.toLong(),
                 duration = duration,
             )
         }
     ) {
-        // 背景渲染
-        if (dynamicStreamerType == DynamicStreamerType.Image)
-            OptimizedBlurredImage(mediaInfo.cover, isPlaying, 100.dp)
+        val coverUrl = mediaMetadata?.coverUrl
+        if (coverUrl != null) {
+            OptimizedBlurredImage(
+                cover = coverUrl,
+                isPlaying = isPlaying
+            )
+        }
 
-        if (debug) {
+        // 2. Debug 信息层
+        if (debug && mediaMetadata != null) {
             Debug(
-                title = mediaInfo.title,
-                artist = mediaInfo.artist,
-                album = mediaInfo.album,
+                title = mediaMetadata!!.title,
+                artist = mediaMetadata!!.artists.firstOrNull()?.name ?: "",
+                album = mediaMetadata!!.album.title,
                 duration = formatMilliseconds(duration).toString(),
-                id = mediaInfo.id,
+                id = mediaMetadata!!.id.toString(),
                 qid = qqSong?.qid ?: "null",
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(10.dp)
+                    .statusBarsPadding()
             )
         }
 
+        // 3. 主内容区域
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                .padding(horizontal = PlayerHorizontalPadding, vertical = 16.dp),
+                .padding(bottom = 16.dp, top = 24.dp), // 底部留白
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // 顶部标题栏
+            // Header
             mediaMetadata?.let {
                 Header(
                     mediaMetadata = it,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PlayerHorizontalPadding,),
                     onNavigateToAlbum = {},
                     onNavigateToArtist = {},
+
                 )
             }
+
+            // Pager (Cover / Lyrics)
+            val pagerState = rememberPagerState(pageCount = { 2 })
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1f),
+                contentPadding = PaddingValues(horizontal = PlayerHorizontalPadding),
+                //pageSpacing = 16.dp,
+                beyondViewportPageCount = 1
             ) { page ->
                 when (page) {
                     0 -> {
-                        mediaMetadata?.let {
-                            Cover(
-                                viewModel = playerViewModel,
-                                playerConnection = playerConnection,
-                                mediaMetadata = it,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f)
-                            )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            mediaMetadata?.let {
+                                Cover(
+                                    viewModel = playerViewModel,
+                                    playerConnection = playerConnection,
+                                    mediaMetadata = it,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(12.dp))
+                                        .clip(RoundedCornerShape(12.dp))
+                                )
+                            }
                         }
                     }
-
                     1 -> {
                         LyricScreen(
-                            lyricData = lyricLine.value,
+                            lyricData = lyricLine,
                             playerConnection = playerConnection,
+                            modifier = Modifier.fillMaxSize()
+                                .padding(horizontal = PlayerHorizontalPadding)
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp)) // 增加间距，让布局更舒展
 
-            // 进度条
+            // Progress Bar
             PlayerProgressSlider(
-                position = position,
+                position = sliderPosition.toLong(),
                 duration = duration,
-                onPositionChange = { newPosition ->
-                    position = newPosition
-                    playerConnection.player.seekTo(newPosition)
-                },
                 isPlaying = isPlaying,
+                onPositionChange = { newPosition ->
+                    // 只有手指抬起或确认拖拽时才 seek
+                    playerConnection.player.seekTo(newPosition)
+                    sliderPosition = newPosition.toFloat()
+                },
+                // 如果你的 Slider 内部实现了 isDragging 状态回传更好，
+                // 或者简单处理：PlayerProgressSlider 内部处理 isDragging UI 变化
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
+            // Controls
             Controls(
                 playerConnection = playerConnection,
-                canSkipPrevious = canSkipPrevious,
-                canSkipNext = canSkipNext,
+                canSkipPrevious = playerConnection.canSkipPrevious.collectAsState().value,
+                canSkipNext = playerConnection.canSkipNext.collectAsState().value,
                 isPlaying = isPlaying,
                 playbackState = playbackState,
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = PlayerHorizontalPadding)
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
+            // Action Toolbar (Queue, Like, Sleep, etc.)
             PlayerActionToolbar(
                 playerViewModel = playerViewModel,
-                mediaMetadata = mediaMetadata
+                mediaMetadata = mediaMetadata,
+                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
             )
 
-            Spacer(Modifier.height(8.dp))
+            // 底部安全区，防止被手势条遮挡
+            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
     }
-
 }

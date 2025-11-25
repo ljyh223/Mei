@@ -150,7 +150,11 @@ fun LibraryScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = paddingValues.calculateBottomPadding())
+                    .padding(
+                        top = paddingValues.calculateTopPadding(),
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+                            .calculateBottomPadding()
+                    )
             ) {
                 // 1. 头部区域 (作为一个普通的 Item)
                 item(key = "header") {
@@ -189,26 +193,28 @@ fun LibraryScreen(
                         } else {
                             items(createdPlaylists, key = { it.id }) { playlist ->
                                 PlaylistItem(playlist) {
-                                    Screen.PlayList.navigate(navController){
+                                    Screen.PlayList.navigate(navController) {
                                         addPath(playlist.id)
                                     }
                                 }
                             }
                         }
                     }
+
                     1 -> { // 收藏歌单
                         if (collectedPlaylists.isEmpty()) {
                             item { EmptyState("暂无收藏歌单") }
                         } else {
                             items(collectedPlaylists, key = { it.id }) { playlist ->
                                 PlaylistItem(playlist) {
-                                    Screen.PlayList.navigate(navController){
+                                    Screen.PlayList.navigate(navController) {
                                         addPath(playlist.id)
                                     }
                                 }
                             }
                         }
                     }
+
                     2 -> { // 收藏专辑
                         val albums = (albumList as? Resource.Success)?.data?.data ?: emptyList()
                         if (albums.isEmpty()) {
@@ -216,7 +222,7 @@ fun LibraryScreen(
                         } else {
                             items(albums, key = { it.id }) { album ->
                                 AlbumItem(album) {
-                                    Screen.Album.navigate(navController){
+                                    Screen.Album.navigate(navController) {
                                         addPath(album.id.toString())
                                     }
                                 }
@@ -425,8 +431,11 @@ fun PhotoPickerSheet(
                     onDismiss = onDismiss
                 )
             }
+
             else -> {
-                Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier
+                    .fillMaxWidth()
+                    .height(200.dp), contentAlignment = Alignment.Center) {
                     if (photoAlbum is Resource.Loading) CircularProgressIndicator()
                     else Text("无法加载图片")
                 }

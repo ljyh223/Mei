@@ -416,7 +416,7 @@ data class PlaylistDetail(
 
             data class Ar(
                 @SerializedName("alias")
-                val alias: List<Any>,
+                val alias: List<String>,
                 @SerializedName("id")
                 val Id: Long,
                 @SerializedName("name")

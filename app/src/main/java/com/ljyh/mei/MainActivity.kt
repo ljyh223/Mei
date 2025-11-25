@@ -588,7 +588,6 @@ class MainActivity : ComponentActivity() {
                         }
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
-                            navController = navController
                         )
 
                         NavigationBar(

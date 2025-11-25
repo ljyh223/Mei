@@ -50,22 +50,12 @@ import kotlin.math.sqrt
 @Composable
 fun OptimizedBlurredImage(
     cover: String,
-    isPlaying: Boolean,
-    blurRadius: Dp = 50.dp
+    isPlaying: Boolean
 ) {
-    val context = LocalContext.current
     val isDarkTheme = isSystemInDarkTheme()
-    val density = LocalDensity.current
-    val cf = remember { imageWithDynamicFilter(isDarkTheme) }
     val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
     val rotation = remember { Animatable(0f) }
-    val scaleFactor = with(density) {
-        val screenW = context.resources.displayMetrics.widthPixels
-        val screenH = context.resources.displayMetrics.heightPixels
-        val diagonal = sqrt((screenW * screenW + screenH * screenH).toDouble())
-        val baseScale = (diagonal / min(screenW, screenH)).toFloat()
-        baseScale * 1.15f
-    }
+
     val colorScheme = MaterialTheme.colorScheme
     val fluidColors = remember(colorScheme) {
         listOf(

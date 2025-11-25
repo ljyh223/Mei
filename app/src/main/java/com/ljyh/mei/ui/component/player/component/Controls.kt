@@ -26,87 +26,90 @@ import com.ljyh.mei.playback.PlayerConnection
 
 @Composable
 fun Controls(
+    modifier: Modifier = Modifier,
     playerConnection: PlayerConnection,
     canSkipPrevious: Boolean,
     canSkipNext: Boolean,
     isPlaying: Boolean,
     playbackState: Int,
-
 ){
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
+    Box(modifier = modifier){
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
 
 
-        //previous
-        Box(modifier = Modifier.weight(1f)) {
-            IconButton(
-                enabled = canSkipPrevious,
-                onClick = playerConnection::seekToPrevious,
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.Center)
-                    .clip(RoundedCornerShape(4.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipPrevious,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.align(Alignment.Center)
-                        .size(48.dp)
-
-                )
-            }
-        }
-        //play/pause
-        Box(modifier = Modifier.weight(1f)) {
-            IconButton(
-                onClick = {
-                    if (playbackState == STATE_ENDED) {
-                        playerConnection.player.seekTo(0, 0)
-                        playerConnection.player.playWhenReady = true
-                    } else {
-                        playerConnection.player.togglePlayPause()
-                    }
-                },
-                modifier = Modifier
-                    .size(84.dp)
-                    .align(Alignment.Center)
-                    .clip(RoundedCornerShape(4.dp))
-            ) {
-                Icon(
-                    imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    tint = Color.White,
+            //previous
+            Box(modifier = Modifier.weight(1f)) {
+                IconButton(
+                    enabled = canSkipPrevious,
+                    onClick = playerConnection::seekToPrevious,
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(84.dp)
-                )
-            }
-        }
-
-
-        //next
-        Box(modifier = Modifier.weight(1f)) {
-            IconButton(
-                enabled = canSkipNext,
-                onClick = playerConnection::seekToNext,
-                modifier = Modifier
-                    .size(48.dp)
-                    .align(Alignment.Center)
-                    .clip(RoundedCornerShape(4.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipNext,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.align(Alignment.Center)
                         .size(48.dp)
-                )
-            }
-        }
+                        .align(Alignment.Center)
+                        .clip(RoundedCornerShape(4.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipPrevious,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.align(Alignment.Center)
+                            .size(48.dp)
 
+                    )
+                }
+            }
+            //play/pause
+            Box(modifier = Modifier.weight(1f)) {
+                IconButton(
+                    onClick = {
+                        if (playbackState == STATE_ENDED) {
+                            playerConnection.player.seekTo(0, 0)
+                            playerConnection.player.playWhenReady = true
+                        } else {
+                            playerConnection.player.togglePlayPause()
+                        }
+                    },
+                    modifier = Modifier
+                        .size(84.dp)
+                        .align(Alignment.Center)
+                        .clip(RoundedCornerShape(4.dp))
+                ) {
+                    Icon(
+                        imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(84.dp)
+                    )
+                }
+            }
+
+
+            //next
+            Box(modifier = Modifier.weight(1f)) {
+                IconButton(
+                    enabled = canSkipNext,
+                    onClick = playerConnection::seekToNext,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.Center)
+                        .clip(RoundedCornerShape(4.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipNext,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.align(Alignment.Center)
+                            .size(48.dp)
+                    )
+                }
+            }
+
+        }
     }
+
 }

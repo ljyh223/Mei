@@ -28,6 +28,7 @@ import com.ljyh.mei.data.model.MediaMetadata
 
 @Composable
 fun Header(
+    modifier: Modifier,
     mediaMetadata: MediaMetadata,
     onNavigateToArtist: (MediaMetadata.Artist) -> Unit,
     onNavigateToAlbum: (MediaMetadata.Album) -> Unit
@@ -46,10 +47,8 @@ fun Header(
     }
     Column(
         horizontalAlignment = Alignment.Start,
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .statusBarsPadding()
-            .padding(vertical = 8.dp)
     ) {
         Text(
             text = mediaMetadata.title,

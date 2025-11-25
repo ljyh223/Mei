@@ -80,34 +80,30 @@ class PlaylistViewModel @Inject constructor(
 
     // 分页加载，不是根据歌单id加载，而是根据歌曲id加载
     fun getPlaylistTracks(
-        id: String,
-        currentUserId: String,
         playlistDetailResource: Resource<PlaylistDetail>
-    ): Flow<PagingData<MediaMetadata>> { // 返回类型改为 MediaMetadata
+    ): Flow<PagingData<MediaMetadata>> {
         return when (playlistDetailResource) {
             is Resource.Success -> {
-                val playlistDetail = playlistDetailResource.data
+                val playlist = playlistDetailResource.data.playlist
 
-                // 逻辑保持：本人歌单全量，他人歌单分页
-                if (currentUserId == playlistDetail.playlist.creator.userId.toString()) {
-                    // 本人歌单直接用 PagingData.from 包装全量 List
-                    flowOf(PagingData.from(playlistDetail.playlist.tracks.map { it.toMediaMetadata() }))
+                // 【本人歌单】直接全量，不分页
+                if (playlist.name.endsWith("喜欢的音乐")) {
+                    flowOf(PagingData.from(playlist.tracks.map { it.toMediaMetadata() }))
                 } else {
                     Pager(
                         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                         pagingSourceFactory = {
                             PlaylistTrackSource(
-                                apiService,
-                                playlistDetail.playlist.tracks, // 前20条
-                                playlistDetail.playlist.trackIds.map { it.id.toString() } // 所有ID
+                                apiService = apiService,
+                                firstData = playlist.tracks,
+                                ids = playlist.trackIds.map { it.id.toString() }
                             )
                         }
                     ).flow
                 }
             }
             else -> flowOf(PagingData.empty())
-        }
-            .cachedIn(viewModelScope)
+        }.cachedIn(viewModelScope)
     }
 
 

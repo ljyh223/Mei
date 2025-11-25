@@ -23,6 +23,7 @@ import kotlinx.coroutines.android.awaitFrame
 @Composable
 fun LyricScreen(
     lyricData: LyricData,
+    modifier: Modifier,
     playerConnection: PlayerConnection,
 ) {
     val listState = rememberLazyListState()
@@ -41,7 +42,7 @@ fun LyricScreen(
         }
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
     ) {
 

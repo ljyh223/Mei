@@ -68,10 +68,6 @@ fun ArtistSelectionSheet(
                         .padding(horizontal = 24.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 如果有艺人头像，这里可以放一个圆形的 AsyncImage
-                     Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Gray))
-
-                    // 图标 (可选，增加视觉识别度)
                     Icon(
                         imageVector = Icons.Rounded.Person, // 或者 Mic
                         contentDescription = null,

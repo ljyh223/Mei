@@ -134,7 +134,7 @@ data class EveryDaySongs(
                 @SerializedName("tns")
                 val tns: List<Any>,
                 @SerializedName("alias")
-                val alias: List<Any>
+                val alias: List<String>
             )
 
             data class Al(

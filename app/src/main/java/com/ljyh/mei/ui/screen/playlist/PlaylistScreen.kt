@@ -52,7 +52,7 @@ fun PlaylistScreen(
 
 
     val pagingFlow = remember(id, playlistDetail) {
-        viewModel.getPlaylistTracks(id.toString(), userId, playlistDetail)
+        viewModel.getPlaylistTracks( playlistDetail)
     }
     val lazyPagingItems = pagingFlow.collectAsLazyPagingItems()
 

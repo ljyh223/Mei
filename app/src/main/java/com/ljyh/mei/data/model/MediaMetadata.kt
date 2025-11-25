@@ -23,6 +23,8 @@ data class MediaMetadata(
     data class Artist(
         val id: Long,
         val name: String,
+        val picUrl: String? = null,
+        val alias: List<String>? = null
     )
 
     data class Album(
@@ -49,7 +51,8 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
     artists = ar.map {
         MediaMetadata.Artist(
             id = it.Id,
-            name = it.name
+            name = it.name,
+            alias = it.alias
         )
     },
     duration = dt,
@@ -67,7 +70,7 @@ fun AlbumDetail.Song.toMediaMetadata() = MediaMetadata(
     artists = ar.map {
         MediaMetadata.Artist(
             id = it.id,
-            name = it.name
+            name = it.name,
         )
     },
     duration = dt,
@@ -84,7 +87,8 @@ fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
     artists = ar.map {
         MediaMetadata.Artist(
             id = it.id,
-            name = it.name
+            name = it.name,
+            alias = it.alias
         )
     },
     duration = dt,
