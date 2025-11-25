@@ -4,10 +4,8 @@ package com.ljyh.mei.ui.component.player
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -18,13 +16,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,35 +35,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.C
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
-import com.ljyh.mei.constants.DarkModeKey
 import com.ljyh.mei.constants.DebugKey
-import com.ljyh.mei.constants.DynamicStreamerKey
 import com.ljyh.mei.constants.DynamicStreamerType
 import com.ljyh.mei.constants.DynamicStreamerTypeKey
 import com.ljyh.mei.constants.PlayModeKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
-import com.ljyh.mei.constants.PureBlackKey
 import com.ljyh.mei.constants.QueuePeekHeight
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayMode
-import com.ljyh.mei.ui.component.sheet.BottomSheet
-import com.ljyh.mei.ui.component.sheet.BottomSheetState
-import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
+import com.ljyh.mei.ui.component.player.component.Header
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.LyricSourceData
 import com.ljyh.mei.ui.component.player.component.OptimizedBlurredImage
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
+import com.ljyh.mei.ui.component.sheet.BottomSheet
+import com.ljyh.mei.ui.component.sheet.BottomSheetState
+import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
@@ -94,25 +85,19 @@ fun BottomSheetPlayer(
 
     // Theme preferences
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    val pureBlack by rememberPreference(PureBlackKey, defaultValue = false)
-    val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+
+
     val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
     val dynamicStreamerType by rememberEnumPreference(
         DynamicStreamerTypeKey,
         defaultValue = DynamicStreamerType.Image
     )
-    val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
     val debug by rememberPreference(DebugKey, defaultValue = false)
     val playMode by rememberPreference(PlayModeKey, defaultValue = 3)
 
-    // Derived state for background color
-    val useBlackBackground = remember(isSystemInDarkTheme, darkTheme, pureBlack) {
-        val useDarkTheme =
-            if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
-        useDarkTheme && pureBlack
-    }
 
-    val backgroundColor = if (useBlackBackground && state.value > state.collapsedBound) {
+
+    val backgroundColor = if (isSystemInDarkTheme && state.value > state.collapsedBound) {
         lerp(MaterialTheme.colorScheme.surfaceContainer, Color.Black, state.progress)
     } else {
         MaterialTheme.colorScheme.surfaceContainer
@@ -128,9 +113,6 @@ fun BottomSheetPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
-//    val playMode = remember { mutableStateOf(PlayMode.REPEAT_MODE_ALL) }
-
-
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
@@ -145,15 +127,12 @@ fun BottomSheetPlayer(
         mutableLongStateOf(playerConnection.player.duration)
     }
 
-
-    var showDialog by remember { mutableStateOf(false) }
     val lyricLine = remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
 
-    // ViewModel state
     val netLyricResult by playerViewModel.lyric.collectAsState()
-    val searchResult by playerViewModel.searchResult.collectAsState()
     val qqLyricResult by playerViewModel.lyricResult.collectAsState()
     val amLyrcResult by playerViewModel.amLyric.collectAsState()
+
 
     val qqSong by playerViewModel.qqSong.collectAsState()
 
@@ -197,10 +176,10 @@ fun BottomSheetPlayer(
 
         (qqLyricResult as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
             // 此时的歌词还没有解密
-            val qrc=it.copy(
+            val qrc = it.copy(
                 lyric = QRCUtils.decodeLyric(it.lyric),
                 trans = QRCUtils.decodeLyric(it.trans, true),
-                roma  = QRCUtils.decodeLyric(it.roma)
+                roma = QRCUtils.decodeLyric(it.roma)
             )
 
             sources.add(LyricSourceData.QQMusic(qrc))
@@ -230,6 +209,8 @@ fun BottomSheetPlayer(
                 playerViewModel.searchNew(it.title)
             }
         }
+
+
     }
 
     // 观察 来自数据库中的数据
@@ -302,56 +283,15 @@ fun BottomSheetPlayer(
                 .padding(horizontal = PlayerHorizontalPadding, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             // 顶部标题栏
-            mediaMetadata?.let { metadata ->
-                Column(
-                    horizontalAlignment = Alignment.Start,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Text(
-                        text = metadata.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.basicMarquee()
-                    )
-
-                    Row {
-                        if (metadata.artists.isNotEmpty()) {
-                            Text(
-                                text = metadata.artists.joinToString(", ") { it.name },
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee()
-                            )
-                        }
-
-                        if(metadata.album.title.isNotEmpty()){
-                            Text(" - ", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f))
-                            Text(
-                                text = metadata.album.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee()
-                            )
-                        }
-                    }
-
-                }
+            mediaMetadata?.let {
+                Header(
+                    mediaMetadata = it,
+                    onNavigateToAlbum = {},
+                    onNavigateToArtist = {},
+                )
             }
-
-
-
-            // 中间封面 + 歌词（可滑动）
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -391,7 +331,7 @@ fun BottomSheetPlayer(
                     position = newPosition
                     playerConnection.player.seekTo(newPosition)
                 },
-                trackId = mediaInfo.id,
+                isPlaying = isPlaying,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp)
@@ -409,11 +349,7 @@ fun BottomSheetPlayer(
 
             Spacer(Modifier.height(12.dp))
 
-            Queue(
-                state = queueSheetState,
-                playerBottomSheetState = state,
-                backgroundColor = backgroundColor,
-                navController = navController,
+            PlayerActionToolbar(
                 playerViewModel = playerViewModel,
                 mediaMetadata = mediaMetadata
             )
@@ -422,39 +358,4 @@ fun BottomSheetPlayer(
         }
     }
 
-}
-
-
-
-data class MediaInfo(
-    val id: String = "",
-    val cover: String = "", // Assuming cover is a URL or file path
-    val album: String = "",
-    val artist: String = "",
-    val title: String = "",
-)
-
-val MediaInfoSaver: Saver<MediaInfo, *> = Saver(
-    save = { mediaInfo ->
-        // Save MediaInfo as a Bundle-compatible Map
-        mapOf(
-            "cover" to mediaInfo.cover,
-            "album" to mediaInfo.album,
-            "artist" to mediaInfo.artist,
-            "title" to mediaInfo.title,
-        )
-    },
-    restore = { restored ->
-        // Restore MediaInfo from the saved Map
-        MediaInfo(
-            cover = restored["cover"].toString(),
-            album = restored["album"].toString(),
-            artist = restored["artist"].toString(),
-            title = restored["title"].toString(),
-        )
-    }
-)
-
-enum class DarkMode {
-    ON, OFF, AUTO
 }

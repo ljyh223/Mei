@@ -73,6 +73,7 @@ import com.ljyh.mei.ui.component.SingleImagePickerSheet
 import com.ljyh.mei.ui.component.home.PlaylistItem
 import com.ljyh.mei.ui.component.utils.fadingEdge
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.smallImage
@@ -224,6 +225,13 @@ fun LibraryScreen(
                     }
                 }
             }
+
+            Spacer(
+                modifier = Modifier.height(
+                    LocalPlayerAwareWindowInsets.current.asPaddingValues()
+                        .calculateBottomPadding()
+                )
+            )
         } else if (cookie.isEmpty()) {
             EmptyLoginState(navController)
         }

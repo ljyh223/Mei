@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player.STATE_ENDED
 import com.ljyh.mei.extensions.togglePlayPause
@@ -52,7 +53,7 @@ fun Controls(
                 Icon(
                     imageVector = Icons.Rounded.SkipPrevious,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = Color.White,
                     modifier = Modifier.align(Alignment.Center)
                         .size(48.dp)
 
@@ -78,7 +79,7 @@ fun Controls(
                 Icon(
                     imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(84.dp)
@@ -100,7 +101,7 @@ fun Controls(
                 Icon(
                     imageVector = Icons.Rounded.SkipNext,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = Color.White,
                     modifier = Modifier.align(Alignment.Center)
                         .size(48.dp)
                 )

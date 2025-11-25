@@ -38,7 +38,9 @@ import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 import androidx.compose.animation.core.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Brush
 import com.ljyh.mei.ui.component.BackgroundVisualState
 import com.ljyh.mei.ui.component.FlowingLightBackground
 import kotlin.math.min
@@ -58,12 +60,23 @@ fun OptimizedBlurredImage(
     val dynamicStreamer by rememberPreference(DynamicStreamerKey, defaultValue = true)
     val rotation = remember { Animatable(0f) }
     val scaleFactor = with(density) {
-        val screenW = LocalContext.current.resources.displayMetrics.widthPixels
-        val screenH = LocalContext.current.resources.displayMetrics.heightPixels
+        val screenW = context.resources.displayMetrics.widthPixels
+        val screenH = context.resources.displayMetrics.heightPixels
         val diagonal = sqrt((screenW * screenW + screenH * screenH).toDouble())
         val baseScale = (diagonal / min(screenW, screenH)).toFloat()
         baseScale * 1.15f
     }
+    val colorScheme = MaterialTheme.colorScheme
+    val fluidColors = remember(colorScheme) {
+        listOf(
+            colorScheme.primary,      // 核心色
+            colorScheme.tertiary,     // 通常是对比色，很鲜艳
+            colorScheme.secondary,    // 辅助色
+            // colorScheme.error      // 有时候 error 色也是个很好的点缀（通常是红色/橘色）
+        )
+    }
+
+
     LaunchedEffect(isPlaying, dynamicStreamer) {
         if (dynamicStreamer && isPlaying) {
             rotation.animateTo(
@@ -74,68 +87,49 @@ fun OptimizedBlurredImage(
                 )
             )
         } else {
-            rotation.stop() // 停止动画
+            rotation.stop()
         }
     }
 
-    FlowingLightBackground(
-        state = BackgroundVisualState(
-            cover, true),
-        modifier = Modifier.fillMaxSize()
-    )
 
-    // 模糊背景图
-//    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
-//        val blurEffect = remember(blurRadius) {
-//            val blurIntensity = with(density) { blurRadius.toPx().coerceIn(1f, 100f) }
-//            mutableStateOf(
-//                RenderEffect.createBlurEffect(
-//                    blurIntensity.roundToInt().toFloat(),
-//                    blurIntensity.roundToInt().toFloat(),
-//                    Shader.TileMode.CLAMP
-//                ).asComposeRenderEffect()
-//            )
-//        }
-//
-//        AsyncImage(
-//            model = ImageRequest.Builder(context)
-//                .data(cover.smallImage())
-//                .build(),
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .scale(scale = calculateScaleToFit())
-//                .graphicsLayer {
-//                    rotationZ = rotation.value
-//                    renderEffect = blurEffect.value
-//                },
-//            colorFilter = cf,
-//            contentScale = ContentScale.Crop,
-//            contentDescription = null
-//        )
-//    } else {
-//
-//
-//        AsyncImage(
-//            model = ImageRequest.Builder(context)
-//                .placeholderMemoryCacheKey(cover.smallImage())
-//                .data(cover.middleImage())
-//                .transformations(BlurTransformation1(context, 15f, 5f))
-//                .build(),
-//            modifier = Modifier
-//                .fillMaxSize()
-//                    .scale(scale = scaleFactor)
-//                .graphicsLayer {
-//                    rotationZ = rotation.value
-//                    clip = false
-//                },
-//            contentScale = ContentScale.Crop,
-//            colorFilter = cf,
-//            contentDescription = null
-//        )
-//    }
-//    Box(
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .background(if (isDarkTheme) Color.Black.copy(alpha = 0.4f) else Color.Black.copy(alpha = 0.6f))
-//    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            FluidGradientBackground(
+                colors = fluidColors,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            FlowingLightBackground(
+                state = BackgroundVisualState(
+                    cover, true
+                ),
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        val scrimBrush = remember(isDarkTheme) {
+            if (!isDarkTheme) {
+                Brush.verticalGradient(
+                    0.0f to Color.Black.copy(alpha = 0.05f), // 顶部极淡，几乎没有
+                    0.4f to Color.Transparent,               // 中间完全透出漂亮的颜色
+                    0.7f to Color.Transparent,
+                    1.0f to Color.Black.copy(alpha = 0.3f)   // 底部稍微压一点点，防止白色按钮看不见
+                )
+            } else {
+                // 【深色模式策略】：沉浸为主
+                Brush.verticalGradient(
+                    0.0f to Color.Black.copy(alpha = 0.3f),  // 顶部适中
+                    0.4f to Color.Transparent,
+                    0.6f to Color.Transparent,
+                    1.0f to Color.Black.copy(alpha = 0.7f)   // 底部较深
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(scrimBrush)
+        )
+
+    }
 }

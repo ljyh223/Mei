@@ -43,7 +43,6 @@ import com.ljyh.mei.constants.TrackThumbnailSize
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.player.Queue
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
