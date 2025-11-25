@@ -122,42 +122,67 @@ fun CommonSongListScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            // 这是一个根据状态变化的 TopBar
-            CenterAlignedTopAppBar(
-                title = {
-                    // 只有在非 Loading 且 列表滚动后才显示标题
-                    AnimatedVisibility(
-                        visible = !isLoading && showTopBarTitle,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        Text(text = uiData.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (!isLoading && showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (!isLoading && uiData.coverUrl.isNotEmpty()) {
+            PlaylistBackground(
+                coverUrl = uiData.coverUrl[0],
             )
         }
-    ){ paddingValues ->
-        Box(Modifier.fillMaxSize()
-            .padding(paddingValues)){
-            if (isLoading) {
-                PlaylistShimmer()
-            } else {
 
-                Box(Modifier.fillMaxSize()){
-                    if(uiData.coverUrl.isNotEmpty()){
-                        PlaylistBackground(coverUrl = uiData.coverUrl[0])
-                    }
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        AnimatedVisibility(
+                            visible = !isLoading && showTopBarTitle,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Text(
+                                text = uiData.title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                // 确保标题文字在深色背景下可见，或者跟随主题
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = "Back",
+                                // 确保图标在背景上可见，通常用 OnSurface 或者纯白
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        // 1. 初始状态：完全透明，直接显示下方的模糊大图
+                        containerColor = Color.Transparent,
+
+                        // 2. 滚动状态：使用半透明的 Surface 颜色 (Glassmorphism 效果)
+                        // 这样既能区分头部，又不会产生割裂感
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+
+                        // 确保图标和标题颜色正确
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+        ) { paddingValues ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                if (isLoading) {
+                    PlaylistShimmer()
+                } else {
+
                     LazyColumn(
                         state = lazyListState,
                         contentPadding = PaddingValues(
@@ -210,19 +235,28 @@ fun CommonSongListScreen(
                             when (pagingItems.loadState.append) {
                                 is LoadState.Loading -> {
                                     item {
-                                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                        Box(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
                                             CircularProgressIndicator(Modifier.size(24.dp))
                                         }
                                     }
                                 }
+
                                 is LoadState.Error -> {
                                     item { Text("加载更多失败，点击重试") }
                                 }
+
                                 else -> {}
                             }
 
                         } else {
-                            itemsIndexed(uiData.tracks, key = { _, item -> item.id }) { index, track ->
+                            itemsIndexed(
+                                uiData.tracks,
+                                key = { _, item -> item.id }) { index, track ->
                                 Track(
                                     track = track,
                                     onClick = { onTrackClick(track, index) },
@@ -232,82 +266,83 @@ fun CommonSongListScreen(
                             }
                         }
                     }
-                }
 
-                if (menuTargetTrack != null) {
-                    TrackActionMenu(
-                        targetTrack = menuTargetTrack,
-                        isCreator = uiData.isCreate,
-                        onDismiss = { menuTargetTrack = null },
-                        onAddToPlaylist = {
-                            trackToAdd = menuTargetTrack
-                            menuTargetTrack = null
-                            showAddToPlaylistDialog = true
-                            viewModel.getAllMePlaylist()
-                        },
-                        onDelete = {
-                            viewModel.deleteSongFromPlaylist(
-                                uiData.id,
-                                menuTargetTrack!!.id.toString()
-                            )
-                            Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
-                            menuTargetTrack = null
-                        },
-                        onCopyId = {
-                            val clipboard =
-                                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(
-                                ClipData.newPlainText(
-                                    "id",
-                                    menuTargetTrack?.id.toString()
+
+                    if (menuTargetTrack != null) {
+                        TrackActionMenu(
+                            targetTrack = menuTargetTrack,
+                            isCreator = uiData.isCreate,
+                            onDismiss = { menuTargetTrack = null },
+                            onAddToPlaylist = {
+                                trackToAdd = menuTargetTrack
+                                menuTargetTrack = null
+                                showAddToPlaylistDialog = true
+                                viewModel.getAllMePlaylist()
+                            },
+                            onDelete = {
+                                viewModel.deleteSongFromPlaylist(
+                                    uiData.id,
+                                    menuTargetTrack!!.id.toString()
                                 )
-                            )
-                            Toast.makeText(context, "ID 已复制", Toast.LENGTH_SHORT).show()
-                        },
-                        onCopyName = {
-                            val clipboard =
-                                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(
-                                ClipData.newPlainText(
-                                    "id",
-                                    menuTargetTrack?.id.toString()
+                                Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                                menuTargetTrack = null
+                            },
+                            onCopyId = {
+                                val clipboard =
+                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(
+                                    ClipData.newPlainText(
+                                        "id",
+                                        menuTargetTrack?.id.toString()
+                                    )
                                 )
-                            )
-                            Toast.makeText(context, "Name 已复制", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "ID 已复制", Toast.LENGTH_SHORT).show()
+                            },
+                            onCopyName = {
+                                val clipboard =
+                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(
+                                    ClipData.newPlainText(
+                                        "id",
+                                        menuTargetTrack?.id.toString()
+                                    )
+                                )
+                                Toast.makeText(context, "Name 已复制", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
+                    AddToPlaylistDialog(
+                        isVisible = showAddToPlaylistDialog,
+                        playlists = allMePlaylist,
+                        onDismiss = { showAddToPlaylistDialog = false },
+                        onSelectPlaylist = { selectedPlaylist ->
+                            // 执行添加逻辑
+                            if (trackToAdd != null) {
+                                viewModel.addSongToPlaylist(
+                                    pid = selectedPlaylist.id,
+                                    trackIds = trackToAdd!!.id.toString()
+                                )
+                                Toast.makeText(
+                                    context,
+                                    "已添加到 ${selectedPlaylist.title}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                Log.d(
+                                    "Playlist",
+                                    "Added ${trackToAdd?.title} to ${selectedPlaylist.title}"
+                                )
+                            }
+                            showAddToPlaylistDialog = false
+                            trackToAdd = null //清理状态
                         }
                     )
+
+
                 }
-                AddToPlaylistDialog(
-                    isVisible = showAddToPlaylistDialog,
-                    playlists = allMePlaylist,
-                    onDismiss = { showAddToPlaylistDialog = false },
-                    onSelectPlaylist = { selectedPlaylist ->
-                        // 执行添加逻辑
-                        if (trackToAdd != null) {
-                            viewModel.addSongToPlaylist(
-                                pid = selectedPlaylist.id,
-                                trackIds = trackToAdd!!.id.toString()
-                            )
-                            Toast.makeText(
-                                context,
-                                "已添加到 ${selectedPlaylist.title}",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            Log.d(
-                                "Playlist",
-                                "Added ${trackToAdd?.title} to ${selectedPlaylist.title}"
-                            )
-                        }
-                        showAddToPlaylistDialog = false
-                        trackToAdd = null //清理状态
-                    }
-                )
-
-
             }
         }
-    }
 
+    }
 
 
 }
@@ -335,6 +370,7 @@ fun GenericHeader(
             .padding(horizontal = 24.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
         Card(
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
@@ -454,8 +490,6 @@ fun GenericHeader(
 }
 
 
-
-
 @Composable
 fun PlaylistShimmer() {
     ShimmerHost {
@@ -465,7 +499,7 @@ fun PlaylistShimmer() {
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             TextPlaceholder(
                 modifier = Modifier
