@@ -1,7 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-include(":accompanist-lyrics-core")
-
 pluginManagement {
     repositories {
 //        maven { url=uri("https://maven.aliyun.com/repository/public") }
