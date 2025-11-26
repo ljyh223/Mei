@@ -133,6 +133,7 @@ fun PlayerBottomSheet(
                         .clickable {
                             onDismiss()
                             showDialog = false
+                            viewModel.getAllMePlaylist()
                             Toast.makeText(context, "添加成功", Toast.LENGTH_SHORT).show()
                             Log.d(
                                 "Playlist ADD",

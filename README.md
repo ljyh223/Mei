@@ -67,13 +67,32 @@
 
 ### 界面截图
 
-更多软件界面可以看 [这里](https://github.com/ljyh223/Mei/tree/master/screenshot/2025-03-27)
-<div style="display: flex; flex-wrap: wrap;">
-  <img src="./screenshot/2025-11-12/player.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/2025-11-12/lyric.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/2025-11-12/player1.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/2025-11-12/lyric1.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/home.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/playlist.jpg" width="200" style="margin-right: 10px;" />
-  <img src="./screenshot/me.jpg" width="200" />
-</div>
+更多软件界面可以看 [这里](https://github.com/ljyh223/Mei/tree/master/screenshot)
+
+
+<table>
+  <tr>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-26-54-094_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-00-346_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-05-380_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-08-648_com.ljyh.mei.jpg" width="200"></td>
+  </tr>
+  <tr>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-33-154_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-35-720_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-39-301_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-43-241_com.ljyh.mei.jpg" width="200"></td>
+  </tr>
+  <tr>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-20-878_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-22-374_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-29-570_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-33-984_com.ljyh.mei.jpg" width="200"></td>
+  </tr>
+  <tr>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-00-715_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-20-876_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-24-064_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-28-763_com.ljyh.mei.jpg" width="200"></td>
+  </tr>
+</table>

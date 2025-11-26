@@ -261,13 +261,13 @@ fun ShadowedIconButton(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class) // FlowRow 需要这个
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SleepTimerDialog(
     onDismiss: () -> Unit,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
-    var selectedOption by remember { mutableStateOf<String?>(null) } // 默认选 "0" 或 null
+    var selectedOption by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
