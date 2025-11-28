@@ -223,8 +223,7 @@ fun CommonSongListScreen(
                                     Track(
                                         track = track,
                                         onClick = { onTrackClick(track, index) }, // index 对分页也很重要
-                                        onMoreClick = { menuTargetTrack = track },
-                                        viewModel = viewModel
+                                        onMoreClick = { menuTargetTrack = track }
                                     )
                                 } else {
                                     // 可选：如果不禁用 placeholder，这里渲染一个简单的占位条
@@ -260,8 +259,7 @@ fun CommonSongListScreen(
                                 Track(
                                     track = track,
                                     onClick = { onTrackClick(track, index) },
-                                    onMoreClick = { menuTargetTrack = track },
-                                    viewModel = viewModel
+                                    onMoreClick = { menuTargetTrack = track }
                                 )
                             }
                         }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,20 +42,25 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.CommonImageRadius
 import com.ljyh.mei.constants.TrackThumbnailSize
 import com.ljyh.mei.data.model.api.SearchResult
+import com.ljyh.mei.data.model.api.toAlbum
+import com.ljyh.mei.data.model.api.toMediaData
+import com.ljyh.mei.data.model.api.toPlaylist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.ui.component.home.PlaylistItem
+import com.ljyh.mei.ui.component.playlist.Track
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.index.library.AlbumItem
 import com.ljyh.mei.utils.encrypt.getResourceLink
 import com.ljyh.mei.utils.smallImage
 
 
 @Composable
 fun SearchResultScreen(
-    query: String,
-    type: Int, // Initial type if needed, but we mostly use ViewModel state
+    query: String, type: Int, // Initial type if needed, but we mostly use ViewModel state
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchState by viewModel.searchResult.collectAsState()
@@ -78,17 +84,14 @@ fun SearchResultScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = LocalPlayerAwareWindowInsets.current
-            .add(WindowInsets(top = 4.dp))
+        contentPadding = LocalPlayerAwareWindowInsets.current.add(WindowInsets(top = 4.dp))
             .asPaddingValues()
     ) {
         item {
             SearchTypeFilterRow(
-                selected = selectedType,
-                onSelect = {
+                selected = selectedType, onSelect = {
                     viewModel.onTabChange(it)
-                }
-            )
+                })
         }
 
         when (val result = searchState) {
@@ -124,7 +127,7 @@ fun SearchResultScreen(
                     SearchType.Song.type -> {
                         val songs = data.result.songs ?: emptyList()
                         items(songs) {
-                            SongItem(song = it, onClick = {
+                            Track(track = it.toMediaData(), onClick = {
                                 playerConnection?.playQueue(
                                     ListQueue(
                                         id = "SearchQueue",
@@ -134,23 +137,27 @@ fun SearchResultScreen(
                                         position = 0
                                     )
                                 )
-                            })
+                            }, onMoreClick = { })
                         }
                     }
 
                     SearchType.Artist.type -> {
                         val artists = data.result.artists ?: emptyList()
-                        items(artists) { ArtistItem(artist = it, onClick = {
-                            Toast.makeText(context, "正在建设中: ${it.name}", Toast.LENGTH_SHORT).show()
-                        }) }
+                        items(artists) {
+                            ArtistItem(artist = it, onClick = {
+                                Toast.makeText(
+                                    context, "正在建设中: ${it.name}", Toast.LENGTH_SHORT
+                                ).show()
+                            })
+                        }
                     }
 
                     SearchType.Album.type -> {
                         val albums = data.result.albums ?: emptyList()
-                        items(albums) {
-                            AlbumItem(album = it, onClick = {
+                        items(albums) { album ->
+                            AlbumItem(album = album.toAlbum(), onClick = {
                                 Screen.Album.navigate(navController) {
-                                    addPath(it.id.toString())
+                                    addPath(album.id.toString())
                                 }
                             })
                         }
@@ -158,12 +165,15 @@ fun SearchResultScreen(
 
                     SearchType.Playlist.type -> {
                         val playlists = data.result.playlists ?: emptyList()
-                        items(playlists) {
-                            PlaylistItem(playlist = it, onClick = {
-                                Screen.PlayList.navigate(navController) {
-                                    addPath(it.id.toString())
+                        items(playlists) { playlist ->
+                            PlaylistItem(
+                                playlist = playlist.toPlaylist(),
+                                onClick = {
+                                    Screen.PlayList.navigate(navController) {
+                                        addPath(playlist.id.toString())
+                                    }
                                 }
-                            })
+                            )
                         }
                     }
 
@@ -176,8 +186,7 @@ fun SearchResultScreen(
 
 @Composable
 fun SearchTypeFilterRow(
-    selected: SearchType,
-    onSelect: (SearchType) -> Unit
+    selected: SearchType, onSelect: (SearchType) -> Unit
 ) {
     Row(
         Modifier
@@ -185,68 +194,23 @@ fun SearchTypeFilterRow(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        SearchType.entries
-            .filter { it != SearchType.History }
-            .forEach { type ->
+        SearchType.entries.filter { it != SearchType.History }.forEach { type ->
                 androidx.compose.material3.FilterChip(
                     selected = selected == type,
                     onClick = { onSelect(type) },
-                    label = { Text(type.displayName) }
-                )
+                    label = { Text(type.displayName) })
             }
     }
 }
 
 
-@Composable
-fun PlaylistItem(
-    playlist: SearchResult.Result.Playlist,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AsyncImage(
-            model = playlist.coverImgUrl.smallImage(),
-            contentDescription = null,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop
-        )
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp)
-        ) {
-            Text(
-                text = playlist.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${playlist.creator.nickname} · ${playlist.trackCount}首",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
 
 @Composable
 fun ArtistItem(
-    artist: SearchResult.Result.Artist,
-    onClick: () -> Unit
+    artist: SearchResult.Result.Artist, onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -265,10 +229,9 @@ fun ArtistItem(
         )
         Spacer(modifier = Modifier.width(16.dp))
 
-        Row (
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ){
+        Row(
+            verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
+        ) {
             Text(
                 text = artist.name,
                 style = MaterialTheme.typography.titleMedium,
@@ -284,123 +247,12 @@ fun ArtistItem(
                 overflow = TextOverflow.Ellipsis
             )
         }
-
-
-    }
-}
-
-@Composable
-fun AlbumItem(
-    album: SearchResult.Result.Album,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AsyncImage(
-            model = album.picUrl.smallImage(),
-            contentDescription = null,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp)
-        ) {
-            Text(
-                text = album.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${album.artists.joinToString(" / ") { it.name }} · ${album.size}首",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-@Composable
-fun SongItem(
-    song: SearchResult.Result.Song,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = getResourceLink(song.album.picId.toString(), "jpg"),
-            contentDescription = song.name,
-            modifier = Modifier
-                .size(TrackThumbnailSize)
-                .clip(RoundedCornerShape(CommonImageRadius)),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = song.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-
-                if (song.transNames?.isNotEmpty() == true) {
-                    Spacer(Modifier.width(6.dp))
-
-                    Text(
-                        text = "(${song.transNames[0]})",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-
-            Text(
-                text = song.artists.joinToString(" / ") { it.name },
-                color = Color.Gray,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (song.alias.isNotEmpty()) {
-                Text(
-                    text = song.alias.joinToString(" / "),
-                    color = Color.Gray,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+        Button(onClick = {
+            Toast.makeText(
+                context, "正在建设中: ${artist.name}", Toast.LENGTH_SHORT
+            ).show()
+        }, modifier = Modifier.align(Alignment.CenterVertically)) {
+            Text(text = "关注")
         }
     }
 }

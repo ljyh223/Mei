@@ -40,7 +40,6 @@ import com.ljyh.mei.utils.smallImage
 
 @Composable
 fun Track(
-    viewModel: PlaylistViewModel,
     track: MediaMetadata,
     isPlaying: Boolean = false,
     onClick: () -> Unit,

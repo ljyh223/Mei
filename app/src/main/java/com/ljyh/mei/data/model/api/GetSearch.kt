@@ -1,6 +1,10 @@
 package com.ljyh.mei.data.model.api
 
 import com.google.gson.annotations.SerializedName
+import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.ui.model.Album
+import com.ljyh.mei.utils.encrypt.getResourceLink
 
 data class GetSearch(
     @SerializedName("s")
@@ -74,7 +78,7 @@ data class SearchResult(
                 @SerializedName("name")
                 val name: String,
                 @SerializedName("id")
-                val id: Int,
+                val id: Long,
                 @SerializedName("picId")
                 val picId: Long,
                 @SerializedName("mark")
@@ -110,9 +114,9 @@ data class SearchResult(
                 @SerializedName("name")
                 val name: String,
                 @SerializedName("alias")
-                val alias: List<Any>,
+                val alias: List<String>,
                 @SerializedName("id")
-                val id: Int,
+                val id: Long,
                 @SerializedName("albumSize")
                 val albumSize: Int,
                 @SerializedName("picId")
@@ -214,7 +218,7 @@ data class SearchResult(
                 @SerializedName("name")
                 val name: String,
                 @SerializedName("id")
-                val id: Int,
+                val id: Long,
                 @SerializedName("picId")
                 val picId: Long,
                 @SerializedName("img1v1Id")
@@ -287,7 +291,7 @@ data class SearchResult(
                 @SerializedName("userType")
                 val userType: Int,
                 @SerializedName("avatarUrl")
-                val avatarUrl: Any,
+                val avatarUrl: String,
                 @SerializedName("authStatus")
                 val authStatus: Int,
                 @SerializedName("expertTags")
@@ -301,5 +305,57 @@ data class SearchResult(
     data class Trp(
         @SerializedName("rules")
         val rules: List<String>
+    )
+}
+
+
+
+fun SearchResult.Result.Song.toMediaData(): MediaMetadata {
+    return MediaMetadata(
+        id = id,
+        title = name,
+        coverUrl = getResourceLink(album.picId.toString(),"jpg"),
+        artists = artists.map {
+            MediaMetadata.Artist(
+                name = it.name,
+                id = it.id,
+                picUrl = getResourceLink(it.picId.toString(),"jpg"),
+                alias = it.alias
+            )
+        },
+        duration = duration,
+        album = MediaMetadata.Album(
+            id = album.id,
+            title = album.name
+        )
+    )
+}
+
+
+fun SearchResult.Result.Playlist.toPlaylist(): Playlist {
+    return Playlist(
+        id = id.toString(),
+        title = name,
+        cover = coverImgUrl,
+        author = creator.userId.toString(),
+        authorAvatar = creator.avatarUrl,
+        authorName = creator.nickname,
+        count = trackCount
+    )
+}
+
+
+fun SearchResult.Result.Album.toAlbum(): Album {
+    return Album(
+        id = id,
+        title = name,
+        cover = picUrl,
+        size = size,
+        artist = artists.map {
+            Album.Artist(
+                name = it.name,
+                id = it.id
+            )
+        },
     )
 }

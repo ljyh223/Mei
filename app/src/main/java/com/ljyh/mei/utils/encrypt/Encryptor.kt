@@ -92,7 +92,7 @@ fun encryptId(id: String): String {
 
 
 
-fun getResourceLink(id: String, extension: String): String {
+fun getResourceLink(id: String, extension: String= "jpg"): String {
     val encrypted = encryptId(id)
 
     val seed = id.last().digitToInt()

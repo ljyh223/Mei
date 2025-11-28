@@ -1,10 +1,8 @@
 package com.ljyh.mei.ui.component.home
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,13 +25,13 @@ import com.ljyh.mei.utils.smallImage
 @Composable
 fun PlaylistItem(
     playlist: Playlist,
-    onclick: (String) -> Unit
+    onClick: (String) -> Unit
 ) {
 
     Row(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            .clickable { onclick(playlist.id) },
+            .clickable { onClick(playlist.id) },
         verticalAlignment = Alignment.CenterVertically,
 
         ) {

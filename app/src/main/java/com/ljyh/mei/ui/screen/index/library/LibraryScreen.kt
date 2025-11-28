@@ -68,12 +68,14 @@ import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
 import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.UserAlbumList
+import com.ljyh.mei.data.model.toAlbum
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.SingleImagePickerSheet
 import com.ljyh.mei.ui.component.home.PlaylistItem
 import com.ljyh.mei.ui.component.utils.fadingEdge
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.smallImage
@@ -221,7 +223,7 @@ fun LibraryScreen(
                             item { EmptyState("暂无收藏专辑") }
                         } else {
                             items(albums, key = { it.id }) { album ->
-                                AlbumItem(album) {
+                                AlbumItem(album.toAlbum()) {
                                     Screen.Album.navigate(navController) {
                                         addPath(album.id.toString())
                                     }
@@ -356,7 +358,7 @@ fun UserHeader(
 }
 
 @Composable
-fun AlbumItem(album: UserAlbumList.Data, onClick: (Long) -> Unit) {
+fun AlbumItem(album: Album, onClick: (Long) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -365,7 +367,7 @@ fun AlbumItem(album: UserAlbumList.Data, onClick: (Long) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(
-            model = album.picUrl.smallImage(),
+            model = album.cover.smallImage(),
             contentDescription = null,
             modifier = Modifier
                 .size(AlbumThumbnailSize)
@@ -379,14 +381,14 @@ fun AlbumItem(album: UserAlbumList.Data, onClick: (Long) -> Unit) {
                 .padding(start = 16.dp)
         ) {
             Text(
-                text = album.name,
+                text = album.title,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${album.artists.joinToString(" / ") { it.name }} · ${album.size}首",
+                text = "${album.artist.joinToString(" / ") { it.name }} · ${album.size}首",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

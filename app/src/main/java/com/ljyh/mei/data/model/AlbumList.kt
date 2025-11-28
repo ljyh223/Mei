@@ -1,6 +1,7 @@
 package com.ljyh.mei.data.model
 
 import com.google.gson.annotations.SerializedName
+import com.ljyh.mei.ui.model.Album
 
 data class UserAlbumList(
     @SerializedName("data")
@@ -62,7 +63,7 @@ data class UserAlbumList(
             @SerializedName("name")
             val name: String,
             @SerializedName("id")
-            val id: Int,
+            val id: Long,
             @SerializedName("img1v1Id_str")
             val img1v1IdStr: String
         )
@@ -70,3 +71,16 @@ data class UserAlbumList(
 }
 
 
+fun UserAlbumList.Data.toAlbum(): Album {
+    return Album(
+        id = id,
+        title = name,
+        cover = picUrl,
+        size = size,
+        artist = artists.map {
+            Album.Artist(
+                id = it.id,
+                name = it.name
+            )
+        })
+}
