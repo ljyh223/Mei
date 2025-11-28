@@ -8,12 +8,10 @@ import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -21,19 +19,13 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
 import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
-import androidx.media3.common.Player.REPEAT_MODE_OFF
-import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.database.DatabaseProvider
-import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
-import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -49,24 +41,17 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import coil3.ImageLoader
-import coil3.util.CoilUtils
 import com.google.common.util.concurrent.MoreExecutors
-import com.ljyh.mei.R
 import com.ljyh.mei.MainActivity
+import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.GetSongUrlV1
-import com.ljyh.mei.data.model.room.Like
-import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.di.AppDatabase
-import com.ljyh.mei.extensions.SilentHandler
 import com.ljyh.mei.extensions.currentMetadata
-import com.ljyh.mei.playback.queue.EmptyQueue
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.utils.CoilBitmapLoader
-import com.ljyh.mei.utils.dataStore
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,27 +60,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.File
 import javax.inject.Inject
-import kotlin.collections.List
-import kotlin.collections.drop
-import kotlin.collections.isNotEmpty
-import kotlin.collections.joinToString
-import kotlin.collections.map
-import kotlin.collections.mutableMapOf
-import kotlin.collections.set
-import kotlin.collections.take
-import kotlin.collections.toMutableList
 
 
 @UnstableApi
@@ -112,20 +85,13 @@ class MusicService : MediaLibraryService(),
     private lateinit var mediaSession: MediaLibrarySession
 
     lateinit var sleepTimer: SleepTimer
-    private var scope = CoroutineScope(Dispatchers.Main) + Job()
+    var scope = CoroutineScope(Dispatchers.Main) + Job()
     private lateinit var connectivityManager: ConnectivityManager
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val currentSong = currentMediaMetadata.flatMapLatest { mediaMetadata: MediaMetadata? ->
-        database.songDao().getSong((mediaMetadata?.id ?: 0).toString())
-    }.stateIn(scope, SharingStarted.Lazily, null)
-
-
     private val binder = MusicBinder()
 
-    private lateinit var queueManager: PlaybackQueueManager
-    private lateinit var playlistStateManager: PlaylistStateManager
+    lateinit var queueManager: PlaybackQueueManager
     var queueTitle: String? = null
     private var isAudioEffectSessionOpened = false
 
@@ -212,9 +178,7 @@ class MusicService : MediaLibraryService(),
         
         // 初始化预加载策略管理器
         queueManager.preloadStrategyManager = PreloadStrategyManager(player, scope)
-        
-        // 初始化歌单状态管理器
-        playlistStateManager = PlaylistStateManager()
+
     }
 
 
@@ -264,10 +228,7 @@ class MusicService : MediaLibraryService(),
     }
 
 
-    class LibrarySessionCallback : MediaLibrarySession.Callback {
-
-
-    }
+    class LibrarySessionCallback : MediaLibrarySession.Callback
 
     fun playNext(items: List<MediaItem>) {
         scope.launch {
@@ -297,26 +258,6 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    /**
-     * 播放播放列表
-     */
-    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
-    fun playPlaylist(playlistDetail: com.ljyh.mei.data.model.PlaylistDetail, playWhenReady: Boolean = true) {
-        scope.launch {
-            val trackIds = playlistDetail.playlist.trackIds.map { it.id }
-            val playlistQueue = com.ljyh.mei.playback.queue.PlaylistQueue(
-                id = playlistDetail.playlist.Id.toString(),
-                title = playlistDetail.playlist.name,
-                trackIds = trackIds,
-                batchSize = 20
-            )
-            queueManager.playQueue(playlistQueue, playWhenReady)
-            queueTitle = playlistDetail.playlist.name
-            
-            // 更新歌单状态
-            playlistStateManager.setCurrentPlaylist(playlistDetail)
-        }
-    }
 
     override fun onDestroy() {
         CacheManager.release()
@@ -324,9 +265,6 @@ class MusicService : MediaLibraryService(),
         player.removeListener(this)
         player.removeListener(sleepTimer)
         queueManager.release()
-        
-        // 保存播放状态
-        playlistStateManager.savePlaybackState()
         
         player.release()
         super.onDestroy()
@@ -403,7 +341,7 @@ class MusicService : MediaLibraryService(),
             songUrlCache[mediaId] = SongCache(url, expiryTime)
             Log.d("ResolvingDataSource", "Resolved media URL for mediaId: $mediaId, URL: $url")
 
-            dataSpec.withUri(Uri.parse(url))
+            dataSpec.withUri(url.toUri())
         }
     }
 

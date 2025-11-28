@@ -15,31 +15,23 @@ import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
-import com.ljyh.mei.constants.PlayModeKey
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.getCurrentQueueIndex
 import com.ljyh.mei.extensions.getQueueWindows
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.playback.queue.Queue
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
-import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.reportException
-import com.ljyh.mei.utils.shuffleExceptOne
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 
 @UnstableApi
-class PlayerConnection
-    (
+class PlayerConnection(
     context: Context,
     binder: MusicService.MusicBinder,
     val database: AppDatabase,
@@ -55,6 +47,7 @@ class PlayerConnection
 
     val playbackState = MutableStateFlow(player.playbackState)
     private val playWhenReady = MutableStateFlow(player.playWhenReady)
+
     val isPlaying = combine(playbackState, playWhenReady) { playbackState, playWhenReady ->
         playWhenReady && playbackState != STATE_ENDED
     }.stateIn(
@@ -62,24 +55,17 @@ class PlayerConnection
         SharingStarted.Lazily,
         player.playWhenReady && player.playbackState != STATE_ENDED
     )
+
     val mediaMetadata = MutableStateFlow(player.currentMetadata)
-
-    @kotlin.OptIn(ExperimentalCoroutinesApi::class)
-    val currentSong = mediaMetadata.flatMapLatest {
-        database.songDao().getSong((it?.id ?: 0).toString())
-    }
-
-    //
-//    val currentFormat = mediaMetadata.flatMapLatest { mediaMetadata ->
-//        database.format(mediaMetadata?.id)
-//    }
     val queueTitle = MutableStateFlow<String?>(null)
     val queueWindows = MutableStateFlow<List<Timeline.Window>>(emptyList())
     val currentMediaItemIndex = MutableStateFlow(-1)
     val currentWindowIndex = MutableStateFlow(-1)
 
+    // 这里 repeatMode 我们存储对应的 PlayMode 枚举值(int)，用于 UI 显示
+    val repeatMode = MutableStateFlow(PlayMode.REPEAT_MODE_ALL.mode)
+    // 同时也暴露原始的 shuffle 状态
     val shuffleModeEnabled = MutableStateFlow(false)
-    val repeatMode = MutableStateFlow(REPEAT_MODE_ALL)
 
     val canSkipPrevious = MutableStateFlow(true)
     val canSkipNext = MutableStateFlow(true)
@@ -89,6 +75,7 @@ class PlayerConnection
     init {
         player.addListener(this)
 
+        // 初始化状态
         playbackState.value = player.playbackState
         playWhenReady.value = player.playWhenReady
         mediaMetadata.value = player.currentMetadata
@@ -96,26 +83,27 @@ class PlayerConnection
         queueWindows.value = player.getQueueWindows()
         currentWindowIndex.value = player.getCurrentQueueIndex()
         currentMediaItemIndex.value = player.currentMediaItemIndex
-        shuffleModeEnabled.value = player.shuffleModeEnabled
-        repeatMode.value = player.repeatMode
+
+        // 初始化播放模式状态
+        updatePlayModeState()
     }
 
     fun isPlaying(id: String): Boolean {
         return mediaMetadata.value?.id.toString() == id &&
-                player.playbackState == Player.STATE_READY &&  // 播放器就绪
-                player.playWhenReady  // 用户希望播放（未暂停）
+                player.playbackState == Player.STATE_READY &&
+                player.playWhenReady
     }
 
-
     fun playQueue(queue: ListQueue) {
-        service.playQueue(queue)
-        if(repeatMode.value == PlayMode.SHUFFLE_MODE_ALL.mode){
-            service.setShuffleModeEnabled( true)
+        // 判断当前 UI 上的模式是否是随机模式
+        val startInShuffle = repeatMode.value == PlayMode.SHUFFLE_MODE_ALL.mode
+        // 调用新的 playQueue 方法，传入随机意图
+        service.scope.launch {
+            service.queueManager.playQueue(queue, startInShuffleMode = startInShuffle)
         }
     }
 
     fun playNext(item: MediaItem) = playNext(listOf(item))
-
 
     fun playNext(items: List<MediaItem>) {
         service.playNext(items)
@@ -123,54 +111,65 @@ class PlayerConnection
 
     fun addToQueue(item: MediaItem) = addToQueue(listOf(item))
 
-
     fun addToQueue(items: List<MediaItem>) {
         service.addToQueue(items)
     }
 
     fun seekToNext() {
-        player.seekToNext()
-        player.prepare()
-        player.playWhenReady = true
+        // 原生 Shuffle 模式下，seekToNext 会自动跳到随机的下一首，不需要额外逻辑
+        if (player.hasNextMediaItem()) {
+            player.seekToNext()
+            // 通常不需要重新 prepare，除非出错
+            if (!player.playWhenReady) player.playWhenReady = true
+        }
     }
 
     fun seekToPrevious() {
         player.seekToPrevious()
-        player.prepare()
-        player.playWhenReady = true
+        if (!player.playWhenReady) player.playWhenReady = true
     }
 
-    fun switchPlayMode(mode: PlayMode): Int {
-        // 切换到指定模式并返回当前模式
-        return when (mode) {
-            //  ALL -> SHUFFLE -> ONE
+    /**
+     * 切换播放模式
+     * 逻辑：列表循环 (REPEAT_ALL) -> 随机播放 (SHUFFLE) -> 单曲循环 (REPEAT_ONE) -> ...
+     */
+    fun switchPlayMode(currentModeInt: Int): Int {
+        val currentMode = PlayMode.fromInt(currentModeInt) ?: PlayMode.REPEAT_MODE_ALL
 
-            // 整个播放列表循环播放。
+        when (currentMode) {
             PlayMode.REPEAT_MODE_ALL -> {
-                // 因为会手动打乱，并且需要处理播放列表可见，所以就不再内部随机了
+                // 切换到 -> 随机播放
+                // 1. 开启原生随机
+                service.setShuffleModeEnabled(true)
+                // 2. 保持 Repeat All (这样随机完了会重新随机)
                 player.repeatMode = REPEAT_MODE_ALL
-                repeatMode.value = PlayMode.SHUFFLE_MODE_ALL.mode
-                service.setShuffleModeEnabled( true )
-                repeatMode.value
+                // 注意：我们不手动设置 repeatMode.value，让 Listener 去回调更新，保证状态唯一
             }
             PlayMode.SHUFFLE_MODE_ALL -> {
+                // 切换到 -> 单曲循环
+                // 1. 关闭随机
+                service.setShuffleModeEnabled(false)
+                // 2. 设置单曲循环
                 player.repeatMode = REPEAT_MODE_ONE
-                repeatMode.value = PlayMode.REPEAT_MODE_ONE.mode
-                service.setShuffleModeEnabled( false )
-                repeatMode.value
             }
             PlayMode.REPEAT_MODE_ONE -> {
+                // 切换到 -> 列表循环
+                // 1. 关闭随机 (虽然已经是关的，但在逻辑上明确一点)
+                service.setShuffleModeEnabled(false)
+                // 2. 设置列表循环
                 player.repeatMode = REPEAT_MODE_ALL
-                repeatMode.value = PlayMode.REPEAT_MODE_ALL.mode
-                service.setShuffleModeEnabled( false )
-                repeatMode.value
             }
         }
 
+        // 实际上返回值可能还没更新，UI应该监听 flow，但为了兼容旧代码返回预测值
+        return when(currentMode) {
+            PlayMode.REPEAT_MODE_ALL -> PlayMode.SHUFFLE_MODE_ALL.mode
+            PlayMode.SHUFFLE_MODE_ALL -> PlayMode.REPEAT_MODE_ONE.mode
+            PlayMode.REPEAT_MODE_ONE -> PlayMode.REPEAT_MODE_ALL.mode
+        }
     }
 
-
-
+    // --- Listeners ---
 
     override fun onPlaybackStateChanged(state: Int) {
         playbackState.value = state
@@ -196,19 +195,19 @@ class PlayerConnection
         updateCanSkipPreviousAndNext()
     }
 
+    // 监听 Shuffle 变化
     override fun onShuffleModeEnabledChanged(enabled: Boolean) {
-        shuffleModeEnabled.value = enabled
+        updatePlayModeState() // 统一更新状态
         queueWindows.value = player.getQueueWindows()
         currentWindowIndex.value = player.getCurrentQueueIndex()
         updateCanSkipPreviousAndNext()
     }
 
+    // 监听 Repeat 变化
     override fun onRepeatModeChanged(mode: Int) {
-        repeatMode.value = mode
-        shuffleModeEnabled.value = false
+        updatePlayModeState() // 统一更新状态
         updateCanSkipPreviousAndNext()
     }
-
 
     override fun onPlayerErrorChanged(playbackError: PlaybackException?) {
         if (playbackError != null) {
@@ -217,15 +216,36 @@ class PlayerConnection
         error.value = playbackError
     }
 
+    /**
+     * 统一计算当前的 PlayMode 并更新 Flow
+     * 解决了之前两个 Listener 互相冲突或者覆盖状态的问题
+     */
+    private fun updatePlayModeState() {
+        val isShuffle = player.shuffleModeEnabled
+        val pRepeat = player.repeatMode
+
+        shuffleModeEnabled.value = isShuffle
+
+        // 优先级逻辑：如果是随机模式，UI显示随机；否则看 Repeat 模式
+        if (isShuffle) {
+            repeatMode.value = PlayMode.SHUFFLE_MODE_ALL.mode
+        } else {
+            if (pRepeat == REPEAT_MODE_ONE) {
+                repeatMode.value = PlayMode.REPEAT_MODE_ONE.mode
+            } else {
+                // REPEAT_MODE_OFF 也视为 REPEAT_MODE_ALL (通常音乐APP逻辑)
+                repeatMode.value = PlayMode.REPEAT_MODE_ALL.mode
+            }
+        }
+    }
+
     private fun updateCanSkipPreviousAndNext() {
         if (!player.currentTimeline.isEmpty) {
-            val window =
-                player.currentTimeline.getWindow(player.currentMediaItemIndex, Timeline.Window())
-            canSkipPrevious.value = player.isCommandAvailable(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
-                    || !window.isLive
-                    || player.isCommandAvailable(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-            canSkipNext.value = window.isLive && window.isDynamic
-                    || player.isCommandAvailable(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+            // 在原生 Shuffle 模式下，ExoPlayer 会正确处理 getWindow
+            // 并且 isCommandAvailable 会正确反映是否可以随机跳到下一首
+            canSkipPrevious.value = player.isCommandAvailable(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    || player.isCommandAvailable(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+            canSkipNext.value = player.isCommandAvailable(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
         } else {
             canSkipPrevious.value = false
             canSkipNext.value = false
@@ -237,15 +257,10 @@ class PlayerConnection
     }
 }
 
+// 保持你的 Enum 不变
 enum class PlayMode(val mode: Int) {
-    // 整个播放列表循环播放。
     REPEAT_MODE_ALL(2),
-
-
-    // 单曲循环播放。
     REPEAT_MODE_ONE(1),
-
-    // 播放列表随机播放。
     SHUFFLE_MODE_ALL(3);
 
     companion object {
