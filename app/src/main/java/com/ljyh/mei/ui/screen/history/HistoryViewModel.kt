@@ -16,6 +16,8 @@ class HistoryViewModel @Inject constructor(
 
 
     fun clearHistory() {
+        
     }
+
 
 }
