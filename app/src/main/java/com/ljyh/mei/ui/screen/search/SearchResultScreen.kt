@@ -1,27 +1,18 @@
 package com.ljyh.mei.ui.screen.search
 
 import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,33 +20,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import coil3.compose.AsyncImage
-import com.ljyh.mei.constants.CommonImageRadius
-import com.ljyh.mei.constants.TrackThumbnailSize
-import com.ljyh.mei.data.model.api.SearchResult
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.data.model.api.toAlbum
 import com.ljyh.mei.data.model.api.toMediaData
 import com.ljyh.mei.data.model.api.toPlaylist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.home.PlaylistItem
-import com.ljyh.mei.ui.component.playlist.Track
+import com.ljyh.mei.ui.component.item.AlbumItem
+import com.ljyh.mei.ui.component.item.ArtistItem
+import com.ljyh.mei.ui.component.item.PlaylistItem
+import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.screen.index.library.AlbumItem
-import com.ljyh.mei.utils.encrypt.getResourceLink
-import com.ljyh.mei.utils.smallImage
 
 
 @Composable
@@ -204,55 +184,3 @@ fun SearchTypeFilterRow(
 }
 
 
-
-
-@Composable
-fun ArtistItem(
-    artist: SearchResult.Result.Artist, onClick: () -> Unit
-) {
-    val context = LocalContext.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-
-        AsyncImage(
-            model = artist.picUrl?.smallImage(),
-            contentDescription = null,
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(28.dp)),
-            contentScale = ContentScale.Crop
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = artist.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = artist.alias.joinToString(separator = " "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Button(onClick = {
-            Toast.makeText(
-                context, "正在建设中: ${artist.name}", Toast.LENGTH_SHORT
-            ).show()
-        }, modifier = Modifier.align(Alignment.CenterVertically)) {
-            Text(text = "关注")
-        }
-    }
-}

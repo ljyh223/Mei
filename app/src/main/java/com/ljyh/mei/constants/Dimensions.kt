@@ -28,6 +28,7 @@ val SmallGridThumbnailHeight = 92.dp
 val PlayerHorizontalPadding = 24.dp
 
 val AlbumThumbnailSize = 56.dp
+val ArtistThumbnailSize = 56.dp
 val PlaylistThumbnailSize = 56.dp
 val TrackThumbnailSize = 56.dp
 val CommonImageRadius = 8.dp

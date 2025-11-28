@@ -54,7 +54,7 @@ import com.ljyh.mei.ui.component.player.component.PlaylistSheet
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.rememberPreference
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.ui.component.player.component.PlayerBottomSheet
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
@@ -146,7 +146,7 @@ fun PlayerActionToolbar(
 
         // 1. 播放模式切换
         ShadowedIconButton(
-            onClick = { playModeValue = playerConnection.switchPlayMode(playMode) }
+            onClick = { playModeValue = playerConnection.switchPlayMode(playMode.mode) }
         ) {
             Icon(
                 imageVector = when (playMode) {

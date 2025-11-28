@@ -75,7 +75,7 @@ import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistDialog
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
-import com.ljyh.mei.ui.component.playlist.Track
+import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.ui.component.playlist.TrackActionMenu
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
