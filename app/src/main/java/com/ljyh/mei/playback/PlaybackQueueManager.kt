@@ -52,12 +52,9 @@ class PlaybackQueueManager(
     // 智能预加载策略管理器
     lateinit var preloadStrategyManager: PreloadStrategyManager
 
-    // 只需要保存一份原始数据用于业务逻辑（如分页），播放逻辑交给 Player
-    // 注意：这里的 originalMediaItems 仅用于记录，不应作为播放器当前状态的唯一真理
     private var originalMediaItems: List<MediaItem> = emptyList()
 
     private val _isShuffleModeEnabled = MutableStateFlow(false)
-    val isShuffleModeEnabled: StateFlow<Boolean> = _isShuffleModeEnabled.asStateFlow()
 
     /**
      * 播放一个新队列
@@ -88,27 +85,19 @@ class PlaybackQueueManager(
 
             originalMediaItems = mediaItems
 
-            // 更新 UI 状态
             _isShuffleModeEnabled.value = startInShuffleMode
 
-            // --- 核心修改开始 ---
-
-            // 1. 设置播放器随机模式 (不会触发重置，只是改变下一首的计算逻辑)
             player.shuffleModeEnabled = startInShuffleMode
-
-            // 2. 一次性设置所有 MediaItems (原始顺序)
             val startIndex = status.mediaItemIndex
             val startPosition = status.position.toLong()
 
             player.setMediaItems(mediaItems, startIndex, startPosition)
 
-            // --- 核心修改结束 ---
 
             player.prepare()
             player.playWhenReady = playWhenReady
 
             _queueState.value = QueueState.Playing(queue.title ?: "播放列表", player.mediaItemCount)
-            startPreloadMonitoring()
             preloadStrategyManager.startMonitoring()
 
         } catch (e: Exception) {
@@ -168,42 +157,7 @@ class PlaybackQueueManager(
         player.shuffleModeEnabled = enabled
     }
 
-    // --- 移除了 updatePlayerQueue 方法，因为不再需要手动重建列表 ---
 
-    /**
-     * 开始预加载监控
-     */
-    private fun startPreloadMonitoring() {
-        preloadJob?.cancel()
-        preloadJob = scope.launch {
-            while (true) {
-                delay(1000)
-
-                if (!player.isPlaying) continue
-
-                val currentIndex = player.currentMediaItemIndex
-                val totalItems = player.mediaItemCount
-                val queueSize = currentQueue.loadedCount
-
-                // ... 保持原有逻辑 ...
-                val advice = preloadStrategyManager.getPreloadAdvice(
-                    currentIndex,
-                    totalItems,
-                    queueSize
-                )
-
-                if (advice.shouldPreload && currentQueue.hasNextPage() && queueSize < currentQueue.totalCount) {
-                    loadNextPage()
-                }
-
-                preloadAroundPosition(currentIndex)
-
-                if (player.isPlaying) {
-                    preloadStrategyManager.recordPlay()
-                }
-            }
-        }
-    }
 
     /**
      * 加载下一页歌曲
@@ -233,8 +187,6 @@ class PlaybackQueueManager(
             Log.e(TAG, "Load page exception", e)
         }
     }
-
-    // ... 其余辅助方法保持不变 (preloadAroundPosition, loadSongDetails, clearQueue, release) ...
 
     private suspend fun preloadAroundPosition(position: Int) {
         if (currentQueue is com.ljyh.mei.playback.queue.PlaylistQueue) {

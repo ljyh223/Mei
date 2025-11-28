@@ -15,6 +15,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.ljyh.mei.ui.screen.album.AlbumScreen
+import com.ljyh.mei.ui.screen.history.HistoryScreen
 import com.ljyh.mei.ui.screen.index.home.HomeScreen
 import com.ljyh.mei.ui.screen.index.library.LibraryScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
@@ -116,6 +117,10 @@ fun NavGraphBuilder.navigationBuilder(
         )
     ) {
         AlbumScreen(id = it.arguments!!.getLong("id"))
+    }
+
+    composable(Screen.History.route) {
+        HistoryScreen()
     }
 }
 

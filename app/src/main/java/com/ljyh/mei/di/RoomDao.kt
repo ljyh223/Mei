@@ -8,9 +8,12 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import com.ljyh.mei.data.model.room.CacheColor
+import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.room.PlaybackHistory
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.room.Song
 import kotlinx.coroutines.flow.Flow
@@ -26,7 +29,7 @@ interface ColorDao {
 }
 
 @Dao
-interface QQSongDao{
+interface QQSongDao {
     @Query("SELECT * FROM qqSong where id=:id")
     fun getSong(id: String): Flow<QQSong?>
 
@@ -68,7 +71,7 @@ interface PlaylistDao {
 }
 
 @Dao
-interface LikeDao{
+interface LikeDao {
     @Query("SELECT * FROM `like` where id=:id")
     suspend fun getLike(id: String): Like?
 
@@ -88,13 +91,49 @@ interface LikeDao{
 }
 
 
-@Database(entities = [CacheColor::class, Song::class, Like::class, QQSong::class, Playlist::class], version = 8)
+@Dao
+interface HistoryDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdateSong(song: Song)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHistory(history: PlaybackHistory)
+
+    @Transaction
+    suspend fun addSongToHistory(song: Song) {
+        insertOrUpdateSong(song)
+        insertHistory(PlaybackHistory(songId = song.id, playedAt = System.currentTimeMillis()))
+    }
+
+    @Query(
+        """
+        SELECT song.*, history.playedAt 
+        FROM playback_history AS history
+        INNER JOIN song ON history.songId = song.id
+        ORDER BY history.playedAt DESC
+    """
+    )
+    fun getHistory(): Flow<List<HistoryItem>>
+
+    @Query("DELETE FROM playback_history")
+    suspend fun clearHistory()
+
+    @Query("DELETE FROM playback_history WHERE songId = :songId")
+    suspend fun deleteHistoryBySongId(songId: String)
+}
+
+@Database(
+    entities = [CacheColor::class, Song::class, Like::class, QQSong::class, Playlist::class, PlaybackHistory::class],
+    version = 7
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
     abstract fun songDao(): SongDao
     abstract fun likeDao(): LikeDao
     abstract fun qqSongDao(): QQSongDao
     abstract fun playlistDao(): PlaylistDao
+    abstract fun historyDao(): HistoryDao
 
     companion object {
         @Volatile

@@ -77,16 +77,6 @@ interface Queue {
 }
 
 /**
- * 扩展函数：将MediaItem列表过滤显式内容
- */
-fun List<MediaItem>.filterExplicit(enabled: Boolean = true) =
-    if (enabled) {
-        filterNot {
-            it.metadata?.explicit == true
-        }
-    } else this
-
-/**
  * 队列工厂，用于创建不同类型的队列
  */
 object QueueFactory {
@@ -106,16 +96,7 @@ object QueueFactory {
      * 创建空队列
      */
     fun createEmptyQueue(): Queue = EmptyQueue
-    
-    /**
-     * 创建播放列表队列
-     */
-    fun createPlaylistQueue(
-        id: String,
-        title: String? = null,
-        trackIds: List<Long>,
-        batchSize: Int = 20
-    ): Queue = PlaylistQueue(id, title, trackIds, batchSize)
+
 }
 
 /**

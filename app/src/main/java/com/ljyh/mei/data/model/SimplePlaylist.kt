@@ -45,7 +45,6 @@ data class SimplePlaylist(
                 cover = picUrl,
                 duration = 0,
                 path="",
-                lyric = ""
             )
         }
     }
@@ -69,8 +68,7 @@ data class SimplePlaylist(
                 album =s. album,
                 cover = s.picUrl,
                 duration = 0,
-                path= "$downloadsDir/${this.name}/${specialReplace(s.name)}.${s.fileType}",
-                lyric = ""
+                path= "$downloadsDir/${this.name}/${specialReplace(s.name)}.${s.fileType}"
             )
         }
     }

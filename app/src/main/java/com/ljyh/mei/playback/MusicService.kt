@@ -46,23 +46,22 @@ import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.api.GetSongUrlV1
+import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
-import com.ljyh.mei.di.AppDatabase
+import com.ljyh.mei.di.HistoryDao
+import com.ljyh.mei.di.HistoryRepository
+import com.ljyh.mei.di.SongDao
+import com.ljyh.mei.di.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
-import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.utils.CoilBitmapLoader
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
@@ -77,8 +76,6 @@ class MusicService : MediaLibraryService(),
     Player.Listener,
     PlaybackStatsListener.Callback {
 
-    @Inject
-    lateinit var database: AppDatabase
     lateinit var player: ExoPlayer
     private lateinit var audioPlayer: AudioPlayer
     val context = this
@@ -100,6 +97,9 @@ class MusicService : MediaLibraryService(),
 
     @Inject
     lateinit var apiService: ApiService
+
+    @Inject lateinit var historyRepository: HistoryRepository
+    @Inject lateinit var songRepository: SongRepository
 
     private val songUrlCache = mutableMapOf<String, SongCache>()
 
@@ -226,6 +226,26 @@ class MusicService : MediaLibraryService(),
             currentMediaMetadata.value = player.currentMetadata
         }
     }
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        // 只有当自动切歌或手动切歌时才记录，REPEAT 产生的循环通常不记录重复历史
+        if (mediaItem != null) {
+            scope.launch(Dispatchers.IO) {
+                recordHistory(mediaItem)
+            }
+        }
+    }
+    private suspend fun recordHistory(mediaItem: MediaItem) {
+        val metadata = mediaItem.mediaMetadata
+        val song = Song(
+            id = mediaItem.mediaId,
+            title = metadata.title?.toString() ?: "未知标题",
+            artist = metadata.artist?.toString() ?: "未知歌手",
+            album = metadata.albumTitle?.toString() ?: "未知专辑",
+            cover = metadata.artworkUri?.toString() ?: "", // 这里需要处理图片路径
+            duration = metadata.durationMs?: 0,
+        )
+        historyRepository.addToHistory(song)
+    }
 
 
     class LibrarySessionCallback : MediaLibrarySession.Callback
@@ -245,20 +265,6 @@ class MusicService : MediaLibraryService(),
     fun setShuffleModeEnabled(isShuffle: Boolean) {
         queueManager.setShuffleModeEnabled(isShuffle)
     }
-
-
-
-    /**
-     * 播放队列
-     */
-    fun playQueue(queue: Queue, playWhenReady: Boolean = true) {
-        scope.launch {
-            queueManager.playQueue(queue, playWhenReady)
-            queueTitle = queue.title
-        }
-    }
-
-
     override fun onDestroy() {
         CacheManager.release()
         mediaSession.release()
@@ -298,7 +304,7 @@ class MusicService : MediaLibraryService(),
             val mediaId = dataSpec.key ?: error("No media id")
 
             val localFilePath = runBlocking {
-                database.songDao().getSong(mediaId).firstOrNull()?.path
+                songRepository.getSong(mediaId).firstOrNull()?.path
             }
             if (localFilePath != null) {
                 val file = File(localFilePath)

@@ -17,7 +17,8 @@ object AppModule {
 
     @Provides
     fun provideDatabase(@ApplicationContext appContext: Context): AppDatabase =
-        Room.databaseBuilder(appContext, AppDatabase::class.java, "app_database").build()
+        Room.databaseBuilder(appContext, AppDatabase::class.java, "app_database")
+            .build()
 
     @Provides
     @Singleton
@@ -35,7 +36,6 @@ object AppModule {
         SongRepository(db.songDao())
 
 
-
     @Provides
     fun provideQQSongDao(db: AppDatabase): QQSongRepository =
         QQSongRepository(db.qqSongDao())
@@ -45,5 +45,10 @@ object AppModule {
     fun providePlaylistDao(db: AppDatabase): PlaylistRepository =
         PlaylistRepository(db.playlistDao())
 
+    @Provides
+    @Singleton
+    fun provideHistoryDao(database: AppDatabase): HistoryRepository {
+        return HistoryRepository(database.historyDao(), database.songDao())
+    }
 
 }

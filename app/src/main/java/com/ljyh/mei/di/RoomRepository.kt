@@ -1,6 +1,7 @@
 package com.ljyh.mei.di
 
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -11,12 +12,15 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.ljyh.mei.data.model.room.CacheColor
+import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.data.model.room.Like
+import com.ljyh.mei.data.model.room.PlaybackHistory
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.room.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -186,5 +190,75 @@ class PlaylistRepository @Inject constructor(private val playlistDao: PlaylistDa
 
     suspend fun insertPlaylists(playlists: List<Playlist>) {
         playlistDao.insertPlaylists(playlists)
+    }
+}
+
+
+@Singleton
+class HistoryRepository @Inject constructor(
+    private val historyDao: HistoryDao,
+    private val songDao: SongDao
+) {
+
+    // 添加歌曲到播放历史
+    suspend fun addToHistory(song: Song) {
+        try {
+            historyDao.addSongToHistory(song)
+        } catch (e: Exception) {
+            // 如果外键约束失败，先插入歌曲再插入历史记录
+            if (e is SQLiteConstraintException) {
+                songDao.insertSongs(listOf(song))
+                historyDao.insertHistory(
+                    PlaybackHistory(
+                        songId = song.id,
+                        playedAt = System.currentTimeMillis()
+                    )
+                )
+            } else {
+                throw e
+            }
+        }
+    }
+
+    // 获取播放历史（Flow 版本，用于观察数据变化）
+    fun getHistoryStream(): Flow<List<HistoryItem>> {
+        return historyDao.getHistory()
+    }
+
+    // 获取播放历史（一次性获取）
+    suspend fun getHistory(): List<HistoryItem> {
+        return historyDao.getHistory().first()
+    }
+
+    // 清空播放历史
+    suspend fun clearHistory() {
+        historyDao.clearHistory()
+    }
+
+    // 删除指定歌曲的播放历史
+    suspend fun removeFromHistory(songId: String) {
+        historyDao.deleteHistoryBySongId(songId)
+    }
+
+    // 批量添加歌曲到历史
+    suspend fun addMultipleToHistory(songs: List<Song>) {
+        songs.forEach { song ->
+            addToHistory(song)
+        }
+    }
+
+    // 获取最近播放的N首歌曲
+    suspend fun getRecentSongs(limit: Int = 20): List<HistoryItem> {
+        return historyDao.getHistory().first().take(limit)
+    }
+
+    // 检查歌曲是否在历史记录中
+    suspend fun isSongInHistory(songId: String): Boolean {
+        return historyDao.getHistory().first().any { it.song.id == songId }
+    }
+
+    // 获取历史记录数量
+    suspend fun getHistoryCount(): Int {
+        return historyDao.getHistory().first().size
     }
 }
