@@ -47,9 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.ljyh.mei.constants.CommonImageRadius
+import com.ljyh.mei.constants.TrackThumbnailSize
 import com.ljyh.mei.data.model.room.HistoryItem
+import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.local.LocalPlayerConnection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +62,7 @@ fun HistoryScreen(
 ) {
     val navController = LocalNavController.current
     val context = LocalNavController.current.context
+    val playerConnection = LocalPlayerConnection.current
     val historyList by viewModel.historyList.collectAsState(
         initial = emptyList()
     )
@@ -109,7 +114,15 @@ fun HistoryScreen(
                     HistoryItemRow(
                         item = item,
                         onClick = {
-
+                            playerConnection?.playQueue(
+                                ListQueue(
+                                    id = "history",
+                                    title = "最近播放",
+                                    items = historyList.map { it.song.id },
+                                    startIndex = historyList.indexOf(item),
+                                    position = item.playedAt.toInt()
+                                )
+                            )
                         }
                     )
                 }
@@ -127,7 +140,7 @@ fun HistoryItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 1. 封面图
@@ -135,8 +148,8 @@ fun HistoryItemRow(
             model = item.song.cover,
             contentDescription = null,
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .size(TrackThumbnailSize)
+                .clip(RoundedCornerShape(CommonImageRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentScale = ContentScale.Crop
         )

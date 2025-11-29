@@ -58,8 +58,10 @@ import com.ljyh.mei.ui.component.player.component.SmoothCoverBackground
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
+import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.LyricSourceData
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.encrypt.QRCUtils
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
@@ -79,6 +81,7 @@ fun BottomSheetPlayer(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
+    val navigator = LocalNavController.current
 
     // --- 1. Preferences & Theme ---
     val isSystemInDarkTheme = isSystemInDarkTheme()
@@ -264,13 +267,17 @@ fun BottomSheetPlayer(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
-            mediaMetadata?.let {
+            mediaMetadata?.let { mediaMetadata ->
                 Header(
-                    mediaMetadata = it,
+                    mediaMetadata = mediaMetadata,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = PlayerHorizontalPadding),
-                    onNavigateToAlbum = {},
+                    onNavigateToAlbum = {
+                        Screen.Album.navigate(navigator){
+                            addPath(mediaMetadata.album.id.toString())
+                        }
+                    },
                     onNavigateToArtist = {},
                 )
             }
