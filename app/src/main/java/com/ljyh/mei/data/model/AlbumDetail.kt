@@ -182,7 +182,7 @@ data class AlbumDetail(
 
         data class Privilege(
             @SerializedName("id")
-            val id: Int,
+            val id: Long,
             @SerializedName("fee")
             val fee: Int,
             @SerializedName("payed")
