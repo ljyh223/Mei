@@ -8,7 +8,7 @@
 
 ### 「一个仍在成长，但更新随缘的第三方网易云音乐播放器」
 
-<img src="./screenshot/mei.png" width="120px" style="border-radius:12px"/>
+<img src="./screenshot/logo.png" width="120px" style="border-radius:12px"/>
 
 ![Android](https://img.shields.io/badge/Platform-Android-green?logo=android)
 ![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-blue)
@@ -42,7 +42,7 @@ Mei 是一款使用 **Jetpack Compose** 开发的 **网易云音乐第三方客�
 
 ### 🎧 已实现
 
-* 🎙 逐字歌词（支持：**网易云** / **99音乐** ）
+* 🎙 逐字歌词（支持：**网易云** / **99音乐** / **TMLL**）
 * 📜 播放列表管理
 * ❤️ 喜欢音乐
 * 🔀 随机播放 & 播放顺序优化
@@ -110,6 +110,7 @@ cookie: MUSIC_U=xxxxx;
 * 🎵 99音乐逐字歌词回归（隐藏在 `+` 里，懂的都懂）
 * ✅ 随机播放修复
 * ✅ 一些小细节更新（期待？我也期待 🤨）
+* 换了一个logo 感觉好丑，但是设计好像还行，颜色太丑了，来个佬给我弄一下
 
 ---
 
