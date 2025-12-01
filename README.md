@@ -6,6 +6,13 @@
 
 学业、生活上的事情太多了。备考中......
 
+### 使用教程
+
+本软件只支持cookie登录，请自行获取。关于cookie 获取，目前只需要MUSIC_U字段的值，只需要值，不要附带额外的内容。形如cookie=MUSIC_U=xxxxx，或者MUSIC_U=xxx等都是错误的。只需要前文提到的xxxx内容即可。
+
+
+获取cookie的方式可以通过网页版登录，在请求头中获取，cookie一般长期有效。
+
 ### 最新公告
 
 暂时移除下载功能(bushi,之前就用不了，不如直接删了🫤)
@@ -80,8 +87,8 @@
   <tr>
     <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-26-54-094_com.ljyh.mei.jpg" width="200"></td>
     <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-00-346_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-05-380_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-08-648_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot//2025-12-01/Screenshot_2025-12-01-11-37-53-613_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2025-12-01/Screenshot_2025-12-01-11-38-04-398_com.ljyh.mei.jpg" width="200"></td>
   </tr>
   <tr>
     <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-33-154_com.ljyh.mei.jpg" width="200"></td>
