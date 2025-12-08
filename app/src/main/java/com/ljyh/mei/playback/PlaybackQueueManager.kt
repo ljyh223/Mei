@@ -209,16 +209,7 @@ class PlaybackQueueManager(
         }
     }
 
-    fun clearQueue() {
-        preloadJob?.cancel()
-        preloadStrategyManager.stopMonitoring()
-        currentQueue.clear()
-        queueTitle = null
-        _queueState.value = QueueState.Idle
-        // 清理 player
-        player.clearMediaItems()
-        originalMediaItems = emptyList()
-    }
+
 
     fun release() {
         preloadJob?.cancel()

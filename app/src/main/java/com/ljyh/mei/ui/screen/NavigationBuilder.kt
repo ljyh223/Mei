@@ -22,6 +22,7 @@ import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
 import com.ljyh.mei.ui.screen.search.SearchResultScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettings
+import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 
@@ -117,6 +118,17 @@ fun NavGraphBuilder.navigationBuilder(
         )
     ) {
         AlbumScreen(id = it.arguments!!.getLong("id"))
+    }
+    
+    composable(
+        route = "${Screen.Artist.route}/{id}",
+        arguments = listOf(
+            navArgument("id") {
+                type = NavType.StringType
+            }
+        )
+    ) {
+        ArtistScreen(id = it.arguments!!.getString("id")!!)
     }
 
     composable(Screen.History.route) {

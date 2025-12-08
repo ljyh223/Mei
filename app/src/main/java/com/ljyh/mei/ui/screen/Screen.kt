@@ -16,6 +16,7 @@ sealed class Screen(val route:String) {
     data object AppearanceSettings:Screen("setting/appearance")
     data object EveryDay:Screen("everyday")
     data object Album: Screen("album")
+    data object Artist: Screen("artist")
     data object History: Screen("history")
     data object Test:Screen("test")
     inline fun navigate(

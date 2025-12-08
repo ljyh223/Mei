@@ -87,8 +87,7 @@ fun Header(
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                         .clickable(onClick = {
                             if (mediaMetadata.artists.size == 1) {
-                                // 只有一个歌手，直接跳转 (假设你有这个回调)
-                                //onNavigateToArtist(metadata.artists.first())
+                                onNavigateToArtist(mediaMetadata.artists[0])
                             } else {
                                 // 多个歌手，打开底部弹窗
                                 showArtistSheet = true

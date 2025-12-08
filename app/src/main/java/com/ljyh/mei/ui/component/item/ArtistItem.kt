@@ -51,7 +51,7 @@ fun ArtistItem(
         Spacer(modifier = Modifier.width(16.dp))
 
         Row(
-            verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
+            verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = artist.name,
@@ -69,6 +69,7 @@ fun ArtistItem(
                 overflow = TextOverflow.Ellipsis
             )
         }
+
         Button(onClick = {
             Toast.makeText(
                 context, "正在建设中: ${artist.name}", Toast.LENGTH_SHORT

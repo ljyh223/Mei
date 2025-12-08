@@ -9,12 +9,18 @@ import com.ljyh.mei.data.model.TrackAll
 import com.ljyh.mei.data.model.UserAccount
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.api.ArtistAlbum
+import com.ljyh.mei.data.model.api.ArtistDetail
+import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.DeletePlaylist
 import com.ljyh.mei.data.model.api.GetAlbumList
+import com.ljyh.mei.data.model.api.GetArtistAlbum
+import com.ljyh.mei.data.model.api.GetArtistDetail
+import com.ljyh.mei.data.model.api.GetArtistSong
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
@@ -30,7 +36,6 @@ import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.api.SearchSuggest
 import com.ljyh.mei.data.model.api.SubscribePlaylist
-import com.ljyh.mei.data.model.api.SubscribePlaylistResult
 import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.model.weapi.LikeResult
 import retrofit2.http.Body
@@ -38,57 +43,6 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ApiService {
-//    @GET("/homepage/block/page") // 示例 endpoint
-//    suspend fun getRadar(): HomePage
-//
-//    @GET("/recommend/songs")
-//    suspend fun getRecommend(): Recommend
-//
-//    @GET("/playlist/detail")
-//    suspend fun getPlaylistDetail1(@Query("id") id: String): PlaylistDetail
-//
-//    @GET("/song/url")
-//    suspend fun getSongUrl(@Query("id") id: String): SongUrl
-//
-//    @GET("/song/url/v1")
-//    suspend fun getSongUrlV1(
-//        @Query("id") id: String,
-//        @Query("level") level: String = "standard"
-//    ): SongUrl
-//
-//
-//    @GET("/user/account")
-//    suspend fun getUserAccount(): UserAccount
-//
-//    @GET("/user/playlist")
-//    suspend fun getUserPlaylist(@Query("uid") uid: String): UserPlaylist
-//
-//    @GET("/playlist/track/all")
-//    suspend fun getPlaylistTracks(
-//        @Query("id") id: String,
-//        @Query("limit") limit: Int,
-//        @Query("offset") offset: Int = 0
-//    ): TrackAll
-//
-//
-//    @GET("/lyric/new")
-//    suspend fun getLyric(@Query("id") id: String): Lyric
-//
-//    @GET("/song/detail")
-//    suspend fun getSongDetail(@Query("ids") ids: String): TrackAll
-//
-//
-//    @GET("/homepage/resource/show")
-//    suspend fun getHomePageResourceShow(): HomePageResourceShow
-//
-//
-//    @GET("/like")
-//    suspend fun like(@Query("id") id:String, @Query("like") like:Boolean=true)
-//
-//
-//    @GET("/photo/album/get")
-//    suspend fun getPhotoAlbum(@Query("id") id:String): AlbumPhoto
-
     /*
     * 获取歌单详情
     * */
@@ -181,5 +135,15 @@ interface ApiService {
 
     @POST("/api/playlist/remove")
     suspend fun deletePlaylist(@Body body: DeletePlaylist): BaseMessageResponse
+
+
+    @POST("/api/artist/head/info/get")
+    suspend fun getArtistDetail(@Body body: GetArtistDetail): ArtistDetail
+
+    @POST("/api/artist/albums/{id}")
+    suspend fun getArtistAlbums(@Body body: GetArtistAlbum, @Path("id") id: String): ArtistAlbum
+
+    @POST("/api/v1/artist/{id}")
+    suspend fun getArtistSongs(@Body body: GetArtistSong, @Path("id") id: String): ArtistSong
 
 }

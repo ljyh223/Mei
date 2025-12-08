@@ -32,7 +32,7 @@ import com.ljyh.mei.data.model.MediaMetadata
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArtistSelectionSheet(
-    artists: List<MediaMetadata.Artist>, // 假设你的 Artist 类长这样
+    artists: List<MediaMetadata.Artist>,
     onDismiss: () -> Unit,
     onArtistClick: (MediaMetadata.Artist) -> Unit
 ) {
@@ -41,15 +41,14 @@ fun ArtistSelectionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface, // 或者 surfaceContainer
+        containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 32.dp) // 底部留白，适配手势条
+                .padding(bottom = 32.dp)
         ) {
-            // 标题
             Text(
                 text = "选择艺人",
                 style = MaterialTheme.typography.titleMedium,
@@ -82,8 +81,6 @@ fun ArtistSelectionSheet(
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f)
                     )
-
-                    // 导向箭头 (可选)
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                         contentDescription = null,

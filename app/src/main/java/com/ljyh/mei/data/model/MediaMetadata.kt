@@ -6,7 +6,9 @@ import androidx.compose.runtime.Immutable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
+import com.ljyh.mei.utils.encrypt.getResourceLink
 
 
 @Immutable
@@ -99,6 +101,24 @@ fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
     tns= tns?.get(0)
 )
 
+
+fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
+    id = id,
+    title = name,
+    coverUrl= getResourceLink(al.pic.toString()),
+    artists = ar.map {
+        MediaMetadata.Artist(
+            id = it.id,
+            name = it.name,
+            alias = it.alia
+        )
+    },
+    duration = dt,
+    album = MediaMetadata.Album(
+        id = al.id,
+        title = al.name
+    )
+)
 fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
     .setMediaId(id.toString())
     .setUri(id.toString())

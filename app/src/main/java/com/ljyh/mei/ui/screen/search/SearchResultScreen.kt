@@ -125,9 +125,9 @@ fun SearchResultScreen(
                         val artists = data.result.artists ?: emptyList()
                         items(artists) {
                             ArtistItem(artist = it, onClick = {
-                                Toast.makeText(
-                                    context, "正在建设中: ${it.name}", Toast.LENGTH_SHORT
-                                ).show()
+                                Screen.Artist.navigate(navController){
+                                    addPath(it.id.toString())
+                                }
                             })
                         }
                     }

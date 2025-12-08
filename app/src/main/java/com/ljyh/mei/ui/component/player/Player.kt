@@ -278,7 +278,11 @@ fun BottomSheetPlayer(
                             addPath(mediaMetadata.album.id.toString())
                         }
                     },
-                    onNavigateToArtist = {},
+                    onNavigateToArtist = { artist ->
+                        Screen.Artist.navigate(navigator){
+                            addPath(artist.id.toString())
+                        }
+                    },
                 )
             }
 
@@ -290,7 +294,6 @@ fun BottomSheetPlayer(
                     .fillMaxWidth()
                     .weight(1f),
                 contentPadding = PaddingValues(horizontal = PlayerHorizontalPadding),
-                //pageSpacing = 16.dp,
                 beyondViewportPageCount = 1
             ) { page ->
                 when (page) {
