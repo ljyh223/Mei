@@ -14,6 +14,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -29,12 +30,13 @@ class SearchViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
 
     // Track the last query to invalidate cache when keyword changes
-    private var lastSearchQuery = ""
 
     var currentTab by mutableStateOf(SearchType.Song)
 
     // Cache: Key is the Tab Type, Value is the API Result
     private val cache = mutableMapOf<SearchType, Resource<SearchResult>>()
+    private val _lastSearchQuery = MutableStateFlow<String?>(null)
+    val lastSearchQuery: StateFlow<String?> = _lastSearchQuery.asStateFlow()
 
     private val _searchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
     val searchResult: StateFlow<Resource<SearchResult>> = _searchResult
@@ -60,11 +62,12 @@ class SearchViewModel @Inject constructor(
             initialValue = Resource.Loading
         )
 
+    fun setLastSearchQuery(query: String) {
+        _lastSearchQuery.value = query
+    }
+
     fun onTabChange(type: SearchType) {
         currentTab = type
-        // Do not call search() here directly.
-        // The UI observes 'currentTab' and 'query' in LaunchedEffect,
-        // which will trigger search() automatically.
     }
 
     fun updateQuery(query: String) {
@@ -74,22 +77,17 @@ class SearchViewModel @Inject constructor(
     fun search(keyword: String, type: Int, limit: Int = 30) {
         if (keyword.isBlank()) return
 
-        // FIX: If the query changed, clear the old cache
-        if (keyword != lastSearchQuery) {
+        if (keyword != lastSearchQuery.value) {
             cache.clear()
-            lastSearchQuery = keyword
+            _lastSearchQuery.value = keyword
         }
-
-        // Check cache for the current tab
         if (cache[currentTab] != null && cache[currentTab] is Resource.Success) {
             _searchResult.value = cache[currentTab]!!
         } else {
-            // Set loading only if we don't have data (optional, prevents flickering)
             _searchResult.value = Resource.Loading
 
             viewModelScope.launch {
                 val result = searchRepository.search(keyword, type, limit)
-                // Only cache if successful
                 if (result is Resource.Success) {
                     cache[currentTab] = result
                 }

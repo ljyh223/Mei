@@ -44,24 +44,28 @@ fun SearchResultScreen(
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchState by viewModel.searchResult.collectAsState()
-    val selectedType = viewModel.currentTab
+    val selectedType by viewModel.currentTab.collectAsState()
     val playerConnection = LocalPlayerConnection.current
     val navController = LocalNavController.current
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
-        val initialType = SearchType.entries.find { it.type == type } ?: SearchType.Song
-        if (viewModel.currentTab != initialType) {
-            viewModel.onTabChange(initialType)
+    LaunchedEffect(query) {
+        if (query.isNotBlank()) {
+            // 只有在 query 变化时才重置搜索
+            val initialType = SearchType.entries.find { it.type == type } ?: SearchType.Song
+            if (viewModel.lastSearchQuery != query) {
+                viewModel.setLastSearchQuery(query)
+                viewModel.onTabChange(initialType)
+            }
         }
     }
 
-    LaunchedEffect(query, selectedType) {
-        if (query.isNotBlank()) {
+    LaunchedEffect(selectedType) {
+        if (query.isNotBlank() && viewModel.lastSearchQuery == query) {
+            // 只有 tab 变化时才重新搜索
             viewModel.search(query, selectedType.type, limit = 30)
         }
     }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = LocalPlayerAwareWindowInsets.current.add(WindowInsets(top = 4.dp))
