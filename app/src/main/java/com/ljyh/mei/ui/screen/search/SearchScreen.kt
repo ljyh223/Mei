@@ -68,7 +68,7 @@ fun SearchScreen(
     }
 
     LaunchedEffect(query) {
-        viewModel.updateQuery( query)
+        viewModel.updateInputQuery( query)
     }
 
     LazyColumn(

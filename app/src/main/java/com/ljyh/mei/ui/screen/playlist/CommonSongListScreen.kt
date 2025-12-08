@@ -158,15 +158,9 @@ fun CommonSongListScreen(
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        // 1. 初始状态：完全透明，直接显示下方的模糊大图
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-
-                        // 2. 滚动状态：使用半透明的 Surface 颜色 (Glassmorphism 效果)
-                        // 这样既能区分头部，又不会产生割裂感
                         scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-
-                        // 确保图标和标题颜色正确
                         navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                         actionIconContentColor = MaterialTheme.colorScheme.onSurface
