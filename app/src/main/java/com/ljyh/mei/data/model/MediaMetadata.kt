@@ -1,11 +1,13 @@
 package com.ljyh.mei.data.model
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Immutable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.utils.encrypt.getResourceLink
@@ -119,10 +121,10 @@ fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
         title = al.name
     )
 )
-fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
+fun PlaylistDetail.Playlist.Track.toMediaItem(quality: MusicQuality = MusicQuality.EXHIGH) =MediaItem.Builder()
     .setMediaId(id.toString())
-    .setUri(id.toString())
-    .setCustomCacheKey(id.toString())
+    .setUri(id.toString()) // 占位
+    .setCustomCacheKey("${id}_${quality.text}")
     .setTag(toMediaMetadata())
     .setMediaMetadata(
         androidx.media3.common.MediaMetadata.Builder()
@@ -132,6 +134,9 @@ fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
             .setAlbumTitle(al.name)
             .setMediaType(MEDIA_TYPE_MUSIC)
             .setArtworkUri(Uri.parse(al.picUrl))
+            .setExtras(Bundle().apply {
+                putLong("duration", this@toMediaItem.dt.toLong())
+            })
             .build()
     )
     .build()
@@ -153,6 +158,9 @@ fun MediaMetadata.toMediaItem() = MediaItem.Builder()
             .build()
     )
     .build()
+
+
+
 val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata
 

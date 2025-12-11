@@ -39,6 +39,7 @@ val LyricTextBoldKey = booleanPreferencesKey("lyricTextBold")
 val DynamicStreamerKey = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
+val MusicQualityKey = stringPreferencesKey("musicQuality")
 val PlayModeKey= intPreferencesKey("playMode")
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
@@ -61,6 +62,16 @@ enum class LyricTextAlignment {
 enum class DynamicStreamerType {
     FluidBg,
     Image
+}
+// standard, exhigh, lossless, hires, jyeffect(高清环绕声), sky(沉浸环绕声), jymaster(超清母带) 进行音质判断
+enum class MusicQuality(val text:  String) {
+    STANDARD("standard"),
+    EXHIGH("exhigh"),
+    LOSSLESS("lossless"),
+    HIRES("hires"),
+    JYEFFECT("jyeffect"),
+    SKY("sky"),
+    JYMASTER("jymaster")
 }
 
 

@@ -49,8 +49,7 @@ class PlaybackQueueManager(
     // 错误恢复管理器
     private lateinit var errorRecoveryManager: ErrorRecoveryManager
 
-    // 智能预加载策略管理器
-    lateinit var preloadStrategyManager: PreloadStrategyManager
+
 
     private var originalMediaItems: List<MediaItem> = emptyList()
 
@@ -85,20 +84,22 @@ class PlaybackQueueManager(
 
             originalMediaItems = mediaItems
 
+            // 1. 先设置 MediaItems (此时是原始顺序)
+            player.setMediaItems(mediaItems, status.mediaItemIndex, status.position.toLong())
+
+            // 2. 设置随机模式
+            // 注意：一定要更新 _isShuffleModeEnabled 以便状态同步
             _isShuffleModeEnabled.value = startInShuffleMode
-
             player.shuffleModeEnabled = startInShuffleMode
-            val startIndex = status.mediaItemIndex
-            val startPosition = status.position.toLong()
 
-            player.setMediaItems(mediaItems, startIndex, startPosition)
-
+            // 3. 设置默认循环模式为 REPEAT_MODE_ALL
+            // 这样无论是顺序还是随机，播完都会循环，不会停止
+            player.repeatMode = Player.REPEAT_MODE_ALL
 
             player.prepare()
             player.playWhenReady = playWhenReady
 
             _queueState.value = QueueState.Playing(queue.title ?: "播放列表", player.mediaItemCount)
-            preloadStrategyManager.startMonitoring()
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to play queue", e)
@@ -144,49 +145,16 @@ class PlaybackQueueManager(
     /**
      * 切换随机播放模式
      *
-     * 核心修复：直接设置 player.shuffleModeEnabled，不重新 setMediaItems
      */
     fun setShuffleModeEnabled(enabled: Boolean) {
         if (_isShuffleModeEnabled.value == enabled) return
 
         _isShuffleModeEnabled.value = enabled
-
-        // ExoPlayer 原生支持无缝切换
-        // enabled = true: 保持当前歌曲继续播放，后续歌曲顺序打乱
-        // enabled = false: 保持当前歌曲继续播放，后续歌曲恢复列表原始顺序
         player.shuffleModeEnabled = enabled
     }
 
 
 
-    /**
-     * 加载下一页歌曲
-     */
-    private suspend fun loadNextPage() {
-        try {
-            val result = currentQueue.nextPage()
-            when (result) {
-                is Queue.Result.Success -> {
-                    if (result.data.isNotEmpty()) {
-                        val mediaItems = loadSongDetails(result.data)
-                        if (mediaItems.isNotEmpty()) {
-                            // 直接添加到 Player，Player 会根据当前的 Shuffle 模式自动处理顺序
-                            player.addMediaItems(mediaItems)
-                            originalMediaItems = originalMediaItems + mediaItems
-                            _queueState.value = QueueState.ItemsAdded(mediaItems.size)
-                        }
-                    }
-                    errorRecoveryManager.resetRetryCount()
-                }
-                is Queue.Result.Error -> {
-                    // handleLoadError 需要你自己实现或保留原有逻辑，这里暂未提供 ErrorRecoveryManager 代码
-                    Log.e(TAG, "Load page error: ${result.message}")
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Load page exception", e)
-        }
-    }
 
     private suspend fun preloadAroundPosition(position: Int) {
         if (currentQueue is com.ljyh.mei.playback.queue.PlaylistQueue) {
@@ -213,7 +181,6 @@ class PlaybackQueueManager(
 
     fun release() {
         preloadJob?.cancel()
-        preloadStrategyManager.stopMonitoring()
         currentQueue.release()
     }
 

@@ -138,31 +138,27 @@ class PlayerConnection(
 
         when (currentMode) {
             PlayMode.REPEAT_MODE_ALL -> {
-                // 切换到 -> 随机播放
-                // 1. 开启原生随机
+                // 当前是【列表循环】，切换到 -> 【随机播放】
+                // 逻辑：开启随机开关，同时保持 REPEAT_MODE_ALL，这样随机播完一轮会自动重新洗牌继续播
+                service.player.repeatMode = REPEAT_MODE_ALL
                 service.setShuffleModeEnabled(true)
-                // 2. 保持 Repeat All (这样随机完了会重新随机)
-                player.repeatMode = REPEAT_MODE_ALL
-                // 注意：我们不手动设置 repeatMode.value，让 Listener 去回调更新，保证状态唯一
             }
             PlayMode.SHUFFLE_MODE_ALL -> {
-                // 切换到 -> 单曲循环
-                // 1. 关闭随机
+                // 当前是【随机播放】，切换到 -> 【单曲循环】
+                // 逻辑：关闭随机，设置单曲循环
                 service.setShuffleModeEnabled(false)
-                // 2. 设置单曲循环
-                player.repeatMode = REPEAT_MODE_ONE
+                service.player.repeatMode = REPEAT_MODE_ONE
             }
             PlayMode.REPEAT_MODE_ONE -> {
-                // 切换到 -> 列表循环
-                // 1. 关闭随机 (虽然已经是关的，但在逻辑上明确一点)
+                // 当前是【单曲循环】，切换到 -> 【列表循环】
+                // 逻辑：关闭随机，设置列表循环
                 service.setShuffleModeEnabled(false)
-                // 2. 设置列表循环
-                player.repeatMode = REPEAT_MODE_ALL
+                service.player.repeatMode = REPEAT_MODE_ALL
             }
         }
 
-        // 实际上返回值可能还没更新，UI应该监听 flow，但为了兼容旧代码返回预测值
-        return when(currentMode) {
+        // 返回预测的下一个状态用于 UI 快速响应
+        return when (currentMode) {
             PlayMode.REPEAT_MODE_ALL -> PlayMode.SHUFFLE_MODE_ALL.mode
             PlayMode.SHUFFLE_MODE_ALL -> PlayMode.REPEAT_MODE_ONE.mode
             PlayMode.REPEAT_MODE_ONE -> PlayMode.REPEAT_MODE_ALL.mode

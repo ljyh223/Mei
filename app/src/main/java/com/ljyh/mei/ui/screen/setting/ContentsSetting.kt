@@ -11,6 +11,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Cookie
+import androidx.compose.material.icons.rounded.HighQuality
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.TipsAndUpdates
@@ -31,10 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.CookieKey
+import com.ljyh.mei.constants.DynamicStreamerType
+import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.ShareViewModel
 import com.ljyh.mei.ui.component.EditTextPreference
+import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.PreferenceEntry
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
@@ -42,19 +48,24 @@ import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContentsSetting(
     scrollBehavior: TopAppBarScrollBehavior,
-    viewModel: ShareViewModel= hiltViewModel()
+    viewModel: ShareViewModel = hiltViewModel()
 ) {
     val navController = LocalNavController.current
-    val context= LocalContext.current
+    val context = LocalContext.current
     val (useQQMusicLyric, onUseQQMusicLyricChange) = rememberPreference(
         UseQQMusicLyricKey,
         defaultValue = true
+    )
+    val (musicQuality, onMusicQualityChange) = rememberEnumPreference(
+        key = MusicQualityKey,
+        defaultValue = MusicQuality.EXHIGH,
     )
     val (cookie, onCookie) = rememberPreference(
         CookieKey,
@@ -63,11 +74,12 @@ fun ContentsSetting(
     var userName by remember { mutableStateOf("") }
     val userAccount by viewModel.userAccount.collectAsState()
 
-    userName = when(val result=userAccount){
-        is Resource.Success-> {
+    userName = when (val result = userAccount) {
+        is Resource.Success -> {
             Toast.makeText(context, "看上去还不错哦", Toast.LENGTH_SHORT).show()
             result.data.profile.nickname
         }
+
         is Resource.Error -> "error"
         Resource.Loading -> "~~~"
     }
@@ -84,7 +96,7 @@ fun ContentsSetting(
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             tint = MaterialTheme.colorScheme.onSurface,
-       
+
 
                             contentDescription = null
                         )
@@ -110,6 +122,14 @@ fun ContentsSetting(
                 checked = useQQMusicLyric,
                 onCheckedChange = onUseQQMusicLyricChange
             )
+            EnumListPreference(
+                title = { Text("音乐质量") },
+                icon = { Icon(Icons.Rounded.HighQuality, null) },
+                selectedValue = musicQuality,
+                onValueSelected = onMusicQualityChange,
+                valueText = { musicQuality.text }
+            )
+
             EditTextPreference(
                 title = { Text("网易云Cookie: MUSIC_U") },
                 icon = { Icon(Icons.Rounded.Cookie, null) },
@@ -120,11 +140,11 @@ fun ContentsSetting(
             PreferenceEntry(
                 title = { Text("测试Cookie") },
                 description = userName,
-                icon = { Icon(Icons.Rounded.TipsAndUpdates,null) },
+                icon = { Icon(Icons.Rounded.TipsAndUpdates, null) },
                 onClick = {
-                    if(cookie=="") {
+                    if (cookie == "") {
                         Toast.makeText(context, "还没有填写cookie", Toast.LENGTH_SHORT).show()
-                    }else{
+                    } else {
                         viewModel.getUserAccount()
                     }
 

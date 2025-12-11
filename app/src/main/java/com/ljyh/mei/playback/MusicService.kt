@@ -19,6 +19,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
 import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
+import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -34,7 +35,11 @@ import androidx.media3.exoplayer.analytics.PlaybackStats
 import androidx.media3.exoplayer.analytics.PlaybackStatsListener
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
+import androidx.media3.exoplayer.drm.DrmSessionManagerProvider
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.preload.DefaultPreloadManager
+import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
@@ -44,6 +49,8 @@ import coil3.ImageLoader
 import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
+import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.room.Song
@@ -55,6 +62,8 @@ import com.ljyh.mei.di.SongDao
 import com.ljyh.mei.di.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.utils.CoilBitmapLoader
+import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.get
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,7 +93,11 @@ class MusicService : MediaLibraryService(),
     lateinit var sleepTimer: SleepTimer
     var scope = CoroutineScope(Dispatchers.Main) + Job()
     private lateinit var connectivityManager: ConnectivityManager
+    private lateinit var baseMediaSourceFactory: DefaultMediaSourceFactory
+    private lateinit var preloadManager: DefaultPreloadManager
+    private val preloadStrategy = MusicPreloadStrategy()
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
+
 
     private val binder = MusicBinder()
 
@@ -98,26 +111,57 @@ class MusicService : MediaLibraryService(),
     @Inject
     lateinit var apiService: ApiService
 
-    @Inject lateinit var historyRepository: HistoryRepository
-    @Inject lateinit var songRepository: SongRepository
+    @Inject
+    lateinit var historyRepository: HistoryRepository
+    @Inject
+    lateinit var songRepository: SongRepository
 
     private val songUrlCache = mutableMapOf<String, SongCache>()
 
     override fun onCreate() {
         super.onCreate()
+        baseMediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
+        preloadManager = DefaultPreloadManager.Builder(
+            this,
+            preloadStrategy
+        )
+            .setMediaSourceFactory(baseMediaSourceFactory) // 告诉管理器用什么去下载
+            .build()
+
+        val playerMediaSourceFactory = object : MediaSource.Factory {
+            // 必须实现的方法，委托给 baseMediaSourceFactory
+            override fun setDrmSessionManagerProvider(provider: DrmSessionManagerProvider) = apply {
+                baseMediaSourceFactory.setDrmSessionManagerProvider(provider)
+            }
+
+            override fun setLoadErrorHandlingPolicy(policy: LoadErrorHandlingPolicy) = apply {
+                baseMediaSourceFactory.setLoadErrorHandlingPolicy(policy)
+            }
+
+            override fun getSupportedTypes(): IntArray = baseMediaSourceFactory.supportedTypes
+
+            // 创建 MediaSource
+            override fun createMediaSource(mediaItem: MediaItem): MediaSource {
+                // 优先问 PreloadManager 要预加载好的 Source
+                return preloadManager.getMediaSource(mediaItem)
+                // 如果没预加载过，就创建一个新的
+                    ?: baseMediaSourceFactory.createMediaSource(mediaItem)
+            }
+        }
+
 
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
                 this,
                 { NOTIFICATION_ID },
                 CHANNEL_ID,
-                R.string.music_player
+                R.string.app_name_en
             )
         )
 
         player = ExoPlayer.Builder(this)
             //媒体源工厂
-            .setMediaSourceFactory(createMediaSourceFactory())
+            .setMediaSourceFactory(playerMediaSourceFactory)
             //渲染器工厂
             .setRenderersFactory(createRenderersFactory())
             //处理音频焦点变化和音频播放行为
@@ -146,7 +190,19 @@ class MusicService : MediaLibraryService(),
                 addListener(sleepTimer)
                 //播放统计
                 addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
+                addListener(this@MusicService)
+                // 添加监听，更新预加载索引
+                addListener(object : Player.Listener {
+                    override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                        updatePreload()
+                    }
+
+                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                        updatePreload()
+                    }
+                })
             }
+
 
 
 
@@ -163,7 +219,7 @@ class MusicService : MediaLibraryService(),
                 )
             )
             //设置位图加载器
-            .setBitmapLoader(CoilBitmapLoader(this,singletonImageLoader))
+            .setBitmapLoader(CoilBitmapLoader(this, singletonImageLoader))
             .build()
 
 
@@ -172,15 +228,31 @@ class MusicService : MediaLibraryService(),
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
 
         connectivityManager = getSystemService(ConnectivityManager::class.java)
-        
+
         // 初始化队列管理器
         queueManager = PlaybackQueueManager(this, player, apiService, scope)
-        
-        // 初始化预加载策略管理器
-        queueManager.preloadStrategyManager = PreloadStrategyManager(player, scope)
+
 
     }
 
+    private fun updatePreload() {
+        if (player.currentTimeline.isEmpty) return
+
+        val currentIndex = player.currentMediaItemIndex
+
+        // 1. 更新策略中的 index
+        preloadStrategy.currentPlayingIndex = currentIndex
+
+        // 2. 将下一首加入预加载 (如果存在)
+        if (currentIndex + 1 < player.mediaItemCount) {
+            val nextItem = player.getMediaItemAt(currentIndex + 1)
+            // add(MediaItem, rankingData) -> rankingData 对应 Int
+            preloadManager.add(nextItem, currentIndex + 1)
+        }
+
+        // 3. 触发检查
+        preloadManager.invalidate()
+    }
 
 
     private fun openAudioEffectSession() {
@@ -226,6 +298,7 @@ class MusicService : MediaLibraryService(),
             currentMediaMetadata.value = player.currentMetadata
         }
     }
+
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         // 只有当自动切歌或手动切歌时才记录，REPEAT 产生的循环通常不记录重复历史
         if (mediaItem != null) {
@@ -234,6 +307,7 @@ class MusicService : MediaLibraryService(),
             }
         }
     }
+
     private suspend fun recordHistory(mediaItem: MediaItem) {
         val metadata = mediaItem.mediaMetadata
         val song = Song(
@@ -242,7 +316,7 @@ class MusicService : MediaLibraryService(),
             artist = metadata.artist?.toString() ?: "未知歌手",
             album = metadata.albumTitle?.toString() ?: "未知专辑",
             cover = metadata.artworkUri?.toString() ?: "", // 这里需要处理图片路径
-            duration = metadata.durationMs?: 0,
+            duration = metadata.durationMs ?: 0,
         )
         historyRepository.addToHistory(song)
     }
@@ -265,13 +339,15 @@ class MusicService : MediaLibraryService(),
     fun setShuffleModeEnabled(isShuffle: Boolean) {
         queueManager.setShuffleModeEnabled(isShuffle)
     }
+
     override fun onDestroy() {
         CacheManager.release()
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)
         queueManager.release()
-        
+        preloadManager.release()
+
         player.release()
         super.onDestroy()
     }
@@ -298,10 +374,12 @@ class MusicService : MediaLibraryService(),
             )
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
     }
+
     private fun createDataSourceFactory(): DataSource.Factory {
 
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            val mediaId = dataSpec.key ?: error("No media id")
+            val customKey = dataSpec.key ?: error("No media key")
+            val mediaId = customKey.substringBefore("_")
 
             val localFilePath = runBlocking {
                 songRepository.getSong(mediaId).firstOrNull()?.path
@@ -326,9 +404,12 @@ class MusicService : MediaLibraryService(),
 
             val deferredUrl = CoroutineScope(Dispatchers.IO).async {
                 try {
-                    val response = apiService.getSongUrlV1(GetSongUrlV1(
-                        ids = "[$mediaId]",
-                    ))
+                    val response = apiService.getSongUrlV1(
+                        GetSongUrlV1(
+                            ids = "[$mediaId]",
+                            level = context.dataStore[MusicQualityKey] ?: MusicQuality.EXHIGH.text,
+                        )
+                    )
                     response.data.getOrNull(0)?.url
                 } catch (e: Exception) {
                     Log.e("ResolvingDataSource", "Failed to fetch media URL", e)
@@ -351,13 +432,6 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    private fun createMediaSourceFactory() =
-        DefaultMediaSourceFactory(
-            createDataSourceFactory()
-
-        )
-
-
     private fun createRenderersFactory() =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
@@ -373,8 +447,7 @@ class MusicService : MediaLibraryService(),
                         SilenceSkippingAudioProcessor(2_000_000, 0.01f, 2_000_000, 0, 256),
                         SonicAudioProcessor()
                     )
-                )
-                .build()
+                ).build()
         }
 
     inner class MusicBinder : Binder() {
@@ -387,16 +460,7 @@ class MusicService : MediaLibraryService(),
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
 
     companion object {
-        const val ROOT = "root"
-        const val SONG = "song"
-        const val ARTIST = "artist"
-        const val ALBUM = "album"
-        const val PLAYLIST = "playlist"
-
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
-        const val ERROR_CODE_NO_STREAM = 1000001
-        const val CHUNK_LENGTH = 512 * 1024L
-        const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
     }
 }
