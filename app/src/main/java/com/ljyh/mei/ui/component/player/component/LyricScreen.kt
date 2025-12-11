@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.component.player.component
 
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,13 +28,28 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ljyh.mei.R
+import com.ljyh.mei.constants.AccompanimentLyricTextBoldKey
+import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
+import com.ljyh.mei.constants.LyricTextSize
+import com.ljyh.mei.constants.NormalLyricTextBoldKey
+import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
+import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.setClipboard
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
+import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
+import com.mocharealm.accompanist.lyrics.ui.theme.SFPro
 import kotlinx.coroutines.android.awaitFrame
 
 @Composable
@@ -42,7 +59,19 @@ fun LyricScreen(
     playerConnection: PlayerConnection,
 ) {
     val listState = rememberLazyListState()
+    val context = LocalContext.current
     var animatedPosition by remember { mutableLongStateOf(0L) }
+    val (normalLyricTextSize, _) = rememberEnumPreference(
+        NormalLyricTextSizeKey,
+        LyricTextSize.Size32
+    )
+    val (normalLyricTextBold, _) = rememberPreference(NormalLyricTextBoldKey, true)
+
+    val (accompanimentLyricTextSize, _) = rememberEnumPreference(
+        AccompanimentLyricTextSizeKey,
+        LyricTextSize.Size20
+    )
+    val (accompanimentLyricTextBold, _) = rememberPreference(AccompanimentLyricTextBoldKey, true)
 
     LaunchedEffect(playerConnection.isPlaying) {
         if (playerConnection.isPlaying.value) {
@@ -60,7 +89,6 @@ fun LyricScreen(
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        // 歌词内容区域
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -74,8 +102,28 @@ fun LyricScreen(
                     onLineClicked = { line ->
                         playerConnection.player.seekTo(line.start.toLong())
                     },
-                    onLinePressed = {
+                    onLinePressed = { line ->
+                        val result = when (line) {
+                            is KaraokeLine -> {
+                                "${line.syllables.joinToString("") { it.content }}\n${line.translation}"
+                            }
+                            is SyncedLine -> {
+                                "${line.content}\n${line.translation}"
+                            }
+                            else -> {
+                                Toast.makeText(context, "未知的歌词类型", Toast.LENGTH_SHORT).show()
+                                null
+                            }
+                        }
 
+                        result?.let {
+                            try {
+                                setClipboard(context, it, "lyric")
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                Toast.makeText(context, "复制失败", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     },
                     modifier = Modifier
                         .padding(PaddingValues(bottom = 48.dp, top = 16.dp))
@@ -83,6 +131,18 @@ fun LyricScreen(
                             blendMode = BlendMode.Plus
                             compositingStrategy = CompositingStrategy.Offscreen
                         },
+                    normalLineTextStyle = LocalTextStyle.current.copy(
+                        fontSize = normalLyricTextSize.text.sp,
+                        fontWeight = if (normalLyricTextBold) FontWeight.Bold else FontWeight.Normal,
+                        fontFamily = SFPro(),
+                        textMotion = TextMotion.Animated,
+                    ),
+                    accompanimentLineTextStyle = LocalTextStyle.current.copy(
+                        fontSize = accompanimentLyricTextSize.text.sp,
+                        fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
+                        fontFamily = SFPro(),
+                        textMotion = TextMotion.Animated,
+                    )
                 )
 
                 LyricSourceBadge(

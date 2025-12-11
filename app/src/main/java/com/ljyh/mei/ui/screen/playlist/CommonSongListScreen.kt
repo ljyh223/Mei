@@ -82,6 +82,7 @@ import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.utils.setClipboard
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -280,26 +281,10 @@ fun CommonSongListScreen(
                                 menuTargetTrack = null
                             },
                             onCopyId = {
-                                val clipboard =
-                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(
-                                    ClipData.newPlainText(
-                                        "id",
-                                        menuTargetTrack?.id.toString()
-                                    )
-                                )
-                                Toast.makeText(context, "ID 已复制", Toast.LENGTH_SHORT).show()
+                                setClipboard(context, menuTargetTrack!!.id.toString(), "id")
                             },
                             onCopyName = {
-                                val clipboard =
-                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(
-                                    ClipData.newPlainText(
-                                        "id",
-                                        menuTargetTrack?.id.toString()
-                                    )
-                                )
-                                Toast.makeText(context, "Name 已复制", Toast.LENGTH_SHORT).show()
+                                setClipboard(context, menuTargetTrack!!.title, "name")
                             }
                         )
                     }

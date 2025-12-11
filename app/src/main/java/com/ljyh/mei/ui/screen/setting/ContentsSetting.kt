@@ -11,9 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Cookie
-import androidx.compose.material.icons.rounded.HighQuality
-import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,14 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.CookieKey
-import com.ljyh.mei.constants.DynamicStreamerType
-import com.ljyh.mei.constants.MusicQuality
-import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.ShareViewModel
 import com.ljyh.mei.ui.component.EditTextPreference
-import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.PreferenceEntry
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
@@ -48,7 +41,6 @@ import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
-import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)

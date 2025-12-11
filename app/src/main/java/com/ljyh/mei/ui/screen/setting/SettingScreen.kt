@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -60,7 +61,7 @@ fun SettingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // ✅ 避免内容被 TopAppBar 遮挡
+                .padding(paddingValues)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
         ) {
@@ -83,7 +84,7 @@ fun SettingScreen(
             )
             PreferenceEntry(
                 title = { Text("播放") },
-                icon = { Icon(Icons.Rounded.Kitesurfing, contentDescription = null) },
+                icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null) },
                 onClick = {
                     Screen.PlaySettings.navigate(navController)
                 }

@@ -56,6 +56,7 @@ import com.ljyh.mei.ui.component.playlist.EditPlaylistSheet
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.setClipboard
 import com.ljyh.mei.utils.smallImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -286,11 +287,7 @@ fun PlayerBottomSheet(
                     title = "复制id",
                     onClick = {
                         onDismiss()
-                        val clipboard =
-                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("id", mediaMetadata.id.toString())
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                        setClipboard(context, mediaMetadata.id.toString(), "id")
                     }
                 )
 
@@ -299,11 +296,7 @@ fun PlayerBottomSheet(
                     title = "复制歌名",
                     onClick = {
                         onDismiss()
-                        val clipboard =
-                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("name", mediaMetadata.title)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                        setClipboard(context, mediaMetadata.title, "歌名")
                     }
                 )
 

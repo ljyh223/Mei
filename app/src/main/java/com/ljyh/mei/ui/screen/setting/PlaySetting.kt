@@ -54,7 +54,6 @@ fun PlaySetting(
 
     Scaffold(
         topBar = {
-
             TopAppBar(
                 title = { Text("播放设置") },
                 navigationIcon = {
@@ -94,7 +93,7 @@ fun PlaySetting(
                 icon = { Icon(Icons.Rounded.HighQuality, null) },
                 selectedValue = musicQuality,
                 onValueSelected = onMusicQualityChange,
-                valueText = { musicQuality.text }
+                valueText = { it.text }
             )
         }
     }
