@@ -39,9 +39,11 @@ jobs:
         id: release_notes
         run: |
           body=$(cat .github/release_notes.md 2>/dev/null || echo "Release ${{ github.ref_name }}")
-          echo "BODY<<EOF" >> $GITHUB_OUTPUT
-          echo "$body" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "BODY<<EOF"
+            echo "$body"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "*.apk"
