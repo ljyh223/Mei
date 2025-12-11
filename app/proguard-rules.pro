@@ -152,3 +152,12 @@
 -keep class * extends com.google.gson.reflect.TypeToken
 -keepattributes AnnotationDefault,RuntimeVisibleAnnotations
 
+-keepclassmembers class com.ljyh.mei.data.model.api.ArtistDetail$Data$Artist {
+    public *** get*();
+    public void set*(***);
+}
+
+# 防止 R8 优化掉空检查
+-keep,allowoptimization class com.ljyh.mei.data.model.api.ArtistDetail {
+    *;
+}
