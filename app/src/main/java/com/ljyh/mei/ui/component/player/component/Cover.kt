@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -61,17 +62,26 @@ fun Cover(
     modifier: Modifier,
 ) {
     val context = LocalContext.current
+    // 获取当前的封面样式设置
     val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
     val originalCover by rememberPreference(
         OriginalCoverKey,
         defaultValue = false
     )
 
-    // 1. 新增状态：控制是否显示大图
+    val coverShape = if (coverStyle == CoverStyle.Circle) {
+        CircleShape
+    } else {
+        RoundedCornerShape(12.dp)
+    }
+
     var showFullImage by remember { mutableStateOf(false) }
 
     AnimatedContent(
-        modifier = modifier,
+        modifier = modifier.shadow(
+            elevation = 12.dp,
+            shape = coverShape
+        ),
         targetState = mediaMetadata.coverUrl,
         transitionSpec = {
             fadeIn(tween(500)) togetherWith fadeOut(tween(500))
@@ -86,7 +96,7 @@ fun Cover(
                 modifier = Modifier
                     .fillMaxSize()
                     .aspectRatio(1f)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(12.dp))
+                    .shadow(elevation = 12.dp, shape = coverShape)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onDoubleTap = { offset ->
@@ -96,13 +106,14 @@ fun Cover(
                                     playerConnection.player.seekForward()
                                 }
                             },
-                            // 2. 新增：长按触发显示大图
                             onLongPress = {
                                 showFullImage = true
                             }
                         )
-                    },
-                shape = RoundedCornerShape(12.dp),
+                    }
+
+                ,
+                shape = coverShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest
             ) {
                 AsyncImage(
@@ -118,7 +129,6 @@ fun Cover(
             }
         }
 
-        // 3. 渲染大图 Dialog
         if (showFullImage) {
             val highResUrl = if (originalCover) url else url.size1600()
             FullScreenImageViewer(

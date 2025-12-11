@@ -204,7 +204,6 @@ fun BottomSheetPlayer(
         }
     }
 
-    // --- 5. UI Rendering ---
 
     // 背景颜色计算
     val colorScheme = MaterialTheme.colorScheme
@@ -244,18 +243,21 @@ fun BottomSheetPlayer(
 
         // 2. Debug 信息层
         if (debug && mediaMetadata != null) {
-            Debug(
-                title = mediaMetadata!!.title,
-                artist = mediaMetadata!!.artists.firstOrNull()?.name ?: "",
-                album = mediaMetadata!!.album.title,
-                duration = formatMilliseconds(duration).toString(),
-                id = mediaMetadata!!.id.toString(),
-                qid = qqSong?.qid ?: "null",
-                color = rawSeedColor.value.toString(),
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .statusBarsPadding()
-            )
+            Box(modifier = Modifier.align(Alignment.Center)){
+                Debug(
+                    title = mediaMetadata!!.title,
+                    artist = mediaMetadata!!.artists.firstOrNull()?.name ?: "",
+                    album = mediaMetadata!!.album.title,
+                    duration = formatMilliseconds(duration).toString(),
+                    id = mediaMetadata!!.id.toString(),
+                    qid = qqSong?.qid ?: "null",
+                    color = rawSeedColor.value.toString(),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .statusBarsPadding()
+                )
+            }
+
         }
 
         // 3. 主内容区域
@@ -309,10 +311,7 @@ fun BottomSheetPlayer(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
-                                        .shadow(
-                                            elevation = 12.dp,
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
+
                                 )
                             }
                         }
