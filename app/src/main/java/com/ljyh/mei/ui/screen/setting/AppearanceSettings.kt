@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +28,7 @@ import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
 import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.DebugKey
+import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
@@ -47,6 +49,11 @@ fun AppearanceSettings(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val navController = LocalNavController.current
+
+    val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
+        DynamicThemeKey,
+        defaultValue = true
+    )
 
 
     val (coverStyle, onCoverStyleChange) = rememberEnumPreference(
@@ -111,6 +118,14 @@ fun AppearanceSettings(
                 .verticalScroll(rememberScrollState())
         ) {
 
+            PreferenceGroupTitle(title = "THEME")
+            SwitchPreference(
+                title = { Text("动态主题") },
+                icon = { Icon(Icons.Rounded.Palette, null) },
+                checked = dynamicTheme,
+                onCheckedChange = onDynamicThemeChange
+            )
+
             PreferenceGroupTitle(
                 title = "PLAYER"
             )
@@ -153,7 +168,7 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.FormatSize, null) },
                 selectedValue = normalLyricTextSize,
                 onValueSelected = onNormalLyricTextSizeChange,
-                valueText = { it.text.toString()}
+                valueText = { it.text.toString() }
             )
 
 
@@ -170,7 +185,7 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.FormatSize, null) },
                 selectedValue = accompanimentLyricTextSize,
                 onValueSelected = onAccompanimentLyricTextSizeChange,
-                valueText = { it.text.toString()}
+                valueText = { it.text.toString() }
             )
 
 

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
+import com.ljyh.mei.constants.PreviousPlaybackKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
@@ -47,6 +49,11 @@ fun PlaySetting(
     )
     val (loopPlayback, onLoopPlaybackChange) = rememberPreference(
         key = LoopPlaybackKey,
+        defaultValue = true
+    )
+
+    val (previousPlayback, onPreviousPlaybackChange) = rememberPreference(
+        key = PreviousPlaybackKey,
         defaultValue = true
     )
 
@@ -88,12 +95,20 @@ fun PlaySetting(
                 checked = loopPlayback,
                 onCheckedChange = onLoopPlaybackChange
             )
+            SwitchPreference(
+                title = { Text("上一首切换逻辑")},
+                description = "关闭时，切换上一首如果大于3秒，会重头开始播放",
+                icon = { Icon(Icons.Rounded.SkipPrevious, null) },
+                checked = previousPlayback,
+                onCheckedChange = onPreviousPlaybackChange
+            )
+
             EnumListPreference(
                 title = { Text("音乐质量") },
                 icon = { Icon(Icons.Rounded.HighQuality, null) },
                 selectedValue = musicQuality,
                 onValueSelected = onMusicQualityChange,
-                valueText = { it.text }
+                valueText = { "${it.text} ${it.explanation}" }
             )
         }
     }

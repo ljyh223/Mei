@@ -26,11 +26,10 @@ val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 
 
 val CookieKey = stringPreferencesKey("cookie")
-val NetEaseCloudMusicApiServiceHostKey = stringPreferencesKey("netEaseCloudMusicApiServiceHost")
+val MusicQualityKey = stringPreferencesKey("musicQuality")
 
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
-val IrregularityCoverKey = booleanPreferencesKey("irregularityCover")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
 
 
@@ -41,9 +40,11 @@ val AccompanimentLyricTextSizeKey = stringPreferencesKey("accompanimentLyricText
 val AccompanimentLyricTextBoldKey = booleanPreferencesKey("accompanimentLyricTextBold")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
-val MusicQualityKey = stringPreferencesKey("musicQuality")
+
 val LoopPlaybackKey = booleanPreferencesKey("loopPlayback")
+val PreviousPlaybackKey = booleanPreferencesKey("previousPlayback")
 val PlayModeKey = intPreferencesKey("playMode")
+
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
 
@@ -64,14 +65,14 @@ enum class LyricTextAlignment {
 
 
 // standard, exhigh, lossless, hires, jyeffect(高清环绕声), sky(沉浸环绕声), jymaster(超清母带) 进行音质判断
-enum class MusicQuality(val text: String) {
-    STANDARD("standard"),
-    EXHIGH("exhigh"),
-    LOSSLESS("lossless"),
-    HIRES("hires"),
-    JYEFFECT("jyeffect"),
-    SKY("sky"),
-    JYMASTER("jymaster")
+enum class MusicQuality(val text: String, val explanation:String) {
+    STANDARD("standard", "标准"),
+    EXHIGH("exhigh","极高"),
+    LOSSLESS("lossless","无损"),
+    HIRES("hires","Hi-Res"),
+    JYEFFECT("jyeffect", "高清环绕声"),
+    SKY("sky", "沉浸环绕声"),
+    JYMASTER("jymaster", "超清母带")
 }
 
 
