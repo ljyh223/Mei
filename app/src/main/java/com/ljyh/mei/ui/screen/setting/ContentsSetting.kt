@@ -63,10 +63,6 @@ fun ContentsSetting(
         UseQQMusicLyricKey,
         defaultValue = true
     )
-    val (musicQuality, onMusicQualityChange) = rememberEnumPreference(
-        key = MusicQualityKey,
-        defaultValue = MusicQuality.EXHIGH,
-    )
     val (cookie, onCookie) = rememberPreference(
         CookieKey,
         defaultValue = ""
@@ -121,13 +117,6 @@ fun ContentsSetting(
                 icon = { Icon(Icons.Rounded.Lyrics, null) },
                 checked = useQQMusicLyric,
                 onCheckedChange = onUseQQMusicLyricChange
-            )
-            EnumListPreference(
-                title = { Text("音乐质量") },
-                icon = { Icon(Icons.Rounded.HighQuality, null) },
-                selectedValue = musicQuality,
-                onValueSelected = onMusicQualityChange,
-                valueText = { musicQuality.text }
             )
 
             EditTextPreference(

@@ -5,11 +5,16 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.playback.queue.QueueFactory
 import com.ljyh.mei.playback.queue.QueueListener
+import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.toEnum
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,26 +38,10 @@ class PlaybackQueueManager(
 
     private val TAG = "PlaybackQueueManager"
 
-    // 当前队列状态
     private val _queueState = MutableStateFlow<QueueState>(QueueState.Idle)
-    val queueState: StateFlow<QueueState> = _queueState
-
-    // 当前活动队列
     private var currentQueue: Queue = QueueFactory.createEmptyQueue()
     private var queueTitle: String? = null
-
-    // 预加载相关
-    private var preloadJob: Job? = null
-    private var preloadWindowSize = 10
-    private var preloadThreshold = 3
-
-    // 错误恢复管理器
-    private lateinit var errorRecoveryManager: ErrorRecoveryManager
-
-
-
     private var originalMediaItems: List<MediaItem> = emptyList()
-
     private val _isShuffleModeEnabled = MutableStateFlow(false)
 
     /**
@@ -66,7 +55,6 @@ class PlaybackQueueManager(
         _queueState.value = QueueState.Loading(queue.title ?: "播放列表")
 
         try {
-            preloadJob?.cancel()
             currentQueue = queue
             queueTitle = queue.title
 
@@ -155,21 +143,13 @@ class PlaybackQueueManager(
 
 
 
-
-    private suspend fun preloadAroundPosition(position: Int) {
-        if (currentQueue is com.ljyh.mei.playback.queue.PlaylistQueue) {
-            val playlistQueue = currentQueue as com.ljyh.mei.playback.queue.PlaylistQueue
-            playlistQueue.preloadAround(position, preloadWindowSize)
-        }
-    }
-
     private suspend fun loadSongDetails(ids: List<String>): List<MediaItem> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = apiService.getSongDetail(
                     com.ljyh.mei.data.model.api.GetSongDetails(c = ids.joinToString(","))
                 )
-                response.songs.map { it.toMediaItem() }
+                response.songs.map { it.toMediaItem(context.dataStore[MusicQualityKey].toEnum(MusicQuality.EXHIGH)) }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load song details", e)
                 emptyList()
@@ -180,11 +160,9 @@ class PlaybackQueueManager(
 
 
     fun release() {
-        preloadJob?.cancel()
         currentQueue.release()
     }
 
-    // ... Listener 实现 ...
     override fun onQueueStateChanged(state: Queue.QueueState) {}
     override fun onQueueItemsAdded(items: List<String>, position: Int) {}
     override fun onQueueError(error: String) { _queueState.value = QueueState.Error(error) }

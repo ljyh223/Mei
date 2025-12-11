@@ -15,12 +15,15 @@ import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.getCurrentQueueIndex
 import com.ljyh.mei.extensions.getQueueWindows
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -140,7 +143,10 @@ class PlayerConnection(
             PlayMode.REPEAT_MODE_ALL -> {
                 // 当前是【列表循环】，切换到 -> 【随机播放】
                 // 逻辑：开启随机开关，同时保持 REPEAT_MODE_ALL，这样随机播完一轮会自动重新洗牌继续播
-                service.player.repeatMode = REPEAT_MODE_ALL
+                if(service.dataStore[LoopPlaybackKey] == true){
+                    service.player.repeatMode = REPEAT_MODE_ALL
+                }
+
                 service.setShuffleModeEnabled(true)
             }
             PlayMode.SHUFFLE_MODE_ALL -> {
@@ -153,7 +159,9 @@ class PlayerConnection(
                 // 当前是【单曲循环】，切换到 -> 【列表循环】
                 // 逻辑：关闭随机，设置列表循环
                 service.setShuffleModeEnabled(false)
-                service.player.repeatMode = REPEAT_MODE_ALL
+                if(service.dataStore[LoopPlaybackKey] == true){
+                    service.player.repeatMode = REPEAT_MODE_ALL
+                }
             }
         }
 

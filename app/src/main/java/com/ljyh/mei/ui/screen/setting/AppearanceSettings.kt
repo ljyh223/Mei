@@ -57,18 +57,12 @@ fun AppearanceSettings(
 ) {
     val navController = LocalNavController.current
 
-    val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
-        DynamicThemeKey,
-        defaultValue = true
-    )
+
     val (coverStyle, onCoverStyleChange) = rememberEnumPreference(
         CoverStyleKey,
         defaultValue = CoverStyle.Square
     )
-    val (irregularityCover, onIrregularityCover) = rememberPreference(
-        IrregularityCoverKey,
-        defaultValue = false
-    )
+
     val (lyricTextAlignment, onLyricTextAlignmentChange) = rememberEnumPreference(
         LyricTextAlignmentKey,
         defaultValue = LyricTextAlignment.Left
@@ -80,14 +74,6 @@ fun AppearanceSettings(
     val (lyricTextBold, onLyricTextBoldChange) = rememberPreference(
         LyricTextBoldKey,
         defaultValue = true
-    )
-
-    val (dynamicStreamer, onDynamicStreamerChange) = rememberPreference(
-        DynamicStreamerKey, defaultValue = true
-    )
-    val (dynamicStreamerType, onDynamicStreamerType) = rememberEnumPreference(
-        DynamicStreamerTypeKey,
-        defaultValue = DynamicStreamerType.Image
     )
 
     val (originalCover, onOriginalCover) = rememberPreference(
@@ -129,12 +115,7 @@ fun AppearanceSettings(
                 title = "THEME"
             )
 
-            SwitchPreference(
-                title = { Text("启用动态主题") },
-                icon = { Icon(Icons.Rounded.Palette, null) },
-                checked = dynamicTheme,
-                onCheckedChange = onDynamicThemeChange
-            )
+
 
             PreferenceGroupTitle(
                 title = "PLAYER"
@@ -147,31 +128,7 @@ fun AppearanceSettings(
                 checked = originalCover,
                 onCheckedChange = onOriginalCover
             )
-            SwitchPreference(
-                title = { Text("允许不规则封面") },
-                icon = { Icon(Icons.Rounded.Stairs, null) },
-                checked = irregularityCover,
-                onCheckedChange = onIrregularityCover
-            )
-            SwitchPreference(
-                title = { Text("启用动态背景") },
-                icon = { Icon(Icons.Rounded.TextRotationAngledown, null) },
-                checked = dynamicStreamer,
-                onCheckedChange = onDynamicStreamerChange
-            )
-            EnumListPreference(
-                title = { Text("动态背景样式") },
-                icon = { Icon(Icons.Rounded.Image, null) },
-                isEnabled = dynamicStreamer,
-                selectedValue = dynamicStreamerType,
-                onValueSelected = onDynamicStreamerType,
-                valueText = {
-                    when (it) {
-                        DynamicStreamerType.Image -> "Image"
-                        DynamicStreamerType.FluidBg -> "FluidBg"
-                    }
-                }
-            )
+
             EnumListPreference(
                 title = { Text("歌曲封面样式") },
                 icon = { Icon(Icons.Rounded.Image, null) },
@@ -202,11 +159,7 @@ fun AppearanceSettings(
                 selectedValue = lyricTextAlignment,
                 onValueSelected = onLyricTextAlignmentChange,
                 valueText = {
-                    when (it) {
-                        LyricTextAlignment.Left -> "居左"
-                        LyricTextAlignment.Center -> "居中"
-                        LyricTextAlignment.Right -> "居右"
-                    }
+                    it.name
                 }
             )
 
@@ -215,17 +168,7 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.FormatSize, null) },
                 selectedValue = lyricTextSize,
                 onValueSelected = onLyricTextSizeChange,
-                valueText = {
-                    when (it) {
-                        LyricTextSize.Size18 -> "18"
-                        LyricTextSize.Size20 -> "20"
-                        LyricTextSize.Size22 -> "22"
-                        LyricTextSize.Size24 -> "24"
-                        LyricTextSize.Size26 -> "26"
-                        LyricTextSize.Size28 -> "28"
-                        LyricTextSize.Size30 -> "30"
-                    }
-                }
+                valueText = { it.name}
             )
 
 

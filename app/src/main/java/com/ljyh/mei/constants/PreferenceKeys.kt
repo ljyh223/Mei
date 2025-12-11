@@ -40,6 +40,7 @@ val DynamicStreamerKey = booleanPreferencesKey("dynamicStreamer")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
 val MusicQualityKey = stringPreferencesKey("musicQuality")
+val LoopPlaybackKey = booleanPreferencesKey("loopPlayback")
 val PlayModeKey= intPreferencesKey("playMode")
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
@@ -91,12 +92,12 @@ enum class MusicQuality(val text:  String) {
 //    }
 //}
 
-enum class LyricTextSize {
-    Size18,
-    Size20,
-    Size22,
-    Size24,
-    Size26,
-    Size28,
-    Size30
+enum class LyricTextSize(text: String) {
+    Size18("18"),
+    Size20("20"),
+    Size22("22"),
+    Size24("24"),
+    Size26("26"),
+    Size28("28"),
+    Size30("30");
 }

@@ -24,6 +24,7 @@ import com.ljyh.mei.ui.screen.search.SearchResultScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettings
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
+import com.ljyh.mei.ui.screen.setting.PlaySetting
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 
 
@@ -54,6 +55,9 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.ContentSettings.route) {
         ContentsSetting(scrollBehavior)
+    }
+    composable(Screen.PlaySettings.route){
+        PlaySetting(scrollBehavior)
     }
 
     composable(Screen.EveryDay.route){
