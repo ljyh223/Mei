@@ -103,22 +103,26 @@ fun LyricScreen(
                         playerConnection.player.seekTo(line.start.toLong())
                     },
                     onLinePressed = { line ->
-                        try {
-                            val lyric = (line as KaraokeLine)
-                            setClipboard(
-                                context,
-                                "${lyric.syllables.joinToString("") { it.content }}\n${lyric.translation}",
-                                "lyric"
-                            )
-                        } catch (e: Exception) {
-                            val lyric = (line as SyncedLine)
-                            setClipboard(
-                                context,
-                                "${lyric.content}\n${lyric.translation}",
-                                "lyric"
-                            )
-                            e.printStackTrace()
-                            Toast.makeText(context, "复制失败", Toast.LENGTH_SHORT).show()
+                        val result = when (line) {
+                            is KaraokeLine -> {
+                                "${line.syllables.joinToString("") { it.content }}\n${line.translation}"
+                            }
+                            is SyncedLine -> {
+                                "${line.content}\n${line.translation}"
+                            }
+                            else -> {
+                                Toast.makeText(context, "未知的歌词类型", Toast.LENGTH_SHORT).show()
+                                null
+                            }
+                        }
+
+                        result?.let {
+                            try {
+                                setClipboard(context, it, "lyric")
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                Toast.makeText(context, "复制失败", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                     modifier = Modifier
