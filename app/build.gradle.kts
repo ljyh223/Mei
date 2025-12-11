@@ -134,8 +134,7 @@ dependencies {
     // 歌词组件
     implementation(libs.lyrics.core)
     implementation(libs.lyrics.ui)
-//    implementation("com.mocharealm.accompanist:lyrics-core:0.3.5-local")
-//    implementation("com.mocharealm.accompanist:lyrics-ui:1.0.9-local")
+    implementation(libs.zoomable)
 
 
 }
