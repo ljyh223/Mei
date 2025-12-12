@@ -5,24 +5,14 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.ljyh.mei.constants.MusicQuality
-import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.playback.queue.QueueFactory
 import com.ljyh.mei.playback.queue.QueueListener
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
-import com.ljyh.mei.utils.toEnum
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -149,7 +139,7 @@ class PlaybackQueueManager(
                 val response = apiService.getSongDetail(
                     com.ljyh.mei.data.model.api.GetSongDetails(c = ids.joinToString(","))
                 )
-                response.songs.map { it.toMediaItem(context.dataStore[MusicQualityKey].toEnum(MusicQuality.EXHIGH)) }
+                response.songs.map { it.toMediaItem() }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load song details", e)
                 emptyList()

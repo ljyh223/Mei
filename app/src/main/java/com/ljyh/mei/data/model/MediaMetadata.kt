@@ -121,10 +121,10 @@ fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
         title = al.name
     )
 )
-fun PlaylistDetail.Playlist.Track.toMediaItem(quality: MusicQuality = MusicQuality.EXHIGH) =MediaItem.Builder()
+fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
     .setMediaId(id.toString())
     .setUri(id.toString()) // 占位
-    .setCustomCacheKey("${id}_${quality.text}")
+    .setCustomCacheKey(id.toString())
     .setTag(toMediaMetadata())
     .setMediaMetadata(
         androidx.media3.common.MediaMetadata.Builder()

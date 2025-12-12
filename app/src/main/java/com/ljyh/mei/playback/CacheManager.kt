@@ -16,7 +16,7 @@ import java.io.File
 object CacheManager {
 
     // 缓存大小常量，设置为 5 GB，这是一个比较合理的值
-    private const val CACHE_SIZE_BYTES = 1024 * 1024 * 1024L * 5 // 5 GB
+    private const val CACHE_SIZE_BYTES = 1024 * 1024 * 1024L * 10 // 5 GB
 
     // 使用 @Volatile 注解确保多线程环境下的可见性
     @Volatile

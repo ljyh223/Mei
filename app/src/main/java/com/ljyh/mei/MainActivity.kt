@@ -90,6 +90,7 @@ import com.ljyh.mei.constants.FirstLaunchKey
 import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import com.ljyh.mei.constants.NavigationBarHeight
+import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.ColorRepository
@@ -150,7 +151,7 @@ class MainActivity : ComponentActivity() {
 
         val headerInterceptor = Interceptor { chain ->
             val newRequest = chain.request().newBuilder()
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0")
+                .addHeader("User-Agent", UserAgent)
                 .build()
             chain.proceed(newRequest)
         }

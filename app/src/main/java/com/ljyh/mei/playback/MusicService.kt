@@ -25,8 +25,10 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -51,6 +53,7 @@ import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
+import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.room.Song
@@ -113,6 +116,7 @@ class MusicService : MediaLibraryService(),
 
     @Inject
     lateinit var historyRepository: HistoryRepository
+
     @Inject
     lateinit var songRepository: SongRepository
 
@@ -246,7 +250,6 @@ class MusicService : MediaLibraryService(),
         // 2. 将下一首加入预加载 (如果存在)
         if (currentIndex + 1 < player.mediaItemCount) {
             val nextItem = player.getMediaItemAt(currentIndex + 1)
-            // add(MediaItem, rankingData) -> rankingData 对应 Int
             preloadManager.add(nextItem, currentIndex + 1)
         }
 
@@ -364,23 +367,43 @@ class MusicService : MediaLibraryService(),
         Log.d("SimpleCache", "Creating CacheDataSource instance")
         val simpleCache = CacheManager.getSimpleCache(context)
 
+        // 配置 OkHttp
+        val okHttpDataSourceFactory = OkHttpDataSource.Factory(
+            OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    chain.proceed(
+                        chain.request().newBuilder()
+                            .addHeader("User-Agent", UserAgent)
+                            .build()
+                    )
+                }
+                .build()
+        )
+
         return CacheDataSource.Factory()
             .setCache(simpleCache)
-            .setUpstreamDataSourceFactory(
-                DefaultDataSource.Factory(
-                    this,
-                    OkHttpDataSource.Factory(OkHttpClient.Builder().build())
-                )
-            )
+            .setUpstreamDataSourceFactory(okHttpDataSourceFactory)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
     }
 
+    private fun isContentFullyCached(cache: Cache, key: String): Boolean {
+        // 获取缓存元数据
+        val contentMetadata = cache.getContentMetadata(key)
+        // 获取总长度 (Content-Length)
+        val contentLength = ContentMetadata.getContentLength(contentMetadata)
+
+        // 如果不知道总长度，说明还没下载完或者没存长度信息，视为未完全缓存
+        if (contentLength == C.LENGTH_UNSET.toLong()) return false
+        // 检查缓存的字节数是否 >= 总长度
+        val cachedBytes = cache.getCachedBytes(key, 0, contentLength)
+        return cachedBytes >= contentLength
+    }
+
     private fun createDataSourceFactory(): DataSource.Factory {
+        val simpleCache = CacheManager.getSimpleCache(context)
 
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
-            val customKey = dataSpec.key ?: error("No media key")
-            val mediaId = customKey.substringBefore("_")
-
+            val mediaId = dataSpec.key ?: error("No media key")
             val localFilePath = runBlocking {
                 songRepository.getSong(mediaId).firstOrNull()?.path
             }
@@ -394,9 +417,13 @@ class MusicService : MediaLibraryService(),
                     return@Factory dataSpec.withUri(Uri.fromFile(file))
                 }
             }
+            // 检查磁盘缓存 (ExoPlayer Cache) 是否已完全缓存
+            if (isContentFullyCached(simpleCache, mediaId)) {
+                Log.d("ResolvingDataSource", "Fully cached on disk, skipping API: $mediaId")
+                return@Factory dataSpec.withUri("cache://$mediaId".toUri())
+            }
 
-
-            // 检查缓存
+            // 内存 URL 缓存检查
             songUrlCache[mediaId]?.takeIf { it.expiryTime > System.currentTimeMillis() }?.let {
                 Log.d("ResolvingDataSource", "Using cached URL for mediaId: $mediaId")
                 return@Factory dataSpec.withUri(it.url.toUri())
@@ -424,7 +451,7 @@ class MusicService : MediaLibraryService(),
                 return@Factory dataSpec
             }
             // 存储到缓存
-            val expiryTime = System.currentTimeMillis() + 24 * 60 * 60 * 1000 // 24小时有效
+            val expiryTime = System.currentTimeMillis() + 60 * 60 * 1000 // 1小时有效, 实际大概我也不知道
             songUrlCache[mediaId] = SongCache(url, expiryTime)
             Log.d("ResolvingDataSource", "Resolved media URL for mediaId: $mediaId, URL: $url")
 
