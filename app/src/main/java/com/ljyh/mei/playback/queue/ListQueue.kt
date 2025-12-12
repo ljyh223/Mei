@@ -1,8 +1,4 @@
 package com.ljyh.mei.playback.queue
-
-import androidx.media3.common.MediaItem
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.utils.shuffleExceptOne
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -57,14 +53,9 @@ class ListQueue(
             Queue.Result.Error("Position $position out of bounds")
         }
     }
-
-    // shuffle 和 restore 方法已被移除，职责转移到 PlaybackQueueManager
-
     override fun clear() {
-        // 列表队列不需要清理操作
     }
 
     override fun release() {
-        // 列表队列不需要释放操作
     }
 }

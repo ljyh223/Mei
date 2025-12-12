@@ -88,6 +88,7 @@
 # Gson
 -keep class com.google.gson.** { *; }
 -keep class com.google.gson.stream.** { *; }
+-dontwarn com.google.gson.**
 
 -keepclasseswithmembernames class * {
     native <methods>;
@@ -151,3 +152,7 @@
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 -keepattributes AnnotationDefault,RuntimeVisibleAnnotations
+
+
+# 奇怪的问题，ArtistDetail需要免去r8混淆，但是其他类正常
+-keep class com.ljyh.mei.data.model.api.** { *; }

@@ -8,14 +8,6 @@ fun reportException(throwable: Throwable) {
 }
 
 
-fun <T> shuffleExceptOne(arr: List<T>, fixedIndex: Int): List<T> {
-    if (fixedIndex !in arr.indices) return arr.shuffled()          // 越界就纯打乱
-    val res = arr.toMutableList()                                  // 复制一份
-    val first = res.removeAt(fixedIndex)                           // 抽出指定元素
-    res.shuffle()                                                  // 打乱剩余
-    res.add(0, first)                                              // 放回头部
-    return res
-}
 private fun getPositionPriority(positionCode: String): Int = when (positionCode) {
     "PAGE_RECOMMEND_DAILY_RECOMMEND" -> 1   // 最高优先级
     "PAGE_RECOMMEND_RADAR" -> 2
