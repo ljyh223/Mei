@@ -2,13 +2,18 @@ package com.ljyh.mei.playback
 
 import android.content.Context
 import android.util.Log
+import androidx.media3.common.C
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
+import androidx.media3.datasource.cache.ContentMetadata
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import com.ljyh.mei.constants.UserAgent
 import okhttp3.OkHttpClient
 import java.io.File
 
@@ -49,17 +54,41 @@ object CacheManager {
         return SimpleCache(cacheDir, evictor, databaseProvider)
     }
 
-    /**
-     * 建议在 Service 中新增此方法，将 CacheDataSource.Factory 的创建也集中管理。
-     * 这样可以确保所有使用缓存的地方都使用同一个 OkHttpClient 实例。
-     */
-    fun getCacheDataSourceFactory(context: Context, okHttpClient: OkHttpClient): CacheDataSource.Factory {
-        val upstreamFactory = OkHttpDataSource.Factory(okHttpClient)
+
+    fun getCacheDataSourceFactory(context: Context): CacheDataSource.Factory {
+        Log.d("SimpleCache", "Creating CacheDataSource instance")
+        val simpleCache = CacheManager.getSimpleCache(context)
+
+        // 配置 OkHttp
+        val okHttpDataSourceFactory = OkHttpDataSource.Factory(
+            OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    chain.proceed(
+                        chain.request().newBuilder()
+                            .addHeader("User-Agent", UserAgent)
+                            .build()
+                    )
+                }
+                .build()
+        )
 
         return CacheDataSource.Factory()
-            .setCache(getSimpleCache(context))
-            .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context, upstreamFactory))
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+            .setCache(simpleCache)
+            .setUpstreamDataSourceFactory(okHttpDataSourceFactory)
+            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+    }
+
+    fun isContentFullyCached(cache: Cache, key: String): Boolean {
+        // 获取缓存元数据
+        val contentMetadata = cache.getContentMetadata(key)
+        // 获取总长度 (Content-Length)
+        val contentLength = ContentMetadata.getContentLength(contentMetadata)
+
+        // 如果不知道总长度，说明还没下载完或者没存长度信息，视为未完全缓存
+        if (contentLength == C.LENGTH_UNSET.toLong()) return false
+        // 检查缓存的字节数是否 >= 总长度
+        val cachedBytes = cache.getCachedBytes(key, 0, contentLength)
+        return cachedBytes >= contentLength
     }
 
     /**

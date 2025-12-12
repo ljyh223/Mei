@@ -64,6 +64,8 @@ import com.ljyh.mei.di.HistoryRepository
 import com.ljyh.mei.di.SongDao
 import com.ljyh.mei.di.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
+import com.ljyh.mei.playback.CacheManager.getCacheDataSourceFactory
+import com.ljyh.mei.playback.CacheManager.isContentFullyCached
 import com.ljyh.mei.utils.CoilBitmapLoader
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
@@ -363,46 +365,10 @@ class MusicService : MediaLibraryService(),
 
     }
 
-    private fun createCacheDataSource(): CacheDataSource.Factory {
-        Log.d("SimpleCache", "Creating CacheDataSource instance")
-        val simpleCache = CacheManager.getSimpleCache(context)
-
-        // 配置 OkHttp
-        val okHttpDataSourceFactory = OkHttpDataSource.Factory(
-            OkHttpClient.Builder()
-                .addInterceptor { chain ->
-                    chain.proceed(
-                        chain.request().newBuilder()
-                            .addHeader("User-Agent", UserAgent)
-                            .build()
-                    )
-                }
-                .build()
-        )
-
-        return CacheDataSource.Factory()
-            .setCache(simpleCache)
-            .setUpstreamDataSourceFactory(okHttpDataSourceFactory)
-            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
-    }
-
-    private fun isContentFullyCached(cache: Cache, key: String): Boolean {
-        // 获取缓存元数据
-        val contentMetadata = cache.getContentMetadata(key)
-        // 获取总长度 (Content-Length)
-        val contentLength = ContentMetadata.getContentLength(contentMetadata)
-
-        // 如果不知道总长度，说明还没下载完或者没存长度信息，视为未完全缓存
-        if (contentLength == C.LENGTH_UNSET.toLong()) return false
-        // 检查缓存的字节数是否 >= 总长度
-        val cachedBytes = cache.getCachedBytes(key, 0, contentLength)
-        return cachedBytes >= contentLength
-    }
-
     private fun createDataSourceFactory(): DataSource.Factory {
         val simpleCache = CacheManager.getSimpleCache(context)
 
-        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+        return ResolvingDataSource.Factory(getCacheDataSourceFactory(context)) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media key")
             val localFilePath = runBlocking {
                 songRepository.getSong(mediaId).firstOrNull()?.path
