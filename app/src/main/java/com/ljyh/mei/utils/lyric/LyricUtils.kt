@@ -46,7 +46,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
     val qqSource = sources.filterIsInstance<LyricSourceData.QQMusic>().firstOrNull()
     if (qqSource != null) {
         val q = qqSource.lyric
-        if (q.lyric.isNotBlank() && q.trans.isNotBlank()) {
+        if (q.lyric.isNotBlank()) {
             Log.d("LyricUtils", "qq.lyric and qq.trans")
             return LyricData(
                 isVerbatim = true,

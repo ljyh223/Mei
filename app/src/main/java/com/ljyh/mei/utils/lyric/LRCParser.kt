@@ -8,9 +8,11 @@ import kotlin.math.abs
 
 private data class TranslationLine(val time: Int, val text: String)
 object LRCParser : ILyricsParser {
-    private val lrcLineRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[:.]\\d{2,3})](.*)")
+    private val lrcLineRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[:.]\\d{2,3})]+(.*)")
     // A separate regex for parsing translation files
     private val translationLrcRegex = Regex("\\[(\\d{2}):(\\d{2})[.:](\\d{2,3})](.*)")
+    private val timeStampRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[:.]\\d{2,3})]")
+
 
     /**
      * 【推荐使用】解析 LRC 主歌词并合并一个可选的、独立的 LRC 翻译文件。
@@ -24,14 +26,12 @@ object LRCParser : ILyricsParser {
 
         var data = lyricsLines
             .flatMap { line -> parseLine(line) }
-            .sortedBy { it.start } // Sort early to ensure correct order before merging
+            .sortedBy { it.start }
 
-        // If a translation file is provided, merge it using the efficient algorithm
         if (!translationLrc.isNullOrBlank()) {
             data = data.mergeWithExternalTranslation(translationLrc)
         }
 
-        // Continue with the original processing pipeline
         val finalLines = data
             .rearrangeTime()
             .map { it.toSyncedLine() }
@@ -48,7 +48,6 @@ object LRCParser : ILyricsParser {
         val lyricsLines = LrcMetadataHelper.removeAttributes(lines)
         val data = lyricsLines
             .flatMap { line -> parseLine(line) }
-            // Note: Uses the original method for interleaved translations
             .combineRawWithTranslation()
             .rearrangeTime()
             .map { it.toSyncedLine() }
@@ -57,18 +56,34 @@ object LRCParser : ILyricsParser {
         return SyncedLyrics(lines = data)
     }
 
+
     private fun parseLine(content: String): List<UncheckedSyncedLine> {
-        return lrcLineRegex.findAll(content).map { matchResult ->
-            val (time, lyric) = matchResult.destructured
+        val line = content.trim()
+
+        // 查找所有时间戳
+        val timeStamps = timeStampRegex.findAll(line).toList()
+        if (timeStamps.isEmpty()) {
+            return emptyList()
+        }
+
+        // 提取歌词文本
+        val lastTimeStampEnd = timeStamps.last().range.last + 1
+        val lyricText = if (lastTimeStampEnd < line.length) {
+            line.substring(lastTimeStampEnd).trim()
+        } else {
+            ""
+        }
+
+        return timeStamps.map { match ->
+            val time = match.groups[1]?.value ?: ""
             UncheckedSyncedLine(
                 start = time.parseAsTime(),
                 end = 0,
-                content = lyric.trim(),
+                content = lyricText,
                 translation = null
             )
-        }.toList()
+        }
     }
-
     /**
      * 新增：高效地将外部翻译文本合并到歌词行列表中。
      */

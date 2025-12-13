@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player
 
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,11 +20,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Replay
-import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -57,7 +51,6 @@ import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.utils.largeImage
 import com.ljyh.mei.utils.smallImage
 
 @OptIn(UnstableApi::class)
@@ -152,7 +145,7 @@ fun MiniPlayer(
 fun MiniMediaInfo(
     mediaMetadata: MediaMetadata,
     error: PlaybackException?,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
