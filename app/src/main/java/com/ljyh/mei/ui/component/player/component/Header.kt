@@ -77,7 +77,7 @@ fun Header(
         Row {
             if (mediaMetadata.artists.isNotEmpty()) {
                 Text(
-                    text = mediaMetadata.artists.joinToString(", ") { it.name },
+                    text = mediaMetadata.artists.take(3).joinToString(", ") { it.name },
                     style = subTitleStyle,
                     color = Color.White.copy(alpha = 0.8f),
                     maxLines = 1,
