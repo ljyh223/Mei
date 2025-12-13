@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'v-test'
+        description: '手动发布时使用的标签名 (例如: v1.0.0)'
         required: true
         type: string
       release_notes:
-        description: 'test-release'
+        description: '发布说明 (可选，默认使用 .github/release_notes.md)'
         required: false
         type: string
 
