@@ -3,6 +3,16 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'v-test'
+        required: true
+        type: string
+      release_notes:
+        description: 'test-release'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -11,6 +21,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
+        # 对于手动触发，需要获取指定的标签
+        with:
+          ref: ${{ github.event.inputs.tag_name || github.ref }}
 
       - uses: actions/setup-java@v3
         with:
@@ -33,20 +46,36 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - run: mv ${{ steps.sign_app.outputs.signedReleaseFile }} Mei_${GITHUB_REF_NAME}.apk
+      # 根据触发方式决定APK文件名
+      - name: Rename APK file
+        run: |
+          if [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            mv ${{ steps.sign_app.outputs.signedReleaseFile }} Mei_${{ github.event.inputs.tag_name }}.apk
+          else
+            mv ${{ steps.sign_app.outputs.signedReleaseFile }} Mei_${GITHUB_REF_NAME}.apk
+          fi
 
       - name: Read Release Notes
         id: release_notes
         run: |
-          body=$(cat .github/release_notes.md 2>/dev/null || echo "Release ${{ github.ref_name }}")
+          # 优先使用手动输入的发布说明，其次使用文件，最后使用默认值
+          if [ -n "${{ github.event.inputs.release_notes }}" ]; then
+            body="${{ github.event.inputs.release_notes }}"
+          elif [ -f .github/release_notes.md ]; then
+            body=$(cat .github/release_notes.md)
+          else
+            body="Release ${{ github.event.inputs.tag_name || github.ref_name }}"
+          fi
           {
             echo "BODY<<EOF"
             echo "$body"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "*.apk"
           token: ${{ github.token }}
+          tag: ${{ github.event.inputs.tag_name || github.ref_name }}
           generateReleaseNotes: true
           body: ${{ steps.release_notes.outputs.BODY }}
