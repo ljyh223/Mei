@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -59,6 +60,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.largeImage
 import com.ljyh.mei.utils.smallImage
 
+@OptIn(UnstableApi::class)
 @Composable
 fun MiniPlayer(
     position: Long,
@@ -72,66 +74,78 @@ fun MiniPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
-    Box(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(MiniPlayerHeight)
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-    ) {
-        LinearProgressIndicator(
-            progress = { (position.toFloat() / duration).coerceIn(0f, 1f)},
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(3.dp)
-                .align(Alignment.BottomCenter),
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ){
+        Box(
             modifier = modifier
-                .fillMaxSize()
-                .padding(end = 6.dp),
+                .fillMaxWidth()
+                .height(MiniPlayerHeight)
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
         ) {
-            Box(Modifier.weight(1f)) {
-                mediaMetadata?.let {
-                    MiniMediaInfo(
-                        mediaMetadata = it,
-                        error = error,
-                        modifier = Modifier.padding(horizontal = 6.dp)
+            LinearProgressIndicator(
+                progress = { (position.toFloat() / duration).coerceIn(0f, 1f)},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(end = 6.dp),
+            ) {
+                Box(Modifier.weight(1f)) {
+                    mediaMetadata?.let {
+                        MiniMediaInfo(
+                            mediaMetadata = it,
+                            error = error,
+                            modifier = Modifier.padding(horizontal = 6.dp)
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = {
+                        if (playbackState == Player.STATE_ENDED) {
+                            playerConnection.player.seekTo(0, 0)
+                            playerConnection.player.playWhenReady = true
+                        } else {
+                            playerConnection.player.togglePlayPause()
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (playbackState == Player.STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface
+
+                    )
+                }
+
+                IconButton(
+                    enabled = canSkipNext,
+                    onClick = playerConnection::seekToNext
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipNext,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface
+
                     )
                 }
             }
-
-            IconButton(
-                onClick = {
-                    if (playbackState == Player.STATE_ENDED) {
-                        playerConnection.player.seekTo(0, 0)
-                        playerConnection.player.playWhenReady = true
-                    } else {
-                        playerConnection.player.togglePlayPause()
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector = if (playbackState == Player.STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
-
-                )
-            }
-
-            IconButton(
-                enabled = canSkipNext,
-                onClick = playerConnection::seekToNext
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipNext,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
-
-                )
-            }
         }
+
     }
+
 }
 
 @Composable

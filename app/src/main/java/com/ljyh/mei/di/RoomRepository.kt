@@ -2,13 +2,16 @@ package com.ljyh.mei.di
 
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.ColorUtils
 import androidx.paging.LOG_TAG
 import androidx.palette.graphics.Palette
 import coil3.imageLoader
 import coil3.request.ImageRequest
+import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.ljyh.mei.data.model.room.CacheColor
@@ -44,64 +47,83 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
         return memoryCache[url]
     }
 
-    /**
-     * 2. 【挂起方法】完整流程：内存 -> 数据库 -> 网络提取
-     * 专门给 ViewModel 或 LaunchedEffect 在后台使用。
-     * 自动处理线程切换 (Dispatchers.IO)。
-     */
     suspend fun getColorOrExtract(
         context: Context,
         url: String
-    ): Color = withContext(Dispatchers.IO) { // 强制切换到 IO 线程
+    ): Color = withContext(Dispatchers.IO) {
         if (url.isEmpty()) return@withContext Color.Black
 
-        // A. 再次检查内存 (防止并发时别人已经加载好了)
-        memoryCache[url]?.let {
-            Log.d("ColorRepository", "内存中已经有了: $url")
-            return@withContext it }
+        // 1. 查内存
+        memoryCache[url]?.let { return@withContext it }
 
-        // B. 查数据库 (L2)
+        // 2. 查数据库
         val dbEntity = colorDao.getColor(url)
         if (dbEntity != null) {
-            Log.d("ColorRepository", "数据库中已经有了: $url")
             val color = Color(dbEntity.color)
-            memoryCache[url] = color // 回填内存
+            memoryCache[url] = color
             return@withContext color
         }
-        Log.d("ColorRepository", "都没有，开始网络提取: $url")
 
-        // C. 数据库没有 -> 网络下载并提取
+        // 3. 网络提取 (核心修改部分)
         val loader = context.imageLoader
         val request = ImageRequest.Builder(context)
             .data(url)
-            .allowHardware(false) // 关硬件加速以读取像素
-            .size(128)            // 读小图，提速
+            .allowHardware(false) // 必须关闭硬件加速
+            .size(128)            // 极速模式
             .build()
 
         val result = loader.execute(request)
-        val extractedColor = if (result is coil3.request.SuccessResult) {
+
+        val finalColor = if (result is SuccessResult) {
             val bitmap = result.image.toBitmap()
-            val palette = Palette.from(bitmap).generate()
-            // 提取逻辑：鲜艳色 -> 主色 -> 黑色兜底
-            val targetInt = palette.getVibrantColor(
-                palette.getDominantColor(android.graphics.Color.BLACK)
-            )
-            Log.d("ColorRepository", "提取到颜色: $url -> $targetInt")
-            Color(targetInt)
+            // 使用统一的增强算法提取颜色
+            extractAndBoostColor(bitmap)
         } else {
-            Log.d("ColorRepository", "网络请求失败: $url")
             Color.Black
         }
 
-        // D. 存入 L1 内存
-        memoryCache[url] = extractedColor
+        // 4. 存缓存
+        memoryCache[url] = finalColor
+        colorDao.insertColor(CacheColor(url = url, color = finalColor.toArgb()))
 
-        // E. 存入 L2 数据库
-        colorDao.insertColor(
-            CacheColor(url = url, color = extractedColor.toArgb())
-        )
+        finalColor
+    }
 
-        extractedColor
+    /**
+     * 【新增】核心色彩提取与增强逻辑
+     * 保持与 AppleMusicFluidBackground 的视觉风格一致
+     */
+    private fun extractAndBoostColor(bitmap: Bitmap): Color {
+        val palette = Palette.from(bitmap).generate()
+
+        // 1. 优先取 Vibrant (鲜艳)，其次 Dominant (主色)
+        val vibrant = palette.vibrantSwatch?.rgb?.let { Color(it) }
+        val dominant = palette.dominantSwatch?.rgb?.let { Color(it) }
+
+        // 2. 确定基准色
+        val seed = vibrant ?: dominant ?: Color.Black
+
+        // 3. 判断是否为“无聊颜色” (黑/白/灰)
+        // 如果是黑白图，我们不希望主题色变成死黑，而是给一个深邃的蓝色或紫色(与背景一致)
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(seed.toArgb(), hsl)
+        val isMonotone = hsl[1] < 0.1f || hsl[2] < 0.05f || hsl[2] > 0.95f
+
+        return if (isMonotone) {
+            // 这里返回一个通用的“高级暗色”，比如深蓝灰，
+            // 这样生成的 MaterialTheme 会比较好看，而不是纯黑白
+            Color(0xFF2E3192)
+        } else {
+            // 4. 【关键】色彩增强：提升 40% 饱和度
+            // 这样 Repository 返回的颜色就是鲜艳的，生成的按钮和背景色调就统一了
+            seed.boostSaturation(1.4f)
+        }
+    }
+    private fun Color.boostSaturation(multiplier: Float): Color {
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(this.toArgb(), hsl)
+        hsl[1] = (hsl[1] * multiplier).coerceIn(0f, 1f)
+        return Color(ColorUtils.HSLToColor(hsl))
     }
 
     fun getDbColor(url:String): Color? {

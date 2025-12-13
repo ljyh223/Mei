@@ -73,6 +73,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -143,6 +144,7 @@ class MainActivity : ComponentActivity() {
     private var userData by mutableStateOf(UserData.VISITOR)
 
 
+    @androidx.annotation.OptIn(UnstableApi::class)
     @RequiresApi(Build.VERSION_CODES.S)
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {

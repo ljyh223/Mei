@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.component.player
 
 import android.os.Build
 import android.util.Log
+import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -44,17 +45,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Player.STATE_READY
+import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
 import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
 import com.ljyh.mei.ui.component.player.component.Header
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
-import com.ljyh.mei.ui.component.player.component.SmoothCoverBackground
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
@@ -72,6 +74,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
+@OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun BottomSheetPlayer(
@@ -237,8 +240,8 @@ fun BottomSheetPlayer(
         }
     ) {
         val coverUrl = mediaMetadata?.coverUrl
-        SmoothCoverBackground(
-            seedColor = rawSeedColor
+        AppleMusicFluidBackground(
+            imageUrl = coverUrl
         )
 
         // 2. Debug 信息层
