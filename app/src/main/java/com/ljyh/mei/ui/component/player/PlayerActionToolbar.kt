@@ -47,20 +47,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.constants.PlayModeKey
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.playback.PlayMode
+import com.ljyh.mei.ui.component.player.component.PlayerBottomSheet
 import com.ljyh.mei.ui.component.player.component.PlaylistSheet
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.utils.TimeUtils.makeTimeString
-import com.ljyh.mei.utils.rememberPreference
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.ljyh.mei.ui.component.player.component.PlayerBottomSheet
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
-
+import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -80,9 +76,10 @@ fun PlayerActionToolbar(
     var showTrackBottomSheet by remember { mutableStateOf(false) }
 
     // 播放模式
-    var playModeValue by rememberPreference(PlayModeKey, 2) // 默认列表循环
-    val playMode =
-        remember(playModeValue) { PlayMode.fromInt(playModeValue) ?: PlayMode.REPEAT_MODE_ALL }
+    val playModeValue by playerConnection.repeatMode.collectAsState()
+    val playMode = remember(playModeValue) {
+        PlayMode.fromInt(playModeValue) ?: PlayMode.REPEAT_MODE_ALL
+    }
 
     // 喜欢状态 (处理 null 状态)
     val isLiked by playerViewModel.like.collectAsState(initial = null)
@@ -144,20 +141,25 @@ fun PlayerActionToolbar(
         modifier = modifier.fillMaxWidth()
     ) {
 
-        // 1. 播放模式切换
         ShadowedIconButton(
-            onClick = { playModeValue = playerConnection.switchPlayMode(playMode.mode) }
+            onClick = { playerConnection.switchPlayMode() }
         ) {
-            Icon(
-                imageVector = when (playMode) {
-                    PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne
-                    PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat
-                    PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle
-                },
-                contentDescription = "播放模式",
-                tint = Color.White
-            )
+            val icon = when (playMode) {
+                PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne // 单曲循环
+                PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat    // 列表循环
+                PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle  // 随机播放
+            }
+
+            // 为了更好的用户体验，可以加上淡入淡出动画
+            AnimatedContent(targetState = icon, label = "PlayModeIcon") { targetIcon ->
+                Icon(
+                    imageVector = targetIcon,
+                    contentDescription = "播放模式",
+                    tint = Color.White
+                )
+            }
         }
+
 
         // 2. 播放队列 (Queue)
         ShadowedIconButton(
@@ -180,11 +182,10 @@ fun PlayerActionToolbar(
                 label = "sleepTimer"
             ) { isEnabled ->
                 if (isEnabled) {
-                    // 倒计时状态：显示胶囊形状的时间
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.2f)) // 半透明背景
+                            .background(Color.White.copy(alpha = 0.2f))
                             .clickable(onClick = sleepTimer::clear)
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
@@ -192,7 +193,8 @@ fun PlayerActionToolbar(
                             text = makeTimeString(sleepTimerTimeLeft),
                             style = MaterialTheme.typography.labelMedium,
                             color = Color.White,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
                 } else {
@@ -221,8 +223,6 @@ fun PlayerActionToolbar(
             Icon(
                 imageVector = if (isLikedSafe) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                 contentDescription = "喜欢",
-                // 喜欢状态用高亮色(如红色)还是保持白色
-                // 既然是流体背景，保持白色最稳妥，或者用 Accent Color
                 tint = if (isLikedSafe) Color.White else Color.White.copy(alpha = 0.7f)
             )
         }

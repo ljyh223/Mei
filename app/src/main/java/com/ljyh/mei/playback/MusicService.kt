@@ -13,6 +13,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.net.toUri
+import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -52,9 +53,11 @@ import coil3.ImageLoader
 import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
+import com.ljyh.mei.constants.IsShuffleModeKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.NoAudioSourceKey
+import com.ljyh.mei.constants.RepeatModeKey
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.api.GetSongUrlV1
@@ -74,6 +77,7 @@ import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -84,6 +88,7 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 
@@ -105,7 +110,7 @@ class MusicService : MediaLibraryService(),
     private lateinit var preloadManager: DefaultPreloadManager
     private val preloadStrategy = MusicPreloadStrategy()
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
-
+    private val resolvingMap = ConcurrentHashMap<String, Deferred<String?>>()
 
     private val binder = MusicBinder()
 
@@ -209,6 +214,21 @@ class MusicService : MediaLibraryService(),
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         updatePreload()
                     }
+                    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                        scope.launch {
+                            context.dataStore.edit { preferences ->
+                                preferences[IsShuffleModeKey] = shuffleModeEnabled
+                            }
+                        }
+                    }
+
+                    override fun onRepeatModeChanged(repeatMode: Int) {
+                        scope.launch {
+                            context.dataStore.edit { preferences ->
+                                preferences[RepeatModeKey] = repeatMode
+                            }
+                        }
+                    }
                 })
             }
 
@@ -219,7 +239,6 @@ class MusicService : MediaLibraryService(),
         val singletonImageLoader = ImageLoader(this)
         mediaSession = MediaLibrarySession.Builder(this, player, LibrarySessionCallback())
             .setSessionActivity(
-                //当用户在媒体通知或锁屏上点击时，可以启动指定的 MainActivity
                 PendingIntent.getActivity(
                     this,
                     0,
@@ -227,11 +246,11 @@ class MusicService : MediaLibraryService(),
                     PendingIntent.FLAG_IMMUTABLE
                 )
             )
-            //设置位图加载器
             .setBitmapLoader(CoilBitmapLoader(this, singletonImageLoader))
             .build()
 
 
+        restorePlayerState()
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
@@ -244,15 +263,32 @@ class MusicService : MediaLibraryService(),
 
     }
 
+    private fun restorePlayerState() {
+        scope.launch {
+            val preferences = context.dataStore.data.firstOrNull() ?: return@launch
+
+            // 获取保存的值，默认值为 true (随机) 和 REPEAT_MODE_OFF (循环)
+            val savedShuffleMode = preferences[IsShuffleModeKey] ?: true
+            val savedRepeatMode = preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL
+            if (player.shuffleModeEnabled != savedShuffleMode) {
+                player.shuffleModeEnabled = savedShuffleMode
+                // 如果你有 queueManager 管理 shuffle，可能也需要通知它
+                queueManager.setShuffleModeEnabled(savedShuffleMode)
+            }
+
+            if (player.repeatMode != savedRepeatMode) {
+                player.repeatMode = savedRepeatMode
+            }
+
+            Log.d("MusicService", "Restored State -> Shuffle: $savedShuffleMode, Repeat: $savedRepeatMode")
+        }
+    }
+
     private fun updatePreload() {
         if (player.currentTimeline.isEmpty) return
 
         val currentIndex = player.currentMediaItemIndex
-
-        // 1. 更新策略中的 index
         preloadStrategy.currentPlayingIndex = currentIndex
-
-        // 2. 将下一首加入预加载 (如果存在)
         if (currentIndex + 1 < player.mediaItemCount) {
             val nextItem = player.getMediaItemAt(currentIndex + 1)
             preloadManager.add(nextItem, currentIndex + 1)
@@ -398,35 +434,44 @@ class MusicService : MediaLibraryService(),
                 return@Factory dataSpec.withUri(it.url.toUri())
             }
 
-            val deferredUrl = CoroutineScope(Dispatchers.IO).async {
-                try {
-                    val response = apiService.getSongUrlV1(
-                        GetSongUrlV1(
-                            ids = "[$mediaId]",
-                            level = context.dataStore[MusicQualityKey] ?: MusicQuality.EXHIGH.text,
-                        )
-                    )
-                    response.data.getOrNull(0)?.url
-                } catch (e: Exception) {
-                    Log.e("ResolvingDataSource", "Failed to fetch media URL", e)
-                    null
+            val url = runBlocking {
+                val deferred = resolvingMap.computeIfAbsent(mediaId) {
+                    CoroutineScope(Dispatchers.IO).async {
+                        try {
+                            Log.d("ResolvingDataSource", "Fetching API for: $mediaId")
+                            val response = apiService.getSongUrlV1(
+                                GetSongUrlV1(
+                                    ids = "[$mediaId]",
+                                    level = context.dataStore[MusicQualityKey] ?: MusicQuality.EXHIGH.text,
+                                )
+                            )
+                            response.data.getOrNull(0)?.url
+                        } catch (e: Exception) {
+                            Log.e("ResolvingDataSource", "Failed to fetch URL", e)
+                            null
+                        }
+                    }
                 }
+                val resultUrl = deferred.await()
+                resolvingMap.remove(mediaId)
+                resultUrl
             }
-            val url = runBlocking { deferredUrl.await() } ?: run {
-                Log.w("ResolvingDataSource", "No valid URL for mediaId: $mediaId")
-                Handler(Looper.getMainLooper()).post {
 
+            if (url == null) {
+                Handler(Looper.getMainLooper()).post {
                     Toast.makeText(context, "暂无音源", Toast.LENGTH_SHORT).show()
                     player.playWhenReady = false
                 }
                 throw java.io.IOException("Unable to resolve url for mediaId: $mediaId")
             }
-            // 存储到缓存
             val expiryTime = System.currentTimeMillis() + 60 * 60 * 1000 // 1小时有效, 实际大概我也不知道
             songUrlCache[mediaId] = SongCache(url, expiryTime)
             Log.d("ResolvingDataSource", "Resolved media URL for mediaId: $mediaId, URL: $url")
 
-            dataSpec.withUri(url.toUri())
+            return@Factory dataSpec.buildUpon()
+                .setUri(url.toUri())
+                .setKey(mediaId)
+                .build()
         }
     }
 
@@ -458,7 +503,10 @@ class MusicService : MediaLibraryService(),
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
     override fun onPlayerError(error: PlaybackException) {
         Log.e("MusicService", "Player Error: ${error.message}")
-        if (error.cause is java.io.IOException && error.message?.contains("Unable to resolve url") == true) {
+        if (error.cause is java.io.IOException && (error.message?.contains("Unable to resolve url") == true || error.message?.contains(
+                "Source error"
+            ) == true)
+        ) {
             if (player.hasNextMediaItem() && dataStore[NoAudioSourceKey] == true) {
                 player.seekToNext()
                 if (!player.playWhenReady) player.playWhenReady = true

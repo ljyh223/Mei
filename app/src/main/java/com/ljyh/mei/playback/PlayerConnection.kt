@@ -67,7 +67,7 @@ class PlayerConnection(
     val currentWindowIndex = MutableStateFlow(-1)
 
     // 这里 repeatMode 我们存储对应的 PlayMode 枚举值(int)，用于 UI 显示
-    val repeatMode = MutableStateFlow(PlayMode.REPEAT_MODE_ALL.mode)
+    val repeatMode = MutableStateFlow(PlayMode.SHUFFLE_MODE_ALL.mode)
     // 同时也暴露原始的 shuffle 状态
     val shuffleModeEnabled = MutableStateFlow(false)
 
@@ -78,8 +78,10 @@ class PlayerConnection(
 
     init {
         player.addListener(this)
+        updateAllStates()
+    }
 
-        // 初始化状态
+    private fun updateAllStates() {
         playbackState.value = player.playbackState
         playWhenReady.value = player.playWhenReady
         mediaMetadata.value = player.currentMetadata
@@ -88,8 +90,8 @@ class PlayerConnection(
         currentWindowIndex.value = player.getCurrentQueueIndex()
         currentMediaItemIndex.value = player.currentMediaItemIndex
 
-        // 初始化播放模式状态
-        updatePlayModeState()
+        updatePlayModeState() // 核心：更新播放模式
+        updateCanSkipPreviousAndNext()
     }
 
     fun isPlaying(id: String): Boolean {
@@ -146,42 +148,41 @@ class PlayerConnection(
      * 切换播放模式
      * 逻辑：列表循环 (REPEAT_ALL) -> 随机播放 (SHUFFLE) -> 单曲循环 (REPEAT_ONE) -> ...
      */
-    fun switchPlayMode(currentModeInt: Int): Int {
-        val currentMode = PlayMode.fromInt(currentModeInt) ?: PlayMode.REPEAT_MODE_ALL
+    fun switchPlayMode() {
+        // 基于当前的 UI 状态决定下一步
+        // 注意：这里不需要返回 Int，因为操作完 Player 后，ExoPlayer 会回调 Listener，
+        // Listener 会调用 updatePlayModeState() 更新 repeatMode Flow，
+        // UI 观察 Flow 自动变化。这样才可靠。
 
-        when (currentMode) {
+        val currentUiMode = PlayMode.fromInt(repeatMode.value) ?: PlayMode.REPEAT_MODE_ALL
+
+        // 判断用户是否开启了“列表循环”设置
+        // 如果开启：列表模式 = REPEAT_MODE_ALL
+        // 如果关闭：列表模式 = REPEAT_MODE_OFF (播完停止)
+        val shouldLoopAll = service.dataStore[LoopPlaybackKey] == true
+
+        when (currentUiMode) {
             PlayMode.REPEAT_MODE_ALL -> {
-                // 当前是【列表循环】，切换到 -> 【随机播放】
-                // 逻辑：开启随机开关，同时保持 REPEAT_MODE_ALL，这样随机播完一轮会自动重新洗牌继续播
-                if(service.dataStore[LoopPlaybackKey] == true){
-                    service.player.repeatMode = REPEAT_MODE_ALL
-                }
-
+                // 当前是列表 -> 切换到 随机
+                // 行为：开启随机，且通常随机模式下也是列表循环的
                 service.setShuffleModeEnabled(true)
+                player.repeatMode = if (shouldLoopAll) REPEAT_MODE_ALL else REPEAT_MODE_OFF
             }
             PlayMode.SHUFFLE_MODE_ALL -> {
-                // 当前是【随机播放】，切换到 -> 【单曲循环】
-                // 逻辑：关闭随机，设置单曲循环
+                // 当前是随机 -> 切换到 单曲
+                // 行为：关闭随机，开启单曲循环
                 service.setShuffleModeEnabled(false)
-                service.player.repeatMode = REPEAT_MODE_ONE
+                player.repeatMode = REPEAT_MODE_ONE
             }
             PlayMode.REPEAT_MODE_ONE -> {
-                // 当前是【单曲循环】，切换到 -> 【列表循环】
-                // 逻辑：关闭随机，设置列表循环
+                // 当前是单曲 -> 切换到 列表
+                // 行为：关闭随机，开启列表循环(或不循环)
                 service.setShuffleModeEnabled(false)
-                if(service.dataStore[LoopPlaybackKey] == true){
-                    service.player.repeatMode = REPEAT_MODE_ALL
-                }
+                player.repeatMode = if (shouldLoopAll) REPEAT_MODE_ALL else REPEAT_MODE_OFF
             }
         }
-
-        // 返回预测的下一个状态用于 UI 快速响应
-        return when (currentMode) {
-            PlayMode.REPEAT_MODE_ALL -> PlayMode.SHUFFLE_MODE_ALL.mode
-            PlayMode.SHUFFLE_MODE_ALL -> PlayMode.REPEAT_MODE_ONE.mode
-            PlayMode.REPEAT_MODE_ONE -> PlayMode.REPEAT_MODE_ALL.mode
-        }
     }
+
 
     // --- Listeners ---
 
@@ -240,23 +241,23 @@ class PlayerConnection(
 
         shuffleModeEnabled.value = isShuffle
 
-        // 优先级逻辑：如果是随机模式，UI显示随机；否则看 Repeat 模式
+        // UI 状态映射逻辑：
         if (isShuffle) {
+            // 只要开了随机，UI 就显示随机图标
             repeatMode.value = PlayMode.SHUFFLE_MODE_ALL.mode
         } else {
+            // 没开随机，检查循环模式
             if (pRepeat == REPEAT_MODE_ONE) {
                 repeatMode.value = PlayMode.REPEAT_MODE_ONE.mode
             } else {
-                // REPEAT_MODE_OFF 也视为 REPEAT_MODE_ALL (通常音乐APP逻辑)
+                // 无论是 OFF 还是 ALL，UI 通常都显示为“列表循环”图标
+                // (除非你有专门的图标表示“播完停止”)
                 repeatMode.value = PlayMode.REPEAT_MODE_ALL.mode
             }
         }
     }
-
     private fun updateCanSkipPreviousAndNext() {
         if (!player.currentTimeline.isEmpty) {
-            // 在原生 Shuffle 模式下，ExoPlayer 会正确处理 getWindow
-            // 并且 isCommandAvailable 会正确反映是否可以随机跳到下一首
             canSkipPrevious.value = player.isCommandAvailable(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                     || player.isCommandAvailable(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
             canSkipNext.value = player.isCommandAvailable(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)

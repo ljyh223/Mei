@@ -38,7 +38,10 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
+import com.ljyh.mei.utils.rememberEnumPreference
 import kotlin.math.PI
 import kotlin.math.roundToLong
 import kotlin.math.sin
@@ -53,6 +56,7 @@ fun PlayerProgressSlider(
     onPositionChange: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val musicQuality by rememberEnumPreference(MusicQualityKey, MusicQuality.EXHIGH)
     val isDurationValid = remember(duration) { duration > 0 }
     val valueRange = remember(duration) { 0f..(duration.takeIf { it > 0 } ?: 1).toFloat() }
 
@@ -221,6 +225,15 @@ fun PlayerProgressSlider(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+
+            Text(
+                text = musicQuality.explanation,
+                style = timeTextStyle,
+                color = Color.White.copy(alpha = 0.8f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
 
             Text(
                 text = if (duration > 0) makeTimeString(duration) else "-:--",

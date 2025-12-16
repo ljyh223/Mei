@@ -110,11 +110,6 @@ fun BottomSheetPlayer(
 
     // 歌词最终状态 (默认为加载中)
     var lyricLine by remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
-    var rawSeedColor by remember {
-        mutableStateOf(
-            Color.White
-        )
-    }
 
     // 更新进度条与时长
     LaunchedEffect(playbackState, isPlaying, isDragging) {
@@ -150,14 +145,6 @@ fun BottomSheetPlayer(
             }
             Log.d("Player", "MediaMetadata: $meta")
             Log.d("Player", "MediaMetadata: cover ${meta.coverUrl}")
-            val color= playerViewModel.getColor(meta.coverUrl)
-            if(color == null){
-                Log.d("Player", "Raw seed color is null")
-                rawSeedColor = Color.White
-            }else{
-                rawSeedColor = color
-                Log.d("Player", "Raw seed color: $rawSeedColor")
-            }
 
         }
     }
@@ -252,7 +239,6 @@ fun BottomSheetPlayer(
                     duration = formatMilliseconds(duration).toString(),
                     id = mediaMetadata!!.id.toString(),
                     qid = qqSong?.qid ?: "null",
-                    color = rawSeedColor.value.toString(),
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .statusBarsPadding()

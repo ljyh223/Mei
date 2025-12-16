@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.SkipPrevious
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
+import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.constants.PreviousPlaybackKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
@@ -57,6 +59,10 @@ fun PlaySetting(
         defaultValue = true
     )
 
+    val (noAudioSource, onNoAudioSourceChange) = rememberPreference(
+        NoAudioSourceKey,
+        defaultValue = false
+    )
 
 
     Scaffold(
@@ -94,6 +100,13 @@ fun PlaySetting(
                 icon = { Icon(Icons.Rounded.Loop, null) },
                 checked = loopPlayback,
                 onCheckedChange = onLoopPlaybackChange
+            )
+            SwitchPreference(
+                title = { Text("无音频源时下一首歌曲") },
+                description = "无音频源时下一首歌曲，否则暂停",
+                icon = { Icon(Icons.Rounded.HideSource, null) },
+                checked = noAudioSource,
+                onCheckedChange = onNoAudioSourceChange
             )
             SwitchPreference(
                 title = { Text("上一首切换逻辑")},

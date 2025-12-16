@@ -43,7 +43,9 @@ val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
 
 val LoopPlaybackKey = booleanPreferencesKey("loopPlayback")
 val PreviousPlaybackKey = booleanPreferencesKey("previousPlayback")
-val PlayModeKey = intPreferencesKey("playMode")
+val NoAudioSourceKey = booleanPreferencesKey("noAudioSource")
+val IsShuffleModeKey = booleanPreferencesKey("shuffleMode")
+val RepeatModeKey = intPreferencesKey("repeatMode")
 
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
