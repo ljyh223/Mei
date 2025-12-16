@@ -71,9 +71,6 @@ fun BottomSheet(
                     .coerceAtLeast(0)
                 IntOffset(x = 0, y = y)
             }
-            // *** 核心修改在这里 ***
-            // 我们将两个手势检测器链接起来。
-            // 外部检测器负责水平滑动。
             .pointerInput(onHorizontalSwipe) {
                 // 如果没有提供回调，则无需监听
                 if (onHorizontalSwipe == null) return@pointerInput
@@ -96,8 +93,6 @@ fun BottomSheet(
                     }
                 )
             }
-            // 内部检测器负责垂直滑动，这是你原有的逻辑。
-            // 因为它在链中更靠后（更“内层”），它会优先处理手势。
             .pointerInput(state) {
                 val velocityTracker = VelocityTracker()
 

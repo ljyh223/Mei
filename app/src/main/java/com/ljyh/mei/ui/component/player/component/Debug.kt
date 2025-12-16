@@ -23,7 +23,6 @@ fun Debug(
     artist: String,
     duration: String,
     qid: String,
-    color: String,
     modifier: Modifier
 ) {
     val context= LocalContext.current
@@ -37,7 +36,6 @@ fun Debug(
             Text(text = "ARTIST: $artist")
             Text(text = "DURATION: $duration")
             Text(text = "QQ_ID: $qid")
-            Text(text = "COLOR: $color")
 //            Button(
 //                onClick = {
 //                    val text = "ID :$id\nTITLE: $title\nALBUM: $album\nARTIST: $artist\nDURATION: $duration\nQQ_ID: $qid"
