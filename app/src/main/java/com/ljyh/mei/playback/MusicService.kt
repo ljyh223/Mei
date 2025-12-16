@@ -16,6 +16,7 @@ import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
 import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
@@ -53,6 +54,7 @@ import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
+import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.api.GetSongUrlV1
@@ -64,6 +66,7 @@ import com.ljyh.mei.di.HistoryRepository
 import com.ljyh.mei.di.SongDao
 import com.ljyh.mei.di.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
+import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.CacheManager.getCacheDataSourceFactory
 import com.ljyh.mei.playback.CacheManager.isContentFullyCached
 import com.ljyh.mei.utils.CoilBitmapLoader
@@ -412,9 +415,11 @@ class MusicService : MediaLibraryService(),
             val url = runBlocking { deferredUrl.await() } ?: run {
                 Log.w("ResolvingDataSource", "No valid URL for mediaId: $mediaId")
                 Handler(Looper.getMainLooper()).post {
+
                     Toast.makeText(context, "暂无音源", Toast.LENGTH_SHORT).show()
+                    player.playWhenReady = false
                 }
-                return@Factory dataSpec
+                throw java.io.IOException("Unable to resolve url for mediaId: $mediaId")
             }
             // 存储到缓存
             val expiryTime = System.currentTimeMillis() + 60 * 60 * 1000 // 1小时有效, 实际大概我也不知道
@@ -451,6 +456,18 @@ class MusicService : MediaLibraryService(),
     data class SongCache(val url: String, val expiryTime: Long)
 
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
+    override fun onPlayerError(error: PlaybackException) {
+        Log.e("MusicService", "Player Error: ${error.message}")
+        if (error.cause is java.io.IOException && error.message?.contains("Unable to resolve url") == true) {
+            if (player.hasNextMediaItem() && dataStore[NoAudioSourceKey] == true) {
+                player.seekToNext()
+                if (!player.playWhenReady) player.playWhenReady = true
+            }
+
+        } else {
+            Toast.makeText(context, "播放出错: ${error.errorCodeName}", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     companion object {
         const val CHANNEL_ID = "music_channel_01"
