@@ -163,13 +163,13 @@ fun PlaylistCard(
 
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 text = title,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
-                fontSize = 11.sp,
+                fontSize = 14.sp,
                 lineHeight = 16.sp,
                 fontWeight = FontWeight.Bold
             )

@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.gson.Gson
@@ -141,6 +142,7 @@ fun HomeScreen(
 /**
  * 渲染首页内容的子组件
  */
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun RenderHomePageContent(
     homePageResource: List<HomePageResourceShow.Data.Block>,
@@ -427,7 +429,7 @@ fun Title(text: String) {
     Text(
         text = text,
         fontSize = 18.sp,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Black,
         color = MaterialTheme.colorScheme.onSurface,
         maxLines = 1
     )
@@ -473,7 +475,8 @@ fun TripleLaneSlider(
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 14.sp,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.ExtraBold
                         )
 
                         Text(
@@ -481,7 +484,8 @@ fun TripleLaneSlider(
                             color = MaterialTheme.colorScheme.secondary,
                             fontSize = 12.sp,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
