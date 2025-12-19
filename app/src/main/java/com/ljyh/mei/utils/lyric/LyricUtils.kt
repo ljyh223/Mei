@@ -5,7 +5,6 @@ import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
-import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
 
 fun createDefaultLyricData(message: String): LyricData {
     return LyricData(
