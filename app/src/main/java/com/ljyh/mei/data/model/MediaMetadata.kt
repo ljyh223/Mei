@@ -11,6 +11,7 @@ import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.utils.encrypt.getResourceLink
+import androidx.core.net.toUri
 
 
 @Immutable
@@ -62,7 +63,7 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
     duration = dt,
     album = MediaMetadata.Album(
         id = al.Id,
-        title = al.name
+        title = al.name,
     ),
     tns= tns?.get(0)
 )
@@ -121,6 +122,8 @@ fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
         title = al.name
     )
 )
+
+@OptIn(UnstableApi::class)
 fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
     .setMediaId(id.toString())
     .setUri(id.toString()) // 占位
@@ -133,7 +136,7 @@ fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
             .setArtist(ar.joinToString { it.name })
             .setAlbumTitle(al.name)
             .setMediaType(MEDIA_TYPE_MUSIC)
-            .setArtworkUri(Uri.parse(al.picUrl))
+            .setArtworkUri(al.picUrl.toUri())
             .setExtras(Bundle().apply {
                 putLong("duration", this@toMediaItem.dt.toLong())
             })
@@ -142,6 +145,7 @@ fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
     .build()
 
 
+@OptIn(UnstableApi::class)
 fun MediaMetadata.toMediaItem() = MediaItem.Builder()
     .setMediaId(id.toString())
     .setUri(id.toString())
@@ -154,7 +158,7 @@ fun MediaMetadata.toMediaItem() = MediaItem.Builder()
             .setArtist(artists.joinToString { it.name })
             .setAlbumTitle(album.title)
             .setMediaType(MEDIA_TYPE_MUSIC)
-            .setArtworkUri(Uri.parse(coverUrl))
+            .setArtworkUri(coverUrl.toUri())
             .build()
     )
     .build()
@@ -175,6 +179,7 @@ data class SongEntity(
     val coverUrl: String,
     val prepare: Boolean = false,
 ){
+    @OptIn(UnstableApi::class)
     fun toMediaItem() = MediaItem.Builder()
         .setMediaId(id.toString())
         .setUri(id.toString())
