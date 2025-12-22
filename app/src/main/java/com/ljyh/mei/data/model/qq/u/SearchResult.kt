@@ -111,13 +111,13 @@ data class SearchResult(
                         @SerializedName("href3")
                         val href3: String,
                         @SerializedName("id")
-                        val id: Int,
+                        val id: Long,
                         @SerializedName("index_album")
                         val indexAlbum: Int,
                         @SerializedName("index_cd")
                         val indexCd: Int,
                         @SerializedName("interval")
-                        val interval: Int,
+                        val interval: Long,
                         @SerializedName("isonly")
                         val isonly: Int,
                         @SerializedName("ksong")
