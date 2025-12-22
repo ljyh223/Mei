@@ -327,7 +327,7 @@ data class PlaylistDetail(
             @SerializedName("djId")
             val djId: Long,
             @SerializedName("dt")
-            val dt: Int,
+            val dt: Long,
             @SerializedName("entertainmentTags")
             val entertainmentTags: Any,
             @SerializedName("fee")
