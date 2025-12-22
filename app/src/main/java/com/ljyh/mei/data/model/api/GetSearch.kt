@@ -42,7 +42,7 @@ data class SearchResult(
             @SerializedName("fee")
             val fee: Int,
             @SerializedName("duration")
-            val duration: Int,
+            val duration: Long,
             @SerializedName("rtype")
             val rtype: Int,
             @SerializedName("ftype")

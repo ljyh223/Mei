@@ -60,7 +60,7 @@ data class AlbumDetail(
         @SerializedName("cf")
         val cf: String,
         @SerializedName("dt")
-        val dt: Int,
+        val dt: Long,
         @SerializedName("h")
         val h: H,
         @SerializedName("sq")

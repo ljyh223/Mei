@@ -54,7 +54,7 @@ data class EveryDaySongs(
             @SerializedName("al")
             val al: Al,
             @SerializedName("dt")
-            val dt: Int,
+            val dt: Long,
             @SerializedName("h")
             val h: H,
             @SerializedName("m")
