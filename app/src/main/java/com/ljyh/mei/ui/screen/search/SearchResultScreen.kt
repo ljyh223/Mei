@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.search
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -22,11 +23,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.api.toAlbum
 import com.ljyh.mei.data.model.api.toMediaData
 import com.ljyh.mei.data.model.api.toPlaylist
+import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.item.AlbumItem
@@ -38,6 +41,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
 
+@OptIn(UnstableApi::class)
 @Composable
 fun SearchResultScreen(
     query: String,
@@ -92,7 +96,7 @@ fun SearchResultScreen(
                             ListQueue(
                                 id = "SearchQueue-$query", // 加上 query 避免 ID 重复
                                 title = "搜索: $query",
-                                items = songs.map { s -> s.id.toString() },
+                                items = songs.map { s -> s.id.toString() to s.toMediaData().toMediaItem() },
                                 startIndex = index,
                                 position = 0
                             )

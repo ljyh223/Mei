@@ -64,7 +64,7 @@ data class GetLyricData(
             @SerializedName("cv")
             val cv: Int = 1942,
             @SerializedName("interval")
-            val interval: Int,
+            val interval: Long,
             @SerializedName("lrc_t")
             val lrcT: Int = 0,
             @SerializedName("qrc")
@@ -78,7 +78,7 @@ data class GetLyricData(
             @SerializedName("singerName")
             val singerName: String,
             @SerializedName("songID")
-            val songID: Int,
+            val songID: Long,
             @SerializedName("songName")
             val songName: String,
             @SerializedName("trans")

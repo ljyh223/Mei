@@ -6,7 +6,7 @@ import java.util.Locale
 
 object TimeUtils {
     // 毫秒转分秒
-    fun formatDuration(milliseconds: Int): String {
+    fun formatDuration(milliseconds: Long): String {
         val minutes = (milliseconds / 1000) / 60
         val seconds = (milliseconds / 1000) % 60
         return String.format(Locale.US,"%d:%02d", minutes, seconds)
@@ -19,7 +19,7 @@ object TimeUtils {
     }
 
     // 秒转时分秒, 如果
-    fun formatSeconds(seconds: Int): String {
+    fun formatSeconds(seconds: Long): String {
         if (seconds < 0) return "00:00" // 处理负数情况
 
         val hours = seconds / 3600
