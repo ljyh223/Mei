@@ -1,4 +1,6 @@
 package com.ljyh.mei.playback.queue
+
+import androidx.media3.common.MediaItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -9,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 class ListQueue(
     override val id: String,
     override val title: String? = null,
-    private val items: List<String>, // 改为 private val，外部不应修改
+    private val items: List<Pair<String, MediaItem?>>, // 改为 private val，外部不应修改
     val startIndex: Int = 0,
     val position: Int = 0,
 ) : Queue {
@@ -42,17 +44,18 @@ class ListQueue(
         return Queue.Result.Error("ListQueue does not support pagination")
     }
 
-    override suspend fun reloadCurrentPage(): Queue.Result<List<String>> {
+    override suspend fun reloadCurrentPage(): Queue.Result<List<Pair<String, MediaItem?>>> {
         return Queue.Result.Success(items)
     }
 
-    override suspend fun getItemAt(position: Int): Queue.Result<String> {
+    override suspend fun getItemAt(position: Int): Queue.Result<Pair<String, MediaItem?>> {
         return if (position in items.indices) {
             Queue.Result.Success(items[position])
         } else {
             Queue.Result.Error("Position $position out of bounds")
         }
     }
+
     override fun clear() {
     }
 

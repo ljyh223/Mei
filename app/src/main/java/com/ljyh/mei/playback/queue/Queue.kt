@@ -38,10 +38,10 @@ interface Queue {
     suspend fun nextPage(): Result<List<String>>
     
     /** 重新加载当前页（用于错误恢复） */
-    suspend fun reloadCurrentPage(): Result<List<String>>
+    suspend fun reloadCurrentPage(): Result<List<Pair<String, MediaItem?>>>
     
     /** 获取指定位置的歌曲ID */
-    suspend fun getItemAt(position: Int): Result<String>
+    suspend fun getItemAt(position: Int): Result<Pair<String, MediaItem?>>
     
     /** 清空队列 */
     fun clear()
@@ -51,7 +51,7 @@ interface Queue {
 
     data class Status(
         val title: String?,
-        val ids: List<String>,
+        val ids: List<Pair<String, MediaItem?>>,
         val mediaItemIndex: Int,
         val position: Int = 0,
     )
@@ -62,7 +62,7 @@ interface Queue {
     sealed class QueueState {
         object Idle : QueueState()
         object Loading : QueueState()
-        data class Loaded(val items: List<String>, val hasMore: Boolean) : QueueState()
+        data class Loaded(val items: List<Pair<String, MediaItem?>>, val hasMore: Boolean) : QueueState()
         data class Error(val message: String) : QueueState()
         object Completed : QueueState()
     }
@@ -87,7 +87,7 @@ object QueueFactory {
     fun createListQueue(
         id: String,
         title: String? = null,
-        items: List<String>,
+        items: List<Pair<String, MediaItem?>>,
         startIndex: Int = 0,
         position: Int = 0
     ): Queue = ListQueue(id, title, items, startIndex, position)
@@ -104,7 +104,7 @@ object QueueFactory {
  */
 interface QueueListener {
     fun onQueueStateChanged(state: Queue.QueueState)
-    fun onQueueItemsAdded(items: List<String>, position: Int)
+    fun onQueueItemsAdded(items: List<Pair<String, MediaItem?>>, position: Int)
     fun onQueueError(error: String)
     fun onQueueCompleted()
 }

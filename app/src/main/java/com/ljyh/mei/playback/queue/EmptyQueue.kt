@@ -28,11 +28,11 @@ object EmptyQueue : Queue {
         return Queue.Result.Success(emptyList())
     }
 
-    override suspend fun reloadCurrentPage(): Queue.Result<List<String>> {
+    override suspend fun reloadCurrentPage(): Queue.Result<List<Pair<String, MediaItem?>>> {
         return Queue.Result.Success(emptyList())
     }
 
-    override suspend fun getItemAt(position: Int): Queue.Result<String> {
+    override suspend fun getItemAt(position: Int): Queue.Result<Pair<String, MediaItem?>> {
         return Queue.Result.Error("Empty queue has no items")
     }
 

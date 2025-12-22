@@ -80,6 +80,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
@@ -104,7 +105,8 @@ class MusicService : MediaLibraryService(),
     private lateinit var mediaSession: MediaLibrarySession
 
     lateinit var sleepTimer: SleepTimer
-    var scope = CoroutineScope(Dispatchers.Main) + Job()
+    private val serviceJob = SupervisorJob()
+    var scope = CoroutineScope(Dispatchers.Main + serviceJob)
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var baseMediaSourceFactory: DefaultMediaSourceFactory
     private lateinit var preloadManager: DefaultPreloadManager
@@ -258,7 +260,7 @@ class MusicService : MediaLibraryService(),
         connectivityManager = getSystemService(ConnectivityManager::class.java)
 
         // 初始化队列管理器
-        queueManager = PlaybackQueueManager(this, player, apiService, scope)
+        queueManager = PlaybackQueueManager( player, apiService, scope)
 
 
     }
@@ -343,14 +345,6 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        // 只有当自动切歌或手动切歌时才记录，REPEAT 产生的循环通常不记录重复历史
-        if (mediaItem != null) {
-            scope.launch(Dispatchers.IO) {
-                recordHistory(mediaItem)
-            }
-        }
-    }
 
     private suspend fun recordHistory(mediaItem: MediaItem) {
         val metadata = mediaItem.mediaMetadata
@@ -393,6 +387,8 @@ class MusicService : MediaLibraryService(),
         preloadManager.release()
 
         player.release()
+        queueManager.release()
+        serviceJob.cancel()
         super.onDestroy()
     }
 
