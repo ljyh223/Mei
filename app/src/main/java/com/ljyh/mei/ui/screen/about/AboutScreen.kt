@@ -7,15 +7,34 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Message
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material.icons.rounded.Source
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,12 +44,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ljyh.mei.BuildConfig
-import com.ljyh.mei.R // 请替换为你真实的资源路径
+import com.ljyh.mei.R
+import com.ljyh.mei.constants.Github
 import com.ljyh.mei.ui.local.LocalNavController
 import java.time.LocalDate
 
@@ -39,7 +56,6 @@ import java.time.LocalDate
 fun AboutScreen() {
     val context = LocalContext.current
     val navController = LocalNavController.current
-    val projectGithubUrl = "https://github.com/yourname/Mei" // 你的项目地址
 
     Scaffold(
         topBar = {
@@ -97,13 +113,13 @@ fun AboutScreen() {
                         AboutActionItem(
                             icon = Icons.Rounded.Source,
                             title = "GitHub 仓库",
-                            onClick = { openUrl(context, projectGithubUrl) }
+                            onClick = { openUrl(context, Github) }
                         )
                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
                         AboutActionItem(
                             icon = Icons.Rounded.BugReport,
                             title = "问题反馈",
-                            onClick = { openUrl(context, "$projectGithubUrl/issues") }
+                            onClick = { openUrl(context, "$Github/issues") }
                         )
                     }
                 }
@@ -198,10 +214,4 @@ private fun openUrl(context: Context, url: String) {
         context.startActivity(intent)
     } catch (_: Exception) {
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AboutScreenPreview() {
-    AboutScreen()
 }
