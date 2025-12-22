@@ -80,7 +80,7 @@ fun AboutScreen() {
             item {
                 Spacer(Modifier.height(40.dp))
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher),
+                    painter = painterResource(id = R.drawable.logo),
                     contentDescription = "Mei Logo",
                     modifier = Modifier
                         .size(80.dp)
@@ -151,7 +151,6 @@ fun AboutScreen() {
                 }
             }
 
-            // --- 4. 底部声明 ---
             item {
                 Spacer(Modifier.height(48.dp))
                 Text(
