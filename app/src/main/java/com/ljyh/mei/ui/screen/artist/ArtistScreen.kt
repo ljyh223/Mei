@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.artist
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,8 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.api.ArtistDetail
+import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
@@ -49,6 +52,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
 
+@OptIn(UnstableApi::class)
 @Composable
 fun ArtistScreen(
     id: String,
@@ -118,7 +122,7 @@ fun ArtistScreen(
                     Track(
                         track = mediaMetadata,
                         onClick = {
-                            val allIds = songs.map { it.id.toString() }
+                            val allIds = songs.map { it.id.toString() to it.toMediaMetadata().toMediaItem() }
                             val currentIndex = songs.indexOf(song)
                              playerConnection.playQueue(
                                 ListQueue(

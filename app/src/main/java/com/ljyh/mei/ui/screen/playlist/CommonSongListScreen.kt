@@ -1,8 +1,5 @@
 package com.ljyh.mei.ui.screen.playlist
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -72,10 +69,10 @@ import androidx.paging.compose.itemKey
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Like
-import com.ljyh.mei.ui.component.playlist.AddToPlaylistDialog
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
 import com.ljyh.mei.ui.component.item.Track
+import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.TrackActionMenu
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
@@ -288,10 +285,13 @@ fun CommonSongListScreen(
                             }
                         )
                     }
-                    AddToPlaylistDialog(
+                    AddToPlaylistSheet(
                         isVisible = showAddToPlaylistDialog,
                         playlists = allMePlaylist,
                         onDismiss = { showAddToPlaylistDialog = false },
+                        onCreateNewPlaylist={
+
+                        },
                         onSelectPlaylist = { selectedPlaylist ->
                             // 执行添加逻辑
                             if (trackToAdd != null) {

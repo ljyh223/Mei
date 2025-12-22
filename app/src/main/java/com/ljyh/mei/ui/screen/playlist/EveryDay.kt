@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.mediaItems
@@ -24,6 +26,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EveryDay(
@@ -79,7 +82,7 @@ fun EveryDay(
             pagingItems = null,
             isLoading = isLoading,
             onPlayAll = {
-                val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map { it.id.toString() }
+                val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map { it.id.toString() to it.toMediaMetadata().toMediaItem() }
                 playerConnection.playQueue(
                     ListQueue(
                         id = "playlist_${uiData.id}",
@@ -102,7 +105,7 @@ fun EveryDay(
                     playerConnection.player.play()
                 } else {
                     if (everyDaySongs is Resource.Success) {
-                        val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map { it.id.toString() }
+                        val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map { it.id.toString() to it.toMediaMetadata().toMediaItem() }
                         playerConnection.playQueue(
                             ListQueue(
                                 id = "dailySongs",

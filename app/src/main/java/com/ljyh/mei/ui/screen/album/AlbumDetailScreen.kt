@@ -18,7 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.mediaItems
@@ -29,6 +31,7 @@ import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.CommonSongListScreen
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumScreen(
@@ -51,11 +54,10 @@ fun AlbumScreen(
     val isLoading = albumDetail is Resource.Loading
 
 
-
     val uiData = remember(albumDetail) {
         if (albumDetail is Resource.Success) {
             val album = (albumDetail as Resource.Success).data.album
-            val songs= (albumDetail as Resource.Success).data.songs
+            val songs = (albumDetail as Resource.Success).data.songs
             UiPlaylist(
                 id = album.id.toString(),
                 title = album.name,
@@ -87,13 +89,18 @@ fun AlbumScreen(
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Error: ${(albumDetail as Resource.Error).message}")
         }
-    }else{
+    } else {
         CommonSongListScreen(
             uiData = uiData,
             pagingItems = null,
             isLoading = isLoading,
             onPlayAll = {
-                val allIds = (albumDetail as Resource.Success).data.songs.map { it.id.toString() }
+                val allIds = (albumDetail as Resource.Success).data.songs.map {
+                    Pair(
+                        it.id.toString(),
+                        it.toMediaMetadata().toMediaItem()
+                    )
+                }
                 playerConnection.playQueue(
                     ListQueue(
                         id = "playlist_${uiData.id}",
@@ -105,7 +112,7 @@ fun AlbumScreen(
             },
 
             headerActionIcon = Icons.Default.Favorite,
-            headerActionLabel ="取消收藏",
+            headerActionLabel = "取消收藏",
             onTrackClick = { mediaMetadata, index ->
                 val currentMediaItems = playerConnection.player.mediaItems
                 val foundIndex =
@@ -116,7 +123,12 @@ fun AlbumScreen(
                     playerConnection.player.play()
                 } else {
                     if (albumDetail is Resource.Success) {
-                        val allIds = (albumDetail as Resource.Success).data.songs.map { it.id.toString() }
+                        val allIds = (albumDetail as Resource.Success).data.songs.map {
+                            Pair(
+                                it.id.toString(),
+                                it.toMediaMetadata().toMediaItem()
+                            )
+                        }
                         playerConnection.playQueue(
                             ListQueue(
                                 id = "playlist_${uiData.id}",

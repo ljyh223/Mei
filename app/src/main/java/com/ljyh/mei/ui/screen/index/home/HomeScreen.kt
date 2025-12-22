@@ -268,8 +268,8 @@ private fun RenderHomePageContent(
 
 
 
-                    val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
-                    if(playerConnection.isPlaying(flatSongs[index])){
+                    val flatSongs = songs.flatMap { it.items }.map { it.resourceId to null }
+                    if(playerConnection.isPlaying(flatSongs[index].first)){
                         playerConnection.player.togglePlayPause()
                     }else{
                         playerConnection.playQueue(
@@ -351,7 +351,7 @@ private fun RenderHomePageContent(
                         playerConnection.isPlaying(id)
                     }
                 ) { songs, index ->
-                    val flatSongs = songs.flatMap { it.items }.map { it.resourceId }
+                    val flatSongs = songs.flatMap { it.items }.map { it.resourceId to null }
                     playerConnection.playQueue(
                         ListQueue(
                             id = UUID.randomUUID().toString(),

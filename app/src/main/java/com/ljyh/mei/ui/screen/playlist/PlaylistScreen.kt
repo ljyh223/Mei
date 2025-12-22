@@ -23,6 +23,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ljyh.mei.constants.UserIdKey
+import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.mediaItems
@@ -129,12 +130,20 @@ fun PlaylistScreen(
             pagingItems = lazyPagingItems,
             isLoading = isLoading,
             onPlayAll = {
-                val allIds = (playlistDetail as Resource.Success).data.playlist.trackIds.map { it.id.toString() }
+                val playlist = (playlistDetail as Resource.Success).data.playlist
+                val mediaItemsMap = playlist.tracks.associate {
+                    it.id.toString() to it.toMediaMetadata().toMediaItem()
+                }
+
+                val allPairs = playlist.trackIds.map { trackId ->
+                    val id = trackId.id.toString()
+                    Pair(id, mediaItemsMap[id])
+                }
                 playerConnection.playQueue(
                     ListQueue(
                         id = "playlist_${uiData.id}",
                         title = uiData.title,
-                        items = allIds,
+                        items = allPairs,
                         startIndex = 0
                     )
                 )
@@ -162,12 +171,20 @@ fun PlaylistScreen(
                     playerConnection.player.play()
                 } else {
                     if (playlistDetail is Resource.Success) {
-                        val allIds = (playlistDetail as Resource.Success).data.playlist.trackIds.map { it.id.toString() }
+                        val playlist = (playlistDetail as Resource.Success).data.playlist
+                        val mediaItemsMap = playlist.tracks.associate {
+                            it.id.toString() to it.toMediaMetadata().toMediaItem()
+                        }
+
+                        val allPairs = playlist.trackIds.map { trackId ->
+                            val id = trackId.id.toString()
+                            Pair(id, mediaItemsMap[id])
+                        }
                         playerConnection.playQueue(
                             ListQueue(
                                 id = "playlist_${id}",
                                 title = uiData.title,
-                                items = allIds,
+                                items = allPairs,
                                 startIndex = index
                             )
                         )
