@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.playlist
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,7 +54,7 @@ fun PlaylistScreen(
 
 
     val pagingFlow = remember(id, playlistDetail) {
-        viewModel.getPlaylistTracks( playlistDetail)
+        viewModel.getPlaylistTracks(playlistDetail)
     }
     val lazyPagingItems = pagingFlow.collectAsLazyPagingItems()
 
@@ -91,7 +92,10 @@ fun PlaylistScreen(
     val uiData = remember(playlistDetail, userId) {
         if (playlistDetail is Resource.Success) {
             val data = (playlistDetail as Resource.Success).data.playlist
-            isSubscribed=data.subscribed
+            isSubscribed = data.subscribed
+            data.tracks.map {
+                Log.d("PlaylistScreen", it.ar.toString())
+            }
             UiPlaylist(
                 id = data.Id.toString(),
                 title = data.name,
@@ -101,7 +105,8 @@ fun PlaylistScreen(
                 creatorName = data.creator.nickname,
                 isCreate = data.creator.userId.toString() == userId,
                 description = data.description,
-                tracks = data.tracks.map { it.toMediaMetadata() },
+                tracks = data.tracks.filter { it.ar[0].Id != 0L && it.al.Id != 0L }
+                    .map { it.toMediaMetadata() },
                 trackCount = data.trackCount,
                 playCount = data.playCount,
                 isSubscribed = data.subscribed
@@ -124,7 +129,7 @@ fun PlaylistScreen(
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Error: ${(playlistDetail as Resource.Error).message}")
         }
-    }else{
+    } else {
         CommonSongListScreen(
             uiData = uiData,
             pagingItems = lazyPagingItems,
