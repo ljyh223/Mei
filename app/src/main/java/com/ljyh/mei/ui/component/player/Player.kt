@@ -54,14 +54,18 @@ import com.ljyh.mei.ui.component.player.component.Cover
 import com.ljyh.mei.ui.component.player.component.Debug
 import com.ljyh.mei.ui.component.player.component.Header
 import com.ljyh.mei.ui.component.player.component.LyricScreen
+import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
+import com.ljyh.mei.ui.component.player.component.QQMusicSelectSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.encrypt.QRCUtils
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
@@ -79,34 +83,34 @@ fun BottomSheetPlayer(
     state: BottomSheetState,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     val navigator = LocalNavController.current
 
-    // --- 1. Preferences & Theme ---
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
     val debug by rememberPreference(DebugKey, defaultValue = false)
 
 
-    // --- 2. Player State Collection ---
     val playbackState by playerConnection.playbackState.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    // --- 3. UI Local State ---
     // 进度条状态：直接使用 Float 避免频繁 Long 转换，且分离 UI 状态与播放器真实状态
     var sliderPosition by remember { mutableFloatStateOf(0f) }
     var duration by remember { mutableLongStateOf(0L) }
     // 标记用户是否正在拖动进度条，拖动时不自动更新
     var isDragging by remember { mutableStateOf(false) }
+    var showQQMusicSelect by remember { mutableStateOf(false) }
 
     // 歌词数据源
     val netLyricResult by playerViewModel.lyric.collectAsState()
     val qqLyricResult by playerViewModel.lyricResult.collectAsState()
     val amLyricResult by playerViewModel.amLyric.collectAsState()
     val qqSong by playerViewModel.qqSong.collectAsState()
+    val qqSearchResult by playerViewModel.searchResult.collectAsState()
 
     // 歌词最终状态 (默认为加载中)
     var lyricLine by remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
@@ -140,6 +144,7 @@ fun BottomSheetPlayer(
             playerViewModel.getAMLLyric(meta.id.toString())
 
             if (useQQMusicLyric) {
+
                 playerViewModel.fetchQQSong(meta.id.toString())
                 playerViewModel.searchNew(meta.title)
             }
@@ -150,13 +155,15 @@ fun BottomSheetPlayer(
     }
     // 监听 QQSong 变化，获取新歌词
     LaunchedEffect(qqSong) {
+        Log.d("Player", "QQSong: $qqSong")
         qqSong?.let { song ->
+            Log.d("Player", "QQSong111: $song")
             playerViewModel.getLyricNew(
                 title = song.title,
                 album = song.album,
                 artist = song.artist,
-                duration = song.duration,
-                id = song.qid.toInt()
+                duration = song.duration.toLong(),
+                id = song.qid.toLong()
             )
         }
     }
@@ -273,6 +280,17 @@ fun BottomSheetPlayer(
                         }
                     },
                 )
+                if (qqSearchResult is Resource.Success){
+                    QQMusicSelectSheet(
+                        showSheet = showQQMusicSelect,
+                        searchNew = qqSearchResult as Resource.Success,
+                        viewmodel = playerViewModel,
+                        mediaMetadata = mediaMetadata,
+                        onDismiss = {
+                            showQQMusicSelect = false
+                        }
+                    )
+                }
             }
 
             // Pager (Cover / Lyrics)
@@ -311,10 +329,13 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = PlayerHorizontalPadding)
-                        )
+                        ){ source ->
+                            showQQMusicSelect =  true
+                        }
                     }
                 }
             }
+
 
             Spacer(Modifier.height(8.dp)) // 增加间距，让布局更舒展
 
@@ -353,7 +374,8 @@ fun BottomSheetPlayer(
             PlayerActionToolbar(
                 playerViewModel = playerViewModel,
                 mediaMetadata = mediaMetadata,
-                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding)
+                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                playlistViewModel = playlistViewModel
             )
 
             // 底部安全区，防止被手势条遮挡

@@ -99,14 +99,14 @@ class PlayerViewModel @Inject constructor(
     }
 
 
-    fun getLyricNew(title: String, album: String, artist: String, duration: Int, id: Int) {
+    fun getLyricNew(title: String, album: String, artist: String, duration: Long, id: Long) {
         viewModelScope.launch {
             _lyricResult.value = Resource.Loading
             _lyricResult.value = repository.getLyricNew(title, album, artist, duration, id)
         }
     }
 
-
+    // 旧版 没有逐字歌词
     fun getLyric(id: String) {
         viewModelScope.launch {
             _lyric.value = Resource.Loading
@@ -115,6 +115,7 @@ class PlayerViewModel @Inject constructor(
     }
 
 
+    // 新版 有逐字歌词
     fun getLyricV1(id: String) {
         viewModelScope.launch {
             _lyric.value = Resource.Loading

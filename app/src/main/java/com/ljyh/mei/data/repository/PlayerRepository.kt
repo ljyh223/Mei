@@ -43,8 +43,8 @@ class PlayerRepository(
         title: String,
         album: String,
         artist: String,
-        duration: Int,
-        id: Int
+        duration: Long,
+        id: Long
     ): Resource<LyricResult> {
         return withContext(Dispatchers.IO) {
             safeApiCall {

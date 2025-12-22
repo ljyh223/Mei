@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.component.player.component
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,9 +22,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayerConnection
 
+@OptIn(UnstableApi::class)
 @Composable
 fun Controls(
     modifier: Modifier = Modifier,

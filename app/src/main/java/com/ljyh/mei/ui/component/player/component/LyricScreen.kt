@@ -2,8 +2,10 @@ package com.ljyh.mei.ui.component.player.component
 
 
 import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AccompanimentLyricTextBoldKey
 import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
@@ -52,11 +55,13 @@ import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import com.mocharealm.accompanist.lyrics.ui.theme.SFPro
 import kotlinx.coroutines.android.awaitFrame
 
+@OptIn(UnstableApi::class)
 @Composable
 fun LyricScreen(
     lyricData: LyricData,
     modifier: Modifier = Modifier,
     playerConnection: PlayerConnection,
+    onClick: (LyricSource) -> Unit =  {},
 ) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
@@ -148,7 +153,8 @@ fun LyricScreen(
                 LyricSourceBadge(
                     source = lyricData.source,
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
+                        .align(Alignment.BottomEnd),
+                    onClick = onClick
                 )
             }
         }
@@ -158,8 +164,10 @@ fun LyricScreen(
 @Composable
 private fun LyricSourceBadge(
     source: LyricSource,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (LyricSource) -> Unit = {},
 ) {
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
@@ -167,6 +175,7 @@ private fun LyricSourceBadge(
             .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
+
         Icon(
             painter = painterResource(
                 when (source) {
@@ -176,7 +185,11 @@ private fun LyricSourceBadge(
                     LyricSource.AM -> R.drawable.am
                 }
             ),
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier
+                .size(16.dp)
+                .clickable(onClick = {
+                    onClick(source)
+                }),
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.6f)
         )
