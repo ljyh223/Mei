@@ -45,77 +45,76 @@ fun Header(
             }
         )
     }
+
+    val shadowStyle = Shadow(
+        color = Color.Black.copy(alpha = 0.5f),
+        offset = Offset(2f, 2f),
+        blurRadius = 8f
+    )
+
     Column(
         horizontalAlignment = Alignment.Start,
-        modifier = modifier
-            .statusBarsPadding()
+        modifier = modifier.statusBarsPadding().fillMaxWidth()
     ) {
+        // --- 标题部分 ---
         Text(
             text = mediaMetadata.title,
             style = MaterialTheme.typography.headlineSmall.copy(
-                shadow = Shadow(
-                    color = Color.Black.copy(alpha = 0.5f),
-                    offset = Offset(2f, 2f),
-                    blurRadius = 6f
-                )
+                shadow = shadowStyle,
+                fontWeight = FontWeight.Bold
             ),
-            fontWeight = FontWeight.Bold,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             color = Color.White,
-            modifier = Modifier.basicMarquee()
+            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
         )
-        val subTitleStyle = MaterialTheme.typography.titleMedium.copy(
-            shadow = Shadow(
-                color = Color.Black.copy(alpha = 0.5f),
-                offset = Offset(2f, 2f),
-                blurRadius = 6f
+
+        // --- 副标题部分 (歌手 & 专辑) ---
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+                .basicMarquee(iterations = Int.MAX_VALUE)
+        ) {
+            val subTitleStyle = MaterialTheme.typography.titleMedium.copy(
+                shadow = shadowStyle,
+                color = Color.White.copy(alpha = 0.7f)
             )
-        )
 
-
-        Row {
             if (mediaMetadata.artists.isNotEmpty()) {
                 Text(
-                    text = mediaMetadata.artists.take(3).joinToString(", ") { it.name },
+                    text = mediaMetadata.artists.joinToString(", ") { it.name },
                     style = subTitleStyle,
-                    color = Color.White.copy(alpha = 0.8f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee()
+                    maxLines = 1, // 必须设为1
+                    softWrap = false, // 禁止换行，确保 Row 宽度可以溢出
+                    modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                        .clickable(onClick = {
+                        .clickable {
                             if (mediaMetadata.artists.size == 1) {
                                 onNavigateToArtist(mediaMetadata.artists[0])
                             } else {
-                                // 多个歌手，打开底部弹窗
                                 showArtistSheet = true
                             }
-                        })
-
+                        }
                 )
             }
 
-            if (mediaMetadata.album.title.isNotEmpty()) {
+            // 2. 分隔符 (只有两者都有值时才显示)
+            if (mediaMetadata.artists.isNotEmpty() && mediaMetadata.album.title.isNotEmpty()) {
                 Text(
-                    " - ",
+                    text = " - ",
                     style = subTitleStyle,
-                    color = Color.White.copy(alpha = 0.8f)
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 )
+            }
+            // 3. 专辑部分
+            if (mediaMetadata.album.title.isNotEmpty()) {
                 Text(
                     text = mediaMetadata.album.title,
                     style = subTitleStyle,
-                    color = Color.White.copy(alpha = 0.8f),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee()
+                    softWrap = false,
+                    modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                        .clickable(onClick = {
-                            // 跳转到专辑页面
-                            onNavigateToAlbum(mediaMetadata.album)
-                        })
+                        .clickable { onNavigateToAlbum(mediaMetadata.album) }
                 )
             }
         }
