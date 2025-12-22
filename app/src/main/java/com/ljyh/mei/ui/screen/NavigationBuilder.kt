@@ -14,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.ljyh.mei.ui.screen.about.AboutScreen
 import com.ljyh.mei.ui.screen.album.AlbumScreen
 import com.ljyh.mei.ui.screen.history.HistoryScreen
 import com.ljyh.mei.ui.screen.index.home.HomeScreen
@@ -62,6 +63,9 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.EveryDay.route){
         EveryDay()
+    }
+    composable(Screen.About.route) {
+        AboutScreen()
     }
 
     composable(

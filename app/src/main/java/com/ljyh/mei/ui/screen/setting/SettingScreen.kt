@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LibraryMusic
@@ -87,6 +88,14 @@ fun SettingScreen(
                 icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null) },
                 onClick = {
                     Screen.PlaySettings.navigate(navController)
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text("关于") },
+                icon = { Icon(Icons.Rounded.Info, contentDescription = null) },
+                onClick = {
+                    Screen.About.navigate(navController)
                 }
             )
         }
