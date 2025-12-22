@@ -327,6 +327,7 @@ fun BigUserHeader(nickname: String, avatarUrl: String, onAvatarClick: () -> Unit
                     fontWeight = FontWeight.Black,
                     letterSpacing = (-1).sp
                 ),
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -451,7 +452,7 @@ fun BentoDashboard(
                     label = "云盘",
                     color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
                     onClick = onCloudClick,
-                    hideLabel = true // 小格子隐藏文字只显示图标
+                    hideLabel = true
                 )
                 DashboardSmallCard(
                     modifier = Modifier.weight(1f),
