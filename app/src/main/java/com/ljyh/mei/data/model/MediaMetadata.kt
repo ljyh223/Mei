@@ -20,7 +20,7 @@ data class MediaMetadata(
     val title: String,
     val coverUrl: String,
     val artists: List<Artist>,
-    val duration: Int,
+    val duration: Long,
     val album: Album,
     val explicit: Boolean = false,
     val tns:String?=null
@@ -49,6 +49,8 @@ data class MediaMetadata(
     )
 }
 
+const val PLACEHOLDER_URI = "https://placeholder.media"
+
 fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
     id = id,
     title = name,
@@ -68,6 +70,8 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
     tns= tns?.get(0)
 )
 
+
+
 fun AlbumDetail.Song.toMediaMetadata() = MediaMetadata(
     id = id,
     title = name,
@@ -84,6 +88,8 @@ fun AlbumDetail.Song.toMediaMetadata() = MediaMetadata(
         title = name
     )
 )
+
+
 
 fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
     id = id,
@@ -105,6 +111,8 @@ fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
 )
 
 
+
+
 fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
     id = id,
     title = name,
@@ -123,8 +131,11 @@ fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
     )
 )
 
+
+
+
 @OptIn(UnstableApi::class)
-fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
+    fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
     .setMediaId(id.toString())
     .setUri(id.toString()) // 占位
     .setCustomCacheKey(id.toString())
@@ -143,6 +154,21 @@ fun PlaylistDetail.Playlist.Track.toMediaItem() =MediaItem.Builder()
             .build()
     )
     .build()
+
+@OptIn(UnstableApi::class)
+fun createPlaceholder(id: String): MediaItem {
+    return MediaItem.Builder()
+        .setMediaId(id)
+        .setUri(PLACEHOLDER_URI) // 防止 NPE
+        .setCustomCacheKey(id)   // 确保 ResolvingDataSource 能拿到 ID
+        .setMediaMetadata(
+            androidx.media3.common.MediaMetadata.Builder()
+                .setTitle("加载中...")
+                .setArtist("")
+                .build()
+        )
+        .build()
+}
 
 
 @OptIn(UnstableApi::class)
@@ -171,7 +197,7 @@ val MediaItem.metadata: MediaMetadata?
 data class SongEntity(
     val id: Long,
     val title: String,
-    val duration: Int,
+    val duration: Long,
     val albumId: Long,
     val albumName: String,
     val artistId: Long ,
