@@ -58,14 +58,14 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
     artists = ar.map {
         MediaMetadata.Artist(
             id = it.Id,
-            name = it.name,
+            name = it.name?:"",
             alias = it.alias
         )
     },
     duration = dt,
     album = MediaMetadata.Album(
         id = al.Id,
-        title = al.name,
+        title = al.name?:"",
     ),
     tns= tns?.get(0)
 )
@@ -143,8 +143,8 @@ fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
     .setMediaMetadata(
         androidx.media3.common.MediaMetadata.Builder()
             .setTitle(name)
-            .setSubtitle(ar.joinToString { it.name })
-            .setArtist(ar.joinToString { it.name })
+            .setSubtitle(ar.joinToString { it.name?:"" })
+            .setArtist(ar.joinToString { it.name?:"" })
             .setAlbumTitle(al.name)
             .setMediaType(MEDIA_TYPE_MUSIC)
             .setArtworkUri(al.picUrl.toUri())

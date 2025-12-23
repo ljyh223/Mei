@@ -403,7 +403,7 @@ data class PlaylistDetail(
                 @SerializedName("id")
                 val Id: Long,
                 @SerializedName("name")
-                val name: String,
+                val name: String? = "",
                 @SerializedName("pic")
                 val pic: Long,
                 @SerializedName("pic_str")
@@ -420,7 +420,7 @@ data class PlaylistDetail(
                 @SerializedName("id")
                 val Id: Long,
                 @SerializedName("name")
-                val name: String,
+                val name: String? = "",
                 @SerializedName("tns")
                 val tns: List<Any>
             )

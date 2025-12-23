@@ -270,14 +270,19 @@ fun BottomSheetPlayer(
                         .fillMaxWidth()
                         .padding(horizontal = PlayerHorizontalPadding),
                     onNavigateToAlbum = {
-                        Screen.Album.navigate(navigator){
-                            addPath(mediaMetadata.album.id.toString())
+                        if(it.id!=0L){
+                            Screen.Album.navigate(navigator){
+                                addPath(mediaMetadata.album.id.toString())
+                            }
                         }
                     },
                     onNavigateToArtist = { artist ->
-                        Screen.Artist.navigate(navigator){
-                            addPath(artist.id.toString())
+                        if(artist.id!=0L){
+                            Screen.Artist.navigate(navigator){
+                                addPath(artist.id.toString())
+                            }
                         }
+
                     },
                 )
                 if (qqSearchResult is Resource.Success){

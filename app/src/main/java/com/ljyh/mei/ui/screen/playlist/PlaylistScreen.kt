@@ -105,8 +105,7 @@ fun PlaylistScreen(
                 creatorName = data.creator.nickname,
                 isCreate = data.creator.userId.toString() == userId,
                 description = data.description,
-                tracks = data.tracks.filter { it.ar[0].Id != 0L && it.al.Id != 0L }
-                    .map { it.toMediaMetadata() },
+                tracks = data.tracks.map { it.toMediaMetadata() },
                 trackCount = data.trackCount,
                 playCount = data.playCount,
                 isSubscribed = data.subscribed
