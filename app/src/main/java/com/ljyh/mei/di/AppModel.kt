@@ -2,6 +2,7 @@ package com.ljyh.mei.di
 
 import android.content.Context
 import androidx.room.Room
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,5 +51,10 @@ object AppModule {
     fun provideHistoryDao(database: AppDatabase): HistoryRepository {
         return HistoryRepository(database.historyDao(), database.songDao())
     }
+
+    // 单例gson
+    @Provides
+    @Singleton
+    fun provideGson(): Gson = Gson()
 
 }
