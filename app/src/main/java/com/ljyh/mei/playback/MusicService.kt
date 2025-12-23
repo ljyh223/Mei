@@ -112,7 +112,11 @@ class MusicService : MediaLibraryService(),
     private lateinit var preloadManager: DefaultPreloadManager
     private val preloadStrategy = MusicPreloadStrategy()
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
-    private val resolvingMap = ConcurrentHashMap<String, Deferred<String?>>()
+
+    @Inject
+    lateinit var mediaUriProvider: MediaUriProvider // 注入我们刚写的 Provider
+
+    private var errorCount = 0 // 记录连续错误的次数，防止死循环
 
     private val binder = MusicBinder()
 
@@ -131,12 +135,10 @@ class MusicService : MediaLibraryService(),
 
     @Inject
     lateinit var songRepository: SongRepository
-
-    private val songUrlCache = mutableMapOf<String, SongCache>()
-
     override fun onCreate() {
         super.onCreate()
         baseMediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
+            .setLoadErrorHandlingPolicy(MusicLoadErrorHandlingPolicy()) // 应用自定义错误策略
         preloadManager = DefaultPreloadManager.Builder(
             this,
             preloadStrategy
@@ -424,50 +426,11 @@ class MusicService : MediaLibraryService(),
                 return@Factory dataSpec.withUri("cache://$mediaId".toUri())
             }
 
-            // 内存 URL 缓存检查
-            songUrlCache[mediaId]?.takeIf { it.expiryTime > System.currentTimeMillis() }?.let {
-                Log.d("ResolvingDataSource", "Using cached URL for mediaId: $mediaId")
-                return@Factory dataSpec.withUri(it.url.toUri())
+            runBlocking {
+                val quality = context.dataStore[MusicQualityKey] ?: MusicQuality.EXHIGH.text
+                val uri = mediaUriProvider.resolveMediaUri(mediaId, quality)
+                dataSpec.withUri(uri)
             }
-
-            val url = runBlocking {
-                val deferred = resolvingMap.computeIfAbsent(mediaId) {
-                    CoroutineScope(Dispatchers.IO).async {
-                        try {
-                            Log.d("ResolvingDataSource", "Fetching API for: $mediaId")
-                            val response = apiService.getSongUrlV1(
-                                GetSongUrlV1(
-                                    ids = "[$mediaId]",
-                                    level = context.dataStore[MusicQualityKey] ?: MusicQuality.EXHIGH.text,
-                                )
-                            )
-                            response.data.getOrNull(0)?.url
-                        } catch (e: Exception) {
-                            Log.e("ResolvingDataSource", "Failed to fetch URL", e)
-                            null
-                        }
-                    }
-                }
-                val resultUrl = deferred.await()
-                resolvingMap.remove(mediaId)
-                resultUrl
-            }
-
-            if (url == null) {
-                Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(context, "暂无音源", Toast.LENGTH_SHORT).show()
-                    player.playWhenReady = false
-                }
-                throw java.io.IOException("Unable to resolve url for mediaId: $mediaId")
-            }
-            val expiryTime = System.currentTimeMillis() + 60 * 60 * 1000 // 1小时有效, 实际大概我也不知道
-            songUrlCache[mediaId] = SongCache(url, expiryTime)
-            Log.d("ResolvingDataSource", "Resolved media URL for mediaId: $mediaId, URL: $url")
-
-            return@Factory dataSpec.buildUpon()
-                .setUri(url.toUri())
-                .setKey(mediaId)
-                .build()
         }
     }
 
@@ -498,18 +461,74 @@ class MusicService : MediaLibraryService(),
 
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
     override fun onPlayerError(error: PlaybackException) {
-        Log.e("MusicService", "Player Error: ${error.message}")
-        if (error.cause is java.io.IOException && (error.message?.contains("Unable to resolve url") == true || error.message?.contains(
-                "Source error"
-            ) == true)
-        ) {
-            if (player.hasNextMediaItem() && dataStore[NoAudioSourceKey] == true) {
-                player.seekToNext()
-                if (!player.playWhenReady) player.playWhenReady = true
+        Log.e("MusicService", "Player Error: ${error.errorCodeName}, ${error.message}")
+
+        val isSourceError = error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
+                error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
+                error.cause is SourceNotFoundException ||
+                error.message?.contains("Unable to resolve url") == true
+
+        if (isSourceError) {
+            errorCount++
+            Log.w("MusicService", "Play failure detected. Count: $errorCount")
+
+            // 如果连续错误超过5次，停止播放，避免无限刷 API
+            if (errorCount > 5) {
+                Toast.makeText(context, "播放失败，已连续跳过多首歌曲", Toast.LENGTH_LONG).show()
+                player.stop()
+                errorCount = 0
+                return
             }
 
+            // 尝试跳到下一首
+            if (player.hasNextMediaItem()) {
+                // 不要在后台线程 Toast，发送事件或者只打印日志
+                // 如果非要提示，用 Handler
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, "资源无法加载，自动跳过", Toast.LENGTH_SHORT).show()
+                }
+                player.seekToNext()
+                player.prepare()
+                player.play()
+            } else {
+                // 列表播完了，或者没有下一首
+                player.stop()
+                Toast.makeText(context, "播放结束，部分歌曲无法加载", Toast.LENGTH_SHORT).show()
+            }
         } else {
+            // 其他错误（如解码器错误），重置计数器并提示
+            errorCount = 0
             Toast.makeText(context, "播放出错: ${error.errorCodeName}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        // 如果成功切歌，重置错误计数器
+        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
+            reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
+            // 注意：这里需要延迟一点或者确认新歌曲开始缓冲后再重置，
+            // 简单的做法是：只要正常切歌了，我们暂时认为链条断了
+            errorCount = 0
+
+            // 触发 FM 模式检查 (见下文)
+            checkFmModeLoadMore()
+        }
+        updatePreload()
+    }
+
+    private fun checkFmModeLoadMore() {
+        // 假设你有办法判断当前是否是 FM 模式
+        // if (!queueManager.isFmMode) return
+
+        val current = player.currentMediaItemIndex
+        val total = player.mediaItemCount
+        val threshold = 2 // 剩余少于2首时加载
+
+        if (total - current <= threshold) {
+            scope.launch {
+                // 调用 QueueManager 的加载方法
+                queueManager.fetchAndAppendFmRecommendations()
+            }
         }
     }
 

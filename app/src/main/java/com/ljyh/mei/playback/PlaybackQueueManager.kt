@@ -30,9 +30,43 @@ class PlaybackQueueManager(
     private val loadingIds = ConcurrentHashMap.newKeySet<String>()
 
     private val _isShuffleModeEnabled = MutableStateFlow(false)
+    var isFmMode = false
 
     init {
         player.addListener(this)
+    }
+
+    suspend fun startFmMode(seedSongId: String?) {
+        isFmMode = true
+        player.clearMediaItems()
+        // 获取第一批推荐
+        fetchAndAppendFmRecommendations(seedSongId)
+    }
+
+    suspend fun fetchAndAppendFmRecommendations(seedId: String? = null) {
+        try {
+            // 1. 获取当前正在播放的 ID 作为种子，或者使用传入的 seed
+            val currentId = if (player.mediaItemCount > 0) {
+                player.currentMediaItem?.mediaId
+            } else seedId
+
+            // 2. 调用 API 获取推荐 (你需要实现这个 API)
+            // val newSongs = apiService.getRecommendations(currentId)
+
+            // 3. 转换为 MediaItem
+            // val items = newSongs.map { it.toMediaItem() }
+
+            // 4. 添加到播放列表末尾
+            // withContext(Dispatchers.Main) {
+            //     player.addMediaItems(items)
+            //     if (player.playbackState == Player.STATE_IDLE) {
+            //         player.prepare()
+            //         player.play()
+            //     }
+            // }
+        } catch (e: Exception) {
+            Log.e("QueueManager", "Failed to fetch FM songs", e)
+        }
     }
 
     @OptIn(UnstableApi::class)
@@ -59,13 +93,11 @@ class PlaybackQueueManager(
                 player.stop()
                 player.clearMediaItems()
 
-                // 3. 【关键顺序】强制先关闭随机模式
-                // 必须先关掉，才能保证 setMediaItems 里的 index 是线性的、准确的
+                // 强制先关闭随机模式 必须先关掉，才能保证 setMediaItems 里的 index 是线性的、准确的
                 player.shuffleModeEnabled = false
                 _isShuffleModeEnabled.value = false
 
-                // 4. 设置列表并直接跳转
-                // 此时 shuffle 是 false，所以 status.mediaItemIndex 绝对对应 list 里的第 N 个
+                // 设置列表并直接跳转 此时 shuffle 是 false，所以 status.mediaItemIndex 绝对对应 list 里的第 N 个
                 player.setMediaItems(
                     mediaItems,
                     status.mediaItemIndex,
@@ -75,8 +107,7 @@ class PlaybackQueueManager(
                 player.repeatMode = Player.REPEAT_MODE_ALL
                 player.prepare()
 
-                // 5. 【最后】如果需要，再开启随机
-                // 此时当前播放的歌曲已经定下来了，ExoPlayer 只会打乱"后面"的歌
+                // 如果需要，再开启随机 此时当前播放的歌曲已经定下来了，ExoPlayer 只会打乱"后面"的歌
                 if (startInShuffleMode) {
                     player.shuffleModeEnabled = true
                     _isShuffleModeEnabled.value = true
@@ -100,7 +131,6 @@ class PlaybackQueueManager(
     override fun onPlaybackStateChanged(playbackState: Int) {
         if (playbackState == Player.STATE_IDLE && player.playerError != null) {
             _queueState.value = QueueState.Error(player.playerError?.message ?: "播放错误")
-            // 遇到错误不需要 stop，ExoPlayer 已经在 IDLE 了
         }
     }
 
