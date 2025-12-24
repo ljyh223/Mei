@@ -321,7 +321,7 @@ data class HomePageResourceShow(
                         @SerializedName("labelText")
                         val labelText: Any,
                         @SerializedName("resourceExtInfo")
-                        val resourceExtInfo: ResourceExtInfo,
+                        val resourceExtInfo: ResourceExtInfo? = null,
                         @SerializedName("extMap")
                         val extMap: Any,
                         @SerializedName("singleLineTitle")
@@ -348,7 +348,7 @@ data class HomePageResourceShow(
                             @SerializedName("artists")
                             val artists: List<Artist>,
                             @SerializedName("coverText")
-                            val coverText: List<String>
+                            val coverText: List<String>? = null
                         ) {
                             data class Artist(
                                 @SerializedName("id")
