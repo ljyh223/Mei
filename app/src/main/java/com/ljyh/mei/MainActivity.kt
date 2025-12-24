@@ -122,6 +122,7 @@ import com.ljyh.mei.utils.cache.preloadImage
 import com.ljyh.mei.utils.checkAndRequestNotificationPermission
 import com.ljyh.mei.utils.createNotificationChannel
 import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.encrypt.getAndroidId
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
@@ -390,8 +391,10 @@ class MainActivity : ComponentActivity() {
                         if (!checkFilesPermissions(this@MainActivity)) {
                             showDialog.value = true
                         } else {
+
                             Log.d("MainActivity", "permission granted")
                             lifecycleScope.launch {
+                                getAndroidId(this@MainActivity)
                                 if (dataStore.get(FirstLaunchKey, true)) {
                                     dataStore.edit { settings ->
                                         settings[FirstLaunchKey] = false

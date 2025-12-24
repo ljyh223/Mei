@@ -49,7 +49,7 @@ val RepeatModeKey = intPreferencesKey("repeatMode")
 
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
-
+val AndroidIdKey = stringPreferencesKey("androidId")
 
 // 原图封面
 val OriginalCoverKey = booleanPreferencesKey("originalCover")

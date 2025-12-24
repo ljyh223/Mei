@@ -7,6 +7,8 @@ import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.ljyh.mei.AppContext
+import com.ljyh.mei.constants.AndroidIdKey
+import com.ljyh.mei.constants.AndroidUserAgent
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.data.network.QQMusicCApiService
@@ -19,6 +21,7 @@ import com.ljyh.mei.utils.encrypt.createRandomKey
 import com.ljyh.mei.utils.encrypt.decryptEApi
 import com.ljyh.mei.utils.encrypt.encryptEApi
 import com.ljyh.mei.utils.encrypt.encryptWeAPI
+import com.ljyh.mei.utils.encrypt.getAndroidId
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.getDeviceId
 import dagger.Module
@@ -337,7 +340,7 @@ object RetrofitModule {
             ),
             "api" to mapOf(
                 "pc" to "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.0.18.203152",
-                "android" to "NeteaseMusic/9.1.65.240927161425(9001065);Dalvik/2.1.0 (Linux; U; Android 14; 23013RK75C Build/UKQ1.230804.001",
+                "android" to AndroidUserAgent,
                 "iphone" to "NeteaseMusic 9.0.90/5038 (iPhone; iOS 16.2; zh_CN)"
             )
         )
@@ -351,6 +354,7 @@ private fun generateCookie(crypto: String, osInfo: OSInfo): String {
     // 这里可以根据需要实现具体的 Cookie 生成逻辑
 
     val _ntes_nuid = createRandomKey(32)
+    val deviceId = AppContext.instance.dataStore[AndroidIdKey]?:getAndroidId()
 
     val cookie = mapOf(
         "ntes_kaola_ad" to 1,
@@ -361,9 +365,9 @@ private fun generateCookie(crypto: String, osInfo: OSInfo): String {
         "buildver" to System.currentTimeMillis().toString().substring(0, 10),
         "resolution" to "2268x1080",
         "WEVNSM" to "1.0.0",
-        "sDeviceId" to "bnVsbAkwMjowMDowMDowMDowMDowMAk5MzQwMWVlNWU4MzBlODIzCWVhMmY2OTJlYTQ3NDFhZmQ%3D",
-        "mobilename" to "23013RK75C",
-        "deviceId" to "bnVsbAkwMjowMDowMDowMDowMDowMAk5MzQwMWVlNWU4MzBlODIzCWVhMmY2OTJlYTQ3NDFhZmQ%3D",
+        "sDeviceId" to deviceId,
+        "mobilename" to "Mi+A3",
+        "deviceId" to deviceId,
         "__csrf" to "40ab38f0a305fc4c7ff68e636bcf34aa",
         "NMDI" to "Q1NKTQkBDAAMIEF4coQMHcb6TLA7AAAAciOiJ%2F%2FOO4VQ7m%2FLvLJ1pD9CIsJP5mfzI4SusB%2BaNScGLpThEYBcPxGzj0pL5hLdZ7LqB2UVULdYgc0%3D",
         "osver" to osInfo.osver,

@@ -2,6 +2,13 @@ package com.ljyh.mei.data.model.weapi
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import com.ljyh.mei.AppContext
+import com.ljyh.mei.constants.AndroidIdKey
+import com.ljyh.mei.constants.AndroidUserAgent
+import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.encrypt.getAndroidId
+import com.ljyh.mei.utils.get
+import korlibs.encoding.Base64
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -103,8 +110,8 @@ private object DefaultBuilder {
     const val PAGE_CODE = "HOME_RECOMMEND_PAGE"
     const val IS_FIRST_SCREEN = "true"
     const val CURSOR = "0"
-    const val WIDTH_DP = "360"
-    const val HEIGHT_DP = "720"
+    const val WIDTH_DP = "1080"
+    const val HEIGHT_DP = "1920"
     const val LOADED_POSITION_CODES = ""
     var CLIENT_CACHE_BLOCK_CODE: String = Gson().toJson(
         listOf(
@@ -189,7 +196,8 @@ class GetHomePageResourceShowDsl(
     var pageStyleType: String = DefaultBuilder.PAGE_STYLE_TYPE
     var adExtJson: String = Gson().toJson(buildAdExtJson { })
     var reqTimeStamp: String = System.currentTimeMillis().toString()
-    var clientTime: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+    var clientTime: String =
+        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
     var ruleJson: String = DefaultBuilder.RULE_JSON
     var algDemoteBlockCodeOrderList: String = DefaultBuilder.ALG_DEMOTE_BLOCK_CODE_ORDER_LIST
     var header: String = DefaultBuilder.HEADER
@@ -265,9 +273,9 @@ class AdExtJsonDsl {
     var memory: String = "5885825024"
     var disk: String = "52297560064"
     var mobilename: String = "Mi A3"
-    var ipv4: String = "125.65.115.35"
+    var ipv4: String = "127.0.0.2"
     var ipv6: String = ""
-    var androidId: String = "bnVsbAkwYTo5NjoyMTozYjoxYzo4Mwk0NjMwYWMyMjE2ZWVjNTU2CTNiMDgzZGU1NTI2OTgzMTU%3D"
+    var androidId: String = AppContext.instance.dataStore[AndroidIdKey]?:getAndroidId()
     var manufacturer: String = "Xiaomi"
     var lbs: String = """{"latitude":"4.9E-324","longitude":"4.9E-324"}"""
     var opensdkVer: Int = 638065664
@@ -275,9 +283,8 @@ class AdExtJsonDsl {
     var wxInstalled: Boolean = false
     var supportWechatCanvas: Boolean = true
     var supportQuickApp: Boolean = true
-    var newAgent: String =
-        "Mozilla/5.0 (Linux; Android 10; Mi A3 Build/QQ3A.200705.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/143.0.7499.34 Mobile Safari/537.36 NeteaseMusic/9.4.32.251222163637"
-    var useragent: String = newAgent
+    var newAgent: String = AndroidUserAgent
+    var useragent: String = AndroidUserAgent
     var teenMode: Boolean = false
     var homePageType: Int = 1
     var sourceFrame: String = "note"
