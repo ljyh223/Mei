@@ -75,7 +75,7 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
 fun AlbumDetail.Song.toMediaMetadata() = MediaMetadata(
     id = id,
     title = name,
-    coverUrl= al.picStr,
+    coverUrl= getResourceLink(al.pic.toString()),
     artists = ar.map {
         MediaMetadata.Artist(
             id = it.id,
