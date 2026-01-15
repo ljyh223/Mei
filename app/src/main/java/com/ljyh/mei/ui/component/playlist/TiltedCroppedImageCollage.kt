@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.utils.UnitUtils.toPx
+import timber.log.Timber
 import kotlin.math.*
 
 private const val ROTATION_DEGREES = -30f // 逆时针旋转30度
@@ -76,9 +77,9 @@ fun FinalPerfectCollage(
         val finalTranslationX = (viewportWidth / 2f) - (collageCenterX + rotatedVecX)
         val finalTranslationY = (viewportHeight / 2f) - (collageCenterY + rotatedVecY)
 
-        Log.d("FinalCollageV6", "Viewport: ${viewportWidth}x${viewportHeight}")
-        Log.d("FinalCollageV6", "Original Collage Size: ${originalWidth}x${originalHeight}")
-        Log.d("FinalCollageV6", "Translation X: $finalTranslationX, Y: $finalTranslationY")
+        Timber.tag("FinalCollageV6").d("Viewport: ${viewportWidth}x${viewportHeight}")
+        Timber.tag("FinalCollageV6").d("Original Collage Size: ${originalWidth}x${originalHeight}")
+        Timber.tag("FinalCollageV6").d("Translation X: $finalTranslationX, Y: $finalTranslationY")
 
         // 应用变换
         Box(

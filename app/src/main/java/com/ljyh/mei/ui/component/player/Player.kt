@@ -75,6 +75,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -148,16 +149,16 @@ fun BottomSheetPlayer(
                 playerViewModel.fetchQQSong(meta.id.toString())
                 playerViewModel.searchNew(meta.title)
             }
-            Log.d("Player", "MediaMetadata: $meta")
-            Log.d("Player", "MediaMetadata: cover ${meta.coverUrl}")
+            Timber.tag("Player").d("MediaMetadata: $meta")
+            Timber.tag("Player").d("MediaMetadata: cover ${meta.coverUrl}")
 
         }
     }
     // 监听 QQSong 变化，获取新歌词
     LaunchedEffect(qqSong) {
-        Log.d("Player", "QQSong: $qqSong")
+        Timber.tag("Player").d("QQSong: $qqSong")
         qqSong?.let { song ->
-            Log.d("Player", "QQSong111: $song")
+            Timber.tag("Player").d("QQSong111: $song")
             playerViewModel.getLyricNew(
                 title = song.title,
                 album = song.album,

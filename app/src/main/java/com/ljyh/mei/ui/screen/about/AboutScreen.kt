@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LibraryMusic
@@ -49,6 +51,7 @@ import com.ljyh.mei.BuildConfig
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.Github
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.screen.Screen
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -121,6 +124,13 @@ fun AboutScreen() {
                             title = "问题反馈",
                             onClick = { openUrl(context, "$Github/issues") }
                         )
+                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                        AboutActionItem(
+                            icon = Icons.Default.Terminal,
+                            title = "日志"
+                        ) {
+                            Screen.Log.navigate(navController)
+                        }
                     }
                 }
             }

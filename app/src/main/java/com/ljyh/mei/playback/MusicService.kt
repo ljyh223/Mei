@@ -88,6 +88,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+import timber.log.Timber
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -284,7 +285,7 @@ class MusicService : MediaLibraryService(),
                 player.repeatMode = savedRepeatMode
             }
 
-            Log.d("MusicService", "Restored State -> Shuffle: $savedShuffleMode, Repeat: $savedRepeatMode")
+            Timber.tag("MusicService").d("Restored State -> Shuffle: $savedShuffleMode, Repeat: $savedRepeatMode")
         }
     }
 
@@ -413,16 +414,13 @@ class MusicService : MediaLibraryService(),
             if (localFilePath != null) {
                 val file = File(localFilePath)
                 if (file.exists()) {
-                    Log.d(
-                        "ResolvingDataSource",
-                        "Using local file for mediaId: $mediaId, filePath: ${file.path}"
-                    )
+                    Timber.tag("ResolvingDataSource").d("Using local file for mediaId: $mediaId, filePath: ${file.path}")
                     return@Factory dataSpec.withUri(Uri.fromFile(file))
                 }
             }
             // 检查磁盘缓存 (ExoPlayer Cache) 是否已完全缓存
             if (isContentFullyCached(simpleCache, mediaId)) {
-                Log.d("ResolvingDataSource", "Fully cached on disk, skipping API: $mediaId")
+                Timber.tag("ResolvingDataSource").d("Fully cached on disk, skipping API: $mediaId")
                 return@Factory dataSpec.withUri("cache://$mediaId".toUri())
             }
 

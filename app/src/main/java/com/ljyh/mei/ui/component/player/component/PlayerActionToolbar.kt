@@ -69,6 +69,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -150,10 +151,7 @@ fun PlayerActionToolbar(
                     "已添加到 ${selectedPlaylist.title}",
                     Toast.LENGTH_SHORT
                 ).show()
-                Log.d(
-                    "Playlist",
-                    "Added ${mediaMetadata.title} to ${selectedPlaylist.title}"
-                )
+                Timber.tag("Playlist").d("Added ${mediaMetadata.title} to ${selectedPlaylist.title}")
             }
             showAddToPlaylistDialog = false
         },
@@ -174,7 +172,7 @@ fun PlayerActionToolbar(
                 "创建歌单成功",
                 Toast.LENGTH_SHORT
             ).show()
-            Log.d("Playlist", "Edited playlist")
+            Timber.tag("Playlist").d("Edited playlist")
             showEditPlaylistDialog = false
             // 刷新歌单
             playlistViewModel.getAllMePlaylist()

@@ -115,6 +115,7 @@ import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.theme.MusicTheme
+import com.ljyh.mei.utils.log.CrashHandler
 import com.ljyh.mei.utils.MusicUtils
 import com.ljyh.mei.utils.PermissionsUtils.checkAndRequestFilesPermissions
 import com.ljyh.mei.utils.PermissionsUtils.checkFilesPermissions
@@ -124,6 +125,7 @@ import com.ljyh.mei.utils.createNotificationChannel
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.encrypt.getAndroidId
 import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.log.FileLoggingTree
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -131,6 +133,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 
@@ -151,7 +154,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
+        CrashHandler.init(this)
+        if (BuildConfig.DEBUG) {
+            // 开发模式：既输出到 Logcat，也输出到文件
+            Timber.plant(Timber.DebugTree())
+            Timber.plant(FileLoggingTree(this))
+        } else {
+            // Release 模式：主要是植入文件记录器
+            Timber.plant(FileLoggingTree(this))
+        }
         val headerInterceptor = Interceptor { chain ->
             val newRequest = chain.request().newBuilder()
                 .addHeader("User-Agent", UserAgent)
@@ -178,7 +189,7 @@ class MainActivity : ComponentActivity() {
 
                 val connection = object : ServiceConnection {
                     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                        Log.d("MainActivity", "Service Connected") // 添加日志
+                        Timber.tag("MainActivity").d("Service Connected") // 添加日志
                         if (service is MusicService.MusicBinder) {
                             // 更新 State，触发 Recomposition
                             playerConnection = PlayerConnection(
@@ -191,7 +202,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     override fun onServiceDisconnected(name: ComponentName?) {
-                        Log.d("MainActivity", "Service Disconnected")
+                        Timber.tag("MainActivity").d("Service Disconnected")
                         playerConnection?.dispose() // 假设你有 dispose 方法清理资源
                         playerConnection = null
                     }
@@ -224,24 +235,24 @@ class MainActivity : ComponentActivity() {
             var targetThemeColor by remember { mutableStateOf(Color.Black) }
 
             LaunchedEffect(playerConnection) {
-                Log.d("MainActivity", "playerConnection: $playerConnection")
+                Timber.tag("MainActivity").d("playerConnection: $playerConnection")
                 val playerConnection = playerConnection ?: return@LaunchedEffect
                 val player = playerConnection.service.player
                 playerConnection.service.currentMediaMetadata.collect { song->
                     if (dynamicTheme && song != null) {
                         val context = this@MainActivity
                         launch {
-                            Log.d("MainActivity", "获取当前歌曲颜色: $song")
+                            Timber.tag("MainActivity").d("获取当前歌曲颜色: $song")
                             val color = colorRepository.getColorOrExtract(context, song.coverUrl)
                             targetThemeColor = color
                         }
-                        Log.d("MainActivity", "获取歌曲颜色: $targetThemeColor")
+                        Timber.tag("MainActivity").d("获取歌曲颜色: $targetThemeColor")
 
                         val nextIndex = player.nextMediaItemIndex
                         if (nextIndex != C.INDEX_UNSET) {
                             val nextUrl = player.getMediaItemAt(nextIndex).mediaMetadata.artworkUri?.toString()
                             if (!nextUrl.isNullOrEmpty()) {
-                                Log.d("MainActivity", "获取下一首歌曲颜色: $nextUrl")
+                                Timber.tag("MainActivity").d("获取下一首歌曲颜色: $nextUrl")
                                 launch(Dispatchers.IO) {
                                     colorRepository.getColorOrExtract(context, nextUrl)
                                     preloadImage(context, nextUrl)
@@ -392,7 +403,7 @@ class MainActivity : ComponentActivity() {
                             showDialog.value = true
                         } else {
 
-                            Log.d("MainActivity", "permission granted")
+                            Timber.tag("MainActivity").d("permission granted")
                             lifecycleScope.launch {
                                 getAndroidId(this@MainActivity)
                                 if (dataStore.get(FirstLaunchKey, true)) {
@@ -400,7 +411,7 @@ class MainActivity : ComponentActivity() {
                                         settings[FirstLaunchKey] = false
                                         settings[DeviceIdKey] = com.ljyh.mei.utils.getDeviceId()
                                     }
-                                    Log.d("MainActivity", "load local music")
+                                    Timber.tag("MainActivity").d("load local music")
                                     withContext(Dispatchers.IO) {
                                         val localSongs = MusicUtils.getLocalMusic()
                                         database.songDao().insertSongs(localSongs)

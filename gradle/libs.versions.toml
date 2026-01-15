@@ -36,6 +36,7 @@ ksp = "2.3.0"
 hiltNavigationCompose = "1.3.0"
 roomCompiler = "2.8.4"
 media3 = "1.8.0"
+timber = "5.0.1"
 workRuntimeKtx = "2.11.0"
 kmpalette = "3.1.0"
 annotations = "26.0.2-1"
@@ -109,6 +110,7 @@ composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-
 composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
 
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
+timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 zoomable = { module = "net.engawapg.lib:zoomable", version.ref = "zoomable" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

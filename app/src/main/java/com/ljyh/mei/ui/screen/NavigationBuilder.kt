@@ -27,6 +27,7 @@ import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.PlaySetting
 import com.ljyh.mei.ui.screen.setting.SettingScreen
+import com.ljyh.mei.ui.screen.setting.log.LogScreen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +67,9 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable(Screen.About.route) {
         AboutScreen()
+    }
+    composable(Screen.Log.route) {
+        LogScreen()
     }
 
     composable(

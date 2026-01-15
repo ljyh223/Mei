@@ -2,7 +2,9 @@ package com.ljyh.mei.playback
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultDataSource
@@ -15,9 +17,11 @@ import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import com.ljyh.mei.constants.UserAgent
 import okhttp3.OkHttpClient
+import timber.log.Timber
 import java.io.File
 
 
+@UnstableApi
 object CacheManager {
 
     // 缓存大小常量，设置为 5 GB，这是一个比较合理的值
@@ -34,6 +38,7 @@ object CacheManager {
      * 获取 SimpleCache 的单例。
      * 使用双重检查锁定（Double-Checked Locking）模式来确保线程安全和高效。
      */
+    @OptIn(UnstableApi::class)
     fun getSimpleCache(context: Context): SimpleCache {
         // 第一次检查，避免每次都进入同步块，提高性能
         return simpleCache ?: synchronized(LOCK) {
@@ -47,6 +52,7 @@ object CacheManager {
     /**
      * 创建一个新的 SimpleCache 实例。
      */
+    @OptIn(UnstableApi::class)
     private fun createSimpleCache(context: Context): SimpleCache {
         val evictor = LeastRecentlyUsedCacheEvictor(CACHE_SIZE_BYTES)
         val databaseProvider: DatabaseProvider = StandaloneDatabaseProvider(context)
@@ -55,8 +61,9 @@ object CacheManager {
     }
 
 
+    @OptIn(UnstableApi::class)
     fun getCacheDataSourceFactory(context: Context): CacheDataSource.Factory {
-        Log.d("SimpleCache", "Creating CacheDataSource instance")
+        Timber.tag("SimpleCache").d("Creating CacheDataSource instance")
         val simpleCache = CacheManager.getSimpleCache(context)
 
         // 配置 OkHttp
@@ -78,6 +85,7 @@ object CacheManager {
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
     }
 
+    @OptIn(UnstableApi::class)
     fun isContentFullyCached(cache: Cache, key: String): Boolean {
         // 获取缓存元数据
         val contentMetadata = cache.getContentMetadata(key)
@@ -94,6 +102,7 @@ object CacheManager {
     /**
      * 释放缓存资源。应该在应用进程结束时调用。
      */
+    @OptIn(UnstableApi::class)
     fun release() {
         // 在同步块中操作，确保安全
         synchronized(LOCK) {

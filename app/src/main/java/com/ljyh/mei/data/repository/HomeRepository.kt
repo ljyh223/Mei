@@ -26,6 +26,7 @@ import com.ljyh.mei.utils.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 
 class HomeRepository(private val eApiService: EApiService, private val apiService: ApiService) {
@@ -34,10 +35,10 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
     suspend fun getHomePageResourceShow(
         refresh: Boolean = false
     ): Resource<List<HomePageResourceShow.Data.Block>> {
-        Log.d("NewDay",isNewDay(getLastFetchTime(context)).toString())
-        Log.d("refresh",refresh.toString())
+        Timber.tag("NewDay").d(isNewDay(getLastFetchTime(context)).toString())
+        Timber.tag("refresh").d(refresh.toString())
         if (isNewDay(getLastFetchTime(context)) || refresh) {
-            Log.d("getHomePageResourceShow", "新加载")
+            Timber.tag("getHomePageResourceShow").d("新加载")
             val page1 =
                 eApiService.getHomePageResourceShow(buildGetHomePageResourceShow(refresh = refresh.toString()))
 //            val page2 = eApiService.getHomePageResourceShow(
@@ -46,7 +47,7 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
             saveLastHomePage(context, 1, page1.data.blocks)
 //            saveLastHomePage(context, 2, page2.data.blocks)
 
-            Log.d("getHomePageResourceShow", "更新缓存")
+            Timber.tag("getHomePageResourceShow").d("更新缓存")
             return withContext(Dispatchers.IO) {
                 safeApiCall {
                     page1.data.blocks
@@ -54,7 +55,7 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
                 }
             }
         } else {
-            Log.d("getHomePageResourceShow", "加载缓存")
+            Timber.tag("getHomePageResourceShow").d("加载缓存")
             val page1 = getLastHomePage(context, 1)
 //            val page2 = getLastHomePage(context, 2)
             return Resource.Success(page1)
@@ -102,7 +103,7 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
 
     private suspend fun getLastFetchTime(context: Context): Long {
         val preferences = context.dataStore.data.first()
-        Log.d("getLastFetchTime", (preferences[LastHomePageTime] ?: 0L).toString())
+        Timber.tag("getLastFetchTime").d((preferences[LastHomePageTime] ?: 0L).toString())
         return preferences[LastHomePageTime] ?: 0L
     }
 }

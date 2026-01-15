@@ -135,6 +135,7 @@ dependencies {
     implementation(libs.lyrics.core)
     implementation(libs.lyrics.ui)
     implementation(libs.zoomable)
+    implementation(libs.timber)
 
 
 }

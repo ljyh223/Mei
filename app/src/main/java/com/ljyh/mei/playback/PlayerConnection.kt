@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 
 @UnstableApi
@@ -43,7 +44,7 @@ class PlayerConnection(
 ) : Player.Listener {
 
     init {
-        Log.d("PlayerConnection", "PlayerConnection initialized")
+        Timber.tag("PlayerConnection").d("PlayerConnection initialized")
     }
 
     val service = binder.service

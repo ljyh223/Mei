@@ -18,6 +18,7 @@ import korlibs.encoding.toBase64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.Locale
 
 private const val presetKey = "0CoJUm6Qyw8W8jud"
@@ -71,8 +72,8 @@ fun encryptEApi(
     url: String,
     data: String
 ): EApi {
-    Log.d("Eapi", "data: $data")
-    Log.d("Eapi", "url: $url")
+    Timber.tag("Eapi").d( "data: $data")
+    Timber.tag("Eapi").d("url: $url")
     val message = "nobody" + url + "use" + data + "md5forencrypt"
     val digest: String = message.toByteArray().md5().hex
     return EApi(

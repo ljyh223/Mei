@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,10 +41,10 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
      * 如果返回 null，说明内存里没有，UI 应该显示默认色，并触发后台加载。
      */
     fun getFromMemory(url: String): Color? {
-        Log.d("ColorRepository", "开始查询: $url")
+        Timber.tag("ColorRepository").d("开始查询: $url")
         if (url.isEmpty()) return null
-        Log.d("ColorRepository", "返回: ${memoryCache[url]}")
-        Log.d("ColorRepository", "memoryCache: ${memoryCache}")
+        Timber.tag("ColorRepository").d("返回: ${memoryCache[url]}")
+        Timber.tag("ColorRepository").d("memoryCache: ${memoryCache}")
         return memoryCache[url]
     }
 

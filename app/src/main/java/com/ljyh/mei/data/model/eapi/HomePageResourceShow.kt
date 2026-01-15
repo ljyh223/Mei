@@ -71,7 +71,7 @@ data class HomePageResourceShow(
             val clientData: Any,
             @SerializedName("summary")
             val summary: Any,
-            @SerializedName("log")
+            @SerializedName("com/ljyh/mei/utils/log")
             val log: Log,
             @SerializedName("positionInteractInfo")
             val positionInteractInfo: Any,

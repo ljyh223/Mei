@@ -44,6 +44,7 @@ import com.ljyh.mei.constants.SuggestionItemHeight
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.SearchBarIconOffsetX
 import kotlinx.coroutines.flow.drop
+import timber.log.Timber
 
 
 @Composable
@@ -81,7 +82,7 @@ fun SearchScreen(
         when (val result=searchSuggest) {
             is Resource.Loading -> {}
             is Resource.Success -> {
-                Log.d("SearchSuggest", "result: ${result.data}")
+                Timber.tag("SearchSuggest").d("result: ${result.data}")
                 result.data.result.songs?.let { songs->
                     items(
                         items = songs,

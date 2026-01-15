@@ -21,6 +21,7 @@ sealed class Screen(val route:String) {
     data object History: Screen("history")
     data object Test:Screen("test")
     data object About: Screen("about")
+    data object Log: Screen("log")
     inline fun navigate(
         navController: NavController,
         builder: NavigationBuilder.() -> Unit = {}

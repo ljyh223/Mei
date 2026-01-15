@@ -5,6 +5,7 @@ import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
+import timber.log.Timber
 
 fun createDefaultLyricData(message: String): LyricData {
     return LyricData(
@@ -15,12 +16,12 @@ fun createDefaultLyricData(message: String): LyricData {
 }
 
 fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
-//    Log.d("LyricUtils", "mergeLyrics: $sources")
+//    Timber.tag("LyricUtils").d("mergeLyrics: $sources")
     // 找到 NetEase 的逐字歌词（yrc + tlyric）
     val amSource = sources.filterIsInstance<LyricSourceData.AM>().firstOrNull()
     if (amSource != null) {
         val a = amSource.lyric
-        Log.d("LyricUtils", "TMLL")
+        Timber.tag("LyricUtils").d("TMLL")
         return LyricData(
             isVerbatim = true,
             source = LyricSource.AM,
@@ -31,7 +32,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
     if (neteaseSource != null) {
         val n = neteaseSource.lyric
         if (n.yrc != null && n.tlyric != null) {
-            Log.d("LyricUtils", "yrc and tlyric")
+            Timber.tag("LyricUtils").d("yrc and tlyric")
             // NetEase 逐字（最高优先）
             return LyricData(
                 isVerbatim = true,
@@ -46,7 +47,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
     if (qqSource != null) {
         val q = qqSource.lyric
         if (q.lyric.isNotBlank()) {
-            Log.d("LyricUtils", "qq.lyric and qq.trans")
+            Timber.tag("LyricUtils").d("qq.lyric and qq.trans")
             return LyricData(
                 isVerbatim = true,
                 source = LyricSource.QQMusic,
@@ -61,7 +62,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
     if (neteaseSource != null ) {
         val n = neteaseSource.lyric
         if (n.lrc.lyric.isNotBlank() &&  n.tlyric?.lyric!= null) {
-            Log.d("LyricUtils", "NetEase LRC")
+            Timber.tag("LyricUtils").d("NetEase LRC")
             return LyricData(
                 isVerbatim = false,
                 source = LyricSource.NetEaseCloudMusic,
@@ -75,7 +76,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
         val q = qqSource.lyric
         if (q.lyric.isNotBlank()) {
             // 如果有 trans 也可以用，但既然已经判定过逐字缺失，这里当作非逐字解析
-            Log.d("LyricUtils", "QQ LRC")
+            Timber.tag("LyricUtils").d("QQ LRC")
             return LyricData(
                 isVerbatim = false,
                 source = LyricSource.QQMusic,
@@ -85,7 +86,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
     }
 
     // 都没有，返回默认
-    Log.d("LyricUtils", "no lyric")
+    Timber.tag("LyricUtils").d("no lyric")
     return createDefaultLyricData("暂无歌词")
 }
 

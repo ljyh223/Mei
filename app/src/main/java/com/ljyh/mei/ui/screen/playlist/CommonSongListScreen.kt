@@ -80,6 +80,7 @@ import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.utils.setClipboard
+import timber.log.Timber
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -304,10 +305,7 @@ fun CommonSongListScreen(
                                     "已添加到 ${selectedPlaylist.title}",
                                     Toast.LENGTH_SHORT
                                 ).show()
-                                Log.d(
-                                    "Playlist",
-                                    "Added ${trackToAdd?.title} to ${selectedPlaylist.title}"
-                                )
+                                Timber.tag("Playlist").d("Added ${trackToAdd?.title} to ${selectedPlaylist.title}")
                             }
                             showAddToPlaylistDialog = false
                             trackToAdd = null //清理状态

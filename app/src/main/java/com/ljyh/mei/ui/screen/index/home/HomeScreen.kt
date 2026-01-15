@@ -65,6 +65,7 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.positionComparator
 import com.ljyh.mei.utils.rememberPreference
+import timber.log.Timber
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -159,11 +160,11 @@ private fun HomeBlockItem(
 
     // 解析逻辑缓存，只要 block 不变，就不会重新解析 JSON
     val blockData = remember(block) {
-        Log.d("Block", block.positionCode)
+        Timber.tag("Block").d(block.positionCode)
         selectSpecialField(block.dslData)
     } ?: return
 
-    Log.d("Block", block.positionCode)
+    Timber.tag("Block").d(block.positionCode)
 
     when (block.positionCode) {
         // --- 每日推荐 ---

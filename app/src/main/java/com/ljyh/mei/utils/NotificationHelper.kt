@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.ljyh.mei.R
+import timber.log.Timber
 
 fun createNotificationChannel(context: Context) {
     val channel = NotificationChannel(
@@ -32,7 +33,7 @@ fun checkAndRequestNotificationPermission(context: Context) {
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
         != PackageManager.PERMISSION_GRANTED
     ) {
-        Log.d("NotificationHelper", "申请权限")
+        Timber.tag("NotificationHelper").d("申请权限")
         // 申请权限
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
     }

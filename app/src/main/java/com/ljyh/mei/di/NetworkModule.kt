@@ -24,6 +24,7 @@ import com.ljyh.mei.utils.encrypt.encryptWeAPI
 import com.ljyh.mei.utils.encrypt.getAndroidId
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.getDeviceId
+import com.ljyh.mei.utils.log.NetworkLogInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,6 +37,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
+import timber.log.Timber
 import java.lang.reflect.Type
 import java.security.cert.X509Certificate
 import java.util.Locale
@@ -64,15 +66,10 @@ object RetrofitModule {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
-
         val encryptionInterceptor = Interceptor { chain ->
             val originalRequest = chain.request()
-
-
             val url = originalRequest.url.toString()
             val headersBuilder = originalRequest.headers.newBuilder()
-
-
             // 确定加密方式
             val crypto = determineCryptoMethod(url)
 
@@ -130,7 +127,7 @@ object RetrofitModule {
                 buffer.readUtf8()
             } ?: ""
 
-            Log.d("Encrypted Data", crypto)
+            Timber.tag("Encrypted Data").d(crypto)
             // 根据加密方式加密请求数据
             val newRequest = when (crypto) {
                 "weapi" -> {
@@ -193,7 +190,7 @@ object RetrofitModule {
             // 解密响应数据
             if (crypto == "eapi") {
                 val decryptedResponseBody = responseBody.let { body ->
-                    Log.d("Decrypted Response", "eapi")
+                    Timber.tag("Decrypted Response").d("eapi")
                     val encryptedBytes = body.bytes()
                     val decryptedBytes = decryptEApi(encryptedBytes)
 //                    val decryptedBytes = replaceRandomKey(decryptEApi(encryptedBytes))
@@ -233,8 +230,9 @@ object RetrofitModule {
                 hostnameVerifier(hostnameVerifier)
             }
 
-            addInterceptor(loggingInterceptor)
-            addInterceptor(encryptionInterceptor)
+            addInterceptor(loggingInterceptor) // 日志
+            addInterceptor(encryptionInterceptor) // 加密
+            addInterceptor(NetworkLogInterceptor()) // 网络错误
             connectTimeout(30, TimeUnit.SECONDS)
             readTimeout(30, TimeUnit.SECONDS)
             writeTimeout(30, TimeUnit.SECONDS)
@@ -247,8 +245,6 @@ object RetrofitModule {
     @Singleton
     @Named("WeApiRetrofit")
     fun provideWeApiRetrofit(okHttpClient: OkHttpClient): Retrofit {
-
-
         return Retrofit.Builder()
             .baseUrl(DOMAIN)
             .addConverterFactory(GsonConverterFactory.create()) // 仅 WeApiService 使用
@@ -469,43 +465,6 @@ class DynamicMapDeserializer : JsonDeserializer<Map<String, Any>> {
         }
     }
 }
-
-// 替换随机键
-//fun replaceRandomKey(json: String): String {
-//    val regex = Regex("\"(rcmd_rank_module|home_common_rcmd_songs_module)_[a-zA-Z0-9_-]+\"")
-//    return json.replace(regex)  { matchResult ->
-//        when (matchResult.value.substring(1,  matchResult.value.indexOf('_')))  {
-//            "rcmd_rank_module" -> "\"${SpecialKey.Rank}\""
-//            "home_common_rcmd_songs_module" -> "\"${SpecialKey.HomeCommon}\""
-//            else -> matchResult.value
-//        }
-//    }
-//}
-
-
-fun replaceRandomKey(json: String): String {
-    val regexRank = Regex("\"rcmd_rank_module_[a-zA-Z0-9]+\"")
-    val regexHomeCommon = Regex("\"home_common_rcmd_songs_module_[a-zA-Z0-9]+\"")
-    val regexRadar=Regex("\"home_radar_playlist_module_[a-zA-Z0-9]+\"")
-    val regexCommonPlaylist=Regex("\"home_page_common_playlist_module_[a-zA-Z0-9]+\"")
-
-    val replacements = mapOf(
-        regexRank to "\"${SpecialKey.Rank}\"",
-        regexHomeCommon to "\"${SpecialKey.HomeCommon}\"",
-        regexRadar to "\"${SpecialKey.Radar}\"",
-        regexCommonPlaylist to "\"${SpecialKey.CommonPlaylist}\""
-    )
-    var modifiedJson = json
-    replacements.forEach { (regex, replacement) ->
-        val matches = regex.findAll(modifiedJson)
-        Log.d("replaceRandomKey", "regex: $regex, replacement: $replacement")
-        Log.d("replaceRandomKey", matches.count().toString())
-        Log.d("replaceRandomKey", matches.toString())
-        modifiedJson = modifiedJson.replace(regex, replacement)
-    }
-    return modifiedJson
-}
-
 object SpecialKey {
     const val Rank = "rank"
     const val HomeCommon = "home_common"

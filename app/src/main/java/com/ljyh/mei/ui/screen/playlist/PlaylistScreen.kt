@@ -33,6 +33,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.utils.rememberPreference
+import timber.log.Timber
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,7 +95,7 @@ fun PlaylistScreen(
             val data = (playlistDetail as Resource.Success).data.playlist
             isSubscribed = data.subscribed
             data.tracks.map {
-                Log.d("PlaylistScreen", it.ar.toString())
+                Timber.tag("PlaylistScreen").d(it.ar.toString())
             }
             UiPlaylist(
                 id = data.Id.toString(),
