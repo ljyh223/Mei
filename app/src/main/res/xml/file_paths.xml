@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 对应 context.getExternalFilesDir(null) -->
+    <external-files-path name="my_logs" path="." />
+</paths>
