@@ -82,6 +82,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -108,6 +109,7 @@ class MusicService : MediaLibraryService(),
     lateinit var sleepTimer: SleepTimer
     private val serviceJob = SupervisorJob()
     var scope = CoroutineScope(Dispatchers.Main + serviceJob)
+    private var historyJob: Job? = null
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var baseMediaSourceFactory: DefaultMediaSourceFactory
     private lateinit var preloadManager: DefaultPreloadManager
@@ -115,7 +117,7 @@ class MusicService : MediaLibraryService(),
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
 
     @Inject
-    lateinit var mediaUriProvider: MediaUriProvider // 注入我们刚写的 Provider
+    lateinit var mediaUriProvider: MediaUriProvider
 
     private var errorCount = 0 // 记录连续错误的次数，防止死循环
 
@@ -126,8 +128,7 @@ class MusicService : MediaLibraryService(),
     private var isAudioEffectSessionOpened = false
 
     @Inject
-    lateinit var weApiService: WeApiService // 自动注入
-
+    lateinit var weApiService: WeApiService
     @Inject
     lateinit var apiService: ApiService
 
@@ -218,6 +219,18 @@ class MusicService : MediaLibraryService(),
 
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         updatePreload()
+                        historyJob?.cancel()
+                        if (mediaItem != null) {
+                            historyJob = scope.launch {
+                                delay(5000L)
+                                try {
+                                    recordHistory(mediaItem)
+                                } catch (e: Exception) {
+                                    Timber.tag("MusicService").e("add history record error $e")
+                                    e.printStackTrace()
+                                }
+                            }
+                        }
                     }
                     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                         scope.launch {
@@ -459,7 +472,7 @@ class MusicService : MediaLibraryService(),
 
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
     override fun onPlayerError(error: PlaybackException) {
-        Log.e("MusicService", "Player Error: ${error.errorCodeName}, ${error.message}")
+        Timber.tag("MusicService").e( "Player Error: ${error.errorCodeName}, ${error.message}")
 
         val isSourceError = error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
                 error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
@@ -468,7 +481,7 @@ class MusicService : MediaLibraryService(),
 
         if (isSourceError) {
             errorCount++
-            Log.w("MusicService", "Play failure detected. Count: $errorCount")
+            Timber.tag("MusicService").e( "Play failure detected. Count: $errorCount")
 
             // 如果连续错误超过5次，停止播放，避免无限刷 API
             if (errorCount > 5) {
