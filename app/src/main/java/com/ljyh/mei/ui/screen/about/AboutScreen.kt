@@ -127,7 +127,7 @@ fun AboutScreen() {
                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
                         AboutActionItem(
                             icon = Icons.Default.Terminal,
-                            title = "日志"
+                            title = "日志收集"
                         ) {
                             Screen.Log.navigate(navController)
                         }

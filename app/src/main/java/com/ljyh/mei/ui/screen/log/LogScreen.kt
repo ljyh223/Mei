@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.setting.log
+package com.ljyh.mei.ui.screen.log
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -81,7 +81,7 @@ fun LogScreen(
                 // 下面是一个假设的逻辑，你需要让VM记录当前选中的文件
                 val currentFile = fileList.find { it.readText() == content }
                 if (currentFile != null) {
-                    viewModel.shareFile(currentFile)
+                    viewModel.shareCurrentFile()
                 }
             }
         )

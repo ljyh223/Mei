@@ -27,7 +27,7 @@ import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.PlaySetting
 import com.ljyh.mei.ui.screen.setting.SettingScreen
-import com.ljyh.mei.ui.screen.setting.log.LogScreen
+import com.ljyh.mei.ui.screen.log.LogScreen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
