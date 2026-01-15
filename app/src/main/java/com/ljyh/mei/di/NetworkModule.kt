@@ -63,182 +63,46 @@ object RetrofitModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
-        }
-        val encryptionInterceptor = Interceptor { chain ->
-            val originalRequest = chain.request()
-            val url = originalRequest.url.toString()
-            val headersBuilder = originalRequest.headers.newBuilder()
-            // 确定加密方式
-            val crypto = determineCryptoMethod(url)
-
-            val os = when (crypto) {
-                "weapi" -> "pc"
-                "eapi" -> "pc"
-                "api" -> "iphone"
-                else -> "pc"
-            }
-            val osInfo = osMap[os] ?: OSInfo("", "", "", "")
-
-            // 模拟设置 Cookie 和其他头信息
-            val cookie = generateCookie(crypto, osInfo) // 根据加密方式生成 Cookie
-            headersBuilder.add("Cookie", cookie)
-
-            if (crypto == "api") {
-                headersBuilder.apply {
-                    add("User-Agent", chooseUserAgent(crypto, "iphone"))
-                    add("osver", osInfo.osver)
-                    add("deviceId", AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId())
-                    add("os", osInfo.os)
-                    add("appver", osInfo.appver)
-                    add("versioncode", "140")
-                    add("mobilename", "")
-                    add("buildver", System.currentTimeMillis().toString().substring(0, 10))
-                    add("resolution", "1920x1080")
-                    add("__csrf", "40ab38f0a305fc4c7ff68e636bcf34aa")
-                    add("channel", osInfo.channel)
-                    add(
-                        "requestId",
-                        "${System.currentTimeMillis()}_${
-                            (Math.random() * 1000).toInt().toString().padStart(4, '0')
-                        }"
-                    )
-                    if (cookie.contains("MUSIC_U")) {
-                        add("MUSIC_U", AppContext.instance.dataStore[CookieKey].toString())
-                    }
-                }
-
-            }
-
-
-
-            else {
-                val userAgent = chooseUserAgent(crypto, "pc")
-                headersBuilder.add("User-Agent", userAgent)
-            }
-
-            // 获取请求体
-            val originalBody = originalRequest.body
-            val requestData = originalBody?.let { body ->
-                // 假设请求体是 JSON 格式
-                val buffer = okio.Buffer()
-                body.writeTo(buffer)
-                buffer.readUtf8()
-            } ?: ""
-
-            Timber.tag("Encrypted Data").d(crypto)
-            // 根据加密方式加密请求数据
-            val newRequest = when (crypto) {
-                "weapi" -> {
-                    headersBuilder.add("Referer", DOMAIN)
-                    val encryptedData = encryptWeAPI(requestData)
-                    val formBody = FormBody.Builder()
-
-                        .add("params", encryptedData.params)
-                        .add("encSecKey", encryptedData.encSecKey)
-                        .build()
-
-
-                    originalRequest.newBuilder()
-                        .headers(headersBuilder.build())
-                        .method(originalRequest.method, formBody)
-                        .build()
-                }
-
-                "eapi" -> {
-                    val api = url.replace(APIDOMAIN, "").replace("eapi", "api")
-                    val encryptedData = encryptEApi(api, requestData)
-                    val formBody = FormBody.Builder()
-                        .add("params", encryptedData.params)
-                        .build()
-
-
-                    originalRequest.newBuilder()
-                        .headers(headersBuilder.build())
-                        .method(originalRequest.method, formBody)
-                        .build()
-                }
-
-                "api" -> {
-
-                    println(requestData)
-                    val formBodyBuilder = FormBody.Builder()
-                    // 注册自定义解析器
-                    if (requestData != "") {
-                        val gson = GsonBuilder()
-                            .registerTypeAdapter(Map::class.java, DynamicMapDeserializer())
-                            .create()
-                        val res = gson.fromJson(requestData, Map::class.java)
-                        for ((key, value) in res) {
-                            formBodyBuilder.add(key.toString(), value.toString())
-                        }
-                    }
-                    originalRequest.newBuilder()
-                        .headers(headersBuilder.build())
-                        .method(originalRequest.method, formBodyBuilder.build())
-                        .build()
-                }
-
-                else -> originalRequest.newBuilder()
-                    .headers(headersBuilder.build())
-                    .method(originalRequest.method, originalBody)
-                    .build()
-            }
-            val response = chain.proceed(newRequest)
-            val responseBody = response.body
-            // 解密响应数据
-            if (crypto == "eapi") {
-                val decryptedResponseBody = responseBody.let { body ->
-                    Timber.tag("Decrypted Response").d("eapi")
-                    val encryptedBytes = body.bytes()
-                    val decryptedBytes = decryptEApi(encryptedBytes)
-//                    val decryptedBytes = replaceRandomKey(decryptEApi(encryptedBytes))
-                    decryptedBytes.toResponseBody(body.contentType())
-                }
-
-                response.newBuilder()
-                    .body(decryptedResponseBody)
-                    .build()
-            } else {
-                response
-            }
-        }
-
         return OkHttpClient.Builder().apply {
-            if (DEBUG) {
-                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-                    override fun checkClientTrusted(
-                        chain: Array<out X509Certificate>?,
-                        authType: String?
-                    ) {
-                    }
-
-                    override fun checkServerTrusted(
-                        chain: Array<out X509Certificate>?,
-                        authType: String?
-                    ) {
-                    }
-
-                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                })
-                val hostnameVerifier = HostnameVerifier { _, _ -> true }
-                // 创建 SSL 上下文并初始化
-                val sslContext = SSLContext.getInstance("TLS")
-                sslContext.init(null, trustAllCerts, java.security.SecureRandom())
-                sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-                hostnameVerifier(hostnameVerifier)
-            }
-
-            addInterceptor(loggingInterceptor) // 日志
-            addInterceptor(encryptionInterceptor) // 加密
-            addInterceptor(NetworkLogInterceptor()) // 网络错误
+            // 基础配置
             connectTimeout(30, TimeUnit.SECONDS)
             readTimeout(30, TimeUnit.SECONDS)
             writeTimeout(30, TimeUnit.SECONDS)
 
-        }.build()
+            // 日志拦截器
+            addInterceptor(HttpLoggingInterceptor().apply {
+                level = if (DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+            })
 
+            // 核心业务拦截器 (使用我们提取出来的类)
+            addInterceptor(NeteaseInterceptor())
+
+            // 网络错误日志拦截器
+            addInterceptor(NetworkLogInterceptor())
+
+            // SSL 配置 (仅在 Debug 模式下忽略证书，防止中间人攻击)
+            if (DEBUG) {
+                configureUnsafeSSL(this)
+            }
+        }.build()
+    }
+
+    private fun configureUnsafeSSL(builder: OkHttpClient.Builder) {
+        try {
+            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+            })
+
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, trustAllCerts, java.security.SecureRandom())
+
+            builder.sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+            builder.hostnameVerifier { _, _ -> true }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to create unsafe SSL context")
+        }
     }
 
     @Provides
@@ -344,83 +208,6 @@ object RetrofitModule {
         return userAgentMap[crypto]?.get(os) ?: ""
     }
 }
-
-private fun generateCookie(crypto: String, osInfo: OSInfo): String {
-    // 根据加密方式生成 Cookie
-    // 这里可以根据需要实现具体的 Cookie 生成逻辑
-
-    val _ntes_nuid = createRandomKey(32)
-    val deviceId = AppContext.instance.dataStore[AndroidIdKey]?:getAndroidId()
-
-    val cookie = mapOf(
-        "ntes_kaola_ad" to 1,
-        "_ntes_nuid" to _ntes_nuid,
-        "WNMCID" to getWNMCID(),
-        "versioncode" to "6006066",
-        "URS_APPID" to "F2219AE9D7828A7D73E2006D000C61031D196A37DB497E3885B8298504867886B6F0E44087D61EFC06BE92279CD6EEC6",
-        "buildver" to System.currentTimeMillis().toString().substring(0, 10),
-        "resolution" to "2268x1080",
-        "WEVNSM" to "1.0.0",
-        "sDeviceId" to deviceId,
-        "mobilename" to "Mi+A3",
-        "deviceId" to deviceId,
-        "__csrf" to "40ab38f0a305fc4c7ff68e636bcf34aa",
-        "NMDI" to "Q1NKTQkBDAAMIEF4coQMHcb6TLA7AAAAciOiJ%2F%2FOO4VQ7m%2FLvLJ1pD9CIsJP5mfzI4SusB%2BaNScGLpThEYBcPxGzj0pL5hLdZ7LqB2UVULdYgc0%3D",
-        "osver" to osInfo.osver,
-        "os" to osInfo.os,
-        "channel" to osInfo.channel,
-        "appver" to osInfo.appver,
-        "NMTID" to createRandomKey(16),
-        "MUSIC_U" to AppContext.instance.dataStore[CookieKey].toString()
-    )
-
-    return cookie.map { (key, value) -> "$key=$value" }.joinToString(";")
-}
-
-
-data class OSInfo(
-    val os: String,
-    val appver: String,
-    val osver: String,
-    val channel: String
-)
-
-fun getWNMCID(): String {
-    val characters = "abcdefghijklmnopqrstuvwxyz"
-    var randomString = ""
-    for (i in 0 until 6) {
-        randomString += characters.random()
-    }
-    return "$randomString.${System.currentTimeMillis()}.01.0"
-}
-
-// 使用 Map 来存储操作系统信息
-val osMap = mapOf(
-    "pc" to OSInfo(
-        os = "pc",
-        appver = "3.0.18.203152",
-        osver = "Microsoft-Windows-10-Professional-build-22631-64bit",
-        channel = "netease"
-    ),
-    "linux" to OSInfo(
-        os = "linux",
-        appver = "1.2.1.0428",
-        osver = "Deepin 20.9",
-        channel = "netease"
-    ),
-    "android" to OSInfo(
-        os = "android",
-        appver = "8.20.20.231215173437",
-        osver = "14",
-        channel = "xiaomi"
-    ),
-    "iphone" to OSInfo(
-        os = "iPhone OS",
-        appver = "9.0.90",
-        osver = "16.2",
-        channel = "distribution"
-    )
-)
 
 // 自定义适配器，动态处理 JSON 中的数字类型
 class DynamicMapDeserializer : JsonDeserializer<Map<String, Any>> {
