@@ -51,6 +51,8 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
+import com.ljyh.mei.data.model.toMediaItem
+import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.queue.ListQueue
@@ -155,7 +157,7 @@ private fun HomeBlockItem(
     navController: NavController,
     viewModel: HomeViewModel
 ) {
-    val gson = remember { Gson() } // 复用 Gson
+    val gson = remember { Gson() }
     val playerConnection = LocalPlayerConnection.current ?: return
 
     // 解析逻辑缓存，只要 block 不变，就不会重新解析 JSON
@@ -251,22 +253,26 @@ private fun HomeBlockItem(
 
             Title(title)
             TripleLaneSlider(
-                songsArray = songsBlocks,
-                isPlaying = { id -> playerConnection.isPlaying(id) }
+                songsArray = songsBlocks
             ) { songs, index ->
                 val flatSongs = songs.flatMap { it.items }.map { it.resourceId to null }
                 if (playerConnection.isPlaying(flatSongs[index].first)) {
                     playerConnection.player.togglePlayPause()
                 } else {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            id = UUID.randomUUID().toString(),
-                            title = if(block.positionCode == "PAGE_RECOMMEND_PRIVATE_RCMD_SONG") "PRIVATE_RCMD_SONG" else "RED_SIMILAR_SONG",
-                            items = flatSongs,
-                            startIndex = index
-                        )
+                    playerConnection.onTrackClicked(
+                        trackId = flatSongs[index].first,
+                        buildQueue = {
+                            ListQueue(
+                                id = UUID.randomUUID().toString(),
+                                title = if(block.positionCode == "PAGE_RECOMMEND_PRIVATE_RCMD_SONG") "PRIVATE_RCMD_SONG" else "RED_SIMILAR_SONG",
+                                items = flatSongs,
+                                startIndex = index
+                            )
+                        }
                     )
                 }
+
+
             }
         }
     }
@@ -299,8 +305,8 @@ private fun <T> BlockWithTitle(
 fun Title(text: String) {
     Text(
         text = text,
-        fontSize = 20.sp, // 稍微调大一点
-        fontWeight = FontWeight.Bold, // 使用 Bold 而不是 Black，视觉更舒适
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground,
         maxLines = 1,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
@@ -310,10 +316,13 @@ fun Title(text: String) {
 @Composable
 fun TripleLaneSlider(
     songsArray: List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>,
-    isPlaying: @Composable (String) -> Boolean,
     onClick: (List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>, Int) -> Unit
 ) {
-    // 假设每页有 3 首歌，总高度需要固定或计算
+    val playerConnection = LocalPlayerConnection.current?: return
+    val currentMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsState()
+
+
     val pagerState = rememberPagerState(pageCount = { songsArray.size })
 
     HorizontalPager(
@@ -324,23 +333,22 @@ fun TripleLaneSlider(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-            // 给 Card 一个背景或圆角容器，如果需要卡片式设计
         ) {
             songsArray[page].items.forEachIndexed { index, song ->
+                val showPause = currentMetadata?.id.toString() == song.resourceId && isPlaying
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 6.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onClick(songsArray, page * 3 + index) },
+                        .clip(RoundedCornerShape(8.dp)),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     PlayingImageView(
                         imageUrl = song.coverUrl,
-                        isPlaying = isPlaying(song.resourceId),
+                        isPlaying = showPause,
                         modifier = Modifier
-                            .size(56.dp) // 图片稍大一点更易点击
+                            .size(56.dp)
                             .clip(RoundedCornerShape(8.dp))
                     )
 
@@ -358,22 +366,27 @@ fun TripleLaneSlider(
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = song.artistName,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, // 使用 Variant 颜色
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
 
-                    // 播放/暂停按钮
-                    // 去掉 IconButton 的额外 padding，使其视觉对齐
                     Box(modifier = Modifier.padding(8.dp)) {
-                        Icon(
-                            imageVector = if (isPlaying(song.resourceId)) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
+                        IconButton(
+                            onClick = {
+                                onClick(songsArray, page * 3 + index)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (showPause) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
                     }
                 }
             }

@@ -76,13 +76,15 @@ fun EveryDay(
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Error: ${(everyDaySongs as Resource.Error).message}")
         }
-    }else{
+    } else {
         CommonSongListScreen(
             uiData = uiData,
             pagingItems = null,
             isLoading = isLoading,
             onPlayAll = {
-                val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map { it.id.toString() to it.toMediaMetadata().toMediaItem() }
+                val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map {
+                    it.id.toString() to it.toMediaMetadata().toMediaItem()
+                }
                 playerConnection.playQueue(
                     ListQueue(
                         id = "playlist_${uiData.id}",
@@ -94,28 +96,28 @@ fun EveryDay(
             },
 
             headerActionIcon = Icons.Default.Favorite,
-            headerActionLabel ="取消收藏",
+            headerActionLabel = "取消收藏",
             onTrackClick = { mediaMetadata, index ->
-                val currentMediaItems = playerConnection.player.mediaItems
-                val foundIndex =
-                    currentMediaItems.indexOfFirst { it.mediaId == mediaMetadata.id.toString() }
 
-                if (foundIndex != -1) {
-                    playerConnection.player.seekToDefaultPosition(foundIndex)
-                    playerConnection.player.play()
-                } else {
-                    if (everyDaySongs is Resource.Success) {
-                        val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map { it.id.toString() to it.toMediaMetadata().toMediaItem() }
-                        playerConnection.playQueue(
+                playerConnection.onTrackClicked(
+                    trackId = mediaMetadata.id.toString(),
+                    buildQueue = {
+                        if (everyDaySongs is Resource.Success) {
+                            val allIds =
+                                (everyDaySongs as Resource.Success).data.data.dailySongs.map {
+                                    it.id.toString() to it.toMediaMetadata().toMediaItem()
+                                }
                             ListQueue(
                                 id = "dailySongs",
                                 title = uiData.title,
                                 items = allIds,
                                 startIndex = index
                             )
-                        )
+                        } else {
+                            null
+                        }
                     }
-                }
+                )
             },
             onBack = {
                 navController.popBackStack()

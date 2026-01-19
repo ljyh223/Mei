@@ -28,6 +28,7 @@ import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.mediaItems
+import com.ljyh.mei.playback.queue.EmptyQueue
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -167,34 +168,30 @@ fun PlaylistScreen(
                     "收藏"
                 },
             onTrackClick = { mediaMetadata, index ->
-                val currentMediaItems = playerConnection.player.mediaItems
-                val foundIndex =
-                    currentMediaItems.indexOfFirst { it.mediaId == mediaMetadata.id.toString() }
+                playerConnection.onTrackClicked(
+                    trackId = mediaMetadata.id.toString(),
+                    buildQueue = {
+                        if (playlistDetail is Resource.Success) {
+                            val playlist = (playlistDetail as Resource.Success).data.playlist
+                            val mediaItemsMap = playlist.tracks.associate {
+                                it.id.toString() to it.toMediaMetadata().toMediaItem()
+                            }
 
-                if (foundIndex != -1) {
-                    playerConnection.player.seekToDefaultPosition(foundIndex)
-                    playerConnection.player.play()
-                } else {
-                    if (playlistDetail is Resource.Success) {
-                        val playlist = (playlistDetail as Resource.Success).data.playlist
-                        val mediaItemsMap = playlist.tracks.associate {
-                            it.id.toString() to it.toMediaMetadata().toMediaItem()
-                        }
-
-                        val allPairs = playlist.trackIds.map { trackId ->
-                            val id = trackId.id.toString()
-                            Pair(id, mediaItemsMap[id])
-                        }
-                        playerConnection.playQueue(
+                            val allPairs = playlist.trackIds.map { trackId ->
+                                val id = trackId.id.toString()
+                                Pair(id, mediaItemsMap[id])
+                            }
                             ListQueue(
-                                id = "playlist_${id}",
+                                id = "playlist_${uiData.id}",
                                 title = uiData.title,
                                 items = allPairs,
                                 startIndex = index
                             )
-                        )
+                        }else{
+                            null
+                        }
                     }
-                }
+                )
             },
             onBack = {
                 navController.popBackStack()

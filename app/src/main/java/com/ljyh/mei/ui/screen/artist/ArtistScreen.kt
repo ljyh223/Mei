@@ -51,6 +51,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
+import java.util.UUID
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -124,13 +125,16 @@ fun ArtistScreen(
                         onClick = {
                             val allIds = songs.map { it.id.toString() to it.toMediaMetadata().toMediaItem() }
                             val currentIndex = songs.indexOf(song)
-                             playerConnection.playQueue(
-                                ListQueue(
-                                    id = "artist_song_${id}",
-                                    title = "Hot Songs",
-                                    items = allIds,
-                                    startIndex = currentIndex
-                                )
+                            playerConnection.onTrackClicked(
+                                trackId = song.id.toString(),
+                                buildQueue = {
+                                    ListQueue(
+                                        id = UUID.randomUUID().toString(),
+                                        title = "Hot Songs",
+                                        items = allIds,
+                                        startIndex = currentIndex
+                                    )
+                                }
                             )
                         },
                         onMoreClick =  {

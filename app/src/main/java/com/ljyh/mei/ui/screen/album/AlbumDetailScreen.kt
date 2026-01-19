@@ -114,31 +114,27 @@ fun AlbumScreen(
             headerActionIcon = Icons.Default.Favorite,
             headerActionLabel = "取消收藏",
             onTrackClick = { mediaMetadata, index ->
-                val currentMediaItems = playerConnection.player.mediaItems
-                val foundIndex =
-                    currentMediaItems.indexOfFirst { it.mediaId == mediaMetadata.id.toString() }
-
-                if (foundIndex != -1) {
-                    playerConnection.player.seekToDefaultPosition(foundIndex)
-                    playerConnection.player.play()
-                } else {
-                    if (albumDetail is Resource.Success) {
-                        val allIds = (albumDetail as Resource.Success).data.songs.map {
-                            Pair(
-                                it.id.toString(),
-                                it.toMediaMetadata().toMediaItem()
-                            )
-                        }
-                        playerConnection.playQueue(
+                playerConnection.onTrackClicked(
+                    trackId = mediaMetadata.id.toString(),
+                    buildQueue = {
+                        if (albumDetail is Resource.Success) {
+                            val allIds = (albumDetail as Resource.Success).data.songs.map {
+                                Pair(
+                                    it.id.toString(),
+                                    it.toMediaMetadata().toMediaItem()
+                                )
+                            }
                             ListQueue(
                                 id = "playlist_${uiData.id}",
                                 title = uiData.title,
                                 items = allIds,
                                 startIndex = index
                             )
-                        )
+                        } else {
+                            null
+                        }
                     }
-                }
+                )
             },
             onBack = {
                 navController.popBackStack()
