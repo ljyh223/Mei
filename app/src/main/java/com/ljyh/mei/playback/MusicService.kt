@@ -211,8 +211,6 @@ class MusicService : MediaLibraryService(),
                 //睡眠定时
                 sleepTimer = SleepTimer(scope, this)
                 addListener(sleepTimer)
-                //播放统计
-                addAnalyticsListener(PlaybackStatsListener(false, this@MusicService))
                 addListener(this@MusicService)
                 // 添加监听，更新预加载索引
                 addListener(object : Player.Listener {

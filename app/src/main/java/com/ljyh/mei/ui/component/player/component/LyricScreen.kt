@@ -52,7 +52,6 @@ import com.ljyh.mei.utils.setClipboard
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
-import com.mocharealm.accompanist.lyrics.ui.theme.SFPro
 import kotlinx.coroutines.android.awaitFrame
 
 @OptIn(UnstableApi::class)
@@ -65,7 +64,7 @@ fun LyricScreen(
 ) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
-    var animatedPosition by remember { mutableLongStateOf(0L) }
+    var animatedPosition by remember { mutableLongStateOf(0) }
     val (normalLyricTextSize, _) = rememberEnumPreference(
         NormalLyricTextSizeKey,
         LyricTextSize.Size32
@@ -103,7 +102,7 @@ fun LyricScreen(
                 KaraokeLyricsView(
                     listState = listState,
                     lyrics = lyricData.lyricLine,
-                    currentPosition = animatedPosition,
+                    currentPosition = { animatedPosition.toInt() },
                     onLineClicked = { line ->
                         playerConnection.player.seekTo(line.start.toLong())
                     },
@@ -139,13 +138,11 @@ fun LyricScreen(
                     normalLineTextStyle = LocalTextStyle.current.copy(
                         fontSize = normalLyricTextSize.text.sp,
                         fontWeight = if (normalLyricTextBold) FontWeight.Bold else FontWeight.Normal,
-                        fontFamily = SFPro(),
                         textMotion = TextMotion.Animated,
                     ),
                     accompanimentLineTextStyle = LocalTextStyle.current.copy(
                         fontSize = accompanimentLyricTextSize.text.sp,
                         fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
-                        fontFamily = SFPro(),
                         textMotion = TextMotion.Animated,
                     )
                 )

@@ -26,25 +26,5 @@ class ShareRepository(
     val qqMusicCApiService: QQMusicCApiService,
     val qqMusicUApiService: QQMusicUApiService
 ) {
-    suspend fun getSongUrl(id: String): Resource<SongUrl> {
-        return withContext(Dispatchers.IO) {
-            safeApiCall {
-                apiService.getSongUrl(
-                    GetSongUrl(
-                        ids = "[$id]"
-                    )
-                )
-            }
-        }
-    }
-
-
-
-    suspend fun getQQMusicLyric(id: String): Resource<String> {
-        return withContext(Dispatchers.IO) {
-            safeApiCall { qqMusicCApiService.getQQMusicLyric(id) }
-        }
-    }
-
 
 }

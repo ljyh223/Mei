@@ -17,7 +17,7 @@ class MusicPreloadStrategy : TargetPreloadStatusControl<Int, DefaultPreloadManag
     // 当前播放索引，需要由 Service 更新
     var currentPlayingIndex: Int = -1
 
-    override fun getTargetPreloadStatus(rankingData: Int): DefaultPreloadManager.PreloadStatus? {
+    override fun getTargetPreloadStatus(rankingData: Int): DefaultPreloadManager.PreloadStatus {
         // 策略：只预加载下一首
         if (rankingData == currentPlayingIndex + 1) {
             // 参数1: 阶段 (STAGE_LOADED_TO_POSITION_MS)
@@ -27,6 +27,6 @@ class MusicPreloadStrategy : TargetPreloadStatusControl<Int, DefaultPreloadManag
                 5000L
             )
         }
-        return null
+        return DefaultPreloadManager.PreloadStatus.PRELOAD_STATUS_NOT_PRELOADED
     }
 }

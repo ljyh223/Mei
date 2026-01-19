@@ -10,7 +10,6 @@ import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.PlaylistRepository
-import com.mocharealm.accompanist.lyrics.ui.Res
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

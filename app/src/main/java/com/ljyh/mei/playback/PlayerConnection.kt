@@ -18,11 +18,16 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.PreviousPlaybackKey
 import com.ljyh.mei.data.model.metadata
+import com.ljyh.mei.data.model.toMediaItem
+import com.ljyh.mei.data.model.toMediaMetadata
+import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.getCurrentQueueIndex
 import com.ljyh.mei.extensions.getQueueWindows
+import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.reportException
@@ -96,10 +101,21 @@ class PlayerConnection(
     }
 
     fun isPlaying(id: String): Boolean {
-        return mediaMetadata.value?.id.toString() == id &&
-                player.playbackState == Player.STATE_READY &&
-                player.playWhenReady
+        return mediaMetadata.value?.id.toString() == id && isPlaying.value
     }
+    fun onTrackClicked( trackId: String, buildQueue: () ->  ListQueue?) {
+        val foundIndex = player.mediaItems.indexOfFirst { it.mediaId == trackId }
+        if (foundIndex != -1) {
+            player.seekToDefaultPosition(foundIndex)
+            player.play()
+        } else {
+            buildQueue()?.let {
+                playQueue(it)
+            }
+
+        }
+    }
+
 
     fun playQueue(queue: ListQueue) {
         // 判断当前 UI 上的模式是否是随机模式

@@ -3,7 +3,7 @@ package com.ljyh.mei.utils.lyric
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 import com.mocharealm.accompanist.lyrics.core.model.synced.UncheckedSyncedLine
 import com.mocharealm.accompanist.lyrics.core.parser.ILyricsParser
-import com.mocharealm.accompanist.lyrics.core.parser.LrcMetadataHelper
+import com.mocharealm.accompanist.lyrics.core.utils.LrcMetadataHelper
 import kotlin.math.abs
 
 private data class TranslationLine(val time: Int, val text: String)
