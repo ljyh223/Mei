@@ -260,12 +260,13 @@ fun CommonSongListScreen(
 
 
                     if (menuTargetTrack != null) {
+                        val currentTrack = menuTargetTrack ?: return@Box
                         TrackActionMenu(
-                            targetTrack = menuTargetTrack,
+                            targetTrack = currentTrack,
                             isCreator = uiData.isCreate,
                             onDismiss = { menuTargetTrack = null },
                             onAddToPlaylist = {
-                                trackToAdd = menuTargetTrack
+                                trackToAdd = currentTrack
                                 menuTargetTrack = null
                                 showAddToPlaylistDialog = true
                                 viewModel.getAllMePlaylist()
@@ -273,19 +274,20 @@ fun CommonSongListScreen(
                             onDelete = {
                                 viewModel.deleteSongFromPlaylist(
                                     uiData.id,
-                                    menuTargetTrack!!.id.toString()
+                                    currentTrack.id.toString()
                                 )
                                 Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
                                 menuTargetTrack = null
                             },
                             onCopyId = {
-                                setClipboard(context, menuTargetTrack!!.id.toString(), "id")
+                                setClipboard(context, currentTrack.id.toString(), "id")
                             },
                             onCopyName = {
-                                setClipboard(context, menuTargetTrack!!.title, "name")
+                                setClipboard(context, currentTrack.title, "name")
                             }
                         )
                     }
+
                     AddToPlaylistSheet(
                         isVisible = showAddToPlaylistDialog,
                         playlists = allMePlaylist,
