@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.ui.text.toLowerCase
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
@@ -91,6 +92,8 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.io.File
+import java.util.Locale
+import java.util.Locale.getDefault
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
@@ -438,7 +441,7 @@ class MusicService : MediaLibraryService(),
             }
 
             runBlocking {
-                val quality = context.dataStore[MusicQualityKey] ?: MusicQuality.EXHIGH.text
+                val quality = context.dataStore[MusicQualityKey]?.lowercase(getDefault()) ?: MusicQuality.EXHIGH.text
                 val uri = mediaUriProvider.resolveMediaUri(mediaId, quality)
                 dataSpec.withUri(uri)
             }

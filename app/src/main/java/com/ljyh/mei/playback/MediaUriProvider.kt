@@ -8,6 +8,7 @@ import com.ljyh.mei.di.SongRepository // 假设你处理本地文件
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.io.File
@@ -37,6 +38,7 @@ class MediaUriProvider @Inject constructor(
             val url = response.data.getOrNull(0)?.url
 
             if (url.isNullOrBlank()) {
+                Timber.tag("MediaUriProvider").d( response.toString())
                 throw SourceNotFoundException("API returned empty URL for $mediaId")
             }
 

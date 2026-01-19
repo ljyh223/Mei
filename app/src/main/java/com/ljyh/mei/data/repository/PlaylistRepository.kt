@@ -51,17 +51,6 @@ class PlaylistRepository(
         }
     }
 
-    suspend fun getSongUrlV1(id: String): Resource<SongUrl> {
-        return withContext(Dispatchers.IO) {
-            safeApiCall {
-                apiService.getSongUrlV1(
-                    GetSongUrlV1(
-                        ids = "[$id]"
-                    )
-                )
-            }
-        }
-    }
 
     suspend fun manipulateTrack(
         op: String,
