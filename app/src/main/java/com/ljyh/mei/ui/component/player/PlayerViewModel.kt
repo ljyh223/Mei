@@ -87,6 +87,7 @@ class PlayerViewModel @Inject constructor(
         _searchResult.value = Resource.Loading
         _lyricResult.value = Resource.Loading
         _lyric.value = Resource.Loading
+        _amLyric.value= Resource.Loading
     }
 
     private val _qqSong = MutableStateFlow<QQSong?>(null)

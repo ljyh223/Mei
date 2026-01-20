@@ -119,8 +119,7 @@ dependencies {
     implementation(libs.ktor.client.android)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.serialization.android)
-    implementation(libs.composeSettings.ui)
-    implementation(libs.composeSettings.ui.extended)
+
     implementation(libs.korlibs.crypto){
         exclude("com.soywiz.korlibs.krypto", "krypto-android")
     }

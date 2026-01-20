@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -564,6 +565,7 @@ class MainActivity : ComponentActivity() {
                                             contentAlignment = Alignment.Center,
                                             modifier = Modifier
                                                 .clip(CircleShape)
+                                                .padding(end = 4.dp)
                                                 .clickable {
                                                     navController.navigate(Screen.Setting.route)
                                                 }

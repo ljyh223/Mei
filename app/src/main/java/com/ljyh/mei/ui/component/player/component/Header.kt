@@ -65,7 +65,7 @@ fun Header(
             ),
             maxLines = 1,
             color = Color.White,
-            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+            overflow = TextOverflow.Ellipsis,
         )
 
         // --- 副标题部分 (歌手 & 专辑) ---
