@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.model.Album
-import com.ljyh.mei.utils.encrypt.getResourceLink
+import com.ljyh.mei.utils.netease.NeteaseUtils.getResourceLink
 
 data class GetSearch(
     @SerializedName("s")

@@ -124,9 +124,9 @@ import com.ljyh.mei.utils.cache.preloadImage
 import com.ljyh.mei.utils.checkAndRequestNotificationPermission
 import com.ljyh.mei.utils.createNotificationChannel
 import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.encrypt.getAndroidId
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.log.FileLoggingTree
+import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers

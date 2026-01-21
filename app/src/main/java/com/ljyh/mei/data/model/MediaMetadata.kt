@@ -10,8 +10,8 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
-import com.ljyh.mei.utils.encrypt.getResourceLink
 import androidx.core.net.toUri
+import com.ljyh.mei.utils.netease.NeteaseUtils.getResourceLink
 
 
 @Immutable
