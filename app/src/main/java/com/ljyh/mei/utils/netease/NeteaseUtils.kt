@@ -29,17 +29,6 @@ object NeteaseUtils {
             append(HEX_CHARS.random())
         }
     }
-
-    // 对应 Node: generateRandomChineseIP()
-    // 简易版，生成一个常见的国内 IP 段，避免部分歌曲因版权/地区限制无法播放
-    fun getRandomChineseIp(): String {
-        val first = listOf(116, 119, 218, 220, 120).random()
-        val second = (60..250).random()
-        val third = (0..255).random()
-        val fourth = (0..255).random()
-        return "$first.$second.$third.$fourth"
-    }
-
     fun chooseUserAgent(crypto: String, os: String): String {
         return when (crypto) {
             "weapi" -> "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"

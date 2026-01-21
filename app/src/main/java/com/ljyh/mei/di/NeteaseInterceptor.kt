@@ -13,11 +13,8 @@ import com.ljyh.mei.utils.encrypt.encryptEApi
 import com.ljyh.mei.utils.encrypt.encryptWeAPI
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.getDeviceId
-import com.ljyh.mei.utils.netease.NeteaseUtils
-import com.ljyh.mei.utils.netease.NeteaseUtils.chooseUserAgent
-import com.ljyh.mei.utils.netease.NeteaseUtils.getRandomChineseIp
+import com.ljyh.mei.utils.netease.ChineseIpUtils
 import com.ljyh.mei.utils.netease.NeteaseUtils.getWNMCID
-import com.ljyh.mei.utils.netease.OSInfo
 import okhttp3.FormBody
 import okhttp3.Interceptor
 import okhttp3.Request
@@ -26,7 +23,6 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import timber.log.Timber
 import java.io.IOException
-import java.net.URLEncoder
 import kotlin.apply
 
 class NeteaseInterceptor : Interceptor {
@@ -115,7 +111,6 @@ class NeteaseInterceptor : Interceptor {
             }
         }
 
-        // 4. 构建 Header 对象 (主要给 EAPI 用，但 API 模式可能也需要其中的字段)
         val neteaseHeader = NeteaseHeader(
             osver = config["osver"]!!,
             deviceId = deviceId,
@@ -131,8 +126,6 @@ class NeteaseInterceptor : Interceptor {
         ).apply {
             if (musicU.isNotEmpty()) this.MUSIC_U = musicU
         }
-
-        // 5. 设置 HTTP Header
         builder.addHeader("Cookie", buildCookieString(cookieMap))
 
         // UA 处理：
@@ -149,15 +142,10 @@ class NeteaseInterceptor : Interceptor {
             builder.addHeader("Referer", "https://music.163.com")
         }
 
-        // 伪造 IP (对所有请求都有效，防止风控)
-        val fakeIp = "116.25.10.10" // 或随机生成
+        val fakeIp = ChineseIpUtils.generateRandomChineseIP()
         builder.addHeader("X-Real-IP", fakeIp)
         builder.addHeader("X-Forwarded-For", fakeIp)
 
-        // 6. 执行加密逻辑
-        // 注意：handleRequestEncryption 内部会判断 cryptoMode
-        // 如果是 eapi，它会使用 neteaseHeader 注入 body
-        // 如果是 weapi/api，它会忽略 neteaseHeader，仅处理 params
         handleRequestEncryption(builder, originalRequest, cryptoMode, url, neteaseHeader)
 
         val response = chain.proceed(builder.build())
@@ -191,10 +179,7 @@ class NeteaseInterceptor : Interceptor {
                 } else {
                     mutableMapOf()
                 }
-
-                // [关键]：将 Header 注入 Body
-                // 此时 headerObj.os 是 "pc"，服务器解密后会根据这个 os 字段下发 PC 版数据
-                bodyMap["header"] = headerObj
+                bodyMap["header"] = gson.toJson(headerObj)
                 // bodyMap["e_r"] = true // 可选，如果遇到 buffer 问题可开启
 
                 val newBodyJson = gson.toJson(bodyMap)
