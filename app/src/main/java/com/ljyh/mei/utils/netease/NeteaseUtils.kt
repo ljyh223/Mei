@@ -87,6 +87,13 @@ object NeteaseUtils {
         }
     }
 
+    fun getWNMCID(): String {
+        val characters = "abcdefghijklmnopqrstuvwxyz"
+        val randomString = (1..6).map { characters.random() }.joinToString("")
+        return "$randomString.${System.currentTimeMillis()}.01.0"
+    }
+
+
 
 }
 

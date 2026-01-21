@@ -7,6 +7,7 @@ import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.encrypt.createRandomKey
 import com.ljyh.mei.utils.encrypt.decryptEApi
 import com.ljyh.mei.utils.encrypt.encryptEApi
 import com.ljyh.mei.utils.encrypt.encryptWeAPI
@@ -14,6 +15,8 @@ import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.getDeviceId
 import com.ljyh.mei.utils.netease.NeteaseUtils
 import com.ljyh.mei.utils.netease.NeteaseUtils.chooseUserAgent
+import com.ljyh.mei.utils.netease.NeteaseUtils.getRandomChineseIp
+import com.ljyh.mei.utils.netease.NeteaseUtils.getWNMCID
 import com.ljyh.mei.utils.netease.OSInfo
 import okhttp3.FormBody
 import okhttp3.Interceptor
@@ -54,13 +57,21 @@ class NeteaseInterceptor : Interceptor {
             channel = "distribution"
         )
     )
+    private val ANDROID_VERSION_CODE = "6006066"
+    private val ANDROID_RESOLUTION = "2268x1080"
+    private val ANDROID_MOBILENAME = "Mi+A3"
+    private val ANDROID_BUILDVER = System.currentTimeMillis().toString().take(10)
+    // 这是一个特定的设备指纹，尽量保持固定或从你的抓包中获取
+    private val CONST_NMDI = "Q1NKTQkBDAAMIEF4coQMHcb6TLA7AAAAciOiJ%2F%2FOO4VQ7m%2FLvLJ1pD9CIsJP5mfzI4SusB%2BaNScGLpThEYBcPxGzj0pL5hLdZ7LqB2UVULdYgc0%3D"
+    private val CONST_URS_APPID = "F2219AE9D7828A7D73E2006D000C61031D196A37DB497E3885B8298504867886B6F0E44087D61EFC06BE92279CD6EEC6"
     // 复用 Gson 实例，避免每次请求创建
     private val gson: Gson by lazy {
         GsonBuilder()
             .registerTypeAdapter(Map::class.java, DynamicMapDeserializer())
             .create()
     }
-    private val cachedNuid: String by lazy { NeteaseUtils.getRandomHex(32) }
+    private val cachedNuid: String by lazy { createRandomKey(32) }
+    private val cachedNmtid: String by lazy { createRandomKey(16) }
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
@@ -69,93 +80,87 @@ class NeteaseInterceptor : Interceptor {
 
         val builder = originalRequest.newBuilder()
 
-        // 0. 伪造国内 IP (解决部分地区限制和风控)
-        val fakeIp = NeteaseUtils.getRandomChineseIp()
-        builder.addHeader("X-Real-IP", fakeIp)
-        builder.addHeader("X-Forwarded-For", fakeIp)
+        // 1. 获取基础信息 (保持你的 OSMap 逻辑)
+        val osType = if (cryptoMode == "api") "iphone" else "android" // EAPI 强制走 Android 逻辑
+        val osInfo = osMap[osType] ?: osMap["android"]!!
 
-        // 1. 获取基础 OS 信息
-        // 注意：EAPI 实际上主要使用 Android/iPhone 的配置，Node 版中 api/eapi 模式下主要用 mobile 配置
-        val osInfo = when (cryptoMode) {
-            "weapi" -> osMap["pc"]!!
-            "eapi", "api" -> osMap["android"]!! // 建议 EAPI 统一伪装成 Android
-            else -> osMap["android"]!!
-        }
-
-        // 2. 准备 Cookie Map (关键：对标 Node 的 processCookieObject)
-        // 必须包含用户登录的 MUSIC_U
+        // 2. 准备数据源
+        val deviceId = AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId()
         val musicU = AppContext.instance.dataStore[CookieKey] ?: ""
-        val cookieMap = mutableMapOf<String, String>()
+        val requestId = "${System.currentTimeMillis()}_${(Math.random() * 1000).toInt().toString().padStart(4, '0')}"
 
-        // 基础 Cookie
-        cookieMap["os"] = osInfo.os
-        cookieMap["appver"] = osInfo.appver
-        cookieMap["osver"] = osInfo.osver
-        cookieMap["deviceId"] = AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId()
-        cookieMap["channel"] = osInfo.channel
+        // 3. 构建完整的 Cookie Map (复刻你的 Cookie.kt)
+        val cookieMap = buildMap {
+            // 基础字段
+            put("os", osInfo.os)
+            put("appver", osInfo.appver)
+            put("osver", osInfo.osver)
+            put("deviceId", deviceId)
+            put("channel", osInfo.channel)
 
-        // 关键身份标识 (复刻 Node 逻辑)
-        cookieMap["_ntes_nuid"] = cachedNuid
-        cookieMap["_ntes_nnid"] = "$cachedNuid,${System.currentTimeMillis()}"
-        cookieMap["WNMCID"] = "${NeteaseUtils.getRandomHex(6)}.${System.currentTimeMillis()}.01.0"
+            // 关键标识符 (来自 Cookie.kt)
+            put("ntes_kaola_ad", "1")
+            put("_ntes_nuid", cachedNuid)
+            put("WNMCID", getWNMCID())
+            put("versioncode", ANDROID_VERSION_CODE) // 必须一致
+            put("URS_APPID", CONST_URS_APPID)
+            put("buildver", ANDROID_BUILDVER)
+            put("resolution", ANDROID_RESOLUTION)
+            put("WEVNSM", "1.0.0")
+            put("sDeviceId", deviceId)
+            put("mobilename", ANDROID_MOBILENAME)
+            put("__csrf", "40ab38f0a305fc4c7ff68e636bcf34aa")
+            put("NMDI", CONST_NMDI) // 必须包含
+            put("NMTID", cachedNmtid)
 
-        // 登录凭证
-        if (musicU.isNotEmpty()) {
-            cookieMap["MUSIC_U"] = musicU
+            if (musicU.isNotEmpty()) {
+                put("MUSIC_U", musicU)
+            }
         }
-        // 如果需要 csrf token (通常从 __csrf cookie 获取，这里简化处理)
-        val csrfToken = ""
 
-        // 3. 构建内部 Header 对象 (用于 EAPI Body 和 API Header)
+        // 4. 构建 Header 对象 (用于 EAPI Body)
+        // 这里的关键是：versioncode、mobilename 等必须和 Cookie 中的一致
         val neteaseHeader = NeteaseHeader(
             osver = osInfo.osver,
-            deviceId = cookieMap["deviceId"]!!,
+            deviceId = deviceId,
             os = osInfo.os,
             appver = osInfo.appver,
+            versioncode = ANDROID_VERSION_CODE, // 关键：高版本
+            mobilename = ANDROID_MOBILENAME,
+            buildver = ANDROID_BUILDVER,
+            resolution = ANDROID_RESOLUTION,
+            __csrf = "40ab38f0a305fc4c7ff68e636bcf34aa",
             channel = osInfo.channel,
-            requestId = NeteaseUtils.generateRequestId(),
-            __csrf = csrfToken
+            requestId = requestId
         ).apply {
             if (musicU.isNotEmpty()) this.MUSIC_U = musicU
         }
-        Timber.tag("NeteaseInterceptor").d(neteaseHeader.toString())
-        Timber.tag("NeteaseInterceptor").d(cookieMap.toString())
 
-        // 4. 将 Cookie Map 转为 String 并添加到 Header
-        // 对于 EAPI/API，Cookie 中也包含了 header 对象里的字段
-        val cookieString = buildCookieString(cookieMap, neteaseHeader)
-        builder.addHeader("Cookie", cookieString)
-        builder.addHeader("User-Agent", chooseUserAgent(cryptoMode, "android"))
+        // 5. 设置 Header
+        builder.addHeader("Cookie", buildCookieString(cookieMap))
+        builder.addHeader("User-Agent", chooseUserAgent(cryptoMode, osType))
 
-        // Referer 处理
+        // 伪造 IP
+        val fakeIp = getRandomChineseIp()
+        builder.addHeader("X-Real-IP", fakeIp)
+        builder.addHeader("X-Forwarded-For", fakeIp)
+
         if (cryptoMode == "weapi") {
             builder.addHeader("Referer", "https://music.163.com")
         }
 
-        // 5. 处理加密 (Body 修改)
+        // 6. 处理加密 (关键：EAPI 注入 Header)
         handleRequestEncryption(builder, originalRequest, cryptoMode, url, neteaseHeader)
 
         val response = chain.proceed(builder.build())
-
-        // 6. 响应解密
         return handleResponseDecryption(response, cryptoMode)
     }
 
-
-    private fun buildCookieString(baseCookie: Map<String, String>, header: NeteaseHeader): String {
-        val sb = StringBuilder()
-
-        // 添加基础 Cookie
-        baseCookie.forEach { (k, v) ->
-            sb.append(URLEncoder.encode(k, "UTF-8")).append("=").append(URLEncoder.encode(v, "UTF-8")).append("; ")
+    // 将 Map 转为 Cookie 字符串
+    private fun buildCookieString(map: Map<String, String>): String {
+        return map.entries.joinToString("; ") {
+            "${URLEncoder.encode(it.key, "UTF-8")}=${URLEncoder.encode(it.value, "UTF-8")}"
         }
-
-        // 许多接口 (尤其是 api/eapi) 期望 Cookie 中也包含 header 的信息
-        // 这里简单地把 header 的某些关键字段也追加进去，模拟 Node 的 createHeaderCookie
-        sb.append("requestId=").append(header.requestId).append("; ")
-        // osver, appver 等已经在 baseCookie 里了，不需要重复
-
-        return sb.toString()
     }
 
     private fun handleRequestEncryption(
@@ -168,48 +173,39 @@ class NeteaseInterceptor : Interceptor {
         val rawBody = getBodyString(originalRequest.body)
 
         when (cryptoMode) {
-            "weapi" -> {
-                // 你的原始逻辑保持不变
-                val encryptedData = encryptWeAPI(rawBody)
-                val formBody = FormBody.Builder()
-                    .add("params", encryptedData.params)
-                    .add("encSecKey", encryptedData.encSecKey)
-                    .build()
-                builder.post(formBody)
-            }
             "eapi" -> {
-                // [关键修正] EAPI 必须把 Header 塞进 Body
+                // EAPI: 将 Header 注入 JSON Body
                 val mapType = object : TypeToken<MutableMap<String, Any>>() {}.type
                 val bodyMap: MutableMap<String, Any> = if (rawBody.isNotEmpty()) {
                     try {
                         gson.fromJson(rawBody, mapType)
                     } catch (e: Exception) {
-                        Timber.tag("NeteaseInterceptor").e("rawBody fromJson error: $e")
                         mutableMapOf()
                     }
                 } else {
-                    Timber.tag("NeteaseInterceptor").d("rawBody is empty")
                     mutableMapOf()
                 }
 
-                // Node: data.header = header
-//                bodyMap["header"] = gson.toJson(headerObj)
-                Timber.tag("NeteaseInterceptor").d("rawBody: $rawBody")
-                 bodyMap["e_r"] = true
+                // [关键] 注入 header 对象
+//                bodyMap["header"] = headerObj
+                // 部分接口可能还需要 e_r 参数
+                // bodyMap["e_r"] = true
 
                 val newBodyJson = gson.toJson(bodyMap)
-
                 val apiPath = url.replace("https://interface.music.163.com", "").replace("eapi", "api")
-                val encryptedData = encryptEApi(apiPath, newBodyJson)
 
-                val formBody = FormBody.Builder()
+                val encryptedData = encryptEApi(apiPath, newBodyJson)
+                builder.post(FormBody.Builder().add("params", encryptedData.params).build())
+            }
+            "weapi" -> {
+                val encryptedData = encryptWeAPI(rawBody)
+                builder.post(FormBody.Builder()
                     .add("params", encryptedData.params)
-                    .build()
-                builder.post(formBody)
+                    .add("encSecKey", encryptedData.encSecKey)
+                    .build())
             }
             "api" -> {
-                // API 模式逻辑，Header 已经在上面添加到 HTTP Headers 里了
-                // 将 JSON Body 转为 FormBody 即可
+                // API 模式处理 (略，与之前相同)
                 val formBodyBuilder = FormBody.Builder()
                 if (rawBody.isNotEmpty()) {
                     try {
@@ -217,14 +213,13 @@ class NeteaseInterceptor : Interceptor {
                         for ((k, v) in map) {
                             formBodyBuilder.add(k.toString(), v.toString())
                         }
-                    } catch (e: Exception) {
-                        Timber.e(e, "JSON parse failed in api mode")
-                    }
+                    } catch (e: Exception) {}
                 }
                 builder.post(formBodyBuilder.build())
             }
         }
     }
+
 
 
     private fun handleResponseDecryption(response: Response, cryptoMode: String): Response {
