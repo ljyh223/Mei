@@ -1,31 +1,17 @@
 package com.ljyh.mei.utils.encrypt
 
-import android.content.Context
-import android.net.wifi.WifiInfo
-import android.net.wifi.WifiManager
-import android.os.Build
-import android.util.Log
-import androidx.datastore.preferences.core.edit
-import com.ljyh.mei.constants.AndroidIdKey
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
 import korlibs.crypto.AES
 import korlibs.crypto.Padding
 import korlibs.crypto.md5
-import korlibs.encoding.Base64
 import korlibs.encoding.hex
 import korlibs.encoding.toBase64
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.Locale
 
 private const val presetKey = "0CoJUm6Qyw8W8jud"
 private const val iv = "0102030405060708"
 private const val eapiKey = "e82ckenh8dichen8"
 private val CHARS = "0123456789ABCDEF"
-private val HEX_CHARS = "0123456789abcdef"
+
 
 /**
  * weapi 接口加密
@@ -117,49 +103,8 @@ fun generateRandomMac(): String {
     return parts.joinToString(":")
 }
 
-fun generateRandomAndroidId(): String = buildString(16) {
-    repeat(16) {
-        append(HEX_CHARS.random())
-    }
-}
-
-suspend fun getAndroidId(context: Context): String {
-    val androidId = context.dataStore[AndroidIdKey] ?: ""
-    if (androidId.isEmpty()) {
-        val androidId = Base64.encode(
-            "null\t${generateRandomMac()}\t${generateRandomAndroidId()}\t${generateRandomAndroidId()}".toByteArray(),
-            url = true
-        )
-
-        context.dataStore.edit {
-            it[AndroidIdKey] = androidId
-        }
-        return androidId
-    } else {
-        return androidId
-    }
 
 
-}
-
-fun getAndroidId() :String= Base64.encode(
-    "null\t${generateRandomMac()}\t${generateRandomAndroidId()}\t${generateRandomAndroidId()}".toByteArray(),
-    url = true
-)
-
-fun getResourceLink(id: String, extension: String = "jpg"): String {
-    val encrypted = encryptId(id)
-
-    val seed = id.last().digitToInt()
-    val p = when {
-        seed < 2.5 -> 1
-        seed < 5 -> 2
-        seed < 7.5 -> 3
-        else -> 4
-    }
-
-    return "http://p$p.music.126.net/$encrypted/$id.$extension"
-}
 
 data class WeApi(
     val params: String,
