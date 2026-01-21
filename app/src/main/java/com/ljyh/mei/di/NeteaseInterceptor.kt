@@ -43,29 +43,37 @@ class NeteaseInterceptor : Interceptor {
     private val cachedNmtid: String by lazy { createRandomKey(16) }
     private val cachedWnmcid: String by lazy { getWNMCID() } // 只计算一次保持会话一致性
 
+    private val EAPI_CONFIG = mapOf(
+        "os" to "pc",
+        "osver" to "Microsoft-Windows-10-Professional-build-22631-64bit",
+        "appver" to "3.0.18.203152",
+        "channel" to "netease",
+        "versioncode" to "6006066", // Android 高版本号
+        "mobilename" to "Mi+A3",
+        "buildver" to "1768990079",
+        "resolution" to "2268x1080",
+        "ua" to "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.0.18.203152"
+    )
+
     // =========================================================================
-    //  配置区域：完全复刻 Success 抓包日志中的 PC 混合模式
+    //  配置 B：普通 Android 模式 (用于 weapi/api - 保持手机端正常行为)
     // =========================================================================
+    private val ANDROID_CONFIG = mapOf(
+        "os" to "android",
+        "osver" to "14",
+        "appver" to "8.20.20.231215173437",
+        "channel" to "xiaomi",
+        "versioncode" to "6006066",
+        "mobilename" to "Mi+A3",
+        "buildver" to System.currentTimeMillis().toString().take(10),
+        "resolution" to "2268x1080",
+        "ua" to "NeteaseMusic/9.4.32.251222163637" // 或者你之前的 Android UA
+    )
 
-    // 1. 身份伪装：PC
-    private val CONFIG_OS = "pc"
-    private val CONFIG_OSVER = "Microsoft-Windows-10-Professional-build-22631-64bit"
-    private val CONFIG_APPVER = "3.0.18.203152"
-    private val CONFIG_CHANNEL = "netease"
-
-    // 2. 关键混合参数：使用 Android 的高版本号和特定设备名
-    private val CONFIG_VERSION_CODE = "6006066"
-    private val CONFIG_MOBILENAME = "Mi+A3"
-    private val CONFIG_BUILDVER = "1768990079" // 对应抓包中的 buildver
-    private val CONFIG_RESOLUTION = "2268x1080"
-
-    // 3. 固定指纹：来自抓包
+    // 公用常量
     private val CONST_NMDI = "Q1NKTQkBDAAMIEF4coQMHcb6TLA7AAAAciOiJ%2F%2FOO4VQ7m%2FLvLJ1pD9CIsJP5mfzI4SusB%2BaNScGLpThEYBcPxGzj0pL5hLdZ7LqB2UVULdYgc0%3D"
     private val CONST_URS_APPID = "F2219AE9D7828A7D73E2006D000C61031D196A37DB497E3885B8298504867886B6F0E44087D61EFC06BE92279CD6EEC6"
     private val CONST_CSRF = "40ab38f0a305fc4c7ff68e636bcf34aa"
-
-    // 4. User-Agent：必须使用 PC 的 UA
-    private val CONFIG_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 Chrome/91.0.4472.164 NeteaseMusicDesktop/3.0.18.203152"
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
@@ -73,32 +81,33 @@ class NeteaseInterceptor : Interceptor {
         val cryptoMode = determineCryptoMethod(url)
         val builder = originalRequest.newBuilder()
 
-        // 1. 准备动态数据
+        val config = if (cryptoMode == "eapi") EAPI_CONFIG else ANDROID_CONFIG
+
         val deviceId = AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId()
         val musicU = AppContext.instance.dataStore[CookieKey] ?: ""
         val requestId = "${System.currentTimeMillis()}_${(Math.random() * 1000).toInt().toString().padStart(4, '0')}"
 
-        // 2. 构建 Cookie Map (严格按照抓包顺序和内容)
         val cookieMap = buildMap {
+            // 基础字段 (动态从 config 取)
+            put("os", config["os"]!!)
+            put("appver", config["appver"]!!)
+            put("osver", config["osver"]!!)
+            put("channel", config["channel"]!!)
+            put("versioncode", config["versioncode"]!!)
+            put("mobilename", config["mobilename"]!!)
+            put("buildver", config["buildver"]!!)
+            put("resolution", config["resolution"]!!)
+
+            // 固定字段
+            put("deviceId", deviceId)
+            put("sDeviceId", deviceId) // 部分接口需要这个
             put("ntes_kaola_ad", "1")
             put("_ntes_nuid", cachedNuid)
             put("WNMCID", cachedWnmcid)
-            put("versioncode", CONFIG_VERSION_CODE)
             put("URS_APPID", CONST_URS_APPID)
-            put("buildver", CONFIG_BUILDVER)
-            put("resolution", CONFIG_RESOLUTION)
             put("WEVNSM", "1.0.0")
-            put("sDeviceId", deviceId)
-            put("mobilename", CONFIG_MOBILENAME)
-            put("deviceId", deviceId)
             put("__csrf", CONST_CSRF)
             put("NMDI", CONST_NMDI)
-            // 这里是关键差异点：强制设为 PC
-            put("osver", CONFIG_OSVER)
-            put("os", CONFIG_OS)
-            put("channel", CONFIG_CHANNEL)
-            put("appver", CONFIG_APPVER)
-
             put("NMTID", cachedNmtid)
 
             if (musicU.isNotEmpty()) {
@@ -106,42 +115,49 @@ class NeteaseInterceptor : Interceptor {
             }
         }
 
-        // 3. 构建 Header 对象 (用于 EAPI Body)
-        // 这里的字段必须与 Cookie 中的字段逻辑一致
+        // 4. 构建 Header 对象 (主要给 EAPI 用，但 API 模式可能也需要其中的字段)
         val neteaseHeader = NeteaseHeader(
-            osver = CONFIG_OSVER,
+            osver = config["osver"]!!,
             deviceId = deviceId,
-            os = CONFIG_OS, // 强制 PC
-            appver = CONFIG_APPVER, // 强制 PC 版本
-            versioncode = CONFIG_VERSION_CODE,
-            mobilename = CONFIG_MOBILENAME,
-            buildver = CONFIG_BUILDVER,
-            resolution = CONFIG_RESOLUTION,
+            os = config["os"]!!,
+            appver = config["appver"]!!,
+            versioncode = config["versioncode"]!!,
+            mobilename = config["mobilename"]!!,
+            buildver = config["buildver"]!!,
+            resolution = config["resolution"]!!,
             __csrf = CONST_CSRF,
-            channel = CONFIG_CHANNEL,
+            channel = config["channel"]!!,
             requestId = requestId
         ).apply {
             if (musicU.isNotEmpty()) this.MUSIC_U = musicU
         }
 
-        // 4. 注入 Header 和 Cookie
+        // 5. 设置 HTTP Header
         builder.addHeader("Cookie", buildCookieString(cookieMap))
 
-        // 覆盖 UA：weapi 用 Mac/PC UA，其他请求强制用抓包里的 PC UA
-        // 这样可以确保服务器认为我们是 PC 客户端
-        val finalUserAgent = if (cryptoMode == "weapi") {
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
-        } else {
-            CONFIG_USER_AGENT
+        // UA 处理：
+        // weapi: 永远使用 PC Web UA (Chrome/Edge)，这是 weapi 协议的特性
+        // eapi: 使用 Config 中指定的 UA (PC Desktop)
+        // api: 使用 Config 中指定的 UA (Android)
+        val userAgent = when (cryptoMode) {
+            "weapi" -> "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0"
+            else -> config["ua"]!!
         }
-        builder.addHeader("User-Agent", finalUserAgent)
+        builder.addHeader("User-Agent", userAgent)
 
-        // 保持 Referer 逻辑
         if (cryptoMode == "weapi") {
             builder.addHeader("Referer", "https://music.163.com")
         }
 
-        // 5. 处理加密 (EAPI Body 注入)
+        // 伪造 IP (对所有请求都有效，防止风控)
+        val fakeIp = "116.25.10.10" // 或随机生成
+        builder.addHeader("X-Real-IP", fakeIp)
+        builder.addHeader("X-Forwarded-For", fakeIp)
+
+        // 6. 执行加密逻辑
+        // 注意：handleRequestEncryption 内部会判断 cryptoMode
+        // 如果是 eapi，它会使用 neteaseHeader 注入 body
+        // 如果是 weapi/api，它会忽略 neteaseHeader，仅处理 params
         handleRequestEncryption(builder, originalRequest, cryptoMode, url, neteaseHeader)
 
         val response = chain.proceed(builder.build())
