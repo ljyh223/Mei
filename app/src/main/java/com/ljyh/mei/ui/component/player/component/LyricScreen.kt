@@ -10,8 +10,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -152,7 +154,8 @@ fun LyricScreen(
                 LyricSourceBadge(
                     source = lyricData.source,
                     modifier = Modifier
-                        .align(Alignment.BottomEnd),
+                        .align(Alignment.BottomEnd)
+                        .padding( end = 8.dp), // 关键修改：Bottom padding 避免与进度条时间重叠
                     onClick = onClick,
                     onLongClick = onLongClick
                 )
@@ -160,7 +163,6 @@ fun LyricScreen(
         }
     }
 }
-
 @Composable
 private fun LyricSourceBadge(
     source: LyricSource,
@@ -168,7 +170,6 @@ private fun LyricSourceBadge(
     onClick: (LyricSource) -> Unit,
     onLongClick: (LyricSource) -> Unit
 ) {
-
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))

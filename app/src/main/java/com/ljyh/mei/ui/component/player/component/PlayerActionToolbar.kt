@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
@@ -82,6 +83,8 @@ fun PlayerActionToolbar(
     playerViewModel: PlayerViewModel,
     playlistViewModel: PlaylistViewModel,
     mediaMetadata: MediaMetadata? = null,
+    onLyricClick: () -> Unit,
+    isLyricActive: Boolean,
 ) {
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -220,75 +223,86 @@ fun PlayerActionToolbar(
             )
         }
 
+        ShadowedIconButton(
+            onClick = onLyricClick
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Lyrics,
+                contentDescription = "Lyrics",
+                tint = if (isLyricActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+
         // 3. 睡眠定时器 (带动画切换)
-        Box(
-            modifier = Modifier.size(48.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            AnimatedContent(
-                targetState = sleepTimerEnabled,
-                label = "sleepTimer"
-            ) { isEnabled ->
-                if (isEnabled) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.2f))
-                            .clickable(onClick = sleepTimer::clear)
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = makeTimeString(sleepTimerTimeLeft),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                } else {
-                    // 普通图标状态
-                    ShadowedIconButton(
-                        onClick = { showSleepTimerDialog = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Bedtime,
-                            contentDescription = "睡眠定时器",
-                            tint = Color.White
-                        )
-                    }
-                }
-            }
-        }
-
-        // 4. 喜欢 (Like)
-        // TODO
-        ShadowedIconButton(
-            onClick = {
-                mediaMetadata?.let { playerViewModel.like(id = it.id.toString()) }
-            }
-        ) {
-
-            val isLikedSafe = if (isLiked == null) false else true
-            Icon(
-                imageVector = if (isLikedSafe) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                contentDescription = "喜欢",
-                tint = if (isLikedSafe) Color.White else Color.White.copy(alpha = 0.7f)
-            )
-        }
-
-        // 5. 添加到歌单 (Add)
-        ShadowedIconButton(
-            onClick = {
-                showAddToPlaylistDialog = true
-                playlistViewModel.getAllMePlaylist()
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Add,
-                contentDescription = "添加到歌单",
-                tint = Color.White
-            )
-        }
+//        Box(
+//            modifier = Modifier.size(48.dp),
+//            contentAlignment = Alignment.Center
+//        ) {
+//            AnimatedContent(
+//                targetState = sleepTimerEnabled,
+//                label = "sleepTimer"
+//            ) { isEnabled ->
+//                if (isEnabled) {
+//                    Box(
+//                        modifier = Modifier
+//                            .clip(RoundedCornerShape(50))
+//                            .background(Color.White.copy(alpha = 0.2f))
+//                            .clickable(onClick = sleepTimer::clear)
+//                            .padding(horizontal = 8.dp, vertical = 4.dp)
+//                    ) {
+//                        Text(
+//                            text = makeTimeString(sleepTimerTimeLeft),
+//                            style = MaterialTheme.typography.labelMedium,
+//                            color = Color.White,
+//                            fontWeight = FontWeight.Bold,
+//                            maxLines = 1
+//                        )
+//                    }
+//                } else {
+//                    // 普通图标状态
+//                    ShadowedIconButton(
+//                        onClick = { showSleepTimerDialog = true }
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Rounded.Bedtime,
+//                            contentDescription = "睡眠定时器",
+//                            tint = Color.White
+//                        )
+//                    }
+//                }
+//            }
+//        }
+//
+//        // 4. 喜欢 (Like)
+//        // TODO
+//        ShadowedIconButton(
+//            onClick = {
+//                mediaMetadata?.let { playerViewModel.like(id = it.id.toString()) }
+//            }
+//        ) {
+//
+//            val isLikedSafe = if (isLiked == null) false else true
+//            Icon(
+//                imageVector = if (isLikedSafe) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+//                contentDescription = "喜欢",
+//                tint = if (isLikedSafe) Color.White else Color.White.copy(alpha = 0.7f)
+//            )
+//        }
+//
+//        // 5. 添加到歌单 (Add)
+//        ShadowedIconButton(
+//            onClick = {
+//                showAddToPlaylistDialog = true
+//                playlistViewModel.getAllMePlaylist()
+//            }
+//        ) {
+//            Icon(
+//                imageVector = Icons.Rounded.Add,
+//                contentDescription = "添加到歌单",
+//                tint = Color.White
+//            )
+//        }
     }
 }
 

@@ -8,6 +8,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -100,7 +101,8 @@ fun MiniPlayer(
                         MiniMediaInfo(
                             mediaMetadata = it,
                             error = error,
-                            modifier = Modifier.padding(horizontal = 6.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp),
+                            showCover = false
                         )
                     }
                 }
@@ -145,20 +147,25 @@ fun MiniPlayer(
 fun MiniMediaInfo(
     mediaMetadata: MediaMetadata,
     error: PlaybackException?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showCover: Boolean = true
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
         Box(modifier = Modifier.padding(6.dp)) {
-            AsyncImage(
-                model = mediaMetadata.coverUrl.smallImage(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-            )
+            Spacer(modifier = Modifier.size(48.dp))
+
+            if (showCover) {
+                AsyncImage(
+                    model = mediaMetadata.coverUrl.smallImage(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                )
+            }
             androidx.compose.animation.AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn(),
