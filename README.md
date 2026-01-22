@@ -122,8 +122,9 @@ cookie: MUSIC_U=xxxxx;
 
 感谢以下两位开源圣人：
 
-* 提供高质量歌词库 → **amll-ttml-db**
-* 提供精美歌词组件 → **accompanist-lyrics-ui**
+* 提供高质量歌词库 [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)
+* 提供精美歌词组件 [accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui.git)
+* 提供qrc解密算法 [qrcDecrypt](https://github.com/TLittlePrince/qrcDecrypt)
 
 
 ---

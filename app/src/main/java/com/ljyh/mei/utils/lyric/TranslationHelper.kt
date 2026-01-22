@@ -31,7 +31,6 @@ internal object TranslationHelper {
                 val minutes = match.groupValues[1].toInt()
                 val seconds = match.groupValues[2].toInt()
                 val millisStr = match.groupValues[3]
-                // 将两位或三位的毫秒统一为三位数
                 val milliseconds = when (millisStr.length) {
                     2 -> millisStr.toInt() * 10
                     3 -> millisStr.toInt()
@@ -40,9 +39,19 @@ internal object TranslationHelper {
                 val totalTime = minutes * 60 * 1000 + seconds * 1000 + milliseconds
                 val text = match.groupValues[4].trim()
 
-                // 忽略 QRC 翻译中常见的注释行
-                if (text.startsWith("//")) null else TranslationLine(totalTime, text)
+                // ============ 过滤逻辑 ============
+                // 1. 过滤空行或注释
+                if (text.isEmpty() || text.startsWith("//")) return@mapNotNull null
 
+                // 2. 过滤常见的版权/元数据声明
+                // 这些通常在 0ms 出现，会干扰第一句歌词的匹配
+                val ignoreKeywords = listOf("著作权", "Provided by", "字幕", "制作", "出品", "TME")
+                if (ignoreKeywords.any { text.contains(it, ignoreCase = true) }) {
+                    return@mapNotNull null
+                }
+                // =================================
+
+                TranslationLine(totalTime, text)
             } catch (e: NumberFormatException) {
                 null
             }
@@ -56,29 +65,61 @@ internal object TranslationHelper {
      * @return 返回一个新的列表，其中包含了已添加翻译的 KaraokeLine 对象。
      */
     fun merge(karaokeLines: List<KaraokeLine>, translationLrc: String?): List<ISyncedLine> {
-        if (translationLrc.isNullOrBlank()) {
-            return karaokeLines
-        }
-
+        if (translationLrc.isNullOrBlank()) return karaokeLines
         val translationLines = parseTranslation(translationLrc)
-        if (translationLines.isEmpty()) {
-            return karaokeLines
-        }
+        if (translationLines.isEmpty()) return karaokeLines
 
         val finalLines = mutableListOf<ISyncedLine>()
-        var j = 0 // 翻译歌词的索引
+        var j = 0
 
-        for (karaokeLine in karaokeLines) {
-            // 移动翻译指针 j，使其指向与当前主歌词行时间戳最接近的翻译行
-            while (j < translationLines.size - 1 &&
-                abs(translationLines[j].time - karaokeLine.start) > abs(translationLines[j + 1].time - karaokeLine.start)
-            ) {
-                j++
+        // 定义最大允许的时间误差 (毫秒)
+        // 建议 500ms - 800ms。如果设得太小(如200)，有些快歌可能对不准；
+        // 设得太大，元数据行就会吸附到第一句歌词。
+        // 但有了下面的“让位判断”，这个值可以稍微宽容一点，比如 600ms。
+        val maxDelay = 600
+
+        for (i in karaokeLines.indices) {
+            val karaokeLine = karaokeLines[i]
+
+            // 1. 寻找当前歌词行的最佳候选翻译（移动指针 j）
+            while (j < translationLines.size - 1) {
+                val currDist = abs(translationLines[j].time - karaokeLine.start)
+                val nextDist = abs(translationLines[j + 1].time - karaokeLine.start)
+                if (nextDist < currDist) {
+                    j++
+                } else {
+                    break
+                }
             }
 
-            // 如果找到了匹配的翻译行，则通过 copy 创建一个带翻译的新对象
-            if (j < translationLines.size) {
-                finalLines.add(karaokeLine.copy(translation = translationLines[j].text))
+            // 此时 translationLines[j] 是离当前 karaokeLine 最近的翻译行
+            val bestTransMatch = translationLines[j]
+            val dist = abs(bestTransMatch.time - karaokeLine.start)
+
+            // ============ 核心判断逻辑 ============
+
+            var shouldAssign = true
+
+            // 判断 A: 时间差距是否过大？
+            if (dist > maxDelay) {
+                shouldAssign = false
+            }
+
+            // 判断 B: “让位机制” (Lookahead)
+            // 如果这行翻译离“下一句歌词”更近，那说明当前这句歌词（可能是元数据）不应该占用它。
+            if (shouldAssign && i + 1 < karaokeLines.size) {
+                val nextKaraokeLine = karaokeLines[i + 1]
+                val distToNext = abs(bestTransMatch.time - nextKaraokeLine.start)
+
+                // 如果翻译离下一句更近 (例如：离当前203ms差447，离下一句652ms差2)，则让给下一句
+                if (distToNext < dist) {
+                    shouldAssign = false
+                }
+            }
+
+            // ============ 执行赋值 ============
+            if (shouldAssign) {
+                finalLines.add(karaokeLine.copy(translation = bestTransMatch.text))
             } else {
                 finalLines.add(karaokeLine)
             }
