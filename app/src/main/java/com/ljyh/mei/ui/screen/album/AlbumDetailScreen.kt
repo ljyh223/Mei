@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,17 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
-import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.CommonSongListScreen
-import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,23 +35,49 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 fun AlbumScreen(
     id: Long,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
-    // 请求数据
+    // 1. 请求初始数据
     LaunchedEffect(id) {
         viewModel.getAlbumDetail(id.toString())
     }
+
     val context = LocalContext.current
-
-    val albumDetail by viewModel.albumDetail.collectAsState()
-    val allMePlaylist by playlistViewModel.playlist.collectAsState()
-
-    val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
+    val playerConnection = LocalPlayerConnection.current ?: return
 
-    val isLoading = albumDetail is Resource.Loading
+    // 2. 收集 ViewModel 状态
+    // 假设 ViewModel 中暴露了这三个 StateFlow
+    val albumDetail by viewModel.albumDetail.collectAsState()
+    val subscribeState by viewModel.subscribeAlbum.collectAsState()
+    val unSubscribeState by viewModel.unSubscribeAlbum.collectAsState()
 
+    // 3. 本地收藏状态 (乐观更新核心)
+    var isSubscribed by remember { mutableStateOf(false) }
 
+    // 当专辑详情加载成功时，初始化收藏状态
+    LaunchedEffect(albumDetail) {
+        if (albumDetail is Resource.Success) {
+            val album = (albumDetail as Resource.Success).data.album
+             isSubscribed = album.info.liked
+        }
+    }
+
+    // 处理收藏失败的回滚逻辑
+    LaunchedEffect(subscribeState) {
+        if (subscribeState is Resource.Error) {
+            isSubscribed = false // 回滚
+            Toast.makeText(context, "收藏失败: ${(subscribeState as Resource.Error).message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(unSubscribeState) {
+        if (unSubscribeState is Resource.Error) {
+            isSubscribed = true // 回滚
+            Toast.makeText(context, "取消收藏失败: ${(unSubscribeState as Resource.Error).message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 4. 构建 UI 数据模型
     val uiData = remember(albumDetail) {
         if (albumDetail is Resource.Success) {
             val album = (albumDetail as Resource.Success).data.album
@@ -62,29 +86,45 @@ fun AlbumScreen(
                 id = album.id.toString(),
                 title = album.name,
                 count = album.size,
-                subscriberCount = -1,
+                subscriberCount = -1, // 专辑通常没有订阅人数，或者在 dynamicInfo 中
                 coverUrl = listOf(album.picUrl),
                 creatorName = album.artists.joinToString(", ") { it.name },
                 isCreate = false,
                 description = album.description,
                 tracks = songs.map { it.toMediaMetadata().copy(coverUrl = album.picUrl) },
                 playCount = -1,
-                isSubscribed = false
+                isSubscribed = isSubscribed // 初始化 UI 状态
             )
         } else {
             UiPlaylist(
                 id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
-                count = 0,
-                subscriberCount = 0,
-                isCreate = false,
-                description = "",
-                trackCount = 0,
-                playCount = 0,
-                isSubscribed = false
+                count = 0, subscriberCount = 0, isCreate = false, description = "",
+                trackCount = 0, playCount = 0, isSubscribed = false
             )
         }
     }
 
+    // 5. 提取播放队列构建逻辑 (避免重复)
+    fun buildListQueue(startIndex: Int = 0): ListQueue? {
+        val detail = albumDetail
+        if (detail is Resource.Success) {
+            val items = detail.data.songs.map { song ->
+                Pair(
+                    song.id.toString(),
+                    song.toMediaMetadata().copy(coverUrl = detail.data.album.picUrl).toMediaItem()
+                )
+            }
+            return ListQueue(
+                id = "album_${uiData.id}",
+                title = uiData.title,
+                items = items,
+                startIndex = startIndex
+            )
+        }
+        return null
+    }
+
+    // 6. UI 渲染
     if (albumDetail is Resource.Error) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Error: ${(albumDetail as Resource.Error).message}")
@@ -92,56 +132,41 @@ fun AlbumScreen(
     } else {
         CommonSongListScreen(
             uiData = uiData,
-            pagingItems = null,
-            isLoading = isLoading,
-            onPlayAll = {
-                val allIds = (albumDetail as Resource.Success).data.songs.map {
-                    Pair(
-                        it.id.toString(),
-                        it.toMediaMetadata().toMediaItem()
-                    )
+            pagingItems = null, // 专辑通常一次性加载，不需要 paging
+            isLoading = albumDetail is Resource.Loading,
+
+            // 头部按钮逻辑
+            headerActionIcon = if (isSubscribed) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+            headerActionLabel = if (isSubscribed) "取消收藏" else "收藏",
+            onHeaderAction = {
+                // 乐观更新
+                val newState = !isSubscribed
+                isSubscribed = newState
+
+                // 发起请求
+                if (newState) {
+                    viewModel.subscribeAlbum(uiData.id)
+                } else {
+                    viewModel.unSubscribeAlbum(uiData.id)
                 }
-                playerConnection.playQueue(
-                    ListQueue(
-                        id = "playlist_${uiData.id}",
-                        title = uiData.title,
-                        items = allIds,
-                        startIndex = 0
-                    )
-                )
             },
 
-            headerActionIcon = Icons.Default.Favorite,
-            headerActionLabel = "取消收藏",
+            // 播放全部
+            onPlayAll = {
+                buildListQueue(0)?.let { queue ->
+                    playerConnection.playQueue(queue)
+                }
+            },
+
+            // 点击单曲
             onTrackClick = { mediaMetadata, index ->
                 playerConnection.onTrackClicked(
                     trackId = mediaMetadata.id.toString(),
-                    buildQueue = {
-                        if (albumDetail is Resource.Success) {
-                            val allIds = (albumDetail as Resource.Success).data.songs.map {
-                                Pair(
-                                    it.id.toString(),
-                                    it.toMediaMetadata().toMediaItem()
-                                )
-                            }
-                            ListQueue(
-                                id = "playlist_${uiData.id}",
-                                title = uiData.title,
-                                items = allIds,
-                                startIndex = index
-                            )
-                        } else {
-                            null
-                        }
-                    }
+                    buildQueue = { buildListQueue(index) }
                 )
             },
-            onBack = {
-                navController.popBackStack()
-            },
-            onHeaderAction = {
-                Toast.makeText(context, "暂未实现", Toast.LENGTH_SHORT).show()
-            }
+
+            onBack = { navController.popBackStack() }
         )
     }
 }
