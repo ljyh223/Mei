@@ -82,7 +82,7 @@ class LibraryViewModel @Inject constructor(
                 is Resource.Error -> {
                     _networkPlaylistsState.value = networkResult
                 }
-                Resource.Loading -> { /* Do nothing */ }
+                Resource.Loading -> { }
             }
         }
     }

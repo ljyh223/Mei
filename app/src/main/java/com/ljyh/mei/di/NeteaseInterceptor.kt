@@ -37,6 +37,7 @@ class NeteaseInterceptor : Interceptor {
     // 缓存随机值
     private val cachedNuid: String by lazy { createRandomKey(32) }
     private val cachedNmtid: String by lazy { createRandomKey(16) }
+    private val fakeIP :String by lazy { ChineseIpUtils.generateRandomChineseIP() }
     private val cachedWnmcid: String by lazy { getWNMCID() } // 只计算一次保持会话一致性
 
     private val EAPI_CONFIG = mapOf(
@@ -142,9 +143,8 @@ class NeteaseInterceptor : Interceptor {
             builder.addHeader("Referer", "https://music.163.com")
         }
 
-        val fakeIp = ChineseIpUtils.generateRandomChineseIP()
-        builder.addHeader("X-Real-IP", fakeIp)
-        builder.addHeader("X-Forwarded-For", fakeIp)
+        builder.addHeader("X-Real-IP", fakeIP)
+        builder.addHeader("X-Forwarded-For", fakeIP)
 
         handleRequestEncryption(builder, originalRequest, cryptoMode, url, neteaseHeader)
 
@@ -180,6 +180,9 @@ class NeteaseInterceptor : Interceptor {
                     mutableMapOf()
                 }
                 bodyMap["header"] = gson.toJson(headerObj)
+                if(rawBody.contains("checkToken") && (cryptoMode == "api" || cryptoMode == "eapi")){
+                    builder.addHeader("X-antiCheatToken","9ca17ae2e6ffcda170e2e6ee8af14fbabdb988f225b3868eb2c15a879b9a83d274a790ac8ff54a97b889d5d42af0feaec3b92af58cff99c470a7eafd88f75e839a9ea7c14e909da883e83fb692a3abdb6b92adee9e")
+                }
                 // bodyMap["e_r"] = true // 可选，如果遇到 buffer 问题可开启
 
                 val newBodyJson = gson.toJson(bodyMap)

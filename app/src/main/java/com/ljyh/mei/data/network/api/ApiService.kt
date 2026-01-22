@@ -92,7 +92,7 @@ interface ApiService {
 
     @POST("/api/v1/album/{id}")
     suspend fun getAlbumDetail(
-        @Body body: Map<String,String> = emptyMap(),
+        @Body body: Map<String, String> = emptyMap(),
         @Path("id") id: String
     ): AlbumDetail
 
@@ -126,12 +126,13 @@ interface ApiService {
     @POST("/api/playlist/create")
     suspend fun createPlaylist(@Body body: CreatePlaylist): CreatePlaylistResult
 
-    @POST("/api/playlist/subscribe")
-    suspend fun subscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
 
 
-    @POST("/api/playlist/unsubscribe")
-    suspend fun unSubscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+    @POST("/api/album/sub")
+    suspend fun subscribeAlbum(@Body body: SubscribePlaylist): BaseResponse
+
+    @POST("/api/album/unsub")
+    suspend fun unsubscribeAlbum(@Body body: SubscribePlaylist): BaseResponse
 
     @POST("/api/playlist/remove")
     suspend fun deletePlaylist(@Body body: DeletePlaylist): BaseMessageResponse

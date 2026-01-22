@@ -1,4 +1,5 @@
 package com.ljyh.mei.data.model.api
+
 import com.google.gson.annotations.SerializedName
 
 
@@ -16,6 +17,7 @@ data class CreatePlaylist(
  */
 data class SubscribePlaylist(
     val id: String,
+    val checkToken: String? = null
 )
 
 /**
@@ -32,7 +34,6 @@ data class SubscribePlaylistResult(
     val code: Int,
     val message: String
 )
-
 
 
 class CreatePlaylistResult(

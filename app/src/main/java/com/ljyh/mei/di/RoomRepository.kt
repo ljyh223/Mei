@@ -219,6 +219,9 @@ class PlaylistRepository @Inject constructor(private val playlistDao: PlaylistDa
     suspend fun insertPlaylists(playlists: List<Playlist>) {
         playlistDao.insertPlaylists(playlists)
     }
+    suspend fun deletePlaylistById(id:String){
+        playlistDao.deletePlaylistById(id)
+    }
 }
 
 

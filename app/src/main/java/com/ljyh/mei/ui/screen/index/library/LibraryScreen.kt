@@ -200,8 +200,6 @@ fun LibraryScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp), //稍微增加高度以容纳 Tab
-                            // 核心颜色：使用 Surface 色并加高透明度 (0.7f - 0.9f)
-                            // 这样既能看清文字，又能隐约透出后面的背景
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                             shape = RoundedCornerShape(50), // 巨大的圆角，做成胶囊形状
                             shadowElevation = 4.dp, // 添加一点阴影，增强悬浮感
@@ -239,6 +237,7 @@ fun LibraryScreen(
                     }
                     2 -> { // 收藏专辑
                         val albums = (albumList as? Resource.Success)?.data?.data ?: emptyList()
+
                         if (albums.isEmpty()) item { EmptyState("暂无收藏专辑") }
                         else items(albums, key = { it.id }) { album ->
                             AlbumItem(album.toAlbum()) {

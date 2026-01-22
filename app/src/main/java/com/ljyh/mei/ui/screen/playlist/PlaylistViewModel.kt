@@ -171,8 +171,9 @@ class PlaylistViewModel @Inject constructor(
      */
     fun unsubscribePlaylist(id: String) {
         viewModelScope.launch {
-            _subscribePlaylist.value = Resource.Loading
-            _subscribePlaylist.value = repository.unSubscribePlaylist(id)
+            _unSubscribePlaylist.value = Resource.Loading
+            _unSubscribePlaylist.value = repository.unSubscribePlaylist(id)
+            playlistRepository.deletePlaylistById(id)
         }
     }
 

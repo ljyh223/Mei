@@ -31,8 +31,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun providePlaylistRepository(apiService: ApiService,weApiService: WeApiService): PlaylistRepository {
-        return PlaylistRepository(apiService,weApiService)
+    fun providePlaylistRepository(apiService: ApiService,weApiService: WeApiService, eApiService: EApiService): PlaylistRepository {
+        return PlaylistRepository(apiService,weApiService, eApiService)
     }
 
     @Singleton
