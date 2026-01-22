@@ -35,6 +35,9 @@ interface QQSongDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(qqSong: QQSong)
+
+    @Query("DELETE FROM qqSong WHERE id = :id")
+    suspend fun deleteSongById(id: String)
 }
 
 @Dao

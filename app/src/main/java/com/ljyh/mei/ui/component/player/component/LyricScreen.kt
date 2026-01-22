@@ -6,6 +6,7 @@ import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,7 +61,8 @@ fun LyricScreen(
     lyricData: LyricData,
     modifier: Modifier = Modifier,
     playerConnection: PlayerConnection,
-    onClick: (LyricSource) -> Unit =  {},
+    onClick: (LyricSource) -> Unit,
+    onLongClick: (LyricSource) -> Unit
 ) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
@@ -151,7 +153,8 @@ fun LyricScreen(
                     source = lyricData.source,
                     modifier = Modifier
                         .align(Alignment.BottomEnd),
-                    onClick = onClick
+                    onClick = onClick,
+                    onLongClick = onLongClick
                 )
             }
         }
@@ -162,7 +165,8 @@ fun LyricScreen(
 private fun LyricSourceBadge(
     source: LyricSource,
     modifier: Modifier = Modifier,
-    onClick: (LyricSource) -> Unit = {},
+    onClick: (LyricSource) -> Unit,
+    onLongClick: (LyricSource) -> Unit
 ) {
 
     Box(
@@ -171,6 +175,10 @@ private fun LyricSourceBadge(
             .background(Color.White.copy(alpha = 0.2f))
             .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
+            .combinedClickable(
+                onClick = { onClick(source) },
+                onLongClick = { onLongClick(source) }
+            )
     ) {
 
         Icon(
@@ -182,11 +190,7 @@ private fun LyricSourceBadge(
                     LyricSource.AM -> R.drawable.am
                 }
             ),
-            modifier = Modifier
-                .size(16.dp)
-                .clickable(onClick = {
-                    onClick(source)
-                }),
+            modifier = Modifier.size(16.dp),
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.6f)
         )

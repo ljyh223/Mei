@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.component.player
 
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -149,6 +150,7 @@ fun BottomSheetPlayer(
                 playerViewModel.fetchQQSong(meta.id.toString())
                 playerViewModel.searchNew(meta.title)
             }
+            showQQMusicSelect=false
             Timber.tag("Player").d("MediaMetadata: $meta")
             Timber.tag("Player").d("MediaMetadata: cover ${meta.coverUrl}")
 
@@ -239,7 +241,7 @@ fun BottomSheetPlayer(
 
         // 2. Debug 信息层
         if (debug && mediaMetadata != null) {
-            Box(modifier = Modifier.align(Alignment.Center)){
+            Box(modifier = Modifier.align(Alignment.Center)) {
                 Debug(
                     title = mediaMetadata!!.title,
                     artist = mediaMetadata!!.artists.firstOrNull()?.name ?: "",
@@ -271,22 +273,22 @@ fun BottomSheetPlayer(
                         .fillMaxWidth()
                         .padding(horizontal = PlayerHorizontalPadding),
                     onNavigateToAlbum = {
-                        if(it.id!=0L){
-                            Screen.Album.navigate(navigator){
+                        if (it.id != 0L) {
+                            Screen.Album.navigate(navigator) {
                                 addPath(mediaMetadata.album.id.toString())
                             }
                         }
                     },
                     onNavigateToArtist = { artist ->
-                        if(artist.id!=0L){
-                            Screen.Artist.navigate(navigator){
+                        if (artist.id != 0L) {
+                            Screen.Artist.navigate(navigator) {
                                 addPath(artist.id.toString())
                             }
                         }
 
                     },
                 )
-                if (qqSearchResult is Resource.Success){
+                if (qqSearchResult is Resource.Success) {
                     QQMusicSelectSheet(
                         showSheet = showQQMusicSelect,
                         searchNew = qqSearchResult as Resource.Success,
@@ -334,10 +336,17 @@ fun BottomSheetPlayer(
                             playerConnection = playerConnection,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = PlayerHorizontalPadding)
-                        ){ source ->
-                            showQQMusicSelect =  true
-                        }
+                                .padding(horizontal = PlayerHorizontalPadding),
+                            onClick = { source ->
+                                showQQMusicSelect = true
+                            },
+                            onLongClick = { source ->
+                                if (source == LyricSource.QQMusic && mediaMetadata != null) {
+                                    playerViewModel.deleteSongById(id = mediaMetadata!!.id.toString())
+                                    Toast.makeText(context, "已删除QQ音乐歌词", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }

@@ -147,6 +147,11 @@ class QQSongRepository @Inject constructor(private val qqSongDao: QQSongDao) {
     suspend fun insertSong(song: QQSong) {
         qqSongDao.insertSong(song)
     }
+
+    suspend fun deleteSongById(id: String){
+        qqSongDao.deleteSongById(id)
+    }
+
 }
 
 class SongRepository @Inject constructor(private val songDao: SongDao) {

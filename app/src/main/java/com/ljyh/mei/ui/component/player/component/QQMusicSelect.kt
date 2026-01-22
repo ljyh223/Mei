@@ -104,6 +104,7 @@ fun QQMusicSelectSheet(
                                     targetDuration = mediaMetadata.duration,
                                     targetTitle = mediaMetadata.title,
                                     onClick = {
+                                        // 记录这一条对应数据
                                         viewmodel.insertSong(
                                             QQSong(
                                                 id = mediaMetadata.id.toString(),

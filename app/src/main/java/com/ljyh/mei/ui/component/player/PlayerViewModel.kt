@@ -142,6 +142,13 @@ class PlayerViewModel @Inject constructor(
             qqSongRepository.insertSong(song)
         }
     }
+    fun deleteSongById(id:String){
+        viewModelScope.launch {
+            qqSongRepository.deleteSongById(id)
+            _lyricResult.value = Resource.Loading
+            _qqSong.value = null
+        }
+    }
 
     fun getAMLLyric(id: String) {
         viewModelScope.launch {
