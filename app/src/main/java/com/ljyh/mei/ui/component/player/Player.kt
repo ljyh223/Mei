@@ -83,6 +83,7 @@ import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
 import com.ljyh.mei.ui.component.player.component.QQMusicSelectSheet
+import com.ljyh.mei.ui.component.player.component.Title
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
@@ -369,50 +370,38 @@ fun BottomSheetPlayer(
                         Spacer(modifier = Modifier.height(bottomControlsHeightDp))
                     }
                 }
-                val shadowStyle = Shadow(
-                    color = Color.Black.copy(alpha = 0.5f),
-                    offset = Offset(2f, 2f),
-                    blurRadius = 8f
-                )
 
-                val subTitleStyle = MaterialTheme.typography.titleMedium.copy(
-                    shadow = shadowStyle,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
 
                 // Mode C: Header Info
                 if (mediaMetadata != null) {
                     val headerTextAlpha = lyricAnimFraction * sheetProgress
                     if (headerTextAlpha > 0.1f) {
-                        Column(
+                        // 计算文字区域的宽度
+                        val headerTextWidth = screenWidth - with(density) { (headerStart + headerSize).toDp() } - 24.dp
+
+                        Box(
                             modifier = Modifier
                                 .graphicsLayer { alpha = headerTextAlpha }
                                 .offset {
                                     IntOffset(
                                         x = (targetStart + headerSize + 12.dp.toPx()).toInt(),
+                                        // 这里不需要改变 Y，我们在 Box 内部垂直居中
                                         y = targetTop.toInt()
                                     )
                                 }
-                                .width(screenWidth - with(density) { (headerStart + headerSize).toDp() } - 24.dp)
-                                .height(with(density) { headerSize.toDp() }),
-                            verticalArrangement = Arrangement.Center
+                                // 使用 height 显式指定高度与封面一致，以便内部 contentAlignment 居中生效
+                                .height(with(density) { headerSize.toDp() })
+                                .width(headerTextWidth),
+                            contentAlignment = Alignment.CenterStart // 关键：垂直居中，水平靠左
                         ) {
-                            Text(
-                                text = mediaMetadata!!.title,
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    shadow = shadowStyle,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = Color.White
-                            )
-                            Text(
-                                text = mediaMetadata!!.artists.joinToString { it.name },
-                                style = subTitleStyle,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = Color.White
+                            // 使用复用的 Title 组件，但传入较小的字体
+                            Title(
+                                title = mediaMetadata!!.title,
+                                subTitle = mediaMetadata!!.artists.joinToString { it.name },
+                                titleStyle = MaterialTheme.typography.titleMedium, // 标题变小
+                                subTitleStyle = MaterialTheme.typography.bodySmall, // 副标题变小
+                                needShadow = false, // 顶部栏通常不需要太重的阴影，或者你可以保留
+                                modifier = Modifier.padding(vertical = 2.dp) // 给一点内边距防止字体本身的 Padding 被切
                             )
                         }
                     }
@@ -428,6 +417,7 @@ fun BottomSheetPlayer(
                 ) {
 
                     // 1. 标题区域 (小窗/横屏模式下，为了节省空间，可以考虑隐藏标题或缩小间距)
+                    // 1. 标题区域
                     if (!isCompactHeight || !isLandscape) {
                         AnimatedVisibility(
                             visible = !showLyrics,
@@ -435,41 +425,18 @@ fun BottomSheetPlayer(
                             exit = fadeOut()
                         ) {
                             mediaMetadata?.let {
-
-                                Column(
+                                // 直接使用 Title 组件
+                                Title(
+                                    title = it.title,
+                                    subTitle = it.artists.joinToString { artist -> artist.name },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = PlayerHorizontalPadding)
-                                        .padding(bottom = 12.dp),
-                                    horizontalAlignment = Alignment.Start
-                                ) {
-                                    Text(
-                                        text = it.title,
-                                        style = MaterialTheme.typography.headlineSmall.copy(
-                                            shadow = shadowStyle,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = it.artists.joinToString { artist -> artist.name },
-                                        style = subTitleStyle,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        color = Color.White
-                                    )
-                                }
+                                        .padding(bottom = 12.dp)
+                                )
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
-                    } else if (!showLyrics) {
-                        // 紧凑模式下的简单标题（可选）
-                        // 可以在这里放一个更小的标题
                     }
-
                     // 2. 进度条 + 控制按钮 + 工具栏
                     PlayerControlsSection(
                         sliderPosition = sliderPosition,
@@ -481,8 +448,7 @@ fun BottomSheetPlayer(
                         playlistViewModel = playlistViewModel,
                         mediaMetadata = mediaMetadata,
                         onLyricClick = { showLyrics = !showLyrics },
-                        isLyricActive = showLyrics,
-                        isCompact = isCompactHeight || isLandscape // 传进去控制间距
+                        isCompact = isCompactHeight || isLandscape
                     )
                 }
             }
@@ -538,7 +504,6 @@ fun PlayerControlsSection(
     playlistViewModel: PlaylistViewModel,
     mediaMetadata: MediaMetadata? = null,
     onLyricClick: () -> Unit,
-    isLyricActive: Boolean = false,
     isCompact: Boolean = false // 新增参数
 ) {
     // 紧凑模式下间距减半
@@ -584,7 +549,6 @@ fun PlayerControlsSection(
                 mediaMetadata = mediaMetadata,
                 modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
                 playlistViewModel = playlistViewModel,
-                isLyricActive = isLyricActive,
                 onLyricClick = onLyricClick
             )
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))

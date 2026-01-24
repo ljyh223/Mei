@@ -83,8 +83,7 @@ fun PlayerActionToolbar(
     playerViewModel: PlayerViewModel,
     playlistViewModel: PlaylistViewModel,
     mediaMetadata: MediaMetadata? = null,
-    onLyricClick: () -> Unit,
-    isLyricActive: Boolean,
+    onLyricClick: () -> Unit
 ) {
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -229,7 +228,7 @@ fun PlayerActionToolbar(
             Icon(
                 imageVector = Icons.Rounded.Lyrics,
                 contentDescription = "Lyrics",
-                tint = if (isLyricActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                tint = Color.White
             )
         }
 

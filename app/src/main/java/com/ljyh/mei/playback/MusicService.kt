@@ -470,8 +470,6 @@ class MusicService : MediaLibraryService(),
             get() = this@MusicService
     }
 
-    data class SongCache(val url: String, val expiryTime: Long)
-
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
     override fun onPlayerError(error: PlaybackException) {
         Timber.tag("MusicService").e( "Player Error: ${error.errorCodeName}, ${error.message}")
