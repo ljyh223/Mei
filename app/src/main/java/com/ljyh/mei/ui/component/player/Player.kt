@@ -487,12 +487,14 @@ fun BottomSheetPlayer(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(mediaMetadata?.coverUrl)
                     .size(coil3.size.Size.ORIGINAL)
-                    .precision(Precision.EXACT) // 强制使用精确大小
-                    .crossfade(true)            // 开启淡入动画，切换更平滑
+                    .precision(Precision.EXACT)
+                    .crossfade(true)
                     .build(),
-
                 contentDescription = "Cover",
                 contentScale = ContentScale.Crop,
+                onError = {
+                },
+
                 modifier = Modifier
                     .graphicsLayer {
                         translationX = finalStart
@@ -512,6 +514,7 @@ fun BottomSheetPlayer(
                             showLyrics = !showLyrics
                         }
                     }
+                 .background(MaterialTheme.colorScheme.surfaceVariant)
             )
         }
     }

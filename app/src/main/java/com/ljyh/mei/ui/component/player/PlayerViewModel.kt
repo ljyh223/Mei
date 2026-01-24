@@ -46,7 +46,7 @@ class PlayerViewModel @Inject constructor(
     val like: StateFlow<Like?> = _like
 
 
-    var mediaMetadata:MediaMetadata?=null
+    var mediaMetadata: MediaMetadata? = null
 
     // 获取点赞状态
     fun getLike(id: String) {
@@ -88,7 +88,8 @@ class PlayerViewModel @Inject constructor(
         _searchResult.value = Resource.Loading
         _lyricResult.value = Resource.Loading
         _lyric.value = Resource.Loading
-        _amLyric.value= Resource.Loading
+        _amLyric.value = Resource.Loading
+        _qqSong.value = null
     }
 
     private val _qqSong = MutableStateFlow<QQSong?>(null)
@@ -143,7 +144,8 @@ class PlayerViewModel @Inject constructor(
             qqSongRepository.insertSong(song)
         }
     }
-    fun deleteSongById(id:String){
+
+    fun deleteSongById(id: String) {
         viewModelScope.launch {
             qqSongRepository.deleteSongById(id)
             _lyricResult.value = Resource.Loading
