@@ -91,6 +91,7 @@ import com.ljyh.mei.ui.component.utils.lerp
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.LyricSourceData
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.encrypt.QRCUtils
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.lyric.mergeLyrics
@@ -112,6 +113,7 @@ fun BottomSheetPlayer(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val density = LocalDensity.current
+    val context = LocalContext.current
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val configuration = LocalConfiguration.current
 
@@ -289,7 +291,7 @@ fun BottomSheetPlayer(
         val finalRadius = lerp(miniRadius, targetRadius, sheetProgress)
 
         val shadowAlpha = if (sheetProgress > 0.8f) (1f - lyricAnimFraction) else 0f
-        var shadowElevation = 16.dp * shadowAlpha
+        var mShadowElevation = 16.dp * shadowAlpha
 
 
         // --- 3. UI Structure ---
@@ -363,7 +365,9 @@ fun BottomSheetPlayer(
                                 .weight(1f)
                                 .padding(horizontal = PlayerHorizontalPadding),
                             onClick = { showQQMusicSelect = true },
-                            onLongClick = { /* delete logic */ }
+                            onLongClick = {
+
+                            }
                         )
                         // 底部留白，这里的 Spacer 高度也应该动态化
                         // 但由于我们在 controls 里使用了 Align Bottom，这里 Spacer 主要是为了不让歌词被遮挡
@@ -374,39 +378,61 @@ fun BottomSheetPlayer(
 
                 // Mode C: Header Info
                 if (mediaMetadata != null) {
-                    val headerTextAlpha = lyricAnimFraction * sheetProgress
-                    if (headerTextAlpha > 0.1f) {
+                    // 不要 0f 就开始显示，而是等到动画进行到 40% 以后才开始淡入
+                    // 这样可以避免和底部正在淡出的标题视觉打架
+                    val fraction = lyricAnimFraction
+                    val enterThreshold = 0.4f
+
+                    // 重新映射 alpha：在 0.4 -> 1.0 的区间内，从 0f 变到 1f
+                    val headerTextAlpha = if (fraction > enterThreshold) {
+                        ((fraction - enterThreshold) / (1f - enterThreshold)).coerceIn(0f, 1f) * sheetProgress
+                    } else {
+                        0f
+                    }
+
+                    if (headerTextAlpha > 0.01f) {
                         // 计算文字区域的宽度
                         val headerTextWidth = screenWidth - with(density) { (headerStart + headerSize).toDp() } - 24.dp
+                        // 不再使用 targetTop (它是动态变化的)，而是固定使用 headerTop
+                        // 并添加一个微小的向上滑入效果 (Slide Up)
+                        // 当 fraction = 1 (结束) 时，offset = 0
+                        // 当 fraction = 0.4 (开始出现) 时，offset = 20dp
+                        val slideUpOffset = with(density) { (20.dp.toPx() * (1f - fraction)).toInt() }
+
+                        // X轴依然需要跟随封面 (targetStart + targetSize)，保证不重叠
+                        val currentX = (targetStart + headerSize + 12.dp.toPx(context)).toInt()
+                        val fixedY = headerTop.toInt() + slideUpOffset
 
                         Box(
                             modifier = Modifier
-                                .graphicsLayer { alpha = headerTextAlpha }
+                                .graphicsLayer {
+                                    alpha = headerTextAlpha
+                                    // 还可以加一点缩放效果，显得更灵动
+                                    val scale = 0.9f + (0.1f * fraction) // 0.9 -> 1.0
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
                                 .offset {
                                     IntOffset(
-                                        x = (targetStart + headerSize + 12.dp.toPx()).toInt(),
-                                        // 这里不需要改变 Y，我们在 Box 内部垂直居中
-                                        y = targetTop.toInt()
+                                        x = currentX,
+                                        y = fixedY
                                     )
                                 }
-                                // 使用 height 显式指定高度与封面一致，以便内部 contentAlignment 居中生效
                                 .height(with(density) { headerSize.toDp() })
                                 .width(headerTextWidth),
-                            contentAlignment = Alignment.CenterStart // 关键：垂直居中，水平靠左
+                            contentAlignment = Alignment.CenterStart
                         ) {
-                            // 使用复用的 Title 组件，但传入较小的字体
                             Title(
                                 title = mediaMetadata!!.title,
                                 subTitle = mediaMetadata!!.artists.joinToString { it.name },
-                                titleStyle = MaterialTheme.typography.titleMedium, // 标题变小
-                                subTitleStyle = MaterialTheme.typography.bodySmall, // 副标题变小
-                                needShadow = false, // 顶部栏通常不需要太重的阴影，或者你可以保留
-                                modifier = Modifier.padding(vertical = 2.dp) // 给一点内边距防止字体本身的 Padding 被切
+                                titleStyle = MaterialTheme.typography.titleMedium,
+                                subTitleStyle = MaterialTheme.typography.bodySmall,
+                                needShadow = false,
+                                modifier = Modifier.padding(vertical = 2.dp)
                             )
                         }
                     }
                 }
-
                 // --- 统一的底部控制区域 ---
                 Column(
                     modifier = Modifier
@@ -471,7 +497,7 @@ fun BottomSheetPlayer(
                     .graphicsLayer {
                         translationX = finalStart
                         translationY = finalTop
-                        shadowElevation = shadowElevation
+                        shadowElevation = mShadowElevation.toPx()
                         shape = RoundedCornerShape(finalRadius)
                         clip = true
                     }
