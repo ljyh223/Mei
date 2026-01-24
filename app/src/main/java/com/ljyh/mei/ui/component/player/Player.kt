@@ -49,11 +49,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +67,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import coil3.size.Precision
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
@@ -363,6 +369,16 @@ fun BottomSheetPlayer(
                         Spacer(modifier = Modifier.height(bottomControlsHeightDp))
                     }
                 }
+                val shadowStyle = Shadow(
+                    color = Color.Black.copy(alpha = 0.5f),
+                    offset = Offset(2f, 2f),
+                    blurRadius = 8f
+                )
+
+                val subTitleStyle = MaterialTheme.typography.titleMedium.copy(
+                    shadow = shadowStyle,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
 
                 // Mode C: Header Info
                 if (mediaMetadata != null) {
@@ -383,17 +399,20 @@ fun BottomSheetPlayer(
                         ) {
                             Text(
                                 text = mediaMetadata!!.title,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    shadow = shadowStyle,
+                                    fontWeight = FontWeight.Bold
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = Color.White
                             )
                             Text(
                                 text = mediaMetadata!!.artists.joinToString { it.name },
-                                style = MaterialTheme.typography.bodySmall,
+                                style = subTitleStyle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = Color.White
                             )
                         }
                     }
@@ -416,6 +435,7 @@ fun BottomSheetPlayer(
                             exit = fadeOut()
                         ) {
                             mediaMetadata?.let {
+
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -425,18 +445,21 @@ fun BottomSheetPlayer(
                                 ) {
                                     Text(
                                         text = it.title,
-                                        style = MaterialTheme.typography.headlineSmall,
+                                        style = MaterialTheme.typography.headlineSmall.copy(
+                                            shadow = shadowStyle,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = Color.White,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
-                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = it.artists.joinToString { artist -> artist.name },
-                                        style = MaterialTheme.typography.titleMedium,
+                                        style = subTitleStyle,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        color = Color.White
                                     )
                                 }
                             }
@@ -467,8 +490,15 @@ fun BottomSheetPlayer(
 
         // --- Shared Element (Cover) ---
         if (mediaMetadata != null) {
+            // 修改 BottomSheetPlayer 里的 AsyncImage 部分
             AsyncImage(
-                model = mediaMetadata?.coverUrl,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(mediaMetadata?.coverUrl)
+                    .size(coil3.size.Size.ORIGINAL)
+                    .precision(Precision.EXACT) // 强制使用精确大小
+                    .crossfade(true)            // 开启淡入动画，切换更平滑
+                    .build(),
+
                 contentDescription = "Cover",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -487,7 +517,7 @@ fun BottomSheetPlayer(
                         if (!state.isExpanded) {
                             state.expandSoft()
                         } else {
-                            showLyrics = true
+                            showLyrics = !showLyrics
                         }
                     }
             )

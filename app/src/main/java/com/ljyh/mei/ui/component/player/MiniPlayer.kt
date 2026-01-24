@@ -159,7 +159,7 @@ fun MiniMediaInfo(
 
             if (showCover) {
                 AsyncImage(
-                    model = mediaMetadata.coverUrl.smallImage(),
+                    model = mediaMetadata.coverUrl,
                     contentDescription = null,
                     modifier = Modifier
                         .size(48.dp)
