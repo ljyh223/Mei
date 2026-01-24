@@ -66,25 +66,28 @@ object CacheManager {
         Timber.tag("SimpleCache").d("Creating CacheDataSource instance")
         val simpleCache = CacheManager.getSimpleCache(context)
 
-        // 配置 OkHttp
-        val okHttpDataSourceFactory = OkHttpDataSource.Factory(
-            OkHttpClient.Builder()
-                .addInterceptor { chain ->
-                    chain.proceed(
-                        chain.request().newBuilder()
-                            .addHeader("User-Agent", UserAgent)
-                            .build()
-                    )
-                }
-                .build()
-        )
+        // 1. 先配置你的 OkHttp (负责处理网络流)
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .addHeader("User-Agent", UserAgent)
+                        .build()
+                )
+            }
+            .build()
+        val okHttpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
 
+        // 2. 【关键修复】使用 DefaultDataSource.Factory 包装 OkHttp
+        // 它能自动处理 file://, http://, https://, content:// 等所有协议
+        val defaultDataSourceFactory = DefaultDataSource.Factory(context, okHttpDataSourceFactory)
+
+        // 3. 将包装后的工厂设为 CacheDataSource 的上游
         return CacheDataSource.Factory()
             .setCache(simpleCache)
-            .setUpstreamDataSourceFactory(okHttpDataSourceFactory)
+            .setUpstreamDataSourceFactory(defaultDataSourceFactory) // 改为 defaultDataSourceFactory
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
     }
-
     @OptIn(UnstableApi::class)
     fun isContentFullyCached(cache: Cache, key: String): Boolean {
         // 获取缓存元数据
