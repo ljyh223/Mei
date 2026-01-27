@@ -72,12 +72,15 @@ import coil3.request.crossfade
 import coil3.size.Precision
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
+import com.ljyh.mei.constants.ProgressBarStyle
+import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
+import com.ljyh.mei.ui.component.player.component.AppleStyleProgressSlider
 import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
@@ -95,6 +98,7 @@ import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.encrypt.QRCUtils
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.lyric.mergeLyrics
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -138,6 +142,7 @@ fun BottomSheetPlayer(
     val qqLyricResult by playerViewModel.lyricResult.collectAsState()
     val amLyricResult by playerViewModel.amLyric.collectAsState()
     val qqSong by playerViewModel.qqSong.collectAsState()
+    val isLiked by playerViewModel.like.collectAsState(initial = null)
 
     var lyricLine by remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
 
@@ -179,7 +184,13 @@ fun BottomSheetPlayer(
         withContext(Dispatchers.Default) {
             val sources = mutableListOf<LyricSourceData>()
             (amLyricResult as? Resource.Success)?.let { sources.add(LyricSourceData.AM(it.data)) }
-            (netLyricResult as? Resource.Success)?.data?.let { sources.add(LyricSourceData.NetEase(it)) }
+            (netLyricResult as? Resource.Success)?.data?.let {
+                sources.add(
+                    LyricSourceData.NetEase(
+                        it
+                    )
+                )
+            }
             (qqLyricResult as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
                 try {
                     val qrc = it.copy(
@@ -385,19 +396,24 @@ fun BottomSheetPlayer(
 
                     // 重新映射 alpha：在 0.4 -> 1.0 的区间内，从 0f 变到 1f
                     val headerTextAlpha = if (fraction > enterThreshold) {
-                        ((fraction - enterThreshold) / (1f - enterThreshold)).coerceIn(0f, 1f) * sheetProgress
+                        ((fraction - enterThreshold) / (1f - enterThreshold)).coerceIn(
+                            0f,
+                            1f
+                        ) * sheetProgress
                     } else {
                         0f
                     }
 
                     if (headerTextAlpha > 0.01f) {
                         // 计算文字区域的宽度
-                        val headerTextWidth = screenWidth - with(density) { (headerStart + headerSize).toDp() } - 24.dp
+                        val headerTextWidth =
+                            screenWidth - with(density) { (headerStart + headerSize).toDp() } - 24.dp
                         // 不再使用 targetTop (它是动态变化的)，而是固定使用 headerTop
                         // 并添加一个微小的向上滑入效果 (Slide Up)
                         // 当 fraction = 1 (结束) 时，offset = 0
                         // 当 fraction = 0.4 (开始出现) 时，offset = 20dp
-                        val slideUpOffset = with(density) { (20.dp.toPx() * (1f - fraction)).toInt() }
+                        val slideUpOffset =
+                            with(density) { (20.dp.toPx() * (1f - fraction)).toInt() }
 
                         // X轴依然需要跟随封面 (targetStart + targetSize)，保证不重叠
                         val currentX = (targetStart + headerSize + 12.dp.toPx(context)).toInt()
@@ -425,6 +441,9 @@ fun BottomSheetPlayer(
                             Title(
                                 title = mediaMetadata!!.title,
                                 subTitle = mediaMetadata!!.artists.joinToString { it.name },
+                                isLiked = isLiked != null, // 传入状态
+                                onLikeClick = { mediaMetadata?.let { playerViewModel.like(it.id.toString()) } },
+                                onMoreClick = { /* 打开菜单逻辑，例如 showAddToPlaylistDialog = true */ },
                                 titleStyle = MaterialTheme.typography.titleMedium,
                                 subTitleStyle = MaterialTheme.typography.bodySmall,
                                 needShadow = false,
@@ -441,9 +460,6 @@ fun BottomSheetPlayer(
                         .background(Color.Transparent)
                         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                 ) {
-
-                    // 1. 标题区域 (小窗/横屏模式下，为了节省空间，可以考虑隐藏标题或缩小间距)
-                    // 1. 标题区域
                     if (!isCompactHeight || !isLandscape) {
                         AnimatedVisibility(
                             visible = !showLyrics,
@@ -455,6 +471,12 @@ fun BottomSheetPlayer(
                                 Title(
                                     title = it.title,
                                     subTitle = it.artists.joinToString { artist -> artist.name },
+                                    isLiked = isLiked != null, // 传入状态
+                                    onLikeClick = {
+                                        playerViewModel.like(it.id.toString())
+                                    },
+                                    onMoreClick = {
+                                    },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(horizontal = PlayerHorizontalPadding)
@@ -514,7 +536,7 @@ fun BottomSheetPlayer(
                             showLyrics = !showLyrics
                         }
                     }
-                 .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
         }
     }
@@ -538,20 +560,39 @@ fun PlayerControlsSection(
     // 紧凑模式下间距减半
     val spacerHeight = if (isCompact) 8.dp else 32.dp
 
+    val (progressBarStyle, _) = rememberEnumPreference(
+        key = ProgressBarStyleKey,
+        defaultValue = ProgressBarStyle.WAVE
+    )
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        PlayerProgressSlider(
-            position = sliderPosition.toLong(),
-            duration = duration,
-            isPlaying = isPlaying,
-            onPositionChange = { newPosition ->
-                playerConnection.player.seekTo(newPosition)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = PlayerHorizontalPadding + 8.dp)
-        )
+        if (progressBarStyle == ProgressBarStyle.LINEAR) {
+            AppleStyleProgressSlider(
+                position = sliderPosition.toLong(),
+                duration = duration,
+                onPositionChange = { newPosition ->
+                    playerConnection.player.seekTo(newPosition)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+            )
+        } else {
+            PlayerProgressSlider(
+                position = sliderPosition.toLong(),
+                duration = duration,
+                isPlaying = isPlaying, // 波浪进度条需要这个参数
+                onPositionChange = { newPosition ->
+                    playerConnection.player.seekTo(newPosition)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+            )
+        }
+
 
         Spacer(Modifier.height(spacerHeight))
 
