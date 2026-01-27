@@ -89,7 +89,7 @@ fun AlbumScreen(
                 subscriberCount = -1, // 专辑通常没有订阅人数，或者在 dynamicInfo 中
                 coverUrl = listOf(album.picUrl),
                 creatorName = album.artists.joinToString(", ") { it.name },
-                isCreate = false,
+                isCreator = false,
                 description = album.description,
                 tracks = songs.map { it.toMediaMetadata().copy(coverUrl = album.picUrl) },
                 playCount = -1,
@@ -98,7 +98,7 @@ fun AlbumScreen(
         } else {
             UiPlaylist(
                 id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
-                count = 0, subscriberCount = 0, isCreate = false, description = "",
+                count = 0, subscriberCount = 0, isCreator = false, description = "",
                 trackCount = 0, playCount = 0, isSubscribed = false
             )
         }

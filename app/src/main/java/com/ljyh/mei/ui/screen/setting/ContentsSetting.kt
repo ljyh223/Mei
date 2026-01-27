@@ -84,8 +84,6 @@ fun ContentsSetting(
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             tint = MaterialTheme.colorScheme.onSurface,
-
-
                             contentDescription = null
                         )
                     }
