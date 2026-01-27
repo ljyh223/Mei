@@ -263,7 +263,7 @@ fun CommonSongListScreen(
                         val currentTrack = menuTargetTrack ?: return@Box
                         TrackActionMenu(
                             targetTrack = currentTrack,
-                            isCreator = uiData.isCreate,
+                            isCreator = uiData.isCreator,
                             onDismiss = { menuTargetTrack = null },
                             onAddToPlaylist = {
                                 trackToAdd = currentTrack
