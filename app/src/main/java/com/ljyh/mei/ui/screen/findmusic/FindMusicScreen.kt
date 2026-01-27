@@ -180,7 +180,7 @@ fun PlaylistGrid(
 ) {
     val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 160.dp), // 自适应宽度，每行至少160dp
+        columns = GridCells.Adaptive(minSize = 140.dp), // 自适应宽度，每行至少160dp
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
