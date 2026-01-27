@@ -7,7 +7,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,9 +24,6 @@ class FindMusicViewModel @Inject constructor(
 
     private val _highQualityPlaylist = MutableStateFlow<Resource<HighQualityPlaylistResult>>(Resource.Loading)
     val highQualityPlaylist = _highQualityPlaylist.asStateFlow()
-
-    // --- 核心优化：内存缓存 ---
-    // Key: 分类名称, Value: 请求到的数据
     private val _playlistCache = mutableMapOf<String, HighQualityPlaylistResult>()
 
     init {
