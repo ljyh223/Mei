@@ -1,35 +1,28 @@
 package com.ljyh.mei.ui.component.player.component
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,17 +33,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.rememberEnumPreference
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -230,161 +218,6 @@ fun AppleStyleProgressSlider(
                 style = commonTextStyle,
                 color = Color.White.copy(alpha = 0.6f),
             )
-        }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF1C1C1E)
-@Composable
-fun AppleStyleProgressSliderPreview() {
-    // 设置 MaterialTheme 为深色主题以匹配音乐播放器
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Color(0xFF007AFF),
-            surface = Color(0xFF1C1C1E),
-            onSurface = Color.White
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF1C1C1E))
-                .padding(24.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(32.dp)
-            ) {
-                // 预览1: 正常播放状态 (已播放30秒，总长3分钟)
-                AppleStyleProgressSlider(
-                    position = 30_000L, // 30秒
-                    duration = 180_000L, // 3分钟
-                    onPositionChange = { newPosition ->
-                        println("位置改变: ${newPosition}")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // 预览2: 开始状态 (刚开始播放)
-                AppleStyleProgressSlider(
-                    position = 0L,
-                    duration = 180_000L,
-                    onPositionChange = { newPosition ->
-                        println("位置改变: ${newPosition}")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // 预览3: 快结束状态
-                AppleStyleProgressSlider(
-                    position = 170_000L,
-                    duration = 180_000L,
-                    onPositionChange = { newPosition ->
-                        println("位置改变: ${newPosition}")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // 预览4: 超长歌曲 (10分钟)
-                AppleStyleProgressSlider(
-                    position = 150_000L,
-                    duration = 600_000L,
-                    onPositionChange = { newPosition ->
-                        println("位置改变: ${newPosition}")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // 预览5: 无效时长 (还未加载)
-                AppleStyleProgressSlider(
-                    position = 0L,
-                    duration = 0L,
-                    onPositionChange = { newPosition ->
-                        println("位置改变: ${newPosition}")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-    }
-}
-
-// 如果需要单独预览交互效果，可以写一个带状态的预览
-@Preview(showBackground = true, backgroundColor = 0xFF1C1C1E)
-@Composable
-fun AppleStyleProgressSliderInteractivePreview() {
-    var currentPosition by remember { mutableLongStateOf(30_000L) }
-    val totalDuration = 180_000L // 3分钟
-
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Color(0xFF007AFF),
-            surface = Color(0xFF1C1C1E),
-            onSurface = Color.White
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF1C1C1E))
-                .padding(24.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "交互式预览",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                AppleStyleProgressSlider(
-                    position = currentPosition,
-                    duration = totalDuration,
-                    onPositionChange = { newPosition ->
-                        currentPosition = newPosition
-                        println("位置改变到: ${newPosition}")
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 添加一些控制按钮用于测试
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Button(
-                        onClick = { currentPosition = max(0L, currentPosition - 10_000L) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF3A3A3C)
-                        )
-                    ) {
-                        Text("← 10秒", color = Color.White)
-                    }
-
-                    Button(
-                        onClick = { currentPosition = min(totalDuration, currentPosition + 10_000L) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF3A3A3C)
-                        )
-                    ) {
-                        Text("10秒 →", color = Color.White)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "当前: ${makeTimeString(currentPosition)} / ${makeTimeString(totalDuration)}",
-                    color = Color.White.copy(alpha = 0.8f),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
         }
     }
 }
