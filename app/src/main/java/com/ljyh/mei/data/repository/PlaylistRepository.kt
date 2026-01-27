@@ -1,6 +1,7 @@
 package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.constants.checkToken
 import com.ljyh.mei.data.model.AlbumDetail
 import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.SongUrl
@@ -16,6 +17,8 @@ import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
+import com.ljyh.mei.data.model.weapi.HighQualityPlaylist
+import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.EApiService
@@ -123,7 +126,7 @@ class PlaylistRepository(
                 eApiService.subscribePlaylist(
                     SubscribePlaylist(
                         id = id,
-                        checkToken = "9ca17ae2e6ffcda170e2e6ee8af14fbabdb988f225b3868eb2c15a879b9a83d274a790ac8ff54a97b889d5d42af0feaec3b92af58cff99c470a7eafd88f75e839a9ea7c14e909da883e83fb692a3abdb6b92adee9e"
+                        checkToken = checkToken
                     )
                 )
             }
@@ -138,7 +141,7 @@ class PlaylistRepository(
                 eApiService.unSubscribePlaylist(
                     SubscribePlaylist(
                         id = id,
-                        checkToken = "9ca17ae2e6ffcda170e2e6ee8af14fbabdb988f225b3868eb2c15a879b9a83d274a790ac8ff54a97b889d5d42af0feaec3b92af58cff99c470a7eafd88f75e839a9ea7c14e909da883e83fb692a3abdb6b92adee9e"
+                        checkToken = checkToken
                     )
                 )
             }
@@ -191,6 +194,19 @@ class PlaylistRepository(
             safeApiCall {
                 apiService.getAlbumDetail(
                     id = id
+                )
+            }
+        }
+    }
+
+    suspend fun getHighQualityPlaylist(cat:String, limit:Int): Resource<HighQualityPlaylistResult>{
+        return withContext(Dispatchers.IO){
+            safeApiCall {
+                weApiService.getHighQualityPlaylist(
+                    HighQualityPlaylist(
+                        category = cat,
+                        limit = limit
+                    )
                 )
             }
         }

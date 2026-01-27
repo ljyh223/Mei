@@ -1,7 +1,7 @@
 package com.ljyh.mei.ui.screen.album
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+    import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.AlbumDetail
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.room.AlbumEntity

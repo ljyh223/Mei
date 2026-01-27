@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.album
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,12 +28,11 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.CommonSongListScreen
-import timber.log.Timber
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlbumScreen(
+fun AlbumDetailScreen(
     id: Long,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
 ) {
