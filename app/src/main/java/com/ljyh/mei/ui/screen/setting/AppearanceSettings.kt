@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
+import androidx.compose.material.icons.rounded.LinearScale
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +34,8 @@ import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
+import com.ljyh.mei.constants.ProgressBarStyle
+import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
@@ -90,6 +93,10 @@ fun AppearanceSettings(
 
     val (debug, onDebug) = rememberPreference(
         DebugKey, defaultValue = false
+    )
+    val (progressBarStyle, onProgressBarStyleChange) = rememberEnumPreference(
+        key = ProgressBarStyleKey,
+        defaultValue = ProgressBarStyle.WAVE // 默认值设为你喜欢的
     )
     Scaffold(
         topBar = {
@@ -150,6 +157,16 @@ fun AppearanceSettings(
                     }
                 }
             )
+            EnumListPreference(
+                title = { Text("进度条样式") },
+                icon = { Icon(Icons.Rounded.LinearScale, null) },
+                selectedValue = progressBarStyle,
+                onValueSelected = onProgressBarStyleChange,
+                valueText = { it.label }
+            )
+
+
+
 
 
             PreferenceGroupTitle(

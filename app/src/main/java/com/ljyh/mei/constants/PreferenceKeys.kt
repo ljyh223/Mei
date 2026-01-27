@@ -53,6 +53,7 @@ val AndroidIdKey = stringPreferencesKey("androidId")
 
 // 原图封面
 val OriginalCoverKey = booleanPreferencesKey("originalCover")
+val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
 
 enum class CoverStyle {
     Circle,
@@ -89,3 +90,7 @@ enum class LyricTextSize(val text: Int) {
     Size32(32)
 }
 
+enum class ProgressBarStyle(val label: String) {
+    WAVE("动态波浪"),       // 原来的波浪样式
+    LINEAR("Apple 风格")   // 新写的直线样式
+}
