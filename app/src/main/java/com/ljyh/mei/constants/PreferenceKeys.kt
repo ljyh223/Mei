@@ -92,5 +92,5 @@ enum class LyricTextSize(val text: Int) {
 
 enum class ProgressBarStyle(val label: String) {
     WAVE("动态波浪"),       // 原来的波浪样式
-    LINEAR("Apple 风格")   // 新写的直线样式
+    LINEAR("正常样式")   // 新写的直线样式
 }
