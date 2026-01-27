@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -94,9 +95,8 @@ fun EveryDay(
                     )
                 )
             },
-
-            headerActionIcon = Icons.Default.Favorite,
-            headerActionLabel = "取消收藏",
+            headerActionIcon = Icons.Default.FavoriteBorder,
+            headerActionLabel = "收藏",
             onTrackClick = { mediaMetadata, index ->
 
                 playerConnection.onTrackClicked(
