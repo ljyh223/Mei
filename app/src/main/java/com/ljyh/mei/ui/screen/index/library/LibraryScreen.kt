@@ -91,6 +91,7 @@ fun LibraryScreen(
     val photoAlbum by viewModel.photoAlbum.collectAsState()
     val localPlaylists by viewModel.localPlaylists.collectAsState()
     val albumList by viewModel.albumList.collectAsState()
+    val userSubcount by viewModel.userSubcount.collectAsState()
 
     // Preferences
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
@@ -102,6 +103,7 @@ fun LibraryScreen(
     // State
     var showPhotoPicker by remember { mutableStateOf(false) }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var subPlaylistCount by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("创建歌单", "收藏歌单", "收藏专辑")
     val listState = rememberLazyListState()
 
@@ -116,8 +118,10 @@ fun LibraryScreen(
             viewModel.syncUserPlaylists(userId)
             viewModel.getPhotoAlbum(userId)
             viewModel.getAlbumList()
+            viewModel.getUserSubcount()
         }
     }
+
     LaunchedEffect(photoAlbum) {
         if (userPhoto.isEmpty() && photoAlbum is Resource.Success) {
             (photoAlbum as Resource.Success).data.data.records.firstOrNull()?.imageUrl?.let {
@@ -135,6 +139,17 @@ fun LibraryScreen(
             setUserNickname(data.nickname)
             setUserAvatarUrl(data.avatarUrl)
         }
+    }
+
+    LaunchedEffect(userSubcount) {
+        if (userSubcount is Resource.Success) {
+
+        }
+    }
+
+    LaunchedEffect(subPlaylistCount) {
+        if (userId.isNotEmpty() && localPlaylists.size != subPlaylistCount && subPlaylistCount != 0)
+            viewModel.syncUserPlaylists(userId, subPlaylistCount)
     }
 
     // --- 界面主体 ---
@@ -155,7 +170,8 @@ fun LibraryScreen(
                 contentPadding = PaddingValues(
                     // 顶部避让状态栏，并增加额外间距
                     top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp,
-                    bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 80.dp
+                    bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+                        .calculateBottomPadding() + 80.dp
                 )
             ) {
                 // 2. 杂志风格大标题
@@ -227,6 +243,7 @@ fun LibraryScreen(
                             }
                         }
                     }
+
                     1 -> { // 收藏歌单
                         if (collectedPlaylists.isEmpty()) item { EmptyState("暂无收藏歌单") }
                         else items(collectedPlaylists, key = { it.id }) { playlist ->
@@ -235,6 +252,7 @@ fun LibraryScreen(
                             }
                         }
                     }
+
                     2 -> { // 收藏专辑
                         val albums = (albumList as? Resource.Success)?.data?.data ?: emptyList()
 
@@ -359,7 +377,11 @@ fun BentoDashboard(
                 .clickable { onHistoryClick() },
             shape = RoundedCornerShape(28.dp),
             // 使用 SurfaceVariant 色调，避免和背景混淆
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                    alpha = 0.5f
+                )
+            )
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // 封面图背景
@@ -378,7 +400,10 @@ fun BentoDashboard(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.8f)
+                                    ),
                                     startY = 100f
                                 )
                             )
@@ -476,7 +501,9 @@ fun DashboardSmallCard(
     hideLabel: Boolean = false
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().clickable { onClick() },
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = color)
     ) {
@@ -525,8 +552,10 @@ fun ModernCapsuleTabs(
 
             // 选中态：使用主色，实心
             // 未选中态：透明背景，只显示文字
-            val containerColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-            val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+            val containerColor =
+                if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+            val contentColor =
+                if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
             val fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
 
             // 增加点击区域的 Surface
@@ -551,6 +580,7 @@ fun ModernCapsuleTabs(
         }
     }
 }
+
 @Composable
 fun EmptyState(text: String) {
     Box(
@@ -601,8 +631,11 @@ fun PhotoPickerSheet(
                     onDismiss = onDismiss
                 )
             }
+
             else -> {
-                Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier
+                    .fillMaxWidth()
+                    .height(200.dp), contentAlignment = Alignment.Center) {
                     if (photoAlbum is Resource.Loading) CircularProgressIndicator()
                     else Text("无法加载图片")
                 }

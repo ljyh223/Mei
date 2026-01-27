@@ -7,6 +7,7 @@ import com.ljyh.mei.data.model.UserAccount
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.weapi.UserSubcount
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.PlaylistRepository
@@ -37,6 +38,9 @@ class LibraryViewModel @Inject constructor(
     private val _albumList = MutableStateFlow<Resource<UserAlbumList>>(Resource.Loading)
     val albumList: StateFlow<Resource<UserAlbumList>> = _albumList
 
+    private val _userSubcount = MutableStateFlow<Resource<UserSubcount>>(Resource.Loading)
+    val userSubcount: StateFlow<Resource<UserSubcount>> = _userSubcount
+
     val localPlaylists: StateFlow<List<Playlist>> = playlistRepository.getAllPlaylist()
         .stateIn(
             scope = viewModelScope,
@@ -60,10 +64,10 @@ class LibraryViewModel @Inject constructor(
 
 
 
-    fun syncUserPlaylists(uid: String) {
+    fun syncUserPlaylists(uid: String, limit: Int = 100) {
         viewModelScope.launch {
             _networkPlaylistsState.value = Resource.Loading
-            when (val networkResult = repository.getUserPlaylist(uid)) {
+            when (val networkResult = repository.getUserPlaylist(uid, limit)) {
                 is Resource.Success -> {
                     val playlistsToInsert = networkResult.data.playlist.map {
                         Playlist(
@@ -91,6 +95,13 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             _albumList.value= Resource.Loading
             _albumList.value=repository.getAlbumList()
+        }
+    }
+
+    fun getUserSubcount(){
+        viewModelScope.launch {
+            _userSubcount.value= Resource.Loading
+            _userSubcount.value= repository.getUsrSubcount()
         }
     }
 }
