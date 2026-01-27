@@ -1,6 +1,8 @@
 package com.ljyh.mei.data.model
 
 import com.google.gson.annotations.SerializedName
+import com.ljyh.mei.data.model.room.AlbumEntity
+import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.ui.model.Album
 
 data class UserAlbumList(
@@ -83,4 +85,19 @@ fun UserAlbumList.Data.toAlbum(): Album {
                 name = it.name
             )
         })
+}
+
+
+fun UserAlbumList.Data.toAlbumEntity(): Pair<AlbumEntity, List<ArtistEntity>>{
+    return AlbumEntity(
+        albumId = id,
+        name = name,
+        cover = picUrl,
+        publishTime = subTime,
+        songCount = size
+    ) to artists.map { ArtistEntity(
+        artistId = id,
+        name= name,
+        avatarUrl = null
+    ) }
 }

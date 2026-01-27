@@ -79,7 +79,6 @@ fun PlaylistScreen(
                     isSubscribed = false // 回滚为未收藏
                     Toast.makeText(context, "收藏失败: 错误码:${result.data.code}", Toast.LENGTH_SHORT).show()
                 }else{
-                    viewModel
                     Toast.makeText(context, "收藏成功", Toast.LENGTH_SHORT).show()
 
                 }

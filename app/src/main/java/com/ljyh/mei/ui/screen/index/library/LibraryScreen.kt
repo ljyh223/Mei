@@ -72,6 +72,7 @@ import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
 import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.toAlbum
+import com.ljyh.mei.data.model.toAlbumEntity
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.SingleImagePickerSheet
 import com.ljyh.mei.ui.component.item.AlbumItem
@@ -257,9 +258,16 @@ fun LibraryScreen(
                         val albums = (albumList as? Resource.Success)?.data?.data ?: emptyList()
 
                         if (albums.isEmpty()) item { EmptyState("暂无收藏专辑") }
-                        else items(albums, key = { it.id }) { album ->
-                            AlbumItem(album.toAlbum()) {
-                                Screen.Album.navigate(navController) { addPath(album.id.toString()) }
+                        else{
+                            albums.map { al->
+                                al.toAlbumEntity().let {
+                                    viewModel.insertAlbum(it.first, it.second)
+                                }
+                            }
+                            items(albums, key = { it.id }) { album ->
+                                AlbumItem(album.toAlbum()) {
+                                    Screen.Album.navigate(navController) { addPath(album.id.toString()) }
+                                }
                             }
                         }
                     }

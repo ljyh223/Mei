@@ -52,6 +52,9 @@ object AppModule {
         return HistoryRepository(database.historyDao(), database.songDao())
     }
 
+    @Provides
+    fun provideAlbumsDao(db: AppDatabase): AlbumsRepository = AlbumsRepository(db.AlbumsDao())
+
     // 单例gson
     @Provides
     @Singleton
