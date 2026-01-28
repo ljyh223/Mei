@@ -29,10 +29,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,7 +68,8 @@ fun LyricScreen(
     modifier: Modifier = Modifier,
     playerConnection: PlayerConnection,
     onClick: (LyricSource) -> Unit,
-    onLongClick: (LyricSource) -> Unit
+    onLongClick: (LyricSource) -> Unit,
+    onToggleControls: (Boolean) -> Unit
 ) {
     val listState = rememberLazyListState()
     val context = LocalContext.current
@@ -80,6 +85,25 @@ fun LyricScreen(
         LyricTextSize.Size20
     )
     val (accompanimentLyricTextBold, _) = rememberPreference(AccompanimentLyricTextBoldKey, true)
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // 只处理用户手指滑动 (UserInput)，忽略代码自动滚动
+                if (source == NestedScrollSource.UserInput) {
+                    val delta = available.y
+                    // 阈值设为 10 或 20，防止手指轻微抖动导致闪烁
+                    if (delta < -10) {
+                        // 手指向上滑 (查看下面的歌词) -> 隐藏控制栏
+                        onToggleControls(false)
+                    } else if (delta > 10) {
+                        // 手指向下滑 (查看上面的歌词) -> 显示控制栏
+                        onToggleControls(true)
+                    }
+                }
+                return Offset.Zero
+            }
+        }
+    }
 
     LaunchedEffect(playerConnection.isPlaying) {
         if (playerConnection.isPlaying.value) {
@@ -96,6 +120,11 @@ fun LyricScreen(
 
     Column(
         modifier = modifier.fillMaxSize()
+            .nestedScroll(nestedScrollConnection)
+            .clickable(
+                indication = null,
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            ) { onToggleControls(true) }
     ) {
         Box(
             modifier = Modifier
@@ -109,6 +138,7 @@ fun LyricScreen(
                     currentPosition = { animatedPosition.toInt() },
                     onLineClicked = { line ->
                         playerConnection.player.seekTo(line.start.toLong())
+                        onToggleControls(true)
                     },
                     onLinePressed = { line ->
                         val result = when (line) {

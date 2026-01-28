@@ -7,11 +7,14 @@ import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -136,6 +139,7 @@ fun BottomSheetPlayer(
     // 控制歌词模式的开关
     var showLyrics by remember { mutableStateOf(false) }
     var showQQMusicSelect by remember { mutableStateOf(false) }
+    var areControlsVisible by remember { mutableStateOf(true) }
 
     // Lyric Logic
     val netLyricResult by playerViewModel.lyric.collectAsState()
@@ -145,6 +149,7 @@ fun BottomSheetPlayer(
     val isLiked by playerViewModel.like.collectAsState(initial = null)
 
     var lyricLine by remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
+
 
     // --- Effects (Slider & Lyrics) ---
     LaunchedEffect(playbackState, isPlaying, isDragging) {
@@ -213,6 +218,12 @@ fun BottomSheetPlayer(
             showLyrics = false
         }
     }
+    LaunchedEffect(showLyrics) {
+        if (!showLyrics) {
+            areControlsVisible = true
+        }
+    }
+
     BackHandler(enabled = state.isExpanded && showLyrics) {
         showLyrics = false
     }
@@ -376,13 +387,16 @@ fun BottomSheetPlayer(
                                 .weight(1f)
                                 .padding(horizontal = PlayerHorizontalPadding),
                             onClick = { showQQMusicSelect = true },
-                            onLongClick = {
-
+                            onLongClick = {},
+                            onToggleControls = { show ->
+                                areControlsVisible = show
                             }
                         )
-                        // 底部留白，这里的 Spacer 高度也应该动态化
-                        // 但由于我们在 controls 里使用了 Align Bottom，这里 Spacer 主要是为了不让歌词被遮挡
-                        Spacer(modifier = Modifier.height(bottomControlsHeightDp))
+                        val spacerHeight by animateDpAsState(
+                            targetValue = if (areControlsVisible) bottomControlsHeightDp else 16.dp, // 16dp 为隐藏时的底部安全边距
+                            label = "spacer"
+                        )
+                        Spacer(modifier = Modifier.height(spacerHeight))
                     }
                 }
 
@@ -443,7 +457,7 @@ fun BottomSheetPlayer(
                                 subTitle = mediaMetadata!!.artists.joinToString { it.name },
                                 isLiked = isLiked != null, // 传入状态
                                 onLikeClick = { mediaMetadata?.let { playerViewModel.like(it.id.toString()) } },
-                                onMoreClick = { /* 打开菜单逻辑，例如 showAddToPlaylistDialog = true */ },
+                                onMoreClick = { },
                                 titleStyle = MaterialTheme.typography.titleMedium,
                                 subTitleStyle = MaterialTheme.typography.bodySmall,
                                 needShadow = false,
@@ -460,44 +474,60 @@ fun BottomSheetPlayer(
                         .background(Color.Transparent)
                         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                 ) {
-                    if (!isCompactHeight || !isLandscape) {
-                        AnimatedVisibility(
-                            visible = !showLyrics,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            mediaMetadata?.let {
-                                // 直接使用 Title 组件
-                                Title(
-                                    title = it.title,
-                                    subTitle = it.artists.joinToString { artist -> artist.name },
-                                    isLiked = isLiked != null, // 传入状态
-                                    onLikeClick = {
-                                        playerViewModel.like(it.id.toString())
-                                    },
-                                    onMoreClick = {
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = PlayerHorizontalPadding)
-                                        .padding(bottom = 12.dp)
-                                )
+                    // 逻辑梳理：
+                    // 1. 整个底部区域是否可见？
+                    //    - 如果是普通模式 (!showLyrics): 永远可见 (true)
+                    //    - 如果是歌词模式 (showLyrics): 由滑动状态 (areControlsVisible) 决定
+                    val isBottomBarVisible = !showLyrics || areControlsVisible
+
+                    // 使用 AnimatedVisibility 包裹【整个】底部内容（标题 + 进度条 + 按钮）
+                    AnimatedVisibility(
+                        visible = isBottomBarVisible,
+                        // 进出场动画：向下滑出/向上滑入 + 淡入淡出
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut()
+                    ) {
+                        // AnimatedVisibility 内部需要一个容器来垂直排列 Title 和 Controls
+                        Column(Modifier.fillMaxWidth()) {
+
+                            // A. 标题区域
+                            // 逻辑：只有在【非歌词模式】且【非紧凑模式】下才显示底部的标题
+                            // (歌词模式下标题在顶部，紧凑模式下空间不够不显示标题)
+                            val isTitleVisible = !showLyrics && (!isCompactHeight && !isLandscape)
+
+                            if (isTitleVisible) {
+                                mediaMetadata?.let {
+                                    Title(
+                                        title = it.title,
+                                        subTitle = it.artists.joinToString { artist -> artist.name },
+                                        isLiked = isLiked != null,
+                                        onLikeClick = { playerViewModel.like(it.id.toString()) },
+                                        onMoreClick = { },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = PlayerHorizontalPadding)
+                                            .padding(bottom = 12.dp)
+                                    )
+                                }
                             }
+
+                            // B. 进度条 + 控制按钮 + 工具栏
+                            // 这一部分跟随父级 AnimatedVisibility 一起隐藏/显示
+                            PlayerControlsSection(
+                                sliderPosition = sliderPosition,
+                                duration = duration,
+                                isPlaying = isPlaying,
+                                playbackState = playbackState,
+                                playerConnection = playerConnection,
+                                playerViewModel = playerViewModel,
+                                playlistViewModel = playlistViewModel,
+                                mediaMetadata = mediaMetadata,
+                                onLyricClick = { showLyrics = !showLyrics },
+                                // 传入紧凑标志，控制内部间距
+                                isCompact = isCompactHeight || isLandscape
+                            )
                         }
                     }
-                    // 2. 进度条 + 控制按钮 + 工具栏
-                    PlayerControlsSection(
-                        sliderPosition = sliderPosition,
-                        duration = duration,
-                        isPlaying = isPlaying,
-                        playbackState = playbackState,
-                        playerConnection = playerConnection,
-                        playerViewModel = playerViewModel,
-                        playlistViewModel = playlistViewModel,
-                        mediaMetadata = mediaMetadata,
-                        onLyricClick = { showLyrics = !showLyrics },
-                        isCompact = isCompactHeight || isLandscape
-                    )
                 }
             }
         }
