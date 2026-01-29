@@ -38,6 +38,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.utils.smallImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +92,7 @@ fun AlbumArtistBottomSheet(
                     // 显示专辑封面
                     AsyncImage(
                         model = ImageRequest.Builder(context)
-                            .data(coverUrl)
+                            .data(coverUrl.smallImage())
                             .crossfade(true)
                             .build(),
                         contentDescription = "Album Cover",
