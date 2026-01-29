@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component.player.component
+package com.ljyh.mei.ui.component.player.component.sheet
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,85 +47,76 @@ import kotlin.math.abs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QQMusicSelectSheet(
-    showSheet: Boolean,
     searchNew: Resource<SearchResult>,
     viewmodel: PlayerViewModel,
-    // 当前正在播放的歌曲元数据
     mediaMetadata: MediaMetadata,
-
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    if (showSheet) {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            sheetState = sheetState,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MaterialTheme.colorScheme.surface,
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // 1. 顶部参照栏：显示当前需要找词的歌曲信息
-                CurrentReferenceHeader(mediaMetadata.title, mediaMetadata.artists[0].name, mediaMetadata.duration)
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
-
-                when (searchNew) {
-                    is Resource.Loading -> {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(300.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            CurrentReferenceHeader(mediaMetadata.title, mediaMetadata.artists[0].name, mediaMetadata.duration)
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+            when (searchNew) {
+                is Resource.Loading -> {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
+                }
 
-                    is Resource.Error -> {
-                        Text(
-                            searchNew.message,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(20.dp)
-                        )
-                    }
+                is Resource.Error -> {
+                    Text(
+                        searchNew.message,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
 
-                    is Resource.Success -> {
-                        val songs = searchNew.data.req0.data.body.song.list
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 500.dp) // 限制最大高度
-                                .padding(bottom = 24.dp)
-                        ) {
-                            itemsIndexed(songs) { _, song ->
-                                OptimizedSongItem(
-                                    song = song,
-                                    targetDuration = mediaMetadata.duration,
-                                    targetTitle = mediaMetadata.title,
-                                    onClick = {
-                                        // 记录这一条对应数据
-                                        viewmodel.insertSong(
-                                            QQSong(
-                                                id = mediaMetadata.id.toString(),
-                                                qid = song.id.toString(),
-                                                title = song.title,
-                                                artist = song.singer[0].name,
-                                                album = song.album.name,
-                                                duration = song.interval.toInt()
-                                            )
+                is Resource.Success -> {
+                    val songs = searchNew.data.req0.data.body.song.list
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 500.dp) // 限制最大高度
+                            .padding(bottom = 24.dp)
+                    ) {
+                        itemsIndexed(songs) { _, song ->
+                            OptimizedSongItem(
+                                song = song,
+                                targetDuration = mediaMetadata.duration,
+                                targetTitle = mediaMetadata.title,
+                                onClick = {
+                                    // 记录这一条对应数据
+                                    viewmodel.insertSong(
+                                        QQSong(
+                                            id = mediaMetadata.id.toString(),
+                                            qid = song.id.toString(),
+                                            title = song.title,
+                                            artist = song.singer[0].name,
+                                            album = song.album.name,
+                                            duration = song.interval.toInt()
                                         )
-                                        viewmodel.getLyricNew(
-                                            song.title,
-                                            song.album.name,
-                                            song.singer[0].name,
-                                            song.interval,
-                                            song.id
-                                        )
-                                        onDismiss()
-                                    }
-                                )
-                            }
+                                    )
+                                    viewmodel.getLyricNew(
+                                        song.title,
+                                        song.album.name,
+                                        song.singer[0].name,
+                                        song.interval,
+                                        song.id
+                                    )
+                                    onDismiss()
+                                }
+                            )
                         }
                     }
                 }

@@ -12,8 +12,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.sqlite.db.SimpleSQLiteQuery
-import com.ljyh.mei.AppContext
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -21,17 +19,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.net.InetSocketAddress
-import java.net.InetSocketAddress.createUnresolved
 import kotlin.properties.ReadOnlyProperty
 
+// DataStore 单例
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 operator fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>): T? =
     runBlocking(Dispatchers.IO) {
         data.first()[key]
     }
-
-
 
 fun <T> DataStore<Preferences>.get(key: Preferences.Key<T>, defaultValue: T): T =
     runBlocking(Dispatchers.IO) {
@@ -58,13 +54,13 @@ fun <T> rememberPreference(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val state = remember {
+    val state = remember(key, context) {
         context.dataStore.data
             .map { it[key] ?: defaultValue }
             .distinctUntilChanged()
-    }.collectAsState(context.dataStore[key] ?: defaultValue)
+    }.collectAsState(initial = defaultValue)
 
-    return remember {
+    return remember(state, key, coroutineScope) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
@@ -90,14 +86,14 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val initialValue = context.dataStore[key].toEnum(defaultValue = defaultValue)
-    val state = remember {
+    // 监听 Flow
+    val state = remember(key, context) {
         context.dataStore.data
             .map { it[key].toEnum(defaultValue = defaultValue) }
             .distinctUntilChanged()
-    }.collectAsState(initialValue)
+    }.collectAsState(initial = defaultValue)
 
-    return remember {
+    return remember(state, key, coroutineScope) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
@@ -115,7 +111,7 @@ inline fun <reified T : Enum<T>> rememberEnumPreference(
     }
 }
 
-
+// 辅助扩展函数保持不变
 inline fun <reified T : Enum<T>> String?.toEnum(defaultValue: T): T =
     if (this == null) defaultValue
     else try {
@@ -128,5 +124,5 @@ fun String.toSQLiteQuery(): SimpleSQLiteQuery = SimpleSQLiteQuery(this)
 
 fun String.toInetSocketAddress(): InetSocketAddress {
     val (host, port) = split(":")
-    return createUnresolved(host, port.toInt())
+    return InetSocketAddress.createUnresolved(host, port.toInt())
 }

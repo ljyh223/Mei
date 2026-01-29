@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.component.player.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +31,7 @@ fun Title(
     isLiked: Boolean,
     onLikeClick: () -> Unit,
     onMoreClick: () -> Unit,
+    onTitleClick: () -> Unit,
     modifier: Modifier = Modifier,
     titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineSmall,
     subTitleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
@@ -49,7 +51,8 @@ fun Title(
     ) {
         // 1. 文字区域：使用 weight(1f) 占据剩余空间
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f)
+                .clickable(onClick = onTitleClick),
             horizontalAlignment = Alignment.Start
         ) {
             Text(

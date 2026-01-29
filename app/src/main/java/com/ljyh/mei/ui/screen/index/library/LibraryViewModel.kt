@@ -13,10 +13,8 @@ import com.ljyh.mei.data.model.weapi.UserSubcount
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.AlbumsRepository
-import com.ljyh.mei.di.PlaylistRepository
-import com.ljyh.mei.ui.model.Album
+import com.ljyh.mei.di.LocalPlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val repository: UserRepository,
-    private val playlistRepository: PlaylistRepository,
+    private val localPlaylistRepository: LocalPlaylistRepository,
     private val albumsRepository: AlbumsRepository
 ):ViewModel() {
     private val _account = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
@@ -46,7 +44,7 @@ class LibraryViewModel @Inject constructor(
     private val _userSubcount = MutableStateFlow<Resource<UserSubcount>>(Resource.Loading)
     val userSubcount: StateFlow<Resource<UserSubcount>> = _userSubcount
 
-    val localPlaylists: StateFlow<List<Playlist>> = playlistRepository.getAllPlaylist()
+    val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000L), // 5秒内无订阅者则停止
@@ -85,7 +83,7 @@ class LibraryViewModel @Inject constructor(
                             count = it.trackCount
                         )
                     }
-                    playlistRepository.insertPlaylists(playlistsToInsert)
+                    localPlaylistRepository.insertPlaylists(playlistsToInsert)
                     _networkPlaylistsState.value = networkResult
                 }
                 is Resource.Error -> {

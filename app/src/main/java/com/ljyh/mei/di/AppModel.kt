@@ -43,8 +43,8 @@ object AppModule {
 
 
     @Provides
-    fun providePlaylistDao(db: AppDatabase): PlaylistRepository =
-        PlaylistRepository(db.playlistDao())
+    fun providePlaylistDao(db: AppDatabase): LocalPlaylistRepository =
+        LocalPlaylistRepository(db.playlistDao())
 
     @Provides
     @Singleton

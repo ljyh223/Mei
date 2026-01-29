@@ -3,13 +3,10 @@ package com.ljyh.mei.di
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
-import androidx.paging.LOG_TAG
 import androidx.palette.graphics.Palette
-import androidx.room.Transaction
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -202,7 +199,7 @@ class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
 }
 
 
-class PlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
+class LocalPlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
     suspend fun getPlaylist(id: String): Playlist? {
         return playlistDao.getPlaylist(id)
     }

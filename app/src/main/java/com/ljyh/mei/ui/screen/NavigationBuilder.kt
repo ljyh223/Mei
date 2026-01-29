@@ -76,7 +76,6 @@ fun NavGraphBuilder.navigationBuilder(
     composable(Screen.Log.route) {
         LogScreen()
     }
-
     composable(
         route = "${Screen.SearchResult.route}/{query}/{type}",
         arguments = listOf(

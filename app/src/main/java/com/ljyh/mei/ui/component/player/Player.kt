@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.component.player
 
 import android.content.res.Configuration
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
@@ -18,7 +19,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -40,7 +40,6 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,20 +51,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.util.UnstableApi
@@ -73,29 +67,39 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.size.Precision
+import coil3.size.Size
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.constants.UseQQMusicLyricKey
-import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.component.player.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
 import com.ljyh.mei.ui.component.player.component.AppleStyleProgressSlider
 import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
-import com.ljyh.mei.ui.component.player.component.QQMusicSelectSheet
+import com.ljyh.mei.ui.component.player.component.sheet.PlaylistBottomSheet
+import com.ljyh.mei.ui.component.player.component.sheet.QQMusicSelectSheet
+import com.ljyh.mei.ui.component.player.component.sheet.SleepTimerSheet
 import com.ljyh.mei.ui.component.player.component.Title
+import com.ljyh.mei.ui.component.player.component.sheet.MoreActionsSheet
+import com.ljyh.mei.ui.component.player.component.sheet.PlayerActionSettingsSheet
+import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
+import com.ljyh.mei.ui.component.playlist.CreatePlaylistSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.lerp
+import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.LyricSourceData
+import com.ljyh.mei.ui.model.MoreAction
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.encrypt.QRCUtils
@@ -107,6 +111,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import kotlin.math.min
 
 @OptIn(UnstableApi::class)
@@ -121,8 +126,10 @@ fun BottomSheetPlayer(
     val playerConnection = LocalPlayerConnection.current ?: return
     val density = LocalDensity.current
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val configuration = LocalConfiguration.current
+    var currentOverlay by remember { mutableStateOf<OverlayState>(OverlayState.None) }
 
     // --- State Management ---
     val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
@@ -138,7 +145,7 @@ fun BottomSheetPlayer(
 
     // 控制歌词模式的开关
     var showLyrics by remember { mutableStateOf(false) }
-    var showQQMusicSelect by remember { mutableStateOf(false) }
+//    var showQQMusicSelect by remember { mutableStateOf(false) }
     var areControlsVisible by remember { mutableStateOf(true) }
 
     // Lyric Logic
@@ -147,6 +154,7 @@ fun BottomSheetPlayer(
     val amLyricResult by playerViewModel.amLyric.collectAsState()
     val qqSong by playerViewModel.qqSong.collectAsState()
     val isLiked by playerViewModel.like.collectAsState(initial = null)
+    val allPlaylist by playerViewModel.localPlaylists.collectAsState()
 
     var lyricLine by remember { mutableStateOf(createDefaultLyricData("歌词加载中")) }
 
@@ -175,7 +183,7 @@ fun BottomSheetPlayer(
                 playerViewModel.fetchQQSong(meta.id.toString())
                 playerViewModel.searchNew(meta.title)
             }
-            showQQMusicSelect = false
+            currentOverlay = OverlayState.None
         }
     }
     LaunchedEffect(qqSong) {
@@ -227,6 +235,7 @@ fun BottomSheetPlayer(
     BackHandler(enabled = state.isExpanded && showLyrics) {
         showLyrics = false
     }
+
 
     // --- Animation & Geometry Calculation ---
     val lyricTransition = updateTransition(targetState = showLyrics, label = "LyricMode")
@@ -345,28 +354,6 @@ fun BottomSheetPlayer(
 
             Box(modifier = Modifier.fillMaxSize()) {
 
-                // Mode A: Normal Player Content
-                AnimatedVisibility(
-                    visible = showLyrics,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // Sheet logic wrapper
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        mediaMetadata?.let {
-                            if (showQQMusicSelect && playerViewModel.searchResult.value is Resource.Success) {
-                                QQMusicSelectSheet(
-                                    showSheet = showQQMusicSelect,
-                                    searchNew = playerViewModel.searchResult.value as Resource.Success,
-                                    viewmodel = playerViewModel,
-                                    mediaMetadata = it,
-                                    onDismiss = { showQQMusicSelect = false }
-                                )
-                            }
-                        }
-                    }
-                }
 
                 // Mode B: Lyric Player
                 AnimatedVisibility(
@@ -386,7 +373,16 @@ fun BottomSheetPlayer(
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .padding(horizontal = PlayerHorizontalPadding),
-                            onClick = { showQQMusicSelect = true },
+                            onClick = {
+                                mediaMetadata?.let {
+                                    if (currentOverlay is OverlayState.None && playerViewModel.searchResult.value is Resource.Success) {
+                                        currentOverlay = OverlayState.QQMusicSelection(
+                                            searchResult = playerViewModel.searchResult.value as Resource.Success,
+                                            mediaMetadata = it
+                                        )
+                                    }
+                                }
+                            },
                             onLongClick = {},
                             onToggleControls = { show ->
                                 areControlsVisible = show
@@ -457,7 +453,17 @@ fun BottomSheetPlayer(
                                 subTitle = mediaMetadata!!.artists.joinToString { it.name },
                                 isLiked = isLiked != null, // 传入状态
                                 onLikeClick = { mediaMetadata?.let { playerViewModel.like(it.id.toString()) } },
-                                onMoreClick = { },
+                                onMoreClick = { currentOverlay = OverlayState.MoreAction },
+                                onTitleClick = {
+                                    mediaMetadata?.let {
+                                        currentOverlay = OverlayState.AlbumArtist(
+                                            album = it.album,
+                                            artists = it.artists,
+                                            cover = it.coverUrl
+                                        )
+                                    }
+
+                                },
                                 titleStyle = MaterialTheme.typography.titleMedium,
                                 subTitleStyle = MaterialTheme.typography.bodySmall,
                                 needShadow = false,
@@ -502,7 +508,14 @@ fun BottomSheetPlayer(
                                         subTitle = it.artists.joinToString { artist -> artist.name },
                                         isLiked = isLiked != null,
                                         onLikeClick = { playerViewModel.like(it.id.toString()) },
-                                        onMoreClick = { },
+                                        onMoreClick = { currentOverlay = OverlayState.MoreAction },
+                                        onTitleClick = {
+                                            currentOverlay = OverlayState.AlbumArtist(
+                                                album = it.album,
+                                                artists = it.artists,
+                                                cover = it.coverUrl
+                                            )
+                                        },
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = PlayerHorizontalPadding)
@@ -519,11 +532,14 @@ fun BottomSheetPlayer(
                                 isPlaying = isPlaying,
                                 playbackState = playbackState,
                                 playerConnection = playerConnection,
-                                playerViewModel = playerViewModel,
-                                playlistViewModel = playlistViewModel,
-                                mediaMetadata = mediaMetadata,
                                 onLyricClick = { showLyrics = !showLyrics },
-                                // 传入紧凑标志，控制内部间距
+                                onPlaylistClick = { currentOverlay = OverlayState.Playlist },
+                                onSleepTimerClick = { currentOverlay = OverlayState.SleepTimer },
+                                onAddToPlaylistClick = {
+                                    mediaMetadata?.let {
+                                        currentOverlay = OverlayState.AddToPlaylist(it.id)
+                                    }
+                                },
                                 isCompact = isCompactHeight || isLandscape
                             )
                         }
@@ -538,7 +554,7 @@ fun BottomSheetPlayer(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(mediaMetadata?.coverUrl)
-                    .size(coil3.size.Size.ORIGINAL)
+                    .size(Size.ORIGINAL)
                     .precision(Precision.EXACT)
                     .crossfade(true)
                     .build(),
@@ -569,6 +585,133 @@ fun BottomSheetPlayer(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             )
         }
+
+        when (val overlay = currentOverlay) {
+            OverlayState.None -> {}
+            OverlayState.Playlist -> {
+                PlaylistBottomSheet(
+                    onDismiss = { currentOverlay = OverlayState.None }
+                )
+            }
+
+            is OverlayState.AlbumArtist -> {
+                AlbumArtistBottomSheet(
+                    coverUrl = overlay.cover,
+                    albumInfo = overlay.album,
+                    artistList = overlay.artists,
+                    onAlbumClick = { id ->
+                        Screen.Album.navigate(navController) {
+                            addPath(id.toString())
+                        }
+                        state.collapse(spring(stiffness = Spring.StiffnessVeryLow))
+                    },
+                    onArtistClick = { id ->
+
+                        Screen.Artist.navigate(navController) {
+                            addPath(id.toString())
+                        }
+                        state.collapse(spring(stiffness = Spring.StiffnessVeryLow))
+                    },
+                    onDismissRequest = { currentOverlay = OverlayState.None },
+                )
+            }
+
+            is OverlayState.QQMusicSelection -> {
+                QQMusicSelectSheet(
+                    searchNew = overlay.searchResult,
+                    viewmodel = playerViewModel,
+                    mediaMetadata = overlay.mediaMetadata,
+                    onDismiss = { currentOverlay = OverlayState.None }
+                )
+            }
+
+            OverlayState.SleepTimer -> {
+                SleepTimerSheet(
+                    playerConnection = playerConnection,
+                    onDismiss = { currentOverlay = OverlayState.None }
+                )
+            }
+
+            is OverlayState.AddToPlaylist -> {
+                AddToPlaylistSheet(
+                    playlists = allPlaylist,
+                    onDismiss = { currentOverlay = OverlayState.None },
+                    onSelectPlaylist = { selectedPlaylist ->
+                        playlistViewModel.addSongToPlaylist(
+                            pid = selectedPlaylist.id,
+                            trackIds = overlay.mediaId.toString()
+                        )
+                        Toast.makeText(
+                            context,
+                            "已添加到 ${selectedPlaylist.title}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        Timber.tag("Playlist")
+                            .d("Added ${selectedPlaylist.title} to ${selectedPlaylist.title}")
+                        currentOverlay = OverlayState.None
+
+
+                    },
+                    onCreateNewPlaylist = {
+                        currentOverlay = OverlayState.CreatePlaylist
+                    }
+                )
+            }
+
+            OverlayState.CreatePlaylist -> {
+                CreatePlaylistSheet(
+                    onDismiss = { currentOverlay = OverlayState.None },
+                    onConfirm = { name, privacy -> playerViewModel.createPlaylist(name, privacy) }
+                )
+            }
+
+            OverlayState.BottomAction ->{
+                PlayerActionSettingsSheet(onDismiss = {currentOverlay = OverlayState.None})
+            }
+
+            OverlayState.MoreAction -> {
+                MoreActionsSheet(
+                    onDismissRequest = {
+                        currentOverlay = OverlayState.None
+                    },
+                    onActionClick = { action ->
+                        when(action){
+                            MoreAction.ADD_TO_PLAYLIST -> {
+                                mediaMetadata?.let {
+                                    currentOverlay = OverlayState.AddToPlaylist(it.id)
+                                }
+                            }
+                            MoreAction.SHARE -> {
+                                currentOverlay = OverlayState.None
+                                Toast.makeText(context, "暂未实现", Toast.LENGTH_SHORT).show()
+                            }
+                            MoreAction.DOWNLOAD -> {
+                                currentOverlay = OverlayState.None
+                                Toast.makeText(context, "暂未实现", Toast.LENGTH_SHORT).show()
+                            }
+                            MoreAction.DELETE -> {
+                                mediaMetadata?.let {
+                                    playerViewModel.deleteSongById(it.id.toString())
+                                }
+                            }
+                            MoreAction.VIEW_PLAYLIST -> {
+                                currentOverlay = OverlayState.Playlist
+                            }
+                            MoreAction.SLEEP_TIMER -> {
+                                currentOverlay = OverlayState.SleepTimer
+                            }
+                            MoreAction.BOTTOM_ACTION -> {
+                                currentOverlay = OverlayState.BottomAction
+                            }
+                        }
+
+                    },
+                    viewModel = playerViewModel
+                )
+            }
+
+            else -> {}
+        }
     }
 }
 
@@ -581,14 +724,14 @@ fun PlayerControlsSection(
     isPlaying: Boolean,
     playbackState: Int,
     playerConnection: PlayerConnection,
-    playerViewModel: PlayerViewModel,
-    playlistViewModel: PlaylistViewModel,
-    mediaMetadata: MediaMetadata? = null,
     onLyricClick: () -> Unit,
+    onPlaylistClick: () -> Unit,
+    onSleepTimerClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
     isCompact: Boolean = false // 新增参数
 ) {
     // 紧凑模式下间距减半
-    val spacerHeight = if (isCompact) 8.dp else 32.dp
+    val spacerHeight = if (isCompact) 8.dp else 24.dp
 
     val (progressBarStyle, _) = rememberEnumPreference(
         key = ProgressBarStyleKey,
@@ -645,11 +788,11 @@ fun PlayerControlsSection(
         if (!isCompact) {
             Spacer(Modifier.height(spacerHeight))
             PlayerActionToolbar(
-                playerViewModel = playerViewModel,
-                mediaMetadata = mediaMetadata,
                 modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                playlistViewModel = playlistViewModel,
-                onLyricClick = onLyricClick
+                onLyricClick = onLyricClick,
+                onPlaylistClick = onPlaylistClick,
+                onSleepTimerClick = onSleepTimerClick,
+                onAddToPlaylistClick = onAddToPlaylistClick
             )
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
             Spacer(Modifier.height(16.dp))
