@@ -220,7 +220,7 @@ fun PlayerActionToolbar(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Add,
+                            imageVector = Icons.Rounded.Download,
                             contentDescription = "下载",
                             tint = Color.White
                         )
