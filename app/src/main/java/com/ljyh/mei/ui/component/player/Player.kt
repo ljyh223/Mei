@@ -6,16 +6,20 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -28,7 +32,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -36,7 +39,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -70,25 +72,19 @@ import coil3.size.Precision
 import coil3.size.Size
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
-import com.ljyh.mei.constants.ProgressBarStyle
-import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.playback.PlayerConnection
-import com.ljyh.mei.ui.component.player.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
-import com.ljyh.mei.ui.component.player.component.AppleStyleProgressSlider
-import com.ljyh.mei.ui.component.player.component.Controls
 import com.ljyh.mei.ui.component.player.component.LyricScreen
-import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
-import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
+import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
+import com.ljyh.mei.ui.component.player.component.Title
+import com.ljyh.mei.ui.component.player.component.sheet.AlbumArtistBottomSheet
+import com.ljyh.mei.ui.component.player.component.sheet.MoreActionsSheet
+import com.ljyh.mei.ui.component.player.component.sheet.PlayerActionSettingsSheet
 import com.ljyh.mei.ui.component.player.component.sheet.PlaylistBottomSheet
 import com.ljyh.mei.ui.component.player.component.sheet.QQMusicSelectSheet
 import com.ljyh.mei.ui.component.player.component.sheet.SleepTimerSheet
-import com.ljyh.mei.ui.component.player.component.Title
-import com.ljyh.mei.ui.component.player.component.sheet.MoreActionsSheet
-import com.ljyh.mei.ui.component.player.component.sheet.PlayerActionSettingsSheet
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.CreatePlaylistSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheet
@@ -105,7 +101,6 @@ import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.encrypt.QRCUtils
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.lyric.mergeLyrics
-import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -540,6 +535,7 @@ fun BottomSheetPlayer(
                                         currentOverlay = OverlayState.AddToPlaylist(it.id)
                                     }
                                 },
+                                onMoreClick = { currentOverlay = OverlayState.MoreAction },
                                 isCompact = isCompactHeight || isLandscape
                             )
                         }
@@ -548,43 +544,58 @@ fun BottomSheetPlayer(
             }
         }
 
-        // --- Shared Element (Cover) ---
-        if (mediaMetadata != null) {
-            // 修改 BottomSheetPlayer 里的 AsyncImage 部分
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(mediaMetadata?.coverUrl)
-                    .size(Size.ORIGINAL)
-                    .precision(Precision.EXACT)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "Cover",
-                contentScale = ContentScale.Crop,
-                onError = {
-                },
-
-                modifier = Modifier
-                    .graphicsLayer {
-                        translationX = finalStart
-                        translationY = finalTop
-                        shadowElevation = mShadowElevation.toPx()
-                        shape = RoundedCornerShape(finalRadius)
-                        clip = true
-                    }
-                    .size(
-                        width = with(density) { finalSize.toDp() },
-                        height = with(density) { finalSize.toDp() }
+        AnimatedContent(
+            targetState = mediaMetadata, // 监听歌曲元数据变化
+            transitionSpec = {
+                // 定义切换动画：
+                // 进入的图片：淡入 + 从 0.9 倍大小放大到 1.0 (这也是 Apple Music 的专辑切换效果之一)
+                (fadeIn(animationSpec = tween(durationMillis = 400)) +
+                        scaleIn(initialScale = 0.92f, animationSpec = tween(durationMillis = 400)))
+                    .togetherWith(
+                        // 离开的图片：淡出
+                        fadeOut(animationSpec = tween(durationMillis = 400))
                     )
-                    .clickable {
-                        if (!state.isExpanded) {
-                            state.expandSoft()
-                        } else {
-                            showLyrics = !showLyrics
-                        }
+            },
+            label = "CoverTransition",
+            modifier = Modifier
+                .graphicsLayer {
+                    translationX = finalStart
+                    translationY = finalTop
+                    shadowElevation = mShadowElevation.toPx()
+                    shape = RoundedCornerShape(finalRadius)
+                    clip = true
+                }
+                .size(
+                    width = with(density) { finalSize.toDp() },
+                    height = with(density) { finalSize.toDp() }
+                )
+                .clickable {
+                    if (!state.isExpanded) {
+                        state.expandSoft()
+                    } else {
+                        showLyrics = !showLyrics
                     }
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            )
+                }
+                .background(MaterialTheme.colorScheme.surfaceVariant) // 占位背景色
+        ) { currentMetadata ->
+            // 这里是动画的内容部分
+            if (currentMetadata != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(currentMetadata.coverUrl)
+                        .size(Size.ORIGINAL)
+                        .precision(Precision.EXACT)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Cover",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
+            }
         }
+
 
         when (val overlay = currentOverlay) {
             OverlayState.None -> {}
@@ -665,8 +676,8 @@ fun BottomSheetPlayer(
                 )
             }
 
-            OverlayState.BottomAction ->{
-                PlayerActionSettingsSheet(onDismiss = {currentOverlay = OverlayState.None})
+            OverlayState.BottomAction -> {
+                PlayerActionSettingsSheet(onDismiss = { currentOverlay = OverlayState.None })
             }
 
             OverlayState.MoreAction -> {
@@ -675,31 +686,37 @@ fun BottomSheetPlayer(
                         currentOverlay = OverlayState.None
                     },
                     onActionClick = { action ->
-                        when(action){
+                        when (action) {
                             MoreAction.ADD_TO_PLAYLIST -> {
                                 mediaMetadata?.let {
                                     currentOverlay = OverlayState.AddToPlaylist(it.id)
                                 }
                             }
+
                             MoreAction.SHARE -> {
                                 currentOverlay = OverlayState.None
                                 Toast.makeText(context, "暂未实现", Toast.LENGTH_SHORT).show()
                             }
+
                             MoreAction.DOWNLOAD -> {
                                 currentOverlay = OverlayState.None
                                 Toast.makeText(context, "暂未实现", Toast.LENGTH_SHORT).show()
                             }
+
                             MoreAction.DELETE -> {
                                 mediaMetadata?.let {
                                     playerViewModel.deleteSongById(it.id.toString())
                                 }
                             }
+
                             MoreAction.VIEW_PLAYLIST -> {
                                 currentOverlay = OverlayState.Playlist
                             }
+
                             MoreAction.SLEEP_TIMER -> {
                                 currentOverlay = OverlayState.SleepTimer
                             }
+
                             MoreAction.BOTTOM_ACTION -> {
                                 currentOverlay = OverlayState.BottomAction
                             }
@@ -711,94 +728,6 @@ fun BottomSheetPlayer(
             }
 
             else -> {}
-        }
-    }
-}
-
-// 稍微修改 Controls Section，让它支持紧凑模式
-@OptIn(UnstableApi::class)
-@Composable
-fun PlayerControlsSection(
-    sliderPosition: Float,
-    duration: Long,
-    isPlaying: Boolean,
-    playbackState: Int,
-    playerConnection: PlayerConnection,
-    onLyricClick: () -> Unit,
-    onPlaylistClick: () -> Unit,
-    onSleepTimerClick: () -> Unit,
-    onAddToPlaylistClick: () -> Unit,
-    isCompact: Boolean = false // 新增参数
-) {
-    // 紧凑模式下间距减半
-    val spacerHeight = if (isCompact) 8.dp else 24.dp
-
-    val (progressBarStyle, _) = rememberEnumPreference(
-        key = ProgressBarStyleKey,
-        defaultValue = ProgressBarStyle.WAVE
-    )
-
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        if (progressBarStyle == ProgressBarStyle.LINEAR) {
-            AppleStyleProgressSlider(
-                position = sliderPosition.toLong(),
-                duration = duration,
-                onPositionChange = { newPosition ->
-                    playerConnection.player.seekTo(newPosition)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
-            )
-        } else {
-            PlayerProgressSlider(
-                position = sliderPosition.toLong(),
-                duration = duration,
-                isPlaying = isPlaying, // 波浪进度条需要这个参数
-                onPositionChange = { newPosition ->
-                    playerConnection.player.seekTo(newPosition)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
-            )
-        }
-
-
-        Spacer(Modifier.height(spacerHeight))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = PlayerHorizontalPadding)
-        ) {
-            Controls(
-                playerConnection = playerConnection,
-                canSkipPrevious = true,
-                canSkipNext = true,
-                isPlaying = isPlaying,
-                playbackState = playbackState,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
-
-        // 紧凑模式下可能需要隐藏底部 Toolbar 或者减小间距
-        if (!isCompact) {
-            Spacer(Modifier.height(spacerHeight))
-            PlayerActionToolbar(
-                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                onLyricClick = onLyricClick,
-                onPlaylistClick = onPlaylistClick,
-                onSleepTimerClick = onSleepTimerClick,
-                onAddToPlaylistClick = onAddToPlaylistClick
-            )
-            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(16.dp))
-        } else {
-            // 紧凑模式底部留白少一点
-            Spacer(Modifier.height(16.dp))
         }
     }
 }

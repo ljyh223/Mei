@@ -26,7 +26,7 @@ enum class PlayerAction(
     LYRICS("lyrics", "歌词显示", Icons.Rounded.Lyrics, true),
 
     // 喜欢
-    LIKE("like", "我喜欢", Icons.Rounded.Favorite),
+    // LIKE("like", "我喜欢", Icons.Rounded.Favorite),
 
     // 睡眠定时器
     SLEEP_TIMER("sleep", "睡眠定时", Icons.Rounded.Bedtime),

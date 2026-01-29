@@ -1,18 +1,14 @@
 package com.ljyh.mei.ui.component.player.component
 
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,29 +18,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Lyrics
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,21 +44,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.PlayerActionKey
-import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.playback.PlayMode
-import com.ljyh.mei.playback.PlayerConnection
-import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.PlayerAction
-import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import timber.log.Timber
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalAnimationApi::class)
@@ -78,18 +59,20 @@ import java.util.Locale
 fun PlayerActionToolbar(
     modifier: Modifier = Modifier,
     onLyricClick: () -> Unit,
-    onPlaylistClick: () ->Unit,
-    onSleepTimerClick: () ->Unit,
-    onAddToPlaylistClick: () ->Unit
+    onPlaylistClick: () -> Unit,
+    onSleepTimerClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
+    onMoreClick: () -> Unit
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
+    val context = LocalContext.current
 
     val (actionString, _) = rememberPreference(
         key = PlayerActionKey,
         defaultValue = PlayerAction.toSettings(PlayerAction.defaultActions)
     )
     val actions = remember(actionString) {
-        val actions=PlayerAction.fromSettings(actionString)
+        val actions = PlayerAction.fromSettings(actionString)
         Timber.tag("PlayerActionToolbar").d(actionString)
         actions
     }
@@ -131,9 +114,9 @@ fun PlayerActionToolbar(
         modifier = modifier.fillMaxWidth()
     ) {
 
-        actions.forEach { action->
-            when(action){
-                PlayerAction.PLAY_MODE->{
+        actions.forEach { action ->
+            when (action) {
+                PlayerAction.PLAY_MODE -> {
                     ShadowedIconButton(
                         onClick = { playerConnection.switchPlayMode() }
                     ) {
@@ -152,7 +135,7 @@ fun PlayerActionToolbar(
                     }
                 }
 
-                PlayerAction.QUEUE->{
+                PlayerAction.QUEUE -> {
                     ShadowedIconButton(
                         onClick = onPlaylistClick
                     ) {
@@ -164,7 +147,7 @@ fun PlayerActionToolbar(
                     }
                 }
 
-                PlayerAction.LYRICS->{
+                PlayerAction.LYRICS -> {
                     ShadowedIconButton(
                         onClick = onLyricClick
                     ) {
@@ -176,6 +159,7 @@ fun PlayerActionToolbar(
                     }
 
                 }
+
                 PlayerAction.SLEEP_TIMER -> {
                     Box(
                         modifier = Modifier.size(48.dp),
@@ -217,7 +201,7 @@ fun PlayerActionToolbar(
                     }
                 }
 
-                PlayerAction.ADD_TO_PLAYLIST->{
+                PlayerAction.ADD_TO_PLAYLIST -> {
                     ShadowedIconButton(
                         onClick = onAddToPlaylistClick
                     ) {
@@ -228,7 +212,32 @@ fun PlayerActionToolbar(
                         )
                     }
                 }
-                else -> {}
+
+                PlayerAction.DOWNLOAD -> {
+                    ShadowedIconButton(
+                        onClick = {
+                            Toast.makeText(context, "暂未实现", Toast.LENGTH_SHORT).show()
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = "下载",
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                PlayerAction.MORE -> {
+                    ShadowedIconButton(
+                        onClick = onMoreClick
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreVert,
+                            contentDescription = "更多功能",
+                            tint = Color.White
+                        )
+                    }
+                }
             }
         }
 
