@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "com.ljyh.mei"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.48.1"
 
@@ -136,6 +136,7 @@ dependencies {
     implementation(libs.lyrics.ui)
     implementation(libs.zoomable)
     implementation(libs.timber)
+    implementation(libs.compose.cloudy)
 
 
 }

@@ -30,6 +30,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.skydoves.cloudy.cloudy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
@@ -87,11 +88,19 @@ fun AppleMusicFluidBackground(
     val c4 by animateColorAsState(fluidColors[3], animSpec, label = "c4")
 
     // 3. 模糊半径优化：不要过大，保留一点色块的形体感
-    val blurEffect = remember {
-        val radius = with(density) { 100.dp.toPx() } // 从 140 降到 100，避免混成一锅粥
-        RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.MIRROR)
-            .asComposeRenderEffect()
-    }
+//    val blurEffect = remember {
+//        val radius = with(density) { 100.dp.toPx() } // 从 140 降到 100，避免混成一锅粥
+//        RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.MIRROR)
+//            .asComposeRenderEffect()
+//    }
+
+    val blurEffect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        remember {
+            val radius = with(density) { 100.dp.toPx() }
+            RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.MIRROR)
+                .asComposeRenderEffect()
+        }
+    } else null
 
     Box(modifier = modifier.fillMaxSize()) {
         // 背景底色：使用最深的一个颜色作为底，避免漏光
@@ -107,12 +116,22 @@ fun AppleMusicFluidBackground(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer {
-                    renderEffect = blurEffect
-                    scaleX = 1.3f // 放大以消除模糊边缘
-                    scaleY = 1.3f
-                    alpha = 1f // 不透明，让颜色更实
-                }
+                .then(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blurEffect != null) {
+                        // Android 12+：保留你原来的 RenderEffect 逻辑
+                        Modifier.graphicsLayer {
+                            renderEffect = blurEffect
+                            scaleX = 1.3f
+                            scaleY = 1.3f
+                        }
+                    } else {
+                        Modifier.cloudy(radius = 25)
+                            .graphicsLayer {
+                                scaleX = 1.3f
+                                scaleY = 1.3f
+                            }
+                    }
+                )
         ) {
             FluidCanvasImproved(
                 colors = listOf(c1, c2, c3, c4),
