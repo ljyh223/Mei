@@ -43,6 +43,7 @@ annotations = "26.0.2-1"
 coreAnimation = "1.0.0"
 reorderable = "3.0.0"
 zoomable="2.9.0"
+cloudy = "0.5.0"
 
 [libraries]
 android-gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimageVersion" }
@@ -109,6 +110,7 @@ serialization-android = { module = "io.github.pdvrieze.xmlutil:serialization-and
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 zoomable = { module = "net.engawapg.lib:zoomable", version.ref = "zoomable" }
+compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
