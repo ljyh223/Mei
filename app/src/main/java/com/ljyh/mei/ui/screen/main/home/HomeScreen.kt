@@ -186,9 +186,26 @@ private fun HomeBlockItem(
                     ),
                     viewModel = viewModel
                 ) {
-                    when (resource.moduleType) {
-                        "daily_song_rec" -> Screen.EveryDay.navigate(navController)
-                        else -> Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                    when (resource.resourceType) {
+                        "dailySongs"-> Screen.EveryDay.navigate(navController)
+                        "star"->{
+//                            val id = resource.extInfo.firstSongPlayInfo.songData
+                            // 心动模式，发了ids
+                        }
+                        "fm"->{
+                            // 私人FM
+                            // val id = resource.resourceId
+                        }
+                        "similarSong" ->{
+//                            "resourceId": [
+//                            "2060083093",
+//                            "2060086839",
+//                            "2097485069"
+//                            ]
+                        }
+                        "dailySongs"->{}
+
+                        "playList" -> Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
                     }
                 }
             }
@@ -309,6 +326,7 @@ fun Title(text: String) {
     )
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun TripleLaneSlider(
     songsArray: List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>,
