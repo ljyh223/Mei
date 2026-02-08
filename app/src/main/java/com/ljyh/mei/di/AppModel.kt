@@ -43,14 +43,17 @@ object AppModule {
 
 
     @Provides
-    fun providePlaylistDao(db: AppDatabase): PlaylistRepository =
-        PlaylistRepository(db.playlistDao())
+    fun providePlaylistDao(db: AppDatabase): LocalPlaylistRepository =
+        LocalPlaylistRepository(db.playlistDao())
 
     @Provides
     @Singleton
     fun provideHistoryDao(database: AppDatabase): HistoryRepository {
         return HistoryRepository(database.historyDao(), database.songDao())
     }
+
+    @Provides
+    fun provideAlbumsDao(db: AppDatabase): AlbumsRepository = AlbumsRepository(db.AlbumsDao())
 
     // 单例gson
     @Provides

@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.screen
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Recommend
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
@@ -9,6 +10,7 @@ import androidx.navigation.NavController
 sealed class Screen(val route:String) {
     data object Home:Screen("home")
     data object Library:Screen("library")
+    data object FindMusic: Screen("find_music")
     data object SearchResult:Screen("search_result")
     data object PlayList:Screen("playlist")
     data object Setting:Screen("setting")
@@ -22,6 +24,7 @@ sealed class Screen(val route:String) {
     data object Test:Screen("test")
     data object About: Screen("about")
     data object Log: Screen("log")
+
     inline fun navigate(
         navController: NavController,
         builder: NavigationBuilder.() -> Unit = {}
@@ -30,7 +33,7 @@ sealed class Screen(val route:String) {
     }
 
     companion object {
-        val MainScreens = listOf(Home, Library)
+        val MainScreens = listOf(Home, Library, FindMusic)
     }
 }
 
@@ -40,7 +43,8 @@ enum class Index(
     val icon: ImageVector,
 ) {
     Home("home", "For You", Icons.Rounded.Recommend),
-    Library("library", "Library", Icons.Rounded.LibraryMusic),
+    FindMusic("find_music","Find",Icons.Rounded.MusicVideo),
+    Library("library", "Library", Icons.Rounded.LibraryMusic)
 }
 
 

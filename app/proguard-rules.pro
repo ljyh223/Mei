@@ -154,5 +154,4 @@
 -keepattributes AnnotationDefault,RuntimeVisibleAnnotations
 
 
-# 奇怪的问题，ArtistDetail需要免去r8混淆，但是其他类正常
--keep class com.ljyh.mei.data.model.api.** { *; }
+# 奇怪的问题，ArtistDetail需要免去r8混淆，但是其他类正常s com.google.common.reflect.** { *; }

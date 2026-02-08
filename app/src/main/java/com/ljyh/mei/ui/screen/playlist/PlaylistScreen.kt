@@ -79,7 +79,6 @@ fun PlaylistScreen(
                     isSubscribed = false // 回滚为未收藏
                     Toast.makeText(context, "收藏失败: 错误码:${result.data.code}", Toast.LENGTH_SHORT).show()
                 }else{
-                    viewModel
                     Toast.makeText(context, "收藏成功", Toast.LENGTH_SHORT).show()
 
                 }
@@ -123,7 +122,7 @@ fun PlaylistScreen(
                 subscriberCount = data.subscribedCount,
                 coverUrl = data.tracks.take(6).map { it.al.picUrl },
                 creatorName = data.creator.nickname,
-                isCreate = data.creator.userId.toString() == userId,
+                isCreator = data.creator.userId.toString() == userId,
                 description = data.description,
                 tracks = data.tracks.map { it.toMediaMetadata() },
                 trackCount = data.trackCount,
@@ -133,7 +132,7 @@ fun PlaylistScreen(
         } else {
             UiPlaylist(
                 id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
-                count = 0, subscriberCount = 0, isCreate = false, description = "",
+                count = 0, subscriberCount = 0, isCreator = false, description = "",
                 trackCount = 0, playCount = 0, isSubscribed = false
             )
         }
@@ -180,6 +179,10 @@ fun PlaylistScreen(
             headerActionIcon = if (isSubscribed) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
             headerActionLabel = if (isSubscribed) "取消收藏" else "收藏",
             onHeaderAction = {
+                if(uiData.isCreator){
+                    Toast.makeText(context, "不能收藏自己创建的歌单", Toast.LENGTH_SHORT).show()
+                    return@CommonSongListScreen
+                }
                 // 乐观更新：立即改变 UI 状态
                 val newState = !isSubscribed
                 isSubscribed = newState

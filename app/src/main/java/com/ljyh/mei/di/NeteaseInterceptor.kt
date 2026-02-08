@@ -3,9 +3,11 @@ package com.ljyh.mei.di
 import com.google.common.reflect.TypeToken
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DeviceIdKey
+import com.ljyh.mei.constants.checkToken
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.encrypt.createRandomKey
 import com.ljyh.mei.utils.encrypt.decryptEApi
@@ -169,19 +171,28 @@ class NeteaseInterceptor : Interceptor {
 
         when (cryptoMode) {
             "eapi" -> {
-                val mapType = object : TypeToken<MutableMap<String, Any>>() {}.type
-                val bodyMap: MutableMap<String, Any> = if (rawBody.isNotEmpty()) {
-                    try {
-                        gson.fromJson(rawBody, mapType)
-                    } catch (e: Exception) {
+                val bodyMap: MutableMap<String, Any> =
+                    if (rawBody.isNotEmpty()) {
+                        try {
+                            val jsonObject = gson.fromJson(rawBody, JsonObject::class.java)
+                            jsonObject.entrySet().associateTo(mutableMapOf()) { (k, v) ->
+                                k to when {
+                                    v.isJsonPrimitive && v.asJsonPrimitive.isString -> v.asString
+                                    v.isJsonPrimitive && v.asJsonPrimitive.isNumber -> v.asNumber
+                                    v.isJsonPrimitive && v.asJsonPrimitive.isBoolean -> v.asBoolean
+                                    else -> v
+                                }
+                            }
+                        } catch (e: Exception) {
+                            mutableMapOf()
+                        }
+                    } else {
                         mutableMapOf()
                     }
-                } else {
-                    mutableMapOf()
-                }
+
                 bodyMap["header"] = gson.toJson(headerObj)
                 if(rawBody.contains("checkToken") && (cryptoMode == "api" || cryptoMode == "eapi")){
-                    builder.addHeader("X-antiCheatToken","9ca17ae2e6ffcda170e2e6ee8af14fbabdb988f225b3868eb2c15a879b9a83d274a790ac8ff54a97b889d5d42af0feaec3b92af58cff99c470a7eafd88f75e839a9ea7c14e909da883e83fb692a3abdb6b92adee9e")
+                    builder.addHeader("X-antiCheatToken", checkToken)
                 }
                 // bodyMap["e_r"] = true // 可选，如果遇到 buffer 问题可开启
 

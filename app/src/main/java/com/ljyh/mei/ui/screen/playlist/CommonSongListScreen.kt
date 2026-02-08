@@ -72,6 +72,7 @@ import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
 import com.ljyh.mei.ui.component.item.Track
+import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.TrackActionMenu
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
@@ -104,11 +105,10 @@ fun CommonSongListScreen(
     val lazyListState = rememberLazyListState()
 
     var menuTargetTrack by remember { mutableStateOf<MediaMetadata?>(null) }
-    var trackToAdd by remember { mutableStateOf<MediaMetadata?>(null) }
-    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
 
 
     val allMePlaylist by viewModel.playlist.collectAsState()
+    var currentOverlay by remember { mutableStateOf<OverlayState>(OverlayState.None) }
 
     val showTopBarTitle by remember {
         derivedStateOf { lazyListState.firstVisibleItemIndex > 0 }
@@ -215,8 +215,8 @@ fun CommonSongListScreen(
                                 if (track != null) {
                                     Track(
                                         track = track,
-                                        onClick = { onTrackClick(track, index) }, // index 对分页也很重要
-                                        onMoreClick = { menuTargetTrack = track }
+                                        onClick = { onTrackClick(track, index) },
+                                        onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(track) }
                                     )
                                 } else {
                                     // 可选：如果不禁用 placeholder，这里渲染一个简单的占位条
@@ -258,63 +258,57 @@ fun CommonSongListScreen(
                         }
                     }
 
-
-                    if (menuTargetTrack != null) {
-                        val currentTrack = menuTargetTrack ?: return@Box
-                        TrackActionMenu(
-                            targetTrack = currentTrack,
-                            isCreator = uiData.isCreate,
-                            onDismiss = { menuTargetTrack = null },
-                            onAddToPlaylist = {
-                                trackToAdd = currentTrack
-                                menuTargetTrack = null
-                                showAddToPlaylistDialog = true
-                                viewModel.getAllMePlaylist()
-                            },
-                            onDelete = {
-                                viewModel.deleteSongFromPlaylist(
-                                    uiData.id,
-                                    currentTrack.id.toString()
-                                )
-                                Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
-                                menuTargetTrack = null
-                            },
-                            onCopyId = {
-                                setClipboard(context, currentTrack.id.toString(), "id")
-                            },
-                            onCopyName = {
-                                setClipboard(context, currentTrack.title, "name")
-                            }
-                        )
-                    }
-
-                    AddToPlaylistSheet(
-                        isVisible = showAddToPlaylistDialog,
-                        playlists = allMePlaylist,
-                        onDismiss = { showAddToPlaylistDialog = false },
-                        onCreateNewPlaylist={
-
-                        },
-                        onSelectPlaylist = { selectedPlaylist ->
-                            // 执行添加逻辑
-                            if (trackToAdd != null) {
-                                viewModel.addSongToPlaylist(
-                                    pid = selectedPlaylist.id,
-                                    trackIds = trackToAdd!!.id.toString()
-                                )
-                                Toast.makeText(
-                                    context,
-                                    "已添加到 ${selectedPlaylist.title}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                Timber.tag("Playlist").d("Added ${trackToAdd?.title} to ${selectedPlaylist.title}")
-                            }
-                            showAddToPlaylistDialog = false
-                            trackToAdd = null //清理状态
+                    when (val overlay = currentOverlay) {
+                        is OverlayState.AddToPlaylist -> {
+                            AddToPlaylistSheet(
+                                playlists = allMePlaylist,
+                                onDismiss = { currentOverlay = OverlayState.None },
+                                onCreateNewPlaylist = {
+                                    currentOverlay = OverlayState.CreatePlaylist
+                                },
+                                onSelectPlaylist = { selectedPlaylist ->
+                                    viewModel.addSongToPlaylist(
+                                        pid = selectedPlaylist.id,
+                                        trackIds = overlay.mediaId.toString()
+                                    )
+                                    Toast.makeText(
+                                        context,
+                                        "已添加到 ${selectedPlaylist.title}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    Timber.tag("Playlist")
+                                        .d("Added ${selectedPlaylist.title} to ${selectedPlaylist.title}")
+                                }
+                            )
                         }
-                    )
 
+                        is OverlayState.TrackActionMenu->{
+                            TrackActionMenu(
+                                targetTrack = overlay.track,
+                                isCreator = uiData.isCreator,
+                                onDismiss = { currentOverlay = OverlayState.None },
+                                onAddToPlaylist = {
+                                    viewModel.getAllMePlaylist()
+                                    currentOverlay = OverlayState.AddToPlaylist(overlay.track.id)
+                                },
+                                onDelete = {
+                                    viewModel.deleteSongFromPlaylist(
+                                        uiData.id,
+                                        overlay.track.id.toString()
+                                    )
+                                    Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                                },
+                                onCopyId = {
+                                    setClipboard(context, overlay.track.id.toString(), "id")
+                                },
+                                onCopyName = {
+                                    setClipboard(context, overlay.track.title, "name")
+                                }
+                            )
+                        }
 
+                        else -> {}
+                    }
                 }
             }
         }

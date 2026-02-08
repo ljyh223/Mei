@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.playlist
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -37,7 +36,7 @@ import javax.inject.Inject
 class PlaylistViewModel @Inject constructor(
     private val repository: PlaylistRepository,
     private val likeRepository: LikeRepository,
-    private val playlistRepository: com.ljyh.mei.di.PlaylistRepository,
+    private val localPlaylistRepository: com.ljyh.mei.di.LocalPlaylistRepository,
     val apiService: ApiService
 ) : ViewModel() {
     val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
@@ -130,7 +129,7 @@ class PlaylistViewModel @Inject constructor(
     }
     fun getAllMePlaylist(){
         viewModelScope.launch {
-            _playlist.value = playlistRepository.getPlaylistByAuthor(userId)
+            _playlist.value = localPlaylistRepository.getPlaylistByAuthor(userId)
         }
     }
 
@@ -173,7 +172,7 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             _unSubscribePlaylist.value = Resource.Loading
             _unSubscribePlaylist.value = repository.unSubscribePlaylist(id)
-            playlistRepository.deletePlaylistById(id)
+            localPlaylistRepository.deletePlaylistById(id)
         }
     }
 

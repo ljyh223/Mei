@@ -1,7 +1,5 @@
-package com.ljyh.mei.ui.screen.index.home
+package com.ljyh.mei.ui.screen.main.home
 
-import android.util.Log
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,8 +49,6 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
-import com.ljyh.mei.data.model.toMediaItem
-import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.queue.ListQueue

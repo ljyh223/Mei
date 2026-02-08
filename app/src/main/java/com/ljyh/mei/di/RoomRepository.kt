@@ -3,17 +3,18 @@ package com.ljyh.mei.di
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
-import androidx.paging.LOG_TAG
 import androidx.palette.graphics.Palette
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.ljyh.mei.data.model.room.AlbumEntity
+import com.ljyh.mei.data.model.room.AlbumWithArtists
+import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.model.room.CacheColor
 import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.data.model.room.Like
@@ -120,6 +121,7 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
             seed.boostSaturation(1.4f)
         }
     }
+
     private fun Color.boostSaturation(multiplier: Float): Color {
         val hsl = FloatArray(3)
         ColorUtils.colorToHSL(this.toArgb(), hsl)
@@ -127,7 +129,7 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
         return Color(ColorUtils.HSLToColor(hsl))
     }
 
-    fun getDbColor(url:String): Color? {
+    fun getDbColor(url: String): Color? {
         return colorDao.getColor(url)?.let {
             Color(it.color)
         }
@@ -139,6 +141,7 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
 
 
 }
+
 class QQSongRepository @Inject constructor(private val qqSongDao: QQSongDao) {
     fun getQQSong(id: String): Flow<QQSong?> {
         return qqSongDao.getSong(id)
@@ -148,14 +151,14 @@ class QQSongRepository @Inject constructor(private val qqSongDao: QQSongDao) {
         qqSongDao.insertSong(song)
     }
 
-    suspend fun deleteSongById(id: String){
+    suspend fun deleteSongById(id: String) {
         qqSongDao.deleteSongById(id)
     }
 
 }
 
 class SongRepository @Inject constructor(private val songDao: SongDao) {
-    fun getSong(id:String): Flow<Song?> {
+    fun getSong(id: String): Flow<Song?> {
         return songDao.getSong(id)
     }
 
@@ -174,7 +177,7 @@ class SongRepository @Inject constructor(private val songDao: SongDao) {
 }
 
 class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
-    suspend fun getLike(id:String): Like? {
+    suspend fun getLike(id: String): Like? {
         return likeDao.getLike(id)
     }
 
@@ -185,6 +188,7 @@ class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
     suspend fun insertLike(like: Like) {
         likeDao.insertLike(like)
     }
+
     suspend fun updateAllLike(likes: List<Like>) {
         likeDao.updateALlLike(likes)
     }
@@ -195,7 +199,7 @@ class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
 }
 
 
-class PlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
+class LocalPlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
     suspend fun getPlaylist(id: String): Playlist? {
         return playlistDao.getPlaylist(id)
     }
@@ -219,7 +223,8 @@ class PlaylistRepository @Inject constructor(private val playlistDao: PlaylistDa
     suspend fun insertPlaylists(playlists: List<Playlist>) {
         playlistDao.insertPlaylists(playlists)
     }
-    suspend fun deletePlaylistById(id:String){
+
+    suspend fun deletePlaylistById(id: String) {
         playlistDao.deletePlaylistById(id)
     }
 }
@@ -291,5 +296,52 @@ class HistoryRepository @Inject constructor(
     // 获取历史记录数量
     suspend fun getHistoryCount(): Int {
         return historyDao.getHistory().first().size
+    }
+}
+
+
+class AlbumsRepository(
+    private val dao: AlbumsDao
+) {
+    suspend fun getAlbumWithArtists(id: Long): AlbumWithArtists {
+        return dao.getAlbumWithArtists(id)
+    }
+
+    suspend fun getAlbumsByArtist(id: Long): List<AlbumEntity> {
+        return dao.getAlbumsByArtist(id)
+    }
+
+    suspend fun insertAlbum(
+        album: AlbumEntity,
+        artists: List<ArtistEntity>
+    ){
+        dao.insertAlbumWithArtists(album, artists)
+    }
+    suspend fun existsAlbum(albumId: Long): Boolean{
+        return dao.existsAlbum(albumId)
+    }
+
+    // 删除单个专辑
+    suspend fun deleteAlbum(albumId: Long) {
+        dao.deleteAlbumById(albumId)
+        // 可选：清理孤立的艺术家
+        dao.deleteOrphanedArtists()
+    }
+
+    // 删除多个专辑
+    suspend fun deleteAlbums(albumIds: List<Long>) {
+        dao.deleteAlbumsByIds(albumIds)
+        dao.deleteOrphanedArtists()
+    }
+
+    // 删除艺术家（同时清理关联）
+    suspend fun deleteArtistWithCleanup(artistId: Long) {
+        // 1. 先移除所有关联
+        dao.deleteArtistFromAllAlbums(artistId)
+
+        // 2. 如果艺术家没有被其他专辑使用，删除艺术家
+        if (!dao.isArtistUsed(artistId)) {
+            dao.deleteArtist(artistId)
+        }
     }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,10 +48,13 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.MiniPlayerHeight
+import com.ljyh.mei.constants.PlayerStyle
+import com.ljyh.mei.constants.PlayerStyleKey
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.smallImage
 
 @OptIn(UnstableApi::class)
@@ -66,6 +70,8 @@ fun MiniPlayer(
     val error by playerConnection.error.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
+
+    val (playerStyle, _) = rememberEnumPreference(PlayerStyleKey, PlayerStyle.AppleMusic)
 
     Surface(
         modifier = modifier
@@ -100,7 +106,8 @@ fun MiniPlayer(
                         MiniMediaInfo(
                             mediaMetadata = it,
                             error = error,
-                            modifier = Modifier.padding(horizontal = 6.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp),
+                            showCover = playerStyle == PlayerStyle.Classic
                         )
                     }
                 }
@@ -145,20 +152,25 @@ fun MiniPlayer(
 fun MiniMediaInfo(
     mediaMetadata: MediaMetadata,
     error: PlaybackException?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showCover: Boolean = true
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
         Box(modifier = Modifier.padding(6.dp)) {
-            AsyncImage(
-                model = mediaMetadata.coverUrl.smallImage(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-            )
+            Spacer(modifier = Modifier.size(48.dp))
+
+            if (showCover) {
+                AsyncImage(
+                    model = mediaMetadata.coverUrl.smallImage(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                )
+            }
             androidx.compose.animation.AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn(),

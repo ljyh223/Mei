@@ -42,6 +42,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.rememberPreference
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,8 +65,14 @@ fun ContentsSetting(
 
     userName = when (val result = userAccount) {
         is Resource.Success -> {
-            Toast.makeText(context, "看上去还不错哦", Toast.LENGTH_SHORT).show()
-            result.data.profile.nickname
+            if(result.data.code == 200 && result.data.profile != null){
+                Toast.makeText(context, "看上去还不错哦", Toast.LENGTH_SHORT).show()
+                result.data.profile.nickname
+            }else{
+                Toast.makeText(context, "cookie 可能存在错误", Toast.LENGTH_SHORT).show()
+                "error"
+            }
+
         }
 
         is Resource.Error -> "error"
@@ -84,8 +91,6 @@ fun ContentsSetting(
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             tint = MaterialTheme.colorScheme.onSurface,
-
-
                             contentDescription = null
                         )
                     }

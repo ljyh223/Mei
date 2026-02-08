@@ -1,24 +1,40 @@
 package com.ljyh.mei.ui.component.player
 
 import androidx.compose.ui.graphics.Color
+import androidx.datastore.dataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.room.Like
+import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
+import com.ljyh.mei.data.repository.UserRepository
+import com.ljyh.mei.di.LocalPlaylistRepository
 import com.ljyh.mei.di.ColorRepository
 import com.ljyh.mei.di.LikeRepository
 import com.ljyh.mei.di.QQSongRepository
+import com.ljyh.mei.ui.model.MoreAction
+import com.ljyh.mei.ui.model.SortOrder
+import com.ljyh.mei.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,6 +42,8 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     private val repository: PlayerRepository,
     private val qqSongRepository: QQSongRepository,
+    private val userRepository: UserRepository,
+    private val localPlaylistRepository: LocalPlaylistRepository,
     private val playlistRepository: PlaylistRepository,
     private val likeRepository: LikeRepository,
     private val colorRepository: ColorRepository
@@ -45,8 +63,21 @@ class PlayerViewModel @Inject constructor(
     private val _like = MutableStateFlow<Like?>(null)
     val like: StateFlow<Like?> = _like
 
+    private val _networkPlaylistsState = MutableStateFlow<Resource<UserPlaylist>>(Resource.Loading)
+    val networkPlaylistsState: StateFlow<Resource<UserPlaylist>> = _networkPlaylistsState
 
-    var mediaMetadata:MediaMetadata?=null
+    private val _createPlaylist = MutableStateFlow<Resource<CreatePlaylistResult>>(Resource.Loading)
+    val createPlaylist: StateFlow<Resource<CreatePlaylistResult>> = _createPlaylist
+
+
+    var mediaMetadata: MediaMetadata? = null
+
+    val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L), // 5秒内无订阅者则停止
+            initialValue = emptyList() // 初始值为空列表
+        )
 
     // 获取点赞状态
     fun getLike(id: String) {
@@ -88,7 +119,8 @@ class PlayerViewModel @Inject constructor(
         _searchResult.value = Resource.Loading
         _lyricResult.value = Resource.Loading
         _lyric.value = Resource.Loading
-        _amLyric.value= Resource.Loading
+        _amLyric.value = Resource.Loading
+        _qqSong.value = null
     }
 
     private val _qqSong = MutableStateFlow<QQSong?>(null)
@@ -143,7 +175,8 @@ class PlayerViewModel @Inject constructor(
             qqSongRepository.insertSong(song)
         }
     }
-    fun deleteSongById(id:String){
+
+    fun deleteSongById(id: String) {
         viewModelScope.launch {
             qqSongRepository.deleteSongById(id)
             _lyricResult.value = Resource.Loading
@@ -161,4 +194,75 @@ class PlayerViewModel @Inject constructor(
     fun getColor(url: String): Color? {
         return colorRepository.getFromMemory(url)
     }
+
+
+    fun syncUserPlaylists(uid: String, limit: Int = 100) {
+        viewModelScope.launch {
+            _networkPlaylistsState.value = Resource.Loading
+            when (val networkResult = userRepository.getUserPlaylist(uid, limit)) {
+                is Resource.Success -> {
+                    val playlistsToInsert = networkResult.data.playlist.map {
+                        Playlist(
+                            id = it.id.toString(),
+                            title = it.name,
+                            cover = it.coverImgUrl,
+                            author = it.creator.userId.toString(),
+                            authorName = it.creator.nickname,
+                            authorAvatar = it.creator.avatarUrl,
+                            count = it.trackCount
+                        )
+                    }
+                    localPlaylistRepository.insertPlaylists(playlistsToInsert)
+                    _networkPlaylistsState.value = networkResult
+                }
+
+                is Resource.Error -> {
+                    _networkPlaylistsState.value = networkResult
+                }
+
+                Resource.Loading -> {}
+            }
+        }
+    }
+
+    fun createPlaylist(
+        name: String,
+        privacy: Boolean = false, // 0 普通歌单, 10 隐私歌单
+        type: String = "NORMAL" // 默认 NORMAL, VIDEO 视频歌单, SHARED 共享歌单
+    ) {
+        viewModelScope.launch {
+            _createPlaylist.value = Resource.Loading
+            _createPlaylist.value = playlistRepository.createPlaylist(name, privacy, type)
+        }
+    }
+
+    private val _moreSortOrder = MutableStateFlow(SortOrder.FREQUENCY)
+    val moreSortOrder = _moreSortOrder.asStateFlow()
+    val sortedMoreActions: StateFlow<List<MoreAction>> =
+        _moreSortOrder
+            .map { sortOrder ->
+                val actions = MoreAction.entries.toMutableList()
+                sortMoreActions(actions, sortOrder)
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = MoreAction.entries.toList()
+            )
+
+
+
+    fun setMoreSortOrder(order: SortOrder) {
+        _moreSortOrder.value = order
+    }
+
+    // 排序函数
+    private fun sortMoreActions(actions: List<MoreAction>, order: SortOrder): List<MoreAction> {
+        return when (order) {
+            SortOrder.FREQUENCY -> actions.sortedByDescending { it.frequency }
+            SortOrder.RISK -> actions.sortedBy { it.riskLevel }
+        }
+    }
+
+
 }

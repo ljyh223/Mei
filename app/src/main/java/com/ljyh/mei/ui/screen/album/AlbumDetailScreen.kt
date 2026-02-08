@@ -32,35 +32,28 @@ import com.ljyh.mei.ui.screen.playlist.CommonSongListScreen
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlbumScreen(
+fun AlbumDetailScreen(
     id: Long,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
 ) {
     // 1. 请求初始数据
     LaunchedEffect(id) {
         viewModel.getAlbumDetail(id.toString())
+        viewModel.isSubscribe(id)
     }
 
     val context = LocalContext.current
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
 
-    // 2. 收集 ViewModel 状态
-    // 假设 ViewModel 中暴露了这三个 StateFlow
     val albumDetail by viewModel.albumDetail.collectAsState()
     val subscribeState by viewModel.subscribeAlbum.collectAsState()
     val unSubscribeState by viewModel.unSubscribeAlbum.collectAsState()
+    val isSubscribeState by viewModel.isSubscribe.collectAsState()
+
 
     // 3. 本地收藏状态 (乐观更新核心)
     var isSubscribed by remember { mutableStateOf(false) }
-
-    // 当专辑详情加载成功时，初始化收藏状态
-    LaunchedEffect(albumDetail) {
-        if (albumDetail is Resource.Success) {
-            val album = (albumDetail as Resource.Success).data.album
-             isSubscribed = album.info.liked
-        }
-    }
 
     // 处理收藏失败的回滚逻辑
     LaunchedEffect(subscribeState) {
@@ -71,10 +64,25 @@ fun AlbumScreen(
     }
 
     LaunchedEffect(unSubscribeState) {
-        if (unSubscribeState is Resource.Error) {
-            isSubscribed = true // 回滚
-            Toast.makeText(context, "取消收藏失败: ${(unSubscribeState as Resource.Error).message}", Toast.LENGTH_SHORT).show()
+        when(val result= unSubscribeState){
+            is Resource.Success->{
+                isSubscribed = false // 回滚
+                viewModel.deleteAlbum(id)
+                Toast.makeText(context, "取消收藏成功", Toast.LENGTH_SHORT).show()
+            }
+            is Resource.Error->{
+                isSubscribed = true // 回滚
+                Toast.makeText(context, "取消收藏失败: ${result.message}", Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
         }
+        if (unSubscribeState is Resource.Error) {
+
+        }
+    }
+
+    LaunchedEffect(isSubscribeState) {
+        isSubscribed=isSubscribeState
     }
 
     // 4. 构建 UI 数据模型
@@ -89,16 +97,16 @@ fun AlbumScreen(
                 subscriberCount = -1, // 专辑通常没有订阅人数，或者在 dynamicInfo 中
                 coverUrl = listOf(album.picUrl),
                 creatorName = album.artists.joinToString(", ") { it.name },
-                isCreate = false,
+                isCreator = false,
                 description = album.description,
                 tracks = songs.map { it.toMediaMetadata().copy(coverUrl = album.picUrl) },
                 playCount = -1,
-                isSubscribed = isSubscribed // 初始化 UI 状态
+                isSubscribed = isSubscribeState
             )
         } else {
             UiPlaylist(
                 id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
-                count = 0, subscriberCount = 0, isCreate = false, description = "",
+                count = 0, subscriberCount = 0, isCreator = false, description = "",
                 trackCount = 0, playCount = 0, isSubscribed = false
             )
         }

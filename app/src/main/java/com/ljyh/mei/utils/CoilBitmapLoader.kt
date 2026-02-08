@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.media3.common.util.BitmapLoader
+import androidx.media3.common.util.UnstableApi
 import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -20,6 +21,7 @@ import com.google.common.util.concurrent.SettableFuture
  * @param context Context 对象.
  * @param imageLoader 建议传入在您应用中全局单例的 ImageLoader 实例，以实现高效的资源共享（缓存、线程池等）。
  */
+@UnstableApi
 class CoilBitmapLoader(
     private val context: Context,
     private val imageLoader: ImageLoader

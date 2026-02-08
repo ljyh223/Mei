@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 
@@ -22,9 +21,9 @@ android {
     defaultConfig {
         applicationId = "com.ljyh.mei"
         minSdk = 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
-        versionName = "1.47.6"
+        versionName = "1.48.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,10 +40,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-    kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-        jvmTarget = "21"
+
     }
     buildFeatures {
         buildConfig = true
@@ -54,6 +50,19 @@ android {
 
 configurations.all {
     exclude("com.soywiz.korlibs.krypto","krypto-android")
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            listOf(
+                "-Xopt-in=androidx.media3.common.util.UnstableApi",
+                "-Xopt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                "-Xopt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+                // 添加其他你需要的 opt-in
+            )
+        )
+    }
 }
 
 dependencies {
@@ -81,11 +90,12 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.core)
+    implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
     implementation(libs.converter.gson)
     implementation(libs.kotlinx.coroutines.guava)
@@ -124,7 +134,8 @@ dependencies {
         exclude("com.soywiz.korlibs.krypto", "krypto-android")
     }
     implementation(libs.logging.interceptor)
-    implementation(kotlin("reflect"))
+    // implementation(kotlin("reflect"))
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.21")
 
     implementation(libs.android.gpuimage)
     // 列表拖拽
@@ -135,16 +146,17 @@ dependencies {
     implementation(libs.lyrics.ui)
     implementation(libs.zoomable)
     implementation(libs.timber)
+    implementation(libs.compose.cloudy)
 
 
 }
 
-kotlin {
-    sourceSets {
-        getByName("main") {
-            dependencies {
-                implementation(kotlin("reflect"))
-            }
-        }
-    }
-}
+//kotlin {
+//    sourceSets {
+//        getByName("main") {
+//            dependencies {
+//                implementation(kotlin("reflect"))
+//            }
+//        }
+//    }
+//}

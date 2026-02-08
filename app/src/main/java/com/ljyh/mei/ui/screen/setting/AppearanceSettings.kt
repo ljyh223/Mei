@@ -13,6 +13,8 @@ import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
+import androidx.compose.material.icons.rounded.LinearScale
+import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +35,10 @@ import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
+import com.ljyh.mei.constants.PlayerStyle
+import com.ljyh.mei.constants.PlayerStyleKey
+import com.ljyh.mei.constants.ProgressBarStyle
+import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
@@ -91,6 +97,15 @@ fun AppearanceSettings(
     val (debug, onDebug) = rememberPreference(
         DebugKey, defaultValue = false
     )
+    val (progressBarStyle, onProgressBarStyleChange) = rememberEnumPreference(
+        key = ProgressBarStyleKey,
+        defaultValue = ProgressBarStyle.WAVE // 默认值设为你喜欢的
+    )
+
+    val (playerStyle, onPlayerStyleChange) = rememberEnumPreference(
+        key = PlayerStyleKey,
+        defaultValue = PlayerStyle.AppleMusic
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -130,6 +145,19 @@ fun AppearanceSettings(
                 title = "PLAYER"
             )
 
+            EnumListPreference(
+                title = { Text("播放器样式") },
+                icon = { Icon(Icons.Rounded.MusicVideo, null) },
+                selectedValue = playerStyle,
+                onValueSelected = onPlayerStyleChange,
+                valueText = {
+                    when (it) {
+                        PlayerStyle.AppleMusic -> "Apple Music"
+                        PlayerStyle.Classic -> "经典"
+                    }
+                }
+            )
+
             // 原图封面
             SwitchPreference(
                 title = { Text("使用原图加载封面") },
@@ -143,6 +171,7 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.Image, null) },
                 selectedValue = coverStyle,
                 onValueSelected = onCoverStyleChange,
+                isEnabled = playerStyle == PlayerStyle.Classic,
                 valueText = {
                     when (it) {
                         CoverStyle.Circle -> "圆形"
@@ -150,6 +179,16 @@ fun AppearanceSettings(
                     }
                 }
             )
+            EnumListPreference(
+                title = { Text("进度条样式") },
+                icon = { Icon(Icons.Rounded.LinearScale, null) },
+                selectedValue = progressBarStyle,
+                onValueSelected = onProgressBarStyleChange,
+                valueText = { it.label }
+            )
+
+
+
 
 
             PreferenceGroupTitle(

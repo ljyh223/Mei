@@ -1,0 +1,253 @@
+package com.ljyh.mei.ui.component.player.state
+
+import android.widget.Toast
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.common.Player.STATE_READY
+import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.constants.DebugKey
+import com.ljyh.mei.constants.UseQQMusicLyricKey
+import com.ljyh.mei.data.model.Lyric
+import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.qq.u.LyricResult
+import com.ljyh.mei.data.model.room.Like
+import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.room.QQSong
+import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.component.player.PlayerViewModel
+import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.model.LyricSourceData
+import com.ljyh.mei.utils.encrypt.QRCUtils
+import com.ljyh.mei.utils.lyric.createDefaultLyricData
+import com.ljyh.mei.utils.lyric.mergeLyrics
+import com.ljyh.mei.utils.rememberPreference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
+import timber.log.Timber
+
+/**
+ * 播放器状态容器
+ * 封装所有重复的状态管理和歌词加载逻辑
+ * 注意：状态收集（collectAsState）必须在 Composable 函数中进行
+ */
+@UnstableApi
+class PlayerStateContainer(
+    val playerViewModel: PlayerViewModel,
+    val playerConnection: PlayerConnection
+) {
+    // ========== 可变状态 ==========
+
+    var sliderPosition by mutableFloatStateOf(0f)
+        internal set
+
+    var duration by mutableLongStateOf(0L)
+        internal set
+
+    var isDragging by mutableStateOf(false)
+        internal set
+
+    var lyricLine by mutableStateOf(createDefaultLyricData("歌词加载中"))
+        internal set
+
+
+    // ========== 状态槽（将在 Composable 中填充） ==========
+
+    lateinit var playbackState: State<Int>
+        internal set
+
+    lateinit var isPlaying: State<Boolean>
+        internal set
+
+    lateinit var mediaMetadata: State<MediaMetadata?>
+        internal set
+
+    lateinit var netLyricResult: State<Resource<Lyric>>
+        internal set
+
+    lateinit var qqLyricResult: State<Resource<LyricResult>>
+        internal set
+
+    lateinit var amLyricResult: State<Resource<String>>
+        internal set
+
+    lateinit var qqSong: State<QQSong?>
+        internal set
+
+    lateinit var isLiked: State<Like?>
+        internal set
+
+    lateinit var allPlaylist: State<List<Playlist>>
+        internal set
+
+    lateinit var canSkipPrevious: State<Boolean>
+        internal set
+
+    lateinit var canSkipNext: State<Boolean>
+        internal set
+
+
+    // ========== 公共方法 ==========
+
+    /**
+     * 重置状态（当歌曲切换时调用）
+     */
+    fun reset() {
+        lyricLine = createDefaultLyricData("歌词加载中")
+        sliderPosition = 0f
+        duration = 0L
+    }
+}
+
+/**
+ * 记忆并创建播放器状态容器
+ */
+@Composable
+@UnstableApi
+fun rememberPlayerStateContainer(
+    playerViewModel: PlayerViewModel = hiltViewModel(),
+    playerConnection: PlayerConnection
+): PlayerStateContainer {
+    val context = LocalContext.current
+    val useQQMusicLyric by rememberPreference(UseQQMusicLyricKey, defaultValue = true)
+    val debug by rememberPreference(DebugKey, defaultValue = false)
+
+    val container = remember(playerConnection) {
+        PlayerStateContainer(
+            playerViewModel = playerViewModel,
+            playerConnection = playerConnection
+        )
+    }
+
+    // ========== 收集所有状态（必须在 Composable 中进行） ==========
+    container.playbackState = playerConnection.playbackState.collectAsState()
+    container.isPlaying = playerConnection.isPlaying.collectAsState()
+    container.mediaMetadata = playerConnection.mediaMetadata.collectAsState()
+    container.canSkipPrevious = playerConnection.canSkipPrevious.collectAsState()
+    container.canSkipNext = playerConnection.canSkipNext.collectAsState()
+
+    container.netLyricResult = playerViewModel.lyric.collectAsState()
+    container.qqLyricResult = playerViewModel.lyricResult.collectAsState()
+    container.amLyricResult = playerViewModel.amLyric.collectAsState()
+    container.qqSong = playerViewModel.qqSong.collectAsState()
+    container.isLiked = playerViewModel.like.collectAsState(initial = null)
+    container.allPlaylist = playerViewModel.localPlaylists.collectAsState()
+
+    // ========== 进度条更新 LaunchedEffect ==========
+    LaunchedEffect(container.playbackState.value, container.isPlaying.value, container.isDragging) {
+        val playbackState = container.playbackState.value
+        val isPlaying = container.isPlaying.value
+        val isDragging = container.isDragging
+
+        if (playbackState == STATE_READY && isPlaying && !isDragging) {
+            while (isActive) {
+                container.sliderPosition = playerConnection.player.currentPosition.toFloat()
+                container.duration = playerConnection.player.duration.coerceAtLeast(1L)
+                delay(50)
+            }
+        } else if (!isPlaying && !isDragging) {
+            // 暂停时同步一次，防止状态不一致
+            container.sliderPosition = playerConnection.player.currentPosition.toFloat()
+            container.duration = playerConnection.player.duration.coerceAtLeast(1L)
+        }
+    }
+
+    // ========== 歌词加载 LaunchedEffect - MediaMetadata 变化 ==========
+    LaunchedEffect(container.mediaMetadata.value) {
+        container.mediaMetadata.value?.let { meta ->
+            // 重置状态
+            container.reset()
+
+            // 设置当前媒体元数据
+            playerViewModel.mediaMetadata = meta
+
+            // 获取歌词
+            playerViewModel.getLyricV1(meta.id.toString())
+            playerViewModel.getAMLLyric(meta.id.toString())
+
+            // 如果启用了 QQ 音乐歌词
+            if (useQQMusicLyric) {
+                playerViewModel.fetchQQSong(meta.id.toString())
+                playerViewModel.searchNew(meta.title)
+            }
+
+            if (debug) {
+                Timber.tag("Player").d("MediaMetadata: $meta")
+                Timber.tag("Player").d("MediaMetadata: cover ${meta.coverUrl}")
+            }
+        }
+    }
+
+    // ========== 歌词加载 LaunchedEffect - QQSong 变化 ==========
+    LaunchedEffect(container.qqSong.value) {
+        if (debug) {
+            Timber.tag("Player").d("QQSong: ${container.qqSong.value}")
+        }
+        container.qqSong.value?.let { song ->
+            if (debug) {
+                Timber.tag("Player").d("QQSong111: $song")
+            }
+            playerViewModel.getLyricNew(
+                title = song.title,
+                album = song.album,
+                artist = song.artist,
+                duration = song.duration.toLong(),
+                id = song.qid.toLong()
+            )
+        }
+    }
+
+    // ========== 歌词合并 LaunchedEffect ==========
+    LaunchedEffect(container.netLyricResult.value, container.qqLyricResult.value, container.amLyricResult.value) {
+        withContext(Dispatchers.Default) {
+            val sources = mutableListOf<LyricSourceData>()
+
+            // 添加 AML 歌词
+            (container.amLyricResult.value as? Resource.Success)?.let {
+                sources.add(LyricSourceData.AM(it.data))
+            }
+
+            // 添加网易云歌词
+            (container.netLyricResult.value as? Resource.Success)?.data?.let {
+                sources.add(LyricSourceData.NetEase(it))
+            }
+
+            // 添加 QQ 音乐歌词
+            (container.qqLyricResult.value as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
+                try {
+                    val qrc = it.copy(
+                        lyric = QRCUtils.decodeLyric(it.lyric),
+                        trans = QRCUtils.decodeLyric(it.trans, true),
+                        roma = QRCUtils.decodeLyric(it.roma)
+                    )
+                    sources.add(LyricSourceData.QQMusic(qrc))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            // 合并歌词
+            val merged = mergeLyrics(sources)
+
+            // 切换回主线程更新 UI
+            withContext(Dispatchers.Main) {
+                container.lyricLine = merged
+            }
+        }
+    }
+
+    return container
+}

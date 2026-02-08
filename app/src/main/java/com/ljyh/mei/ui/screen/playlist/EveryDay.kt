@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,7 +53,7 @@ fun EveryDay(
                 subscriberCount = -1,
                 coverUrl = data.take(6).map { it.al.picUrl },
                 creatorName = "网易云音乐",
-                isCreate = false,
+                isCreator = false,
                 description = "根据你的音乐口味生成，每天6:00更新",
                 tracks = data.map { it.toMediaMetadata() },
                 playCount = -1,
@@ -63,7 +64,7 @@ fun EveryDay(
                 id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0,
                 subscriberCount = 0,
-                isCreate = false,
+                isCreator = false,
                 description = "",
                 trackCount = 0,
                 playCount = 0,
@@ -94,9 +95,8 @@ fun EveryDay(
                     )
                 )
             },
-
-            headerActionIcon = Icons.Default.Favorite,
-            headerActionLabel = "取消收藏",
+            headerActionIcon = Icons.Default.FavoriteBorder,
+            headerActionLabel = "收藏",
             onTrackClick = { mediaMetadata, index ->
 
                 playerConnection.onTrackClicked(
@@ -123,7 +123,7 @@ fun EveryDay(
                 navController.popBackStack()
             },
             onHeaderAction = {
-                Toast.makeText(context, "无法操作", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "不能收藏每日推荐歌单", Toast.LENGTH_SHORT).show()
             }
         )
     }

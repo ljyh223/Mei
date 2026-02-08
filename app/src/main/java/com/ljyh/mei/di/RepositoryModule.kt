@@ -37,8 +37,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideUserRepository(apiService: ApiService,eApiService: EApiService): UserRepository {
-        return UserRepository(apiService,eApiService)
+    fun provideUserRepository(apiService: ApiService,eApiService: EApiService, weApiService: WeApiService): UserRepository {
+        return UserRepository(apiService,eApiService, weApiService)
     }
 
 

@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component.player.component
+package com.ljyh.mei.ui.component.player.component.sheet
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -59,8 +59,7 @@ import androidx.media3.common.util.UnstableApi
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistSheet(
-    showBottomSheet: Boolean,
+fun PlaylistBottomSheet(
     onDismiss: () -> Unit
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -90,96 +89,91 @@ fun PlaylistSheet(
             }
         })
     }
-    LaunchedEffect(showBottomSheet) {
-        if (showBottomSheet) sheetState.show() else sheetState.hide()
-    }
 
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            sheetState = sheetState,
-            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(
+                    bottom = WindowInsets.systemBars.asPaddingValues()
+                        .calculateBottomPadding()
+                )
         ) {
-            Column(
+            // 标题栏
+            Row(
                 modifier = Modifier
-                    .padding(
-                        bottom = WindowInsets.systemBars.asPaddingValues()
-                            .calculateBottomPadding()
-                    )
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 标题栏
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Text(
+                    text = "播放列表 (${mediaItems.size}首)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp)
                 ) {
-                    Text(
-                        text = "播放列表 (${mediaItems.size}首)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "关闭",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "关闭",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
                 }
+            }
 
-                // 播放列表
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    state = lazyListState,
-                ) {
-                    itemsIndexed(
-                        mediaItems,
-                        key = { _, item -> item.mediaId }) { index, mediaItem ->
-                        ReorderableItem(
-                            reorderableLazyListState,
-                            key = mediaItem.mediaId
-                        ) { isDragging ->
-                            mediaItem.metadata?.let {
-                                PlaylistItem(
-                                    modifier = Modifier.longPressDraggableHandle(
-                                        onDragStarted = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                        },
-                                        onDragStopped = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                        },
-                                    ),
-                                    metadata = it,
-                                    isCurrentPlaying = index == currentMediaItemIndex,
-                                    onItemClick = {
-                                        playerConnection.player.seekToDefaultPosition(index)
-                                        playerConnection.player.playWhenReady = true
+            // 播放列表
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                state = lazyListState,
+            ) {
+                itemsIndexed(
+                    mediaItems,
+                    key = { _, item -> item.mediaId }) { index, mediaItem ->
+                    ReorderableItem(
+                        reorderableLazyListState,
+                        key = mediaItem.mediaId
+                    ) { isDragging ->
+                        mediaItem.metadata?.let {
+                            PlaylistItem(
+                                modifier = Modifier.longPressDraggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                                     },
-                                    onRemoveClick = {
-                                        if (mediaItems.size > 1) {
-                                            playerConnection.player.removeMediaItem(index)
-                                            mediaItems.removeAt(index)
-                                            if (index == currentMediaItemIndex) {
-                                                playerConnection.seekToNext()
-                                            }
-                                        } else {
-                                            Toast.makeText(
-                                                context,
-                                                "不能移除最后一首歌曲",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                    onDragStopped = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    },
+                                ),
+                                metadata = it,
+                                isCurrentPlaying = index == currentMediaItemIndex,
+                                onItemClick = {
+                                    playerConnection.player.seekToDefaultPosition(index)
+                                    playerConnection.player.playWhenReady = true
+                                },
+                                onRemoveClick = {
+                                    if (mediaItems.size > 1) {
+                                        playerConnection.player.removeMediaItem(index)
+                                        mediaItems.removeAt(index)
+                                        if (index == currentMediaItemIndex) {
+                                            playerConnection.seekToNext()
                                         }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "不能移除最后一首歌曲",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
                 }
@@ -187,7 +181,6 @@ fun PlaylistSheet(
         }
     }
 }
-
 
 @Composable
 fun PlaylistItem(

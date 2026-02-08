@@ -434,8 +434,9 @@ class MusicService : MediaLibraryService(),
             }
             // 检查磁盘缓存 (ExoPlayer Cache) 是否已完全缓存
             if (isContentFullyCached(simpleCache, mediaId)) {
-                Timber.tag("ResolvingDataSource").d("Fully cached on disk, skipping API: $mediaId")
-                return@Factory dataSpec.withUri("cache://$mediaId".toUri())
+                Timber.tag("ResolvingDataSource").d("Fully cached on disk: $mediaId")
+                // 直接返回原始 DataSpec 即可，CacheDataSource 会自动从磁盘读
+                return@Factory dataSpec
             }
 
             runBlocking {
@@ -468,8 +469,6 @@ class MusicService : MediaLibraryService(),
         val service: MusicService
             get() = this@MusicService
     }
-
-    data class SongCache(val url: String, val expiryTime: Long)
 
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
     override fun onPlayerError(error: PlaybackException) {

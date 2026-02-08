@@ -7,7 +7,7 @@ data class GetUserPlaylist(
     @SerializedName("uid")
     val uid: String,
     @SerializedName("limit")
-    val limit: String = "50",
+    val limit: String = "100",
     @SerializedName("offset")
     val offset: String = "0",
     @SerializedName("includeVideo")

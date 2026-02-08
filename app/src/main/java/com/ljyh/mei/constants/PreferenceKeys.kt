@@ -31,7 +31,7 @@ val MusicQualityKey = stringPreferencesKey("musicQuality")
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
-
+val PlayerActionKey = stringPreferencesKey("playerBottomAction")
 
 val NormalLyricTextSizeKey = stringPreferencesKey("lyricTextSize")
 val NormalLyricTextBoldKey = booleanPreferencesKey("lyricTextBold")
@@ -53,6 +53,14 @@ val AndroidIdKey = stringPreferencesKey("androidId")
 
 // 原图封面
 val OriginalCoverKey = booleanPreferencesKey("originalCover")
+val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
+
+val PlayerStyleKey = stringPreferencesKey("playerStyle")
+
+enum class PlayerStyle {
+    AppleMusic,
+    Classic
+}
 
 enum class CoverStyle {
     Circle,
@@ -89,3 +97,7 @@ enum class LyricTextSize(val text: Int) {
     Size32(32)
 }
 
+enum class ProgressBarStyle(val label: String) {
+    WAVE("动态波浪"),       // 原来的波浪样式
+    LINEAR("正常样式")   // 新写的直线样式
+}

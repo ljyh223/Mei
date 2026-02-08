@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.index.library
+package com.ljyh.mei.ui.screen.main.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,12 +6,15 @@ import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.UserAccount
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.room.AlbumEntity
+import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.weapi.UserSubcount
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.di.PlaylistRepository
+import com.ljyh.mei.di.AlbumsRepository
+import com.ljyh.mei.di.LocalPlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +26,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val repository: UserRepository,
-    private val playlistRepository: PlaylistRepository
+    private val localPlaylistRepository: LocalPlaylistRepository,
+    private val albumsRepository: AlbumsRepository
 ):ViewModel() {
     private val _account = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
     val account: StateFlow<Resource<UserAccount>> = _account
@@ -37,7 +41,10 @@ class LibraryViewModel @Inject constructor(
     private val _albumList = MutableStateFlow<Resource<UserAlbumList>>(Resource.Loading)
     val albumList: StateFlow<Resource<UserAlbumList>> = _albumList
 
-    val localPlaylists: StateFlow<List<Playlist>> = playlistRepository.getAllPlaylist()
+    private val _userSubcount = MutableStateFlow<Resource<UserSubcount>>(Resource.Loading)
+    val userSubcount: StateFlow<Resource<UserSubcount>> = _userSubcount
+
+    val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000L), // 5秒内无订阅者则停止
@@ -60,10 +67,10 @@ class LibraryViewModel @Inject constructor(
 
 
 
-    fun syncUserPlaylists(uid: String) {
+    fun syncUserPlaylists(uid: String, limit: Int = 100) {
         viewModelScope.launch {
             _networkPlaylistsState.value = Resource.Loading
-            when (val networkResult = repository.getUserPlaylist(uid)) {
+            when (val networkResult = repository.getUserPlaylist(uid, limit)) {
                 is Resource.Success -> {
                     val playlistsToInsert = networkResult.data.playlist.map {
                         Playlist(
@@ -76,7 +83,7 @@ class LibraryViewModel @Inject constructor(
                             count = it.trackCount
                         )
                     }
-                    playlistRepository.insertPlaylists(playlistsToInsert)
+                    localPlaylistRepository.insertPlaylists(playlistsToInsert)
                     _networkPlaylistsState.value = networkResult
                 }
                 is Resource.Error -> {
@@ -93,4 +100,19 @@ class LibraryViewModel @Inject constructor(
             _albumList.value=repository.getAlbumList()
         }
     }
+
+    fun getUserSubcount(){
+        viewModelScope.launch {
+            _userSubcount.value= Resource.Loading
+            _userSubcount.value= repository.getUsrSubcount()
+        }
+    }
+
+    fun insertAlbum(album: AlbumEntity, artists: List<ArtistEntity>){
+        viewModelScope.launch {
+            albumsRepository.insertAlbum(album, artists)
+        }
+    }
+
+
 }

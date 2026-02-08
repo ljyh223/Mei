@@ -14,7 +14,6 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +27,7 @@ import com.ljyh.mei.playback.PlayerConnection
 
 @OptIn(UnstableApi::class)
 @Composable
-fun Controls(
+fun PlayerControls(
     modifier: Modifier = Modifier,
     playerConnection: PlayerConnection,
     canSkipPrevious: Boolean,

@@ -83,6 +83,7 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.disk.DiskCache
 import coil3.disk.directory
+import coil3.gif.AnimatedImageDecoder
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
@@ -223,6 +224,7 @@ class MainActivity : ComponentActivity() {
                 ImageLoader.Builder(this)
                     .components {
                         add(OkHttpNetworkFetcherFactory(okHttpClient))
+                        add(AnimatedImageDecoder.Factory())
                     }
                     .crossfade(true)
                     .diskCache {
@@ -378,6 +380,7 @@ class MainActivity : ComponentActivity() {
                     }
                     val topLevelScreens = listOf(
                         Screen.Home.route,
+                        Screen.FindMusic.route,
                         Screen.Library.route,
                         Screen.Setting.route
                     )
@@ -481,6 +484,7 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             startDestination = when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                 NavigationTab.HOME -> Screen.Home
+                                NavigationTab.FindMusic -> Screen.FindMusic
                                 NavigationTab.Library -> Screen.Library
                             }.route,
                         ) {
@@ -520,7 +524,6 @@ class MainActivity : ComponentActivity() {
                                                 !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } -> {
                                                     navController.backToMain()
                                                 }
-
                                                 else -> {}
                                             }
                                         }
@@ -684,5 +687,5 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class NavigationTab {
-    HOME, Library
+    HOME,FindMusic, Library
 }
