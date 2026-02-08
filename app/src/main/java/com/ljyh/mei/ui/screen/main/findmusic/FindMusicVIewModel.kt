@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.findmusic
+package com.ljyh.mei.ui.screen.main.findmusic
 
 import androidx.lifecycle.ViewModel
 import com.ljyh.mei.data.network.Resource

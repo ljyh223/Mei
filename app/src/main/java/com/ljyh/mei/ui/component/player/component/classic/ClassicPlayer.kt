@@ -41,12 +41,15 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.PlayerHorizontalPadding
+import com.ljyh.mei.constants.ProgressBarStyle
+import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
 import com.ljyh.mei.ui.component.player.component.PlayerControls
 import com.ljyh.mei.ui.component.player.component.Debug
+import com.ljyh.mei.ui.component.player.component.FluidProgressSlider
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
@@ -57,6 +60,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.launch
 
@@ -74,6 +78,10 @@ fun ClassicPlayer(
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val debug by rememberPreference(DebugKey, defaultValue = false)
+    val (progressBarStyle, _) = rememberEnumPreference(
+        key = ProgressBarStyleKey,
+        defaultValue = ProgressBarStyle.WAVE
+    )
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
@@ -224,17 +232,30 @@ fun ClassicPlayer(
             Spacer(Modifier.height(8.dp))
 
             // Progress Bar
-            PlayerProgressSlider(
-                position = sliderPosition.toLong(),
-                duration = duration,
-                isPlaying = isPlaying,
-                onPositionChange = { newPosition ->
-                    stateContainer.playerConnection.player.seekTo(newPosition)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
-            )
+            if (progressBarStyle == ProgressBarStyle.LINEAR) {
+                FluidProgressSlider(
+                    position = sliderPosition.toLong(),
+                    duration = duration,
+                    onPositionChange = { newPosition ->
+                        stateContainer.playerConnection.player.seekTo(newPosition)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+                )
+            } else {
+                PlayerProgressSlider(
+                    position = sliderPosition.toLong(),
+                    duration = duration,
+                    isPlaying = isPlaying, // 波浪进度条需要这个参数
+                    onPositionChange = { newPosition ->
+                        stateContainer.playerConnection.player.seekTo(newPosition)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -258,7 +279,7 @@ fun ClassicPlayer(
                 onLyricClick = {
                     scope.launch {
                         pagerState.animateScrollToPage(if (pagerState.currentPage == 1) 0 else 1,
-                            animationSpec = spring(stiffness = Spring.StiffnessVeryLow)
+                            animationSpec = spring(stiffness = Spring.StiffnessLow)
                         )
                     }
                 },

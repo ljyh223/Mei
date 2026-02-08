@@ -17,14 +17,14 @@ import androidx.navigation.navArgument
 import com.ljyh.mei.ui.screen.about.AboutScreen
 import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
 import com.ljyh.mei.ui.screen.history.HistoryScreen
-import com.ljyh.mei.ui.screen.index.home.HomeScreen
-import com.ljyh.mei.ui.screen.index.library.LibraryScreen
+import com.ljyh.mei.ui.screen.main.home.HomeScreen
+import com.ljyh.mei.ui.screen.main.library.LibraryScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
 import com.ljyh.mei.ui.screen.search.SearchResultScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettings
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
-import com.ljyh.mei.ui.screen.findmusic.FindMusicScreen
+import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.PlaySetting
 import com.ljyh.mei.ui.screen.setting.SettingScreen

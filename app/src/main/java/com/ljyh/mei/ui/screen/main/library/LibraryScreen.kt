@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.index.library
+package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -134,12 +134,13 @@ fun LibraryScreen(
         if (cookie.isNotEmpty() && account !is Resource.Success) viewModel.getUserAccount()
     }
     LaunchedEffect(account) {
-        if (account is Resource.Success) {
-            val data = (account as Resource.Success).data.profile
-            setUserId(data.userId.toString())
-            setUserNickname(data.nickname)
-            setUserAvatarUrl(data.avatarUrl)
-        }
+        (account as? Resource.Success)
+            ?.data?.profile
+            ?.let { profile ->
+                setUserId(profile.userId.toString())
+                setUserNickname(profile.nickname)
+                setUserAvatarUrl(profile.avatarUrl)
+            }
     }
 
     LaunchedEffect(userSubcount) {

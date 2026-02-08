@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.index.home
+package com.ljyh.mei.ui.screen.main.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

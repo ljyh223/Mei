@@ -8,7 +8,7 @@ data class UserAccount(
     @SerializedName("code")
     val code: Int,
     @SerializedName("profile")
-    val profile: Profile
+    val profile: Profile?
 ) {
     data class Account(
         @SerializedName("anonimousUser")
