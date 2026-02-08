@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.jetbrains.kotlin.kapt)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 
@@ -42,10 +41,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-        jvmTarget = "21"
-    }
     buildFeatures {
         buildConfig = true
         compose = true
@@ -81,7 +76,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.coil.compose)
@@ -125,7 +120,8 @@ dependencies {
         exclude("com.soywiz.korlibs.krypto", "krypto-android")
     }
     implementation(libs.logging.interceptor)
-    implementation(kotlin("reflect"))
+    // implementation(kotlin("reflect"))
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.21")
 
     implementation(libs.android.gpuimage)
     // 列表拖拽
@@ -141,12 +137,12 @@ dependencies {
 
 }
 
-kotlin {
-    sourceSets {
-        getByName("main") {
-            dependencies {
-                implementation(kotlin("reflect"))
-            }
-        }
-    }
-}
+//kotlin {
+//    sourceSets {
+//        getByName("main") {
+//            dependencies {
+//                implementation(kotlin("reflect"))
+//            }
+//        }
+//    }
+//}

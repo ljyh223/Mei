@@ -48,10 +48,13 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.MiniPlayerHeight
+import com.ljyh.mei.constants.PlayerStyle
+import com.ljyh.mei.constants.PlayerStyleKey
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.smallImage
 
 @OptIn(UnstableApi::class)
@@ -67,6 +70,8 @@ fun MiniPlayer(
     val error by playerConnection.error.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
+
+    val (playerStyle, _) = rememberEnumPreference(PlayerStyleKey, PlayerStyle.AppleMusic)
 
     Surface(
         modifier = modifier
@@ -102,7 +107,7 @@ fun MiniPlayer(
                             mediaMetadata = it,
                             error = error,
                             modifier = Modifier.padding(horizontal = 6.dp),
-                            showCover = false
+                            showCover = playerStyle == PlayerStyle.Classic
                         )
                     }
                 }
