@@ -14,6 +14,7 @@ import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.LinearScale
+import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,6 +35,8 @@ import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
+import com.ljyh.mei.constants.PlayerStyle
+import com.ljyh.mei.constants.PlayerStyleKey
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
@@ -98,6 +101,11 @@ fun AppearanceSettings(
         key = ProgressBarStyleKey,
         defaultValue = ProgressBarStyle.WAVE // 默认值设为你喜欢的
     )
+
+    val (playerStyle, onPlayerStyleChange) = rememberEnumPreference(
+        key = PlayerStyleKey,
+        defaultValue = PlayerStyle.AppleMusic
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -137,6 +145,19 @@ fun AppearanceSettings(
                 title = "PLAYER"
             )
 
+            EnumListPreference(
+                title = { Text("播放器样式") },
+                icon = { Icon(Icons.Rounded.MusicVideo, null) },
+                selectedValue = playerStyle,
+                onValueSelected = onPlayerStyleChange,
+                valueText = {
+                    when (it) {
+                        PlayerStyle.AppleMusic -> "Apple Music"
+                        PlayerStyle.Classic -> "经典"
+                    }
+                }
+            )
+
             // 原图封面
             SwitchPreference(
                 title = { Text("使用原图加载封面") },
@@ -150,6 +171,7 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.Image, null) },
                 selectedValue = coverStyle,
                 onValueSelected = onCoverStyleChange,
+                isEnabled = playerStyle == PlayerStyle.Classic,
                 valueText = {
                     when (it) {
                         CoverStyle.Circle -> "圆形"

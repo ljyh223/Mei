@@ -55,6 +55,13 @@ val AndroidIdKey = stringPreferencesKey("androidId")
 val OriginalCoverKey = booleanPreferencesKey("originalCover")
 val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
 
+val PlayerStyleKey = stringPreferencesKey("playerStyle")
+
+enum class PlayerStyle {
+    AppleMusic,
+    Classic
+}
+
 enum class CoverStyle {
     Circle,
     Square
