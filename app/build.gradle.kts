@@ -40,6 +40,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+
     }
     buildFeatures {
         buildConfig = true
@@ -49,6 +50,19 @@ android {
 
 configurations.all {
     exclude("com.soywiz.korlibs.krypto","krypto-android")
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            listOf(
+                "-Xopt-in=androidx.media3.common.util.UnstableApi",
+                "-Xopt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+                "-Xopt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+                // 添加其他你需要的 opt-in
+            )
+        )
+    }
 }
 
 dependencies {
