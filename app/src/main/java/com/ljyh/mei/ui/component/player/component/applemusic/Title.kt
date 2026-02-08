@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component.player.component
+package com.ljyh.mei.ui.component.player.component.applemusic
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.data.model.room.Like
 
 @Composable
 fun Title(
@@ -33,8 +33,8 @@ fun Title(
     onMoreClick: () -> Unit,
     onTitleClick: () -> Unit,
     modifier: Modifier = Modifier,
-    titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineSmall,
-    subTitleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
+    titleStyle: TextStyle = MaterialTheme.typography.headlineSmall,
+    subTitleStyle: TextStyle = MaterialTheme.typography.titleMedium,
     needShadow: Boolean = true,
     iconColor: Color = Color.White // 新增：控制图标颜色，方便在不同背景下调整
 ) {

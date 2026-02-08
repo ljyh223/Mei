@@ -30,9 +30,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,10 +45,8 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
-import com.ljyh.mei.ui.component.player.component.Controls
-import com.ljyh.mei.ui.component.player.component.Cover
+import com.ljyh.mei.ui.component.player.component.PlayerControls
 import com.ljyh.mei.ui.component.player.component.Debug
-import com.ljyh.mei.ui.component.player.component.Header
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
@@ -58,11 +55,10 @@ import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
-import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.LyricSource
-import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
 import com.ljyh.mei.utils.rememberPreference
+import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.S)
 @OptIn(UnstableApi::class)
@@ -74,7 +70,7 @@ fun ClassicPlayer(
     overlayHandler: PlayerOverlayHandler,
 ) {
     val context = LocalContext.current
-    val navController = LocalNavController.current
+    val scope = rememberCoroutineScope()
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val debug by rememberPreference(DebugKey, defaultValue = false)
@@ -151,26 +147,18 @@ fun ClassicPlayer(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
-            mediaMetadata?.let { mediaMetadata ->
-                Header(
-                    mediaMetadata = mediaMetadata,
+            mediaMetadata?.let {
+                PlayerHeader(
+                    mediaMetadata = it,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = PlayerHorizontalPadding),
-                    onNavigateToAlbum = {
-                        if (it.id != 0L) {
-                            Screen.Album.navigate(navController) {
-                                addPath(mediaMetadata.album.id.toString())
-                            }
-                        }
+                    onClick = {
+                        overlayHandler.showAlbumArtist(it.album, it.artists, it.coverUrl)
                     },
-                    onNavigateToArtist = { artist ->
-                        if (artist.id != 0L) {
-                            Screen.Artist.navigate(navController) {
-                                addPath(artist.id.toString())
-                            }
-                        }
-                    },
+                    onMoreClick = {
+                        overlayHandler.showMoreAction()
+                    }
                 )
             }
 
@@ -210,7 +198,7 @@ fun ClassicPlayer(
                                 .fillMaxSize()
                                 .padding(horizontal = PlayerHorizontalPadding),
                             onClick = { source ->
-                                mediaMetadata?.let{
+                                mediaMetadata?.let {
                                     if (overlayHandler.currentOverlayValue is OverlayState.None && stateContainer.playerViewModel.searchResult.value is Resource.Success) {
                                         overlayHandler.showQQMusicSelection(
                                             searchResult = stateContainer.playerViewModel.searchResult.value as Resource.Success,
@@ -222,7 +210,8 @@ fun ClassicPlayer(
                             onLongClick = { source ->
                                 if (source == LyricSource.QQMusic && mediaMetadata != null) {
                                     stateContainer.playerViewModel.deleteSongById(id = mediaMetadata!!.id.toString())
-                                    Toast.makeText(context, "已删除QQ音乐歌词", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "已删除QQ音乐歌词", Toast.LENGTH_SHORT)
+                                        .show()
                                 }
                             },
                             onToggleControls = {}
@@ -250,7 +239,7 @@ fun ClassicPlayer(
             Spacer(Modifier.height(16.dp))
 
             // Controls
-            Controls(
+            PlayerControls(
                 playerConnection = stateContainer.playerConnection,
                 canSkipPrevious = stateContainer.canSkipPrevious.value,
                 canSkipNext = stateContainer.canSkipNext.value,
@@ -266,11 +255,27 @@ fun ClassicPlayer(
             // Action Toolbar (Queue, Like, Sleep, etc.)
             PlayerActionToolbar(
                 modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                onLyricClick = {},
-                onPlaylistClick = {},
-                onSleepTimerClick = {},
-                onAddToPlaylistClick = {},
-                onMoreClick = {}
+                onLyricClick = {
+                    scope.launch {
+                        pagerState.animateScrollToPage(if (pagerState.currentPage == 1) 0 else 1,
+                            animationSpec = spring(stiffness = Spring.StiffnessVeryLow)
+                        )
+                    }
+                },
+                onPlaylistClick = {
+                    overlayHandler.showPlaylist()
+                },
+                onSleepTimerClick = {
+                    overlayHandler.showSleepTimer()
+                },
+                onAddToPlaylistClick = {
+                    mediaMetadata?.let {
+                        overlayHandler.showAddToPlaylist(it.id)
+                    }
+                },
+                onMoreClick = {
+                    overlayHandler.showMoreAction()
+                }
             )
 
             // 底部安全区，防止被手势条遮挡

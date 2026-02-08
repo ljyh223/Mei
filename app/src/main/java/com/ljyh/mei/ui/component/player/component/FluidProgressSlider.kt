@@ -43,7 +43,7 @@ import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppleStyleProgressSlider(
+fun FluidProgressSlider(
     position: Long,
     duration: Long,
     onPositionChange: (Long) -> Unit,

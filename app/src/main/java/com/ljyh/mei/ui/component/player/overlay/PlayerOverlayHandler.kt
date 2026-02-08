@@ -13,6 +13,7 @@ import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
+import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
 /**
@@ -111,34 +112,34 @@ class PlayerOverlayHandler(
     /**
      * 处理更多操作点击
      */
-    fun handleMoreAction(action: com.ljyh.mei.ui.model.MoreAction) {
+    fun handleMoreAction(action: MoreAction) {
         val mediaMetadata = stateContainer.mediaMetadata.value
         when (action) {
-            com.ljyh.mei.ui.model.MoreAction.ADD_TO_PLAYLIST -> {
+            MoreAction.ADD_TO_PLAYLIST -> {
                 mediaMetadata?.let {
                     showAddToPlaylist(it.id)
                 }
             }
-            com.ljyh.mei.ui.model.MoreAction.SHARE -> {
+            MoreAction.SHARE -> {
                 dismiss()
                 android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
             }
-            com.ljyh.mei.ui.model.MoreAction.DOWNLOAD -> {
+            MoreAction.DOWNLOAD -> {
                 dismiss()
                 android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
             }
-            com.ljyh.mei.ui.model.MoreAction.DELETE -> {
+            MoreAction.DELETE -> {
                 mediaMetadata?.let {
                     stateContainer.playerViewModel.deleteSongById(it.id.toString())
                 }
             }
-            com.ljyh.mei.ui.model.MoreAction.VIEW_PLAYLIST -> {
+            MoreAction.VIEW_PLAYLIST -> {
                 showPlaylist()
             }
-            com.ljyh.mei.ui.model.MoreAction.SLEEP_TIMER -> {
+            MoreAction.SLEEP_TIMER -> {
                 showSleepTimer()
             }
-            com.ljyh.mei.ui.model.MoreAction.BOTTOM_ACTION -> {
+            MoreAction.BOTTOM_ACTION -> {
                 showBottomAction()
             }
         }

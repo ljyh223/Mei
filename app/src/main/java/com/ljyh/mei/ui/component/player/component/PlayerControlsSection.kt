@@ -48,7 +48,7 @@ fun PlayerControlsSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         if (progressBarStyle == ProgressBarStyle.LINEAR) {
-            AppleStyleProgressSlider(
+            FluidProgressSlider(
                 position = sliderPosition.toLong(),
                 duration = duration,
                 onPositionChange = { newPosition ->
@@ -80,7 +80,7 @@ fun PlayerControlsSection(
                 .fillMaxWidth()
                 .padding(horizontal = PlayerHorizontalPadding)
         ) {
-            Controls(
+            PlayerControls(
                 playerConnection = playerConnection,
                 canSkipPrevious = true,
                 canSkipNext = true,
