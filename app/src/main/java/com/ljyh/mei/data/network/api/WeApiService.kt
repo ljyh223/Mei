@@ -24,5 +24,4 @@ interface WeApiService {
 
     @POST("/weapi/v1/radio/get")
     suspend fun getRadio(@Body body: Map<String,String> = mapOf()): Radio
-
 }

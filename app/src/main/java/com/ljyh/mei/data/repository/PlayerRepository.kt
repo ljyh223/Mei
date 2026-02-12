@@ -1,6 +1,7 @@
 package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.data.model.Lyric
+import com.ljyh.mei.data.model.api.GetIntelligence
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.qq.u.GetLyricData
@@ -132,6 +133,29 @@ class PlayerRepository(
             } catch (e: IOException) {
                 // 处理网络连接等 IO 异常
                 Resource.Error("网络异常，请检查你的网络连接")
+            }
+        }
+    }
+
+    suspend fun getRadio(){
+        withContext(Dispatchers.IO){
+            safeApiCall {
+                weApiService.getRadio()
+            }
+        }
+    }
+
+
+    suspend fun getIntelligenceList(id: String, playlistId: String, startSongId:String){
+        withContext(Dispatchers.IO){
+            safeApiCall {
+                apiService.getIntelligenceList(
+                    GetIntelligence(
+                        songId = id,
+                        playlistId = playlistId,
+                        startMusicId = startSongId
+                    )
+                )
             }
         }
     }
