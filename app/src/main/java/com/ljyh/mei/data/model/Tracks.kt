@@ -2,7 +2,7 @@ package com.ljyh.mei.data.model
 import com.google.gson.annotations.SerializedName
 
 
-data class TrackAll(
+data class Tracks(
     @SerializedName("code")
     val code: Int,
     @SerializedName("privileges")

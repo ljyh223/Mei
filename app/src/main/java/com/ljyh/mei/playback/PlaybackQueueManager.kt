@@ -10,7 +10,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.ljyh.mei.data.model.PLACEHOLDER_URI
 import com.ljyh.mei.data.model.createPlaceholder
 import com.ljyh.mei.data.model.toMediaItem
+import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.api.ApiService
+import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.playback.queue.Queue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
 class PlaybackQueueManager(
     private val player: ExoPlayer,
     private val apiService: ApiService,
+    private val weApiService: WeApiService,
     private val scope: CoroutineScope
 ) : Player.Listener {
 
@@ -31,41 +34,110 @@ class PlaybackQueueManager(
 
     private val _isShuffleModeEnabled = MutableStateFlow(false)
     var isFmMode = false
+    private var isFetchingFm = false
+
 
     init {
         player.addListener(this)
     }
 
-    suspend fun startFmMode(seedSongId: String?) {
-        isFmMode = true
-        player.clearMediaItems()
-        // 获取第一批推荐
-        fetchAndAppendFmRecommendations(seedSongId)
+    fun startFmMode(seedItem: MediaItem) {
+        scope.launch(Dispatchers.Main) {
+            isFmMode = true
+            _queueState.value = QueueState.Loading("私人 FM")
+
+            // 1. 准备播放器环境
+            player.stop()
+            player.clearMediaItems()
+            player.shuffleModeEnabled = false
+            _isShuffleModeEnabled.value = false
+            player.repeatMode = Player.REPEAT_MODE_ALL
+
+            // 2. 立即添加种子歌曲并播放 (保证 UI 立即显示正确的封面和标题)
+            player.addMediaItem(seedItem)
+            player.prepare()
+            player.play()
+
+            // 3. 异步获取 FM 推荐列表并追加
+            // 注意：这里传 seedItem.mediaId 是为了告诉 API 排除掉当前这一首（取决于 API 支持）
+            fetchAndAppendFmRecommendations(seedItem.mediaId)
+        }
     }
 
-    suspend fun fetchAndAppendFmRecommendations(seedId: String? = null) {
+    fun startFmModeById(seedId: String?) {
+        scope.launch(Dispatchers.Main) {
+            if (seedId == null) {
+                isFmMode = true
+                fetchAndAppendFmRecommendations()
+            } else {
+                // 先加载这首歌的详情，再调用上面的方法
+                val details = loadSongDetails(listOf(seedId))
+                if (details.isNotEmpty()) {
+                    startFmMode(details.first())
+                } else {
+                    // 如果加载失败，降级处理：直接进入普通 FM
+                    isFmMode = true
+                    fetchAndAppendFmRecommendations()
+                }
+            }
+
+        }
+    }
+
+    suspend fun fetchAndAppendFmRecommendations(currentId: String? = null) {
+        if (isFetchingFm) return
+        isFetchingFm = true
         try {
-            // 1. 获取当前正在播放的 ID 作为种子，或者使用传入的 seed
-            val currentId = if (player.mediaItemCount > 0) {
-                player.currentMediaItem?.mediaId
-            } else seedId
+            // 调用 FM 接口
+            val response = weApiService.getRadio(mapOf())
+            if (response.code == 200 && response.data.isNotEmpty()) {
 
-            // 2. 调用 API 获取推荐 (你需要实现这个 API)
-            // val newSongs = apiService.getRecommendations(currentId)
+                // 过滤掉当前正在播放的 ID，防止重复
+                val items = response.data
+                    .filter { it.id.toString() != currentId }
+                    .map { it.toMediaMetadata().toMediaItem() }
 
-            // 3. 转换为 MediaItem
-            // val items = newSongs.map { it.toMediaItem() }
+                withContext(Dispatchers.Main) {
+                    // 追加到列表末尾
+                    player.addMediaItems(items)
 
-            // 4. 添加到播放列表末尾
-            // withContext(Dispatchers.Main) {
-            //     player.addMediaItems(items)
-            //     if (player.playbackState == Player.STATE_IDLE) {
-            //         player.prepare()
-            //         player.play()
-            //     }
-            // }
+                    _queueState.value = QueueState.Playing("私人 FM", player.mediaItemCount)
+
+                    // 触发占位符检查（如果你 FM 接口返回的是简略信息需要补全详情的话）
+                    checkAndLoadMetadata()
+                }
+            }
         } catch (e: Exception) {
-            Log.e("QueueManager", "Failed to fetch FM songs", e)
+            Log.e(TAG, "FM Fetch Error", e)
+        } finally {
+            isFetchingFm = false
+        }
+    }
+
+
+    fun fmTrashCurrent() {
+        if (!isFmMode) return
+
+        val currentIndex = player.currentMediaItemIndex
+        val currentId = player.currentMediaItem?.mediaId ?: return
+
+        scope.launch {
+            try {
+                // 1. 调用云音乐的“不喜欢”接口 (建议在 apiService 中实现)
+                // apiService.dislikeSong(currentId)
+
+                withContext(Dispatchers.Main) {
+                    // 2. 移除当前项，ExoPlayer 会自动切换到下一首
+                    player.removeMediaItem(currentIndex)
+
+                    // 3. 如果移除后快没了，赶紧补充
+                    if (player.mediaItemCount - player.currentMediaItemIndex <= 2) {
+                        fetchAndAppendFmRecommendations()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Trash failed", e)
+            }
         }
     }
 
@@ -135,14 +207,41 @@ class PlaybackQueueManager(
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        // 只有当自动切歌、手动切歌、列表变化时才触发
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
-            reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK ||
-            reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
-        ) {
-            checkAndLoadMetadata()
+        if (mediaItem == null) return
+
+        // 基础元数据加载逻辑
+        checkAndLoadMetadata()
+
+        // --- 新增 FM 边界检查 ---
+        if (isFmMode) {
+            val currentIndex = player.currentMediaItemIndex
+            val totalCount = player.mediaItemCount
+
+            // 当播放到倒数第 2 首时，自动拉取新歌
+            if (totalCount - currentIndex <= 2) {
+                scope.launch {
+                    fetchAndAppendFmRecommendations()
+                }
+            }
+
+            // 可选：清理历史，防止内存溢出（保留当前和上一首，删除更早的）
+            if (currentIndex > 5) {
+                player.removeMediaItems(0, currentIndex - 1)
+            }
         }
     }
+
+    fun setShuffleModeEnabled(enabled: Boolean) {
+        if (isFmMode && enabled) {
+            Log.w(TAG, "Shuffle is not allowed in FM mode")
+            return
+        }
+        scope.launch(Dispatchers.Main) {
+            _isShuffleModeEnabled.value = enabled
+            player.shuffleModeEnabled = enabled
+        }
+    }
+
 
     private fun checkAndLoadMetadata(windowSize: Int = 3) {
         scope.launch(Dispatchers.Main) {
@@ -164,7 +263,8 @@ class PlaybackQueueManager(
                 // 如果当前已经是最后一个，next 会变成 INDEX_UNSET (-1)
                 if (next == C.INDEX_UNSET) break
 
-                next = timeline.getNextWindowIndex(next, player.repeatMode, player.shuffleModeEnabled)
+                next =
+                    timeline.getNextWindowIndex(next, player.repeatMode, player.shuffleModeEnabled)
                 if (next != C.INDEX_UNSET) {
                     indicesToCheck.add(next)
                 }
@@ -176,7 +276,11 @@ class PlaybackQueueManager(
                 // 如果当前已经是第一个，prev 会变成 INDEX_UNSET (-1)
                 if (prev == C.INDEX_UNSET) break
 
-                prev = timeline.getPreviousWindowIndex(prev, player.repeatMode, player.shuffleModeEnabled)
+                prev = timeline.getPreviousWindowIndex(
+                    prev,
+                    player.repeatMode,
+                    player.shuffleModeEnabled
+                )
                 if (prev != C.INDEX_UNSET) {
                     indicesToCheck.add(prev)
                 }
@@ -230,7 +334,8 @@ class PlaybackQueueManager(
                         // 只有当 ID 匹配，且当前确实是占位符时才替换
                         // 这样即使 index 错位了（比如变成了别的歌），因为 ID 不匹配，也不会错误替换
                         if (newItem != null) {
-                            val isStillPlaceholder = currentItem.localConfiguration?.uri.toString() == PLACEHOLDER_URI
+                            val isStillPlaceholder =
+                                currentItem.localConfiguration?.uri.toString() == PLACEHOLDER_URI
 
                             // 只有当它是占位符，或者我们要强制刷新时才替换
                             if (isStillPlaceholder) {
@@ -242,6 +347,7 @@ class PlaybackQueueManager(
             }
         }
     }
+
     /**
      * 添加到队列末尾
      */
@@ -270,13 +376,6 @@ class PlaybackQueueManager(
         }
     }
 
-    fun setShuffleModeEnabled(enabled: Boolean) {
-        scope.launch(Dispatchers.Main) {
-            if (_isShuffleModeEnabled.value == enabled) return@launch
-            _isShuffleModeEnabled.value = enabled
-            player.shuffleModeEnabled = enabled
-        }
-    }
 
     private suspend fun loadSongDetails(ids: List<String>): List<MediaItem> {
         return withContext(Dispatchers.IO) {

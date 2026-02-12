@@ -111,7 +111,7 @@ data class SongInfo(
     @SerializedName("t")
     val t: Int,
     @SerializedName("tns")
-    val tns: List<String>,
+    val tns: List<String>?,
     @SerializedName("v")
     val v: Int
 )
@@ -139,7 +139,7 @@ data class Ar(
     @SerializedName("name")
     val name: String,
     @SerializedName("tns")
-    val tns: List<Any>
+    val tns: List<String>?
 )
 
 data class H(

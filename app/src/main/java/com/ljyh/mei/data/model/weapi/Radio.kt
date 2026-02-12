@@ -102,7 +102,7 @@ data class Data(
     @SerializedName("transName")
     val transName: String,
     @SerializedName("transNames")
-    val transNames: List<String>
+    val transNames: List<String>?
 )
 
 class ExtTransMap
@@ -162,7 +162,7 @@ data class ArtistXX(
     @SerializedName("albumSize")
     val albumSize: Int,
     @SerializedName("alias")
-    val alias: List<Any>,
+    val alias: List<String>?,
     @SerializedName("briefDesc")
     val briefDesc: String,
     @SerializedName("id")

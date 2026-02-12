@@ -135,6 +135,7 @@ class MusicService : MediaLibraryService(),
     @Inject
     lateinit var apiService: ApiService
 
+
     @Inject
     lateinit var historyRepository: HistoryRepository
 
@@ -277,7 +278,7 @@ class MusicService : MediaLibraryService(),
         connectivityManager = getSystemService(ConnectivityManager::class.java)
 
         // 初始化队列管理器
-        queueManager = PlaybackQueueManager( player, apiService, scope)
+        queueManager = PlaybackQueueManager( player, apiService, weApiService, scope)
 
 
     }
@@ -528,16 +529,14 @@ class MusicService : MediaLibraryService(),
     }
 
     private fun checkFmModeLoadMore() {
-        // 假设你有办法判断当前是否是 FM 模式
-        // if (!queueManager.isFmMode) return
+        if (!queueManager.isFmMode) return
 
         val current = player.currentMediaItemIndex
         val total = player.mediaItemCount
-        val threshold = 2 // 剩余少于2首时加载
+        val threshold = 3 // 剩余少于3首时加载
 
         if (total - current <= threshold) {
             scope.launch {
-                // 调用 QueueManager 的加载方法
                 queueManager.fetchAndAppendFmRecommendations()
             }
         }

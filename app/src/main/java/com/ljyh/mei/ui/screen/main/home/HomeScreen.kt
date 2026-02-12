@@ -1,5 +1,8 @@
 package com.ljyh.mei.ui.screen.main.home
 
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,12 +52,15 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
+import com.ljyh.mei.data.model.toMediaItem
+import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.home.CardExtInfo
 import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.component.home.RecommendCard
+import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.playlist.PlayingImageView
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -69,7 +75,8 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    playerViewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val navController = LocalNavController.current
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -127,14 +134,17 @@ fun HomeScreen(
                             HomeBlockItem(
                                 block = block,
                                 navController = navController,
-                                viewModel = viewModel
+                                viewModel = viewModel,
+                                playerViewModel = playerViewModel
                             )
                         }
                     }
                 }
+
                 is Resource.Error -> {
                     // 这里可以加一个错误重试页面
                 }
+
                 Resource.Loading -> {
                     // 这里可以加 Loading Skeleton
                 }
@@ -151,10 +161,60 @@ fun HomeScreen(
 private fun HomeBlockItem(
     block: HomePageResourceShow.Data.Block,
     navController: NavController,
-    viewModel: HomeViewModel
+    viewModel: HomeViewModel,
+    playerViewModel: PlayerViewModel
 ) {
     val gson = remember { Gson() }
     val playerConnection = LocalPlayerConnection.current ?: return
+
+    // Watch intelligence list for Success state to play the queue
+    val intelligenceList by playerViewModel.intelligenceList.collectAsState()
+    val intelligenceFirstSong by playerViewModel.songDetail.collectAsState()
+
+    LaunchedEffect(intelligenceFirstSong) {
+        when(val result= intelligenceFirstSong){
+            is Resource.Error -> {
+                Timber.tag("IntelligenceList").d("Error: ${result.message}")
+            }
+            Resource.Loading -> {
+                Timber.tag("IntelligenceList").d("Loading")
+            }
+            is Resource.Success -> {
+                Timber.tag("IntelligenceList").d("Success: ${result.data}")
+
+            }
+        }
+
+    }
+
+    // Watch for Success state and play the queue
+    LaunchedEffect(intelligenceList) {
+        if (intelligenceList is Resource.Success) {
+            val songs = (intelligenceList as Resource.Success).data.data
+            val items = songs.map {
+                it.toMediaMetadata().toMediaItem()
+            }.toMutableList()
+
+            if (intelligenceFirstSong is Resource.Success) {
+                (intelligenceFirstSong as Resource.Success).data.songs.firstOrNull()
+                    ?.toMediaMetadata()?.toMediaItem()?.let {
+                    items.add(0, it)
+                }
+            }
+
+            Timber.tag("IntelligenceList").d("Playing ${songs.size} songs")
+
+            playerConnection.playQueue(
+                ListQueue(
+                    id = "intelligence-${System.currentTimeMillis()}",
+                    title = "心动模式",
+                    items = items.map { it.mediaId to it },
+                    startIndex = 0,
+                    position = 0
+                )
+            )
+        }
+    }
 
     // 解析逻辑缓存，只要 block 不变，就不会重新解析 JSON
     val blockData = remember(block) {
@@ -169,7 +229,10 @@ private fun HomeBlockItem(
         "PAGE_RECOMMEND_DAILY_RECOMMEND" -> {
             val resources = remember(blockData) {
                 blockData.get("resources").asJsonArray.map {
-                    gson.fromJson(it.asJsonObject, HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java)
+                    gson.fromJson(
+                        it.asJsonObject,
+                        HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                    )
                 }
             }
 
@@ -177,33 +240,60 @@ private fun HomeBlockItem(
                 title = getGreeting(),
                 resources = resources
             ) { resource ->
+
+                if (resource.resourceType == "star" && intelligenceFirstSong !is Resource.Success) {
+                    resource.extInfo.songId?.let { songId ->
+                        Timber.tag("IntelligenceList").d("Getting song detail for $songId")
+                        playerViewModel.getSongDetail(songId)
+                    }
+
+                }
                 RecommendCard(
                     cover = resource.coverImg,
                     title = resource.singleLineTitle,
                     extInfo = CardExtInfo(
-                        icon = resource.iconDesc.image,
+                        icon = resource.iconDesc?.image,
                         text = resource.subTitle
                     ),
                     viewModel = viewModel
                 ) {
                     when (resource.resourceType) {
-                        "dailySongs"-> Screen.EveryDay.navigate(navController)
-                        "star"->{
-//                            val id = resource.extInfo.firstSongPlayInfo.songData
+                        "dailySongs" -> Screen.EveryDay.navigate(navController)
+                        "star" -> {
+                            val playlistId = resource.resourceId
+                            resource.extInfo.songId?.let { songId ->
+                                playerViewModel.intelligenceList(songId, playlistId, songId)
+                            }
+
                             // 心动模式，发了ids
                         }
-                        "fm"->{
+
+                        "fm" -> {
                             // 私人FM
-                            // val id = resource.resourceId
+                            playerConnection.fmStart(resource.resourceId)
+
                         }
-                        "similarSong" ->{
+
+                        "similarSo  ng" -> {
+                            // 相似歌曲
+                            //val id = resource.resourceId // 需要解析 json
 //                            "resourceId": [
 //                            "2060083093",
 //                            "2060086839",
 //                            "2097485069"
 //                            ]
                         }
-                        "dailySongs"->{}
+
+                        "dailySongs" -> {}
+                        "similarArtist" -> {
+                            // 从喜欢的艺人听起
+                            // val ids = resourceId // 需要解析 json， 跳转艺人界面
+                            val artistIds =
+                                gson.fromJson(resource.resourceId, Array<String>::class.java)
+                            Screen.Artist.navigate(navController) {
+                                addPath(artistIds[0])
+                            }
+                        }
 
                         "playList" -> Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
                     }
@@ -218,18 +308,21 @@ private fun HomeBlockItem(
         "PAGE_RECOMMEND_RANK",
         "PAGE_RECOMMEND_MY_SHEET" -> {
             // 将这些相似的逻辑合并处理，减少代码重复
-            val title = if(block.positionCode == "PAGE_RECOMMEND_RADAR")
+            val title = if (block.positionCode == "PAGE_RECOMMEND_RADAR")
                 (blockData.get("title")?.asString ?: "雷达歌单")
             else blockData.get("title").asString
 
             // 处理数据源字段差异
-            val resourceArray = if(block.positionCode == "PAGE_RECOMMEND_RADAR")
+            val resourceArray = if (block.positionCode == "PAGE_RECOMMEND_RADAR")
                 (blockData.get("resources") ?: blockData.get("blockResource")).asJsonArray
             else blockData.get("resources").asJsonArray
 
             val resources = remember(resourceArray) {
                 resourceArray.map {
-                    gson.fromJson(it.asJsonObject, HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java)
+                    gson.fromJson(
+                        it.asJsonObject,
+                        HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
+                    )
                 }.let { list ->
                     // 如果是我的歌单，去掉最后一个（通常是添加按钮或其他）
                     if (block.positionCode == "PAGE_RECOMMEND_MY_SHEET") list.dropLast(1) else list
@@ -260,7 +353,10 @@ private fun HomeBlockItem(
 
             val songsBlocks = remember(itemsArray) {
                 itemsArray.map {
-                    gson.fromJson(it.asJsonObject, HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item::class.java)
+                    gson.fromJson(
+                        it.asJsonObject,
+                        HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item::class.java
+                    )
                 }
             }
 
@@ -277,7 +373,7 @@ private fun HomeBlockItem(
                         buildQueue = {
                             ListQueue(
                                 id = UUID.randomUUID().toString(),
-                                title = if(block.positionCode == "PAGE_RECOMMEND_PRIVATE_RCMD_SONG") "PRIVATE_RCMD_SONG" else "RED_SIMILAR_SONG",
+                                title = if (block.positionCode == "PAGE_RECOMMEND_PRIVATE_RCMD_SONG") "PRIVATE_RCMD_SONG" else "RED_SIMILAR_SONG",
                                 items = flatSongs,
                                 startIndex = index
                             )
@@ -332,7 +428,7 @@ fun TripleLaneSlider(
     songsArray: List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>,
     onClick: (List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>, Int) -> Unit
 ) {
-    val playerConnection = LocalPlayerConnection.current?: return
+    val playerConnection = LocalPlayerConnection.current ?: return
     val currentMetadata by playerConnection.mediaMetadata.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
 

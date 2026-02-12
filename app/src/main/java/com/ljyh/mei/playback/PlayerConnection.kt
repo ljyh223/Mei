@@ -116,6 +116,12 @@ class PlayerConnection(
         }
     }
 
+    fun fmStart(firstSongId: String? = null) {
+        service.scope.launch {
+            service.queueManager.startFmModeById(firstSongId)
+        }
+    }
+
 
     fun playQueue(queue: ListQueue) {
         // 判断当前 UI 上的模式是否是随机模式

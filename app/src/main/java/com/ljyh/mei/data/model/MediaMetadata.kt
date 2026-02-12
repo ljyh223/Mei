@@ -132,6 +132,33 @@ fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
 )
 
 
+// For Intelligence mode - converts Intelligence.Data.songInfo to MediaMetadata
+fun com.ljyh.mei.data.model.api.Data.toMediaMetadata() = MediaMetadata(
+    id = songInfo.id,
+    title = songInfo.name,
+    coverUrl = songInfo.al.picUrl,
+    artists = songInfo.ar.map {
+        MediaMetadata.Artist(id = it.id.toLong(), name = it.name, alias = it.tns)
+    },
+    duration = songInfo.dt.toLong(),
+    album = MediaMetadata.Album(id = songInfo.al.id.toLong(), title = songInfo.al.name),
+    tns = songInfo.tns?.firstOrNull()
+)
+
+// For FM mode - converts Radio.Data to MediaMetadata
+fun com.ljyh.mei.data.model.weapi.Data.toMediaMetadata() = MediaMetadata(
+    id = id,
+    title = name,
+    coverUrl = album.picUrl,
+    artists = artists.map {
+        MediaMetadata.Artist(id = it.id.toLong(), name = it.name, alias = it.alias)
+    },
+    duration = duration.toLong(),
+    album = MediaMetadata.Album(id = album.id.toLong(), title = album.name),
+    tns = transNames?.firstOrNull()
+)
+
+
 
 
 @OptIn(UnstableApi::class)
@@ -193,6 +220,7 @@ fun MediaMetadata.toMediaItem() = MediaItem.Builder()
 
 val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata
+
 
 data class SongEntity(
     val id: Long,

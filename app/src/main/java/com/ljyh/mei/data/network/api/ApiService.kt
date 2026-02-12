@@ -5,7 +5,7 @@ import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.SongUrl
-import com.ljyh.mei.data.model.TrackAll
+import com.ljyh.mei.data.model.Tracks
 import com.ljyh.mei.data.model.UserAccount
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
@@ -52,10 +52,10 @@ interface ApiService {
     suspend fun getPlaylistDetail(@Body body: GetPlaylistDetail): PlaylistDetail
 
     /*
-    * 获取歌单详情
+    * 获取歌曲详情
     * */
     @POST("/api/v3/song/detail")
-    suspend fun getSongDetail(@Body body: GetSongDetails): TrackAll
+    suspend fun getSongDetail(@Body body: GetSongDetails): Tracks
 
 
     /*

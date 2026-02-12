@@ -1,15 +1,19 @@
 package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.data.model.Lyric
+import com.ljyh.mei.data.model.Tracks
 import com.ljyh.mei.data.model.api.GetIntelligence
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
+import com.ljyh.mei.data.model.api.GetSongDetails
+import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.qq.u.GetLyricData
 import com.ljyh.mei.data.model.qq.u.GetSearchData
 import com.ljyh.mei.data.model.qq.u.GetSearchData.Comm1
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.weapi.Like
+import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.mei.data.network.QQMusicUApiService
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
@@ -137,8 +141,8 @@ class PlayerRepository(
         }
     }
 
-    suspend fun getRadio(){
-        withContext(Dispatchers.IO){
+    suspend fun getRadio(): Resource<Radio>{
+        return withContext(Dispatchers.IO){
             safeApiCall {
                 weApiService.getRadio()
             }
@@ -146,8 +150,8 @@ class PlayerRepository(
     }
 
 
-    suspend fun getIntelligenceList(id: String, playlistId: String, startSongId:String){
-        withContext(Dispatchers.IO){
+    suspend fun getIntelligenceList(id: String, playlistId: String, startSongId:String): Resource<Intelligence>{
+        return withContext(Dispatchers.IO){
             safeApiCall {
                 apiService.getIntelligenceList(
                     GetIntelligence(
@@ -155,6 +159,16 @@ class PlayerRepository(
                         playlistId = playlistId,
                         startMusicId = startSongId
                     )
+                )
+            }
+        }
+    }
+
+    suspend fun getSongDetail(id: String): Resource<Tracks>{
+        return withContext(Dispatchers.IO){
+            safeApiCall {
+                apiService.getSongDetail(
+                    GetSongDetails(id)
                 )
             }
         }

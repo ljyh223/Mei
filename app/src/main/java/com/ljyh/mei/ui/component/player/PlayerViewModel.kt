@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.component.player
 
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.datastore.dataStore
 import androidx.lifecycle.ViewModel
@@ -7,13 +8,16 @@ import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.Tracks
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
+import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
+import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
@@ -68,6 +72,14 @@ class PlayerViewModel @Inject constructor(
 
     private val _createPlaylist = MutableStateFlow<Resource<CreatePlaylistResult>>(Resource.Loading)
     val createPlaylist: StateFlow<Resource<CreatePlaylistResult>> = _createPlaylist
+
+
+    private val _intelligenceList = MutableStateFlow<Resource<Intelligence>>(Resource.Loading)
+    val intelligenceList: StateFlow<Resource<Intelligence>> = _intelligenceList
+
+
+    private val _songDetail = MutableStateFlow<Resource<Tracks>>(Resource.Loading)
+    val songDetail: StateFlow<Resource<Tracks>> = _songDetail
 
 
     var mediaMetadata: MediaMetadata? = null
@@ -233,6 +245,22 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             _createPlaylist.value = Resource.Loading
             _createPlaylist.value = playlistRepository.createPlaylist(name, privacy, type)
+        }
+    }
+
+    fun intelligenceList(id: String, playlistId: String, startSongId: String) {
+        viewModelScope.launch {
+            _intelligenceList.value = Resource.Loading
+            _intelligenceList.value = repository.getIntelligenceList(id, playlistId, startSongId)
+        }
+    }
+
+    fun getSongDetail(id:String){
+        viewModelScope.launch {
+            _songDetail.value = Resource.Loading
+            val result = repository.getSongDetail(id)
+            Log.d("songDetail", "getSongDetail: $result")
+            _songDetail.value = result
         }
     }
 
