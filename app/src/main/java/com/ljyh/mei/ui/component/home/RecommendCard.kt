@@ -192,4 +192,4 @@ fun RecommendCard(
         }
     }
 }
-data class CardExtInfo(val icon: String?, val text: String)
+data class CardExtInfo(val icon: String?=null, val text: String)

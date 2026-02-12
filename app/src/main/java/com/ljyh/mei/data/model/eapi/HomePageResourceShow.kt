@@ -287,7 +287,7 @@ data class HomePageResourceShow(
                         @SerializedName("subTitle")
                         val subTitle: String,
                         @SerializedName("iconDesc")
-                        val iconDesc: IconDesc,
+                        val iconDesc: IconDesc?,
                         @SerializedName("lunaItemType")
                         val lunaItemType: String,
                         @SerializedName("action")
@@ -383,7 +383,9 @@ data class HomePageResourceShow(
                             @SerializedName("useMiniIcon")
                             val useMiniIcon: Boolean,
                             @SerializedName("topGradient")
-                            val topGradient: String
+                            val topGradient: String,
+                            @SerializedName("songId")
+                            val songId: String? = null,
                         )
 
                         data class ResourceInteractInfo(
