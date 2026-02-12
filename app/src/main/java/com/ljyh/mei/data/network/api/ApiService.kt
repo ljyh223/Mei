@@ -21,6 +21,7 @@ import com.ljyh.mei.data.model.api.GetAlbumList
 import com.ljyh.mei.data.model.api.GetArtistAlbum
 import com.ljyh.mei.data.model.api.GetArtistDetail
 import com.ljyh.mei.data.model.api.GetArtistSong
+import com.ljyh.mei.data.model.api.GetIntelligence
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
@@ -31,6 +32,7 @@ import com.ljyh.mei.data.model.api.GetSongUrl
 import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
+import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.api.SearchResult
@@ -146,5 +148,8 @@ interface ApiService {
 
     @POST("/api/v1/artist/{id}")
     suspend fun getArtistSongs(@Body body: GetArtistSong, @Path("id") id: String): ArtistSong
+
+    @POST("/api/playmode/intelligence/list")
+    suspend fun getIntelligenceList(@Body body: GetIntelligence): Intelligence
 
 }
