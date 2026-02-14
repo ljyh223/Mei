@@ -37,6 +37,8 @@ import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.constants.PlayerStyle
 import com.ljyh.mei.constants.PlayerStyleKey
+import com.ljyh.mei.constants.PlaylistCoverStyle
+import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
@@ -106,6 +108,11 @@ fun AppearanceSettings(
         key = PlayerStyleKey,
         defaultValue = PlayerStyle.AppleMusic
     )
+
+    val (playlistStyle, onPlaylistStyleChange) = rememberEnumPreference(
+        key = PlaylistCoverStyleKey,
+        defaultValue = PlaylistCoverStyle.Combination
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -139,6 +146,23 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.Palette, null) },
                 checked = dynamicTheme,
                 onCheckedChange = onDynamicThemeChange
+            )
+            PreferenceGroupTitle(
+                title = "PLAYLIST"
+            )
+
+            EnumListPreference(
+                title = { Text("歌单封面样式") },
+                icon = { Icon(Icons.Rounded.Image, null) },
+                selectedValue = playlistStyle,
+                onValueSelected = onPlaylistStyleChange,
+                valueText = {
+                    when (it) {
+                        PlaylistCoverStyle.Cover -> "封面"
+                        PlaylistCoverStyle.FirstSongImage -> "第一首歌曲封面"
+                        PlaylistCoverStyle.Combination -> "组合图片"
+                    }
+                }
             )
 
             PreferenceGroupTitle(

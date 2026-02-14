@@ -51,7 +51,8 @@ fun EveryDay(
                 title = "每日推荐",
                 count = data.size,
                 subscriberCount = -1,
-                coverUrl = data.take(6).map { it.al.picUrl },
+                cover = data[0].al.picUrl,
+                coverList = data.take(6).map { it.al.picUrl },
                 creatorName = "网易云音乐",
                 isCreator = false,
                 description = "根据你的音乐口味生成，每天6:00更新",
@@ -61,7 +62,7 @@ fun EveryDay(
             )
         } else {
             UiPlaylist(
-                id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
+                id = "", title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0,
                 subscriberCount = 0,
                 isCreator = false,

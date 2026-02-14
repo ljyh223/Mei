@@ -120,7 +120,8 @@ fun PlaylistScreen(
                 title = data.name,
                 count = data.trackCount,
                 subscriberCount = data.subscribedCount,
-                coverUrl = data.tracks.take(6).map { it.al.picUrl },
+                cover = data.coverImgUrl,
+                coverList = data.tracks.take(6).map { it.al.picUrl },
                 creatorName = data.creator.nickname,
                 isCreator = data.creator.userId.toString() == userId,
                 description = data.description,
@@ -131,7 +132,7 @@ fun PlaylistScreen(
             )
         } else {
             UiPlaylist(
-                id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
+                id = "", title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0, subscriberCount = 0, isCreator = false, description = "",
                 trackCount = 0, playCount = 0, isSubscribed = false
             )

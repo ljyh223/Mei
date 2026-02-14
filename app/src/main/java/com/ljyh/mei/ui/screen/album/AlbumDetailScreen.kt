@@ -95,7 +95,8 @@ fun AlbumDetailScreen(
                 title = album.name,
                 count = album.size,
                 subscriberCount = -1, // 专辑通常没有订阅人数，或者在 dynamicInfo 中
-                coverUrl = listOf(album.picUrl),
+                cover = album.picUrl,
+                coverList = listOf(album.picUrl),
                 creatorName = album.artists.joinToString(", ") { it.name },
                 isCreator = false,
                 description = album.description,
@@ -105,7 +106,7 @@ fun AlbumDetailScreen(
             )
         } else {
             UiPlaylist(
-                id = "", title = "", coverUrl = emptyList(), creatorName = "", tracks = emptyList(),
+                id = "", title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0, subscriberCount = 0, isCreator = false, description = "",
                 trackCount = 0, playCount = 0, isSubscribed = false
             )

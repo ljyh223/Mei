@@ -67,6 +67,8 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import coil3.compose.AsyncImage
+import com.ljyh.mei.constants.PlaylistCoverStyle
+import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
@@ -80,6 +82,7 @@ import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.setClipboard
 import timber.log.Timber
 
@@ -122,9 +125,9 @@ fun CommonSongListScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (!isLoading && uiData.coverUrl.isNotEmpty()) {
+        if (!isLoading && uiData.cover.isNotEmpty()) {
             PlaylistBackground(
-                coverUrl = uiData.coverUrl[0],
+                coverUrl = uiData.cover,
             )
         }
 
@@ -188,7 +191,8 @@ fun CommonSongListScreen(
                         item {
                             GenericHeader(
                                 title = uiData.title,
-                                cover = uiData.coverUrl,
+                                cover = uiData.cover,
+                                coverList = uiData.coverList,
                                 creator = uiData.creatorName,
                                 onPlayAll = onPlayAll,
                                 actionIcon = headerActionIcon,
@@ -325,7 +329,8 @@ fun GenericHeader(
     count: Int,
     playCount: Long,
     subscribeCount: Long,
-    cover: List<String>,
+    cover:String,
+    coverList: List<String>,
     creator: String,
     isSubscribed: Boolean,
     onPlayAll: () -> Unit,
@@ -334,7 +339,7 @@ fun GenericHeader(
     actionLabel: String,
 ) {
 
-
+    val playlistCoverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Combination)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -347,19 +352,44 @@ fun GenericHeader(
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
             modifier = Modifier.size(220.dp)
         ) {
-            if (cover.size < 5) {
-                AsyncImage(
-                    model = cover.firstOrNull(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                FinalPerfectCollage(
-                    imageUrls = cover,
-                    modifier = Modifier.fillMaxSize()
-                )
+
+            when (playlistCoverStyle) {
+                PlaylistCoverStyle.Cover -> {
+                    AsyncImage(
+                        model = cover,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                PlaylistCoverStyle.FirstSongImage -> {
+                    AsyncImage(
+                        model = coverList.firstOrNull(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+
+                PlaylistCoverStyle.Combination -> {
+
+                    if (coverList.size < 5) {
+                        AsyncImage(
+                            model = cover.firstOrNull(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        FinalPerfectCollage(
+                            imageUrls = coverList,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
             }
+
+
         }
 
         Spacer(modifier = Modifier.height(24.dp))

@@ -56,12 +56,19 @@ val OriginalCoverKey = booleanPreferencesKey("originalCover")
 val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
 
 val PlayerStyleKey = stringPreferencesKey("playerStyle")
+val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
 
 enum class PlayerStyle {
     AppleMusic,
     Classic
 }
 
+
+enum class PlaylistCoverStyle {
+    Cover,
+    FirstSongImage,
+    Combination
+}
 enum class CoverStyle {
     Circle,
     Square
