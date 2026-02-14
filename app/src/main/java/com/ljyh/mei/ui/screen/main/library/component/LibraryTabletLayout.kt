@@ -97,7 +97,7 @@ fun LibraryTabletLayout(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(120.dp))
 
             // 将 Bento 的功能按钮化，放在底部作为快捷工具栏
             QuickActionGrid()
