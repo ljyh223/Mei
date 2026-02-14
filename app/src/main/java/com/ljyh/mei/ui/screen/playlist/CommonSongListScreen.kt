@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -82,6 +83,10 @@ import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionOverlay
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistHeader
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistShimmer
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.setClipboard
 import timber.log.Timber
@@ -124,7 +129,8 @@ fun CommonSongListScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isTablet = maxWidth > 600.dp
         if (!isLoading && uiData.cover.isNotEmpty()) {
             PlaylistBackground(
                 coverUrl = uiData.cover,
@@ -175,407 +181,118 @@ fun CommonSongListScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
+
                 if (isLoading) {
                     PlaylistShimmer()
                 } else {
-
-                    LazyColumn(
-                        state = lazyListState,
-                        contentPadding = PaddingValues(
-                            bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
-                                .calculateBottomPadding() + 16.dp
-                        ),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // 1. 通用头部
-                        item {
-                            GenericHeader(
-                                title = uiData.title,
-                                cover = uiData.cover,
-                                coverList = uiData.coverList,
-                                creator = uiData.creatorName,
-                                onPlayAll = onPlayAll,
-                                actionIcon = headerActionIcon,
-                                actionLabel = headerActionLabel,
-                                count = uiData.count,
-                                playCount = uiData.playCount ?: 0L,
-                                subscribeCount = uiData.subscriberCount,
-                                isSubscribed = uiData.isSubscribed,
-                                onSubscribed = {
-                                    onHeaderAction()
-                                }
-                            )
-                        }
-
-                        // 2. 歌曲列表
-                        if (pagingItems != null) {
-                            // === 分支 A: 使用 Paging 3 ===
-                            items(
-                                count = pagingItems.itemCount,
-                                key = pagingItems.itemKey { it.id }, // 使用 Paging 扩展的 key
-                                contentType = pagingItems.itemContentType { "Track" }
-                            ) { index ->
-                                val track = pagingItems[index]
-                                if (track != null) {
-                                    Track(
-                                        track = track,
-                                        onClick = { onTrackClick(track, index) },
-                                        onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(track) }
-                                    )
-                                } else {
-                                    // 可选：如果不禁用 placeholder，这里渲染一个简单的占位条
-                                }
-                            }
-
-                            // Paging 3 的底部加载状态处理
-                            when (pagingItems.loadState.append) {
-                                is LoadState.Loading -> {
-                                    item {
-                                        Box(
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator(Modifier.size(24.dp))
-                                        }
+                    if (isTablet) {
+                        // --- 平板布局：左右并排 ---
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            Box(modifier = Modifier.weight(0.4f)) {
+                                PlaylistHeader(
+                                    title = uiData.title,
+                                    cover = uiData.cover,
+                                    coverList = uiData.coverList,
+                                    creator = uiData.creatorName,
+                                    onPlayAll = onPlayAll,
+                                    actionIcon = headerActionIcon,
+                                    actionLabel = headerActionLabel,
+                                    count = uiData.count,
+                                    playCount = uiData.playCount ?: 0L,
+                                    subscribeCount = uiData.subscriberCount,
+                                    isSubscribed = uiData.isSubscribed,
+                                    onSubscribed = {
+                                        onHeaderAction()
                                     }
-                                }
-
-                                is LoadState.Error -> {
-                                    item { Text("加载更多失败，点击重试") }
-                                }
-
-                                else -> {}
-                            }
-
-                        } else {
-                            itemsIndexed(
-                                uiData.tracks,
-                                key = { _, item -> item.id }) { index, track ->
-                                Track(
-                                    track = track,
-                                    onClick = { onTrackClick(track, index) },
-                                    onMoreClick = { menuTargetTrack = track }
                                 )
                             }
-                        }
-                    }
-
-                    when (val overlay = currentOverlay) {
-                        is OverlayState.AddToPlaylist -> {
-                            AddToPlaylistSheet(
-                                playlists = allMePlaylist,
-                                onDismiss = { currentOverlay = OverlayState.None },
-                                onCreateNewPlaylist = {
-                                    currentOverlay = OverlayState.CreatePlaylist
-                                },
-                                onSelectPlaylist = { selectedPlaylist ->
-                                    viewModel.addSongToPlaylist(
-                                        pid = selectedPlaylist.id,
-                                        trackIds = overlay.mediaId.toString()
-                                    )
-                                    Toast.makeText(
-                                        context,
-                                        "已添加到 ${selectedPlaylist.title}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    Timber.tag("Playlist")
-                                        .d("Added ${selectedPlaylist.title} to ${selectedPlaylist.title}")
-                                }
+                            PlaylistTrackList(
+                                modifier = Modifier.weight(0.6f),
+                                pagingItems = pagingItems,
+                                staticTracks = uiData.tracks,
+                                isTablet = true,
+                                onTrackClick = onTrackClick,
+                                onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) }
                             )
                         }
-
-                        is OverlayState.TrackActionMenu->{
-                            TrackActionMenu(
-                                targetTrack = overlay.track,
-                                isCreator = uiData.isCreator,
-                                onDismiss = { currentOverlay = OverlayState.None },
-                                onAddToPlaylist = {
-                                    viewModel.getAllMePlaylist()
-                                    currentOverlay = OverlayState.AddToPlaylist(overlay.track.id)
-                                },
-                                onDelete = {
-                                    viewModel.deleteSongFromPlaylist(
-                                        uiData.id,
-                                        overlay.track.id.toString()
-                                    )
-                                    Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
-                                },
-                                onCopyId = {
-                                    setClipboard(context, overlay.track.id.toString(), "id")
-                                },
-                                onCopyName = {
-                                    setClipboard(context, overlay.track.title, "name")
-                                }
+                    }else{
+                        PlaylistTrackList(
+                            pagingItems = pagingItems,
+                            staticTracks = uiData.tracks,
+                            isTablet = false,
+                            // 关键：把 Header 作为参数传进去
+                            headerContent = {
+                                PlaylistHeader(
+                                    title = uiData.title,
+                                    cover = uiData.cover,
+                                    coverList = uiData.coverList,
+                                    creator = uiData.creatorName,
+                                    onPlayAll = onPlayAll,
+                                    actionIcon = headerActionIcon,
+                                    actionLabel = headerActionLabel,
+                                    count = uiData.count,
+                                    playCount = uiData.playCount ?: 0L,
+                                    subscribeCount = uiData.subscriberCount,
+                                    isSubscribed = uiData.isSubscribed,
+                                    onSubscribed = { onHeaderAction() }
+                                )
+                            },
+                            onTrackClick = onTrackClick,
+                            onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                            // 手机端需要考虑底部播放器的高度
+                            contentPadding = PaddingValues(
+                                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
                             )
-                        }
-
-                        else -> {}
-                    }
-                }
-            }
-        }
-
-    }
-
-
-}
-
-
-@Composable
-fun GenericHeader(
-    title: String,
-    count: Int,
-    playCount: Long,
-    subscribeCount: Long,
-    cover:String,
-    coverList: List<String>,
-    creator: String,
-    isSubscribed: Boolean,
-    onPlayAll: () -> Unit,
-    onSubscribed: (Boolean) -> Unit,
-    actionIcon: ImageVector,
-    actionLabel: String,
-) {
-
-    val playlistCoverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Combination)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-            modifier = Modifier.size(220.dp)
-        ) {
-
-            when (playlistCoverStyle) {
-                PlaylistCoverStyle.Cover -> {
-                    AsyncImage(
-                        model = cover,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                PlaylistCoverStyle.FirstSongImage -> {
-                    AsyncImage(
-                        model = coverList.firstOrNull(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                    )
-                }
-
-                PlaylistCoverStyle.Combination -> {
-
-                    if (coverList.size < 5) {
-                        AsyncImage(
-                            model = cover.firstOrNull(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        FinalPerfectCollage(
-                            imageUrls = coverList,
-                            modifier = Modifier.fillMaxSize()
                         )
                     }
-                }
-            }
 
-
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 2. Title & Metadata
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "By $creator",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = CircleShape
-            ) {
-                Text(
-                    text = "$count 首",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-            }
-        }
-
-        Text(
-            text = "播放 $playCount · 收藏 $subscribeCount",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 3. Action Buttons Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-
-            ActionButton(
-                icon = actionIcon,
-                text = actionLabel,
-                color = if (isSubscribed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = {
-                    onSubscribed(isSubscribed)
-                }
-            )
-
-
-            // Play All Button (Prominent)
-            Button(
-                onClick = onPlayAll,
-                contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(
-                    Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("播放全部")
-            }
-
-            // Download Button
-            ActionButton(
-                icon = Icons.Filled.Download,
-                text = "下载",
-                onClick = {
-//                    handleDownloadClick(
-//                        context = context,
-//                        isCreator = isCreator,
-//                        playlistDetail = playlistDetail,
-//                        onShowDialog = { count, ids ->
-//                            downloadCount.intValue = count
-//                            downloadIds.value = ids
-//                            showDownloadDialog.value = true
+//                    PlaylistHeader(
+//                        title = uiData.title,
+//                        cover = uiData.cover,
+//                        coverList = uiData.coverList,
+//                        creator = uiData.creatorName,
+//                        onPlayAll = onPlayAll,
+//                        actionIcon = headerActionIcon,
+//                        actionLabel = headerActionLabel,
+//                        count = uiData.count,
+//                        playCount = uiData.playCount ?: 0L,
+//                        subscribeCount = uiData.subscriberCount,
+//                        isSubscribed = uiData.isSubscribed,
+//                        onSubscribed = {
+//                            onHeaderAction()
 //                        }
 //                    )
+//                    PlaylistTrackList(
+//                        // 右侧滚动
+//                        pagingItems = pagingItems,
+//                        isTablet = true,
+//                        onTrackClick = { track, index -> onTrackClick(track, index) },
+//                        onMoreClick = { track ->
+//                            currentOverlay = OverlayState.TrackActionMenu(track)
+//                        },
+//                    )
                 }
+                // 1. 通用头部
+
+            }
+
+            PlaylistActionOverlay(
+                overlay = currentOverlay,
+                isCreator = uiData.isCreator,
+                playlistId = uiData.id,
+                allMePlaylist = allMePlaylist,
+                onDismiss = { currentOverlay = OverlayState.None },
+                onUpdateOverlay = { currentOverlay = it },
+                viewModel = viewModel
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+
     }
+
+
 }
 
-
-@Composable
-fun PlaylistShimmer() {
-    ShimmerHost {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            TextPlaceholder(
-                modifier = Modifier
-                    .size(220.dp)
-                    .clip(RoundedCornerShape(16.dp))
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-            TextPlaceholder(
-                modifier = Modifier
-                    .height(32.dp)
-                    .width(180.dp)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextPlaceholder(
-                modifier = Modifier
-                    .height(16.dp)
-                    .width(120.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ButtonPlaceholder(modifier = Modifier.size(48.dp))
-                TextPlaceholder(
-                    modifier = Modifier
-                        .height(48.dp)
-                        .width(140.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                )
-                ButtonPlaceholder(modifier = Modifier.size(48.dp))
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-            repeat(6) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextPlaceholder(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                    )
-
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        TextPlaceholder(
-                            modifier = Modifier
-                                .height(16.dp)
-                                .fillMaxWidth(0.6f) // 标题长度随机感
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextPlaceholder(
-                            modifier = Modifier
-                                .height(12.dp)
-                                .fillMaxWidth(0.4f) // 副标题更短
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-                    ButtonPlaceholder(modifier = Modifier.size(24.dp))
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun ActionButton(

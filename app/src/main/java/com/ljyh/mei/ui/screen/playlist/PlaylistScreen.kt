@@ -116,7 +116,7 @@ fun PlaylistScreen(
         if (playlistDetail is Resource.Success) {
             val data = (playlistDetail as Resource.Success).data.playlist
             UiPlaylist(
-                id = data.Id.toString(),
+                id = data.Id,
                 title = data.name,
                 count = data.trackCount,
                 subscriberCount = data.subscribedCount,
@@ -132,7 +132,7 @@ fun PlaylistScreen(
             )
         } else {
             UiPlaylist(
-                id = "", title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
+                id = 0L, title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0, subscriberCount = 0, isCreator = false, description = "",
                 trackCount = 0, playCount = 0, isSubscribed = false
             )
@@ -190,9 +190,9 @@ fun PlaylistScreen(
 
                 // 发起网络请求
                 if (newState) {
-                    viewModel.subscribePlaylist(uiData.id)
+                    viewModel.subscribePlaylist(uiData.id.toString())
                 } else {
-                    viewModel.unsubscribePlaylist(uiData.id)
+                    viewModel.unsubscribePlaylist(uiData.id.toString())
                 }
             },
 

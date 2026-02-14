@@ -47,7 +47,7 @@ fun EveryDay(
         if (everyDaySongs is Resource.Success) {
             val data = (everyDaySongs as Resource.Success).data.data.dailySongs
             UiPlaylist(
-                id = "-1",
+                id = -1L,
                 title = "每日推荐",
                 count = data.size,
                 subscriberCount = -1,
@@ -62,7 +62,7 @@ fun EveryDay(
             )
         } else {
             UiPlaylist(
-                id = "", title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
+                id = 0L, title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0,
                 subscriberCount = 0,
                 isCreator = false,

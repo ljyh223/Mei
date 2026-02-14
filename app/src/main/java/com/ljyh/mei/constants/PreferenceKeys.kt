@@ -57,6 +57,7 @@ val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
 
 val PlayerStyleKey = stringPreferencesKey("playerStyle")
 val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
+val PlaylistTrackTableHeaderKey = booleanPreferencesKey("playlistTrackTableHeader")
 
 enum class PlayerStyle {
     AppleMusic,

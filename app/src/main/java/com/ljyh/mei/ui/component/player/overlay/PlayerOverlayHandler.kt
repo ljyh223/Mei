@@ -1,10 +1,12 @@
 package com.ljyh.mei.ui.component.player.overlay
 
+import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Playlist
@@ -20,6 +22,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
  * 播放器弹窗处理器
  * 统一管理所有弹窗的显示逻辑
  */
+@OptIn(UnstableApi::class)
 class PlayerOverlayHandler(
     private val stateContainer: PlayerStateContainer,
     private val playlistViewModel: PlaylistViewModel,
@@ -173,6 +176,7 @@ class PlayerOverlayHandler(
 /**
  * 记忆并创建弹窗处理器
  */
+@OptIn(UnstableApi::class)
 @Composable
 fun rememberOverlayHandler(
     stateContainer: PlayerStateContainer,

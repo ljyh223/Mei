@@ -3,7 +3,7 @@ package com.ljyh.mei.ui.model
 import com.ljyh.mei.data.model.MediaMetadata
 
 data class UiPlaylist(
-    val id: String,
+    val id: Long,
     val title: String,
     val count: Int,
     val subscriberCount: Long,

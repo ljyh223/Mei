@@ -39,6 +39,7 @@ import com.ljyh.mei.constants.PlayerStyle
 import com.ljyh.mei.constants.PlayerStyleKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
+import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
@@ -113,6 +114,12 @@ fun AppearanceSettings(
         key = PlaylistCoverStyleKey,
         defaultValue = PlaylistCoverStyle.Combination
     )
+
+    // PlaylistTrackTableHeaderKey
+    val (playlistTrackTableHeader, onPlaylistTrackTableHeaderChange) = rememberPreference(
+        key = PlaylistTrackTableHeaderKey,
+        defaultValue = false
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -163,6 +170,14 @@ fun AppearanceSettings(
                         PlaylistCoverStyle.Combination -> "组合图片"
                     }
                 }
+            )
+
+            SwitchPreference(
+                title = { Text("歌单开启表头") },
+                description = "平板模式下歌单显示表头",
+                icon = { Icon(Icons.Rounded.FormatBold, null) },
+                checked = playlistTrackTableHeader,
+                onCheckedChange = onPlaylistTrackTableHeaderChange
             )
 
             PreferenceGroupTitle(

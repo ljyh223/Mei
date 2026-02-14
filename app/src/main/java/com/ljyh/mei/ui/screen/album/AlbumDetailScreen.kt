@@ -91,7 +91,7 @@ fun AlbumDetailScreen(
             val album = (albumDetail as Resource.Success).data.album
             val songs = (albumDetail as Resource.Success).data.songs
             UiPlaylist(
-                id = album.id.toString(),
+                id = album.id,
                 title = album.name,
                 count = album.size,
                 subscriberCount = -1, // 专辑通常没有订阅人数，或者在 dynamicInfo 中
@@ -106,7 +106,7 @@ fun AlbumDetailScreen(
             )
         } else {
             UiPlaylist(
-                id = "", title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
+                id = 0L, title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0, subscriberCount = 0, isCreator = false, description = "",
                 trackCount = 0, playCount = 0, isSubscribed = false
             )
@@ -154,9 +154,9 @@ fun AlbumDetailScreen(
 
                 // 发起请求
                 if (newState) {
-                    viewModel.subscribeAlbum(uiData.id)
+                    viewModel.subscribeAlbum(uiData.id.toString())
                 } else {
-                    viewModel.unSubscribeAlbum(uiData.id)
+                    viewModel.unSubscribeAlbum(uiData.id.toString())
                 }
             },
 
