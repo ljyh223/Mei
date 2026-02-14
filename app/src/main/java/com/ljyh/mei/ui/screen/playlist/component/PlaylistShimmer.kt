@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
+
 @Composable
 fun PlaylistShimmer() {
     ShimmerHost {
@@ -56,9 +57,13 @@ private fun MobileShimmerContent() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         // 标题与信息
-        TextPlaceholder(modifier = Modifier.height(32.dp).width(180.dp))
+        TextPlaceholder(modifier = Modifier
+            .height(32.dp)
+            .width(180.dp))
         Spacer(modifier = Modifier.height(12.dp))
-        TextPlaceholder(modifier = Modifier.height(16.dp).width(120.dp))
+        TextPlaceholder(modifier = Modifier
+            .height(16.dp)
+            .width(120.dp))
 
         Spacer(modifier = Modifier.height(24.dp))
         // 操作按钮
@@ -68,7 +73,12 @@ private fun MobileShimmerContent() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             ButtonPlaceholder(modifier = Modifier.size(48.dp))
-            TextPlaceholder(modifier = Modifier.height(48.dp).width(140.dp).clip(RoundedCornerShape(24.dp)))
+            TextPlaceholder(
+                modifier = Modifier
+                    .height(48.dp)
+                    .width(140.dp)
+                    .clip(RoundedCornerShape(24.dp))
+            )
             ButtonPlaceholder(modifier = Modifier.size(48.dp))
         }
 
@@ -101,13 +111,22 @@ private fun TabletShimmerContent() {
                     .clip(RoundedCornerShape(16.dp))
             )
             Spacer(modifier = Modifier.height(32.dp))
-            TextPlaceholder(modifier = Modifier.height(36.dp).fillMaxWidth(0.8f))
+            TextPlaceholder(modifier = Modifier
+                .height(36.dp)
+                .fillMaxWidth(0.8f))
             Spacer(modifier = Modifier.height(16.dp))
-            TextPlaceholder(modifier = Modifier.height(20.dp).fillMaxWidth(0.4f))
+            TextPlaceholder(modifier = Modifier
+                .height(20.dp)
+                .fillMaxWidth(0.4f))
 
             Spacer(modifier = Modifier.height(32.dp))
             Row {
-                TextPlaceholder(modifier = Modifier.height(48.dp).width(140.dp).clip(RoundedCornerShape(24.dp)))
+                TextPlaceholder(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                )
                 Spacer(modifier = Modifier.width(16.dp))
                 ButtonPlaceholder(modifier = Modifier.size(48.dp))
             }
@@ -123,9 +142,13 @@ private fun TabletShimmerContent() {
             Spacer(modifier = Modifier.height(64.dp))
             // 表头骨架
             Row(modifier = Modifier.padding(16.dp)) {
-                TextPlaceholder(modifier = Modifier.height(12.dp).width(20.dp))
+                TextPlaceholder(modifier = Modifier
+                    .height(12.dp)
+                    .width(20.dp))
                 Spacer(modifier = Modifier.width(56.dp))
-                TextPlaceholder(modifier = Modifier.height(12.dp).width(60.dp))
+                TextPlaceholder(modifier = Modifier
+                    .height(12.dp)
+                    .width(60.dp))
             }
             // 歌曲列表
             repeat(10) {
@@ -148,7 +171,9 @@ private fun TrackItemShimmer(isTablet: Boolean) {
     ) {
         if (isTablet) {
             // 序号占位
-            TextPlaceholder(modifier = Modifier.width(36.dp).height(12.dp))
+            TextPlaceholder(modifier = Modifier
+                .width(36.dp)
+                .height(12.dp))
         }
 
         // 封面 + 标题权重
@@ -164,17 +189,28 @@ private fun TrackItemShimmer(isTablet: Boolean) {
 
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                TextPlaceholder(modifier = Modifier.height(16.dp).fillMaxWidth(0.7f))
+                TextPlaceholder(modifier = Modifier
+                    .height(16.dp)
+                    .fillMaxWidth(0.7f))
                 Spacer(modifier = Modifier.height(8.dp))
-                TextPlaceholder(modifier = Modifier.height(12.dp).fillMaxWidth(0.5f))
+                TextPlaceholder(modifier = Modifier
+                    .height(12.dp)
+                    .fillMaxWidth(0.5f))
             }
         }
 
         if (isTablet) {
             // 专辑占位
-            TextPlaceholder(modifier = Modifier.weight(3f).height(14.dp).padding(horizontal = 16.dp))
+            TextPlaceholder(
+                modifier = Modifier
+                    .weight(3f)
+                    .height(14.dp)
+                    .padding(horizontal = 16.dp)
+            )
             // 时长占位
-            TextPlaceholder(modifier = Modifier.width(40.dp).height(14.dp))
+            TextPlaceholder(modifier = Modifier
+                .width(40.dp)
+                .height(14.dp))
         }
 
         Spacer(modifier = Modifier.width(16.dp))
