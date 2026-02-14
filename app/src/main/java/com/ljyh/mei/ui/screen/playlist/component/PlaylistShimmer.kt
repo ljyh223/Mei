@@ -92,7 +92,7 @@ private fun TabletShimmerContent() {
                 .weight(0.4f)
                 .fillMaxHeight()
                 .padding(32.dp),
-            horizontalAlignment = Alignment.Start // 平板端通常靠左对齐更专业
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(48.dp))
             TextPlaceholder(
