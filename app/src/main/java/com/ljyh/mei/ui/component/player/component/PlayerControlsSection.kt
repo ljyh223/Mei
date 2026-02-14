@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,8 @@ fun PlayerControlsSection(
         key = ProgressBarStyleKey,
         defaultValue = ProgressBarStyle.WAVE
     )
+
+    val isFM = playerConnection.isFMMode.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -82,8 +85,8 @@ fun PlayerControlsSection(
         ) {
             PlayerControls(
                 playerConnection = playerConnection,
-                canSkipPrevious = true,
-                canSkipNext = true,
+                canSkipPrevious = !isFM.value || playerConnection.player.hasPreviousMediaItem(),
+                canSkipNext = playerConnection.player.hasNextMediaItem(),
                 isPlaying = isPlaying,
                 playbackState = playbackState,
                 modifier = Modifier.align(Alignment.Center)

@@ -99,6 +99,9 @@ class PlayerStateContainer(
     lateinit var canSkipNext: State<Boolean>
         internal set
 
+    lateinit var isFMMode: State<Boolean>
+        internal set
+
 
     // ========== 公共方法 ==========
 
@@ -138,6 +141,7 @@ fun rememberPlayerStateContainer(
     container.mediaMetadata = playerConnection.mediaMetadata.collectAsState()
     container.canSkipPrevious = playerConnection.canSkipPrevious.collectAsState()
     container.canSkipNext = playerConnection.canSkipNext.collectAsState()
+    container.isFMMode = playerConnection.isFMMode.collectAsState()
 
     container.netLyricResult = playerViewModel.lyric.collectAsState()
     container.qqLyricResult = playerViewModel.lyricResult.collectAsState()

@@ -71,6 +71,7 @@ class PlayerConnection(
     val queueWindows = MutableStateFlow<List<Timeline.Window>>(emptyList())
     val currentMediaItemIndex = MutableStateFlow(-1)
     val currentWindowIndex = MutableStateFlow(-1)
+    val isFMMode = MutableStateFlow(service.isFmMode())
 
     // 这里 repeatMode 我们存储对应的 PlayMode 枚举值(int)，用于 UI 显示
     val repeatMode = MutableStateFlow(PlayMode.SHUFFLE_MODE_ALL.mode)
@@ -117,6 +118,7 @@ class PlayerConnection(
     }
 
     fun fmStart(firstSongId: String? = null) {
+
         service.scope.launch {
             service.queueManager.startFmModeById(firstSongId)
         }
@@ -131,7 +133,6 @@ class PlayerConnection(
             service.queueManager.playQueue(queue, startInShuffleMode = startInShuffle)
         }
     }
-
     fun playNext(item: MediaItem) = playNext(listOf(item))
 
     fun playNext(items: List<MediaItem>) {

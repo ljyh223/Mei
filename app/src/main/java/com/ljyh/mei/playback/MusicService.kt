@@ -542,6 +542,10 @@ class MusicService : MediaLibraryService(),
         }
     }
 
+    fun isFmMode(): Boolean {
+        return queueManager.isFmMode
+    }
+
     companion object {
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888

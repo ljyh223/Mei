@@ -147,6 +147,7 @@ class PlaybackQueueManager(
         startInShuffleMode: Boolean = false,
         playWhenReady: Boolean = true,
     ) {
+        isFmMode = false
         scope.launch(Dispatchers.Main) {
             try {
                 _queueState.value = QueueState.Loading(queue.title ?: "加载中")
