@@ -71,33 +71,3 @@ data class UserAlbumList(
         )
     }
 }
-
-
-fun UserAlbumList.Data.toAlbum(): Album {
-    return Album(
-        id = id,
-        title = name,
-        cover = picUrl,
-        size = size,
-        artist = artists.map {
-            Album.Artist(
-                id = it.id,
-                name = it.name
-            )
-        })
-}
-
-
-fun UserAlbumList.Data.toAlbumEntity(): Pair<AlbumEntity, List<ArtistEntity>>{
-    return AlbumEntity(
-        albumId = id,
-        name = name,
-        cover = picUrl,
-        publishTime = subTime,
-        songCount = size
-    ) to artists.map { ArtistEntity(
-        artistId = id,
-        name= name,
-        avatarUrl = null
-    ) }
-}
