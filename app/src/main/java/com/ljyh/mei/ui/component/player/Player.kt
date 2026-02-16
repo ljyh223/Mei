@@ -26,7 +26,6 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
-@ExperimentalMaterial3WindowSizeClassApi
 @Composable
 fun BottomSheetPlayer(
     state: BottomSheetState,

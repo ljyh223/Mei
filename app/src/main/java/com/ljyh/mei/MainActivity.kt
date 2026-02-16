@@ -158,7 +158,6 @@ class MainActivity : ComponentActivity() {
 
     @androidx.annotation.OptIn(UnstableApi::class)
     @RequiresApi(Build.VERSION_CODES.S)
-    @ExperimentalMaterial3WindowSizeClassApi
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -350,12 +349,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val windowSizeClass = calculateWindowSizeClass(this@MainActivity)
                     val playerBottomSheetState = rememberBottomSheetState(
                         dismissedBound = 0.dp,
                         collapsedBound = collapsedBound.value,
-                        expandedBound = maxHeight,
-                        windowSize = windowSizeClass
+                        expandedBound = maxHeight
                     )
                     val navigationBarHeight by animateDpAsState(
                         targetValue = if (shouldShowNavigationBar) NavigationBarHeight else 0.dp,

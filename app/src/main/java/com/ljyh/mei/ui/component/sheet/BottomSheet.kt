@@ -161,8 +161,7 @@ class BottomSheetState(
     private val coroutineScope: CoroutineScope,
     private val animatable: Animatable<Dp, AnimationVector1D>,
     private val onAnchorChanged: (Int) -> Unit,
-    val collapsedBound: Dp,
-    val windowSize:WindowSizeClass
+    val collapsedBound: Dp
 ) : DraggableState by draggableState {
     val dismissedBound: Dp
         get() = animatable.lowerBound!!
@@ -324,7 +323,6 @@ const val dismissedAnchor = 0
 fun rememberBottomSheetState(
     dismissedBound: Dp,
     expandedBound: Dp,
-    windowSize:WindowSizeClass,
     collapsedBound: Dp = dismissedBound,
     initialAnchor: Int = dismissedAnchor,
 ): BottomSheetState {
@@ -361,8 +359,7 @@ fun rememberBottomSheetState(
             onAnchorChanged = { previousAnchor = it },
             coroutineScope = coroutineScope,
             animatable = animatable,
-            collapsedBound = collapsedBound,
-            windowSize = windowSize
+            collapsedBound = collapsedBound
         )
     }
 }

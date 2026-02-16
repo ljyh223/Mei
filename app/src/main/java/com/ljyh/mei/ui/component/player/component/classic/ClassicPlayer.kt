@@ -81,9 +81,7 @@ import kotlin.math.min
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @RequiresApi(Build.VERSION_CODES.S)
-@OptIn(UnstableApi::class
-)
-@ExperimentalMaterial3WindowSizeClassApi
+@OptIn(UnstableApi::class)
 @Composable
 fun ClassicPlayer(
     state: BottomSheetState,
