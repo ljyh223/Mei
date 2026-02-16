@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component.player.component.classic
+package com.ljyh.mei.ui.component.player.component.classic.component
 
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -62,7 +63,8 @@ import net.engawapg.lib.zoomable.zoomable
 fun Cover(
     playerConnection: PlayerConnection,
     mediaMetadata: MediaMetadata,
-    modifier: Modifier
+    modifier: Modifier,
+    onDoubleClick: (Offset, Int) -> Unit = { _, _ ->}
 ) {
     val context = LocalContext.current
     // 获取当前的封面样式设置
@@ -79,66 +81,55 @@ fun Cover(
     }
 
     var showFullImage by remember { mutableStateOf(false) }
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+
         AnimatedContent(
-            modifier = modifier.shadow(
-                elevation = 12.dp,
-                shape = coverShape
-            ),
             targetState = mediaMetadata.coverUrl,
             transitionSpec = {
                 fadeIn(tween(500)) togetherWith fadeOut(tween(500))
             },
             label = "CoverTransition"
         ) { url ->
-            Column(
-                modifier = modifier,
-                horizontalAlignment = Alignment.CenterHorizontally,
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .aspectRatio(1f)
+                    .shadow(12.dp, coverShape)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = { offset ->
+                                onDoubleClick(offset, size.width)
+                            },
+                            onLongPress = {
+                                showFullImage = true
+                            }
+                        )
+                    },
+                shape = coverShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
             ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .aspectRatio(1f)
-                        .shadow(elevation = 12.dp, shape = coverShape)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onDoubleTap = { offset ->
-                                    if (offset.x < size.width / 2) {
-                                        playerConnection.player.seekBack()
-                                    } else {
-                                        playerConnection.player.seekForward()
-                                    }
-                                },
-                                onLongPress = {
-                                    showFullImage = true
-                                }
-                            )
-                        }
-
-                    ,
-                    shape = coverShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest
-                ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .placeholderMemoryCacheKey(url.smallImage())
-                            .data(if (originalCover) url else url.size1600())
-                            .crossfade(false)
-                            .build(),
-                        contentScale = ContentScale.Crop,
-                        contentDescription = "Loaded Image",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            if (showFullImage) {
-                val highResUrl = if (originalCover) url else url.size1600()
-                FullScreenImageViewer(
-                    imageUrl = highResUrl,
-                    onDismiss = { showFullImage = false }
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .placeholderMemoryCacheKey(url.smallImage())
+                        .data(if (originalCover) url else url.size1600())
+                        .crossfade(false)
+                        .build(),
+                    contentScale = ContentScale.Crop,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
+        }
+
+        if (showFullImage) {
+            FullScreenImageViewer(
+                imageUrl = mediaMetadata.coverUrl,
+                onDismiss = { showFullImage = false }
+            )
         }
     }
 

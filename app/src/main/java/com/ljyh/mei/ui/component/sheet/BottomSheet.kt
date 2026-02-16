@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
@@ -161,6 +162,7 @@ class BottomSheetState(
     private val animatable: Animatable<Dp, AnimationVector1D>,
     private val onAnchorChanged: (Int) -> Unit,
     val collapsedBound: Dp,
+    val windowSize:WindowSizeClass
 ) : DraggableState by draggableState {
     val dismissedBound: Dp
         get() = animatable.lowerBound!!
@@ -322,6 +324,7 @@ const val dismissedAnchor = 0
 fun rememberBottomSheetState(
     dismissedBound: Dp,
     expandedBound: Dp,
+    windowSize:WindowSizeClass,
     collapsedBound: Dp = dismissedBound,
     initialAnchor: Int = dismissedAnchor,
 ): BottomSheetState {
@@ -358,7 +361,8 @@ fun rememberBottomSheetState(
             onAnchorChanged = { previousAnchor = it },
             coroutineScope = coroutineScope,
             animatable = animatable,
-            collapsedBound = collapsedBound
+            collapsedBound = collapsedBound,
+            windowSize = windowSize
         )
     }
 }

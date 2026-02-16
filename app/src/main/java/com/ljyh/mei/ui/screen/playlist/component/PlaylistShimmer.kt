@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.screen.playlist.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,14 +22,16 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 
 @Composable
 fun PlaylistShimmer() {
+    val device = rememberDeviceInfo()
     ShimmerHost {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val isTablet = maxWidth > 600.dp
+        Box(modifier = Modifier.fillMaxSize()) {
 
-            if (isTablet) {
+
+            if (device.isTablet && device.isLandscape) {
                 TabletShimmerContent()
             } else {
                 MobileShimmerContent()

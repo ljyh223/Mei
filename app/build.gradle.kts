@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.media3.okhttp)
     implementation(libs.annotations)
     implementation(libs.androidx.core.animation)
+    implementation(libs.androidx.compose.material3.window.size.class1)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

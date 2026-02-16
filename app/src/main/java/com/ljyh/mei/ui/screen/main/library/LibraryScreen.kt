@@ -25,6 +25,7 @@ import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.toAlbum
 import com.ljyh.mei.ui.screen.Screen
@@ -37,6 +38,7 @@ import com.ljyh.mei.utils.rememberPreference
 @Composable
 fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
+    val device = rememberDeviceInfo()
     val account by viewModel.account.collectAsState()
     val photoAlbum by viewModel.photoAlbum.collectAsState()
     val localPlaylists by viewModel.localPlaylists.collectAsState()
@@ -103,8 +105,7 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
             viewModel.syncUserPlaylists(userId, subPlaylistCount)
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isTablet = maxWidth > 600.dp
+    Box(modifier = Modifier.fillMaxSize()) {
 
         // 1. 通用背景
         if (userId.isNotEmpty() && userPhoto.isNotEmpty()) {
@@ -112,7 +113,7 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
         }
 
         if (userId.isNotEmpty()) {
-            if (isTablet) {
+            if (device.isTablet && device.isLandscape) {
                 // 平板布局
                 LibraryTabletLayout(
                     userNickname = userNickname,

@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.component.player
 import android.os.Build
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -25,6 +26,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
+@ExperimentalMaterial3WindowSizeClassApi
 @Composable
 fun BottomSheetPlayer(
     state: BottomSheetState,

@@ -81,6 +81,7 @@ import com.ljyh.mei.ui.component.playlist.TrackActionMenu
 import com.ljyh.mei.ui.component.shimmer.ButtonPlaceholder
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
 import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionOverlay
@@ -111,6 +112,7 @@ fun CommonSongListScreen(
 ) {
     val context = LocalContext.current
     val lazyListState = rememberLazyListState()
+    val device = rememberDeviceInfo()
 
     var menuTargetTrack by remember { mutableStateOf<MediaMetadata?>(null) }
 
@@ -129,8 +131,8 @@ fun CommonSongListScreen(
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isTablet = maxWidth > 600.dp
+    Box(modifier = Modifier.fillMaxSize()) {
+
         if (!isLoading && uiData.cover.isNotEmpty()) {
             PlaylistBackground(
                 coverUrl = uiData.cover,
@@ -185,7 +187,7 @@ fun CommonSongListScreen(
                 if (isLoading) {
                     PlaylistShimmer()
                 } else {
-                    if (isTablet) {
+                    if (device.isTablet && device.isLandscape) {
                         // --- 平板布局：左右并排 ---
                         Row(modifier = Modifier.fillMaxSize()) {
                             Box(modifier = Modifier.weight(0.4f)) {

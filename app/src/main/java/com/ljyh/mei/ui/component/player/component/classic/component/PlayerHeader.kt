@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.component.player.component.classic
+package com.ljyh.mei.ui.component.player.component.classic.component
 
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
