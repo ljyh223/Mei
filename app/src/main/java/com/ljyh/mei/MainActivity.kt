@@ -43,6 +43,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -152,6 +154,7 @@ class MainActivity : ComponentActivity() {
 
     @androidx.annotation.OptIn(UnstableApi::class)
     @RequiresApi(Build.VERSION_CODES.S)
+    @ExperimentalMaterial3WindowSizeClassApi
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -312,10 +315,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    val windowSizeClass = calculateWindowSizeClass(this@MainActivity)
                     val playerBottomSheetState = rememberBottomSheetState(
                         dismissedBound = 0.dp,
                         collapsedBound = collapsedBound.value,
                         expandedBound = maxHeight,
+                        windowSize = windowSizeClass
                     )
                     val navigationBarHeight by animateDpAsState(
                         targetValue = if (shouldShowNavigationBar) NavigationBarHeight else 0.dp,
@@ -384,6 +389,8 @@ class MainActivity : ComponentActivity() {
                         Screen.Library.route,
                         Screen.Setting.route
                     )
+
+
                     ConfirmationDialog(
                         title = "申请文件访问权限",
                         text = "用于下载音乐",
