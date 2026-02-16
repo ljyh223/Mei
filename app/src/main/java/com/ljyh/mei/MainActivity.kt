@@ -352,7 +352,7 @@ class MainActivity : ComponentActivity() {
                     val playerBottomSheetState = rememberBottomSheetState(
                         dismissedBound = 0.dp,
                         collapsedBound = collapsedBound.value,
-                        expandedBound = maxHeight
+                        expandedBound = maxHeight,
                     )
                     val navigationBarHeight by animateDpAsState(
                         targetValue = if (shouldShowNavigationBar) NavigationBarHeight else 0.dp,

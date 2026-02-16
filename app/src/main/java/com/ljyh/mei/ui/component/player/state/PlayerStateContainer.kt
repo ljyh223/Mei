@@ -39,10 +39,12 @@ import com.ljyh.mei.utils.lyric.LyricMatchAlgorithm
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.lyric.mergeLyrics
 import com.ljyh.mei.utils.rememberPreference
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -196,59 +198,123 @@ fun rememberPlayerStateContainer(
         }
     }
 
+    // Job tracking for cancellation
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+    var fetchJob by remember { mutableStateOf<Job?>(null) }
+    var lyricV1Job by remember { mutableStateOf<Job?>(null) }
+    var amllLyricJob by remember { mutableStateOf<Job?>(null) }
+
     // ========== 歌词加载 LaunchedEffect - MediaMetadata 变化 ==========
     LaunchedEffect(container.mediaMetadata.value) {
         container.mediaMetadata.value?.let { meta ->
-            // 重置状态
-            container.reset()
+            try {
+                // Debounce: Small delay to let rapid changes settle
+                delay(100)
 
-            // 设置当前媒体元数据
-            playerViewModel.mediaMetadata = meta
+                // Cancel previous work
+                searchJob?.cancel()
+                fetchJob?.cancel()
+                lyricV1Job?.cancel()
+                amllLyricJob?.cancel()
 
-            // 获取歌词
-            playerViewModel.getLyricV1(meta.id.toString())
-            playerViewModel.getAMLLyric(meta.id.toString())
+                // 重置状态
+                container.reset()
 
-            // 如果启用了 QQ 音乐歌词
-            if (useQQMusicLyric) {
-                playerViewModel.fetchQQSong(meta.id.toString())
-                playerViewModel.searchNew(meta.title)
-            }
+                // 设置当前媒体元数据
+                playerViewModel.mediaMetadata = meta
 
-            if (debug) {
-                Timber.tag("Player").d("MediaMetadata: $meta")
-                Timber.tag("Player").d("MediaMetadata: cover ${meta.coverUrl}")
+                // Launch new jobs and track them
+                lyricV1Job = launch {
+                    try {
+                        playerViewModel.getLyricV1(meta.id.toString())
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error fetching lyric V1")
+                    }
+                }
+
+                amllLyricJob = launch {
+                    try {
+                        playerViewModel.getAMLLyric(meta.id.toString())
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error fetching AMLL lyric")
+                    }
+                }
+
+                // 如果启用了 QQ 音乐歌词
+                if (useQQMusicLyric) {
+                    fetchJob = launch {
+                        try {
+                            playerViewModel.fetchQQSong(meta.id.toString())
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error fetching QQ song")
+                        }
+                    }
+
+                    searchJob = launch {
+                        try {
+                            playerViewModel.searchNew(meta.title)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error searching new")
+                        }
+                    }
+                }
+
+                if (debug) {
+                    Timber.tag("Player").d("MediaMetadata: $meta")
+                    Timber.tag("Player").d("MediaMetadata: cover ${meta.coverUrl}")
+                }
+            } catch (e: CancellationException) {
+                // Expected when song changes rapidly, propagate
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Error in media metadata LaunchedEffect")
             }
         }
     }
 
     // ========== 歌词加载 LaunchedEffect - QQSong 变化 ==========
     LaunchedEffect(container.qqSong.value) {
-        if (debug) {
-            Timber.tag("Player").d("QQSong: ${container.qqSong.value}")
-        }
-        container.qqSong.value?.let { song ->
+        try {
             if (debug) {
-                Timber.tag("Player").d("QQSong111: $song")
+                Timber.tag("Player").d("QQSong: ${container.qqSong.value}")
             }
-            playerViewModel.getLyricNew(
-                title = song.title,
-                album = song.album,
-                artist = song.artist,
-                duration = song.duration.toLong(),
-                id = song.qid.toLong()
-            )
+            container.qqSong.value?.let { song ->
+                if (debug) {
+                    Timber.tag("Player").d("QQSong111: $song")
+                }
+                playerViewModel.getLyricNew(
+                    title = song.title,
+                    album = song.album,
+                    artist = song.artist,
+                    duration = song.duration.toLong(),
+                    id = song.qid.toLong()
+                )
+            }
+        } catch (e: CancellationException) {
+            // Expected when song changes, propagate
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "Error in QQSong LaunchedEffect")
         }
     }
 
     LaunchedEffect(container.qqLyricSearch.value, container.mediaMetadata.value) {
-        if(!autoMatchQQMusicLyric.value) return@LaunchedEffect
-        val searchResult = container.qqLyricSearch.value
-        val metadata = container.mediaMetadata.value
+        try {
+            if(!autoMatchQQMusicLyric.value) return@LaunchedEffect
+            val searchResult = container.qqLyricSearch.value
+            val metadata = container.mediaMetadata.value
 
-        if (searchResult is Resource.Success && metadata != null) {
-            // Move heavy computation to background thread
-            val result = withContext(Dispatchers.Default) {
+            if (searchResult is Resource.Success && metadata != null) {
+                // Move heavy computation to background thread
+                val result = withContext(Dispatchers.Default) {
                 val songList = searchResult.data.req0.data.body.song.list
 
                 if (songList.isNotEmpty()) {
@@ -354,44 +420,59 @@ fun rememberPlayerStateContainer(
                 }
             }
         }
+        } catch (e: CancellationException) {
+            // Expected when song changes, propagate
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "Error in auto-match LaunchedEffect")
+        }
     }
 
     // ========== 歌词合并 LaunchedEffect ==========
     LaunchedEffect(container.netLyricResult.value, container.qqLyricResult.value, container.amLyricResult.value) {
-        withContext(Dispatchers.Default) {
-            val isPureMusic = (container.netLyricResult.value as? Resource.Success)?.data?.pureMusic == true
-            val sources = mutableListOf<LyricSourceData>()
-            // 添加 AML 歌词
-            (container.amLyricResult.value as? Resource.Success)?.let {
-                sources.add(LyricSourceData.AM(it.data))
-            }
+        try {
+            withContext(Dispatchers.IO) {
+                val isPureMusic = (container.netLyricResult.value as? Resource.Success)?.data?.pureMusic == true
+                val sources = mutableListOf<LyricSourceData>()
+                // 添加 AML 歌词
+                (container.amLyricResult.value as? Resource.Success)?.let {
+                    sources.add(LyricSourceData.AM(it.data))
+                }
 
-            // 添加网易云歌词
-            (container.netLyricResult.value as? Resource.Success)?.data?.let {
-                sources.add(LyricSourceData.NetEase(it))
-            }
+                // 添加网易云歌词
+                (container.netLyricResult.value as? Resource.Success)?.data?.let {
+                    sources.add(LyricSourceData.NetEase(it))
+                }
 
-            // 添加 QQ 音乐歌词
-            (container.qqLyricResult.value as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
-                try {
-                    val qrc = it.copy(
-                        lyric = QRCUtils.decodeLyric(it.lyric),
-                        trans = QRCUtils.decodeLyric(it.trans, true),
-                        roma = QRCUtils.decodeLyric(it.roma)
-                    )
-                    sources.add(LyricSourceData.QQMusic(qrc))
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                // 添加 QQ 音乐歌词
+                (container.qqLyricResult.value as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
+                    try {
+                        val qrc = it.copy(
+                            lyric = QRCUtils.decodeLyric(it.lyric),
+                            trans = QRCUtils.decodeLyric(it.trans, true),
+                            roma = QRCUtils.decodeLyric(it.roma)
+                        )
+                        sources.add(LyricSourceData.QQMusic(qrc))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error decoding QRC lyric")
+                    }
+                }
+
+                // 合并歌词
+                val merged = mergeLyrics(sources, isPureMusic)
+
+                // 切换回主线程更新 UI
+                withContext(Dispatchers.Main) {
+                    container.lyricLine = merged
                 }
             }
-
-            // 合并歌词
-            val merged = mergeLyrics(sources, isPureMusic)
-
-            // 切换回主线程更新 UI
-            withContext(Dispatchers.Main) {
-                container.lyricLine = merged
-            }
+        } catch (e: CancellationException) {
+            // Expected when song changes, propagate
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "Error in lyric merging LaunchedEffect")
         }
     }
 
