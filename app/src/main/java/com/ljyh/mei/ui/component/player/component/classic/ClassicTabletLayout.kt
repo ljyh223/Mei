@@ -21,8 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.PlayerHorizontalPadding
+import com.ljyh.mei.constants.ProgressBarStyle
+import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.OverlayState
+import com.ljyh.mei.ui.component.player.component.FluidProgressSlider
 import com.ljyh.mei.ui.component.player.component.PlayerControls
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
@@ -31,6 +34,7 @@ import com.ljyh.mei.ui.component.player.component.classic.component.Cover
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.LyricSource
+import com.ljyh.mei.utils.rememberEnumPreference
 
 @Composable
 fun ClassicTabletLayout(
@@ -45,6 +49,10 @@ fun ClassicTabletLayout(
     val duration by remember { derivedStateOf { stateContainer.duration } }
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
 
+    val (progressBarStyle, _) = rememberEnumPreference(
+        key = ProgressBarStyleKey,
+        defaultValue = ProgressBarStyle.WAVE
+    )
 
     Row(
         modifier = Modifier
@@ -72,16 +80,31 @@ fun ClassicTabletLayout(
 
             Spacer(Modifier.height(48.dp))
 
-            PlayerProgressSlider(
-                position = sliderPosition.toLong(),
-                duration = duration,
-                isPlaying = isPlaying,
-                onPositionChange = {
-                    stateContainer.playerConnection.player.seekTo(it)
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-            )
+            if (progressBarStyle == ProgressBarStyle.LINEAR) {
+                FluidProgressSlider(
+                    position = sliderPosition.toLong(),
+                    duration = duration,
+                    onPositionChange = { newPosition ->
+                        stateContainer.playerConnection.player.seekTo(newPosition)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+                )
+            } else {
+                PlayerProgressSlider(
+                    position = sliderPosition.toLong(),
+                    duration = duration,
+                    isPlaying = isPlaying, // 波浪进度条需要这个参数
+                    onPositionChange = { newPosition ->
+                        stateContainer.playerConnection.player.seekTo(newPosition)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+                )
+            }
+
 
             Spacer(Modifier.height(16.dp))
 

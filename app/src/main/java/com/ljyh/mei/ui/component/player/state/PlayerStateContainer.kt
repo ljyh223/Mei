@@ -24,6 +24,7 @@ import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.model.qq.u.SearchResult
+import com.ljyh.mei.data.model.qq.u.SearchResult.Req0.Data.Body.Song.S
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
@@ -39,10 +40,20 @@ import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.lyric.mergeLyrics
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+
+/**
+ * 自动匹配结果
+ */
+private sealed class MatchResult {
+    data class Success(val song: S?, val bestMatch: LyricMatchAlgorithm.MatchResult) : MatchResult()
+    data object NoMatch : MatchResult()
+    data object EmptyList : MatchResult()
+}
 
 /**
  * 播放器状态容器
@@ -236,47 +247,66 @@ fun rememberPlayerStateContainer(
         val metadata = container.mediaMetadata.value
 
         if (searchResult is Resource.Success && metadata != null) {
-            val songList = searchResult.data.req0.data.body.song.list
+            // Move heavy computation to background thread
+            val result = withContext(Dispatchers.Default) {
+                val songList = searchResult.data.req0.data.body.song.list
 
-            if (songList.isNotEmpty()) {
-                if (debug) {
-                    Timber.tag("Player").d("Found ${songList.size} songs, starting auto match")
-                }
-
-                // 构建目标歌曲信息
-                val targetInfo = LyricMatchAlgorithm.SongMatchInfo(
-                    id = metadata.id.toString(),
-                    title = metadata.title,
-                    artist = metadata.artists.joinToString(",") { it.name },
-                    album = metadata.album.title,
-                    duration = container.duration
-                )
-
-                // 转换搜索结果为匹配算法格式
-                val matchCandidates = songList.map { song ->
-                    LyricMatchAlgorithm.SongMatchInfo(
-                        id = song.id.toString(),
-                        title = song.title,
-                        artist = song.singer.joinToString(",") { it.name },
-                        album = song.album.title,
-                        duration = (song.interval) * 1000  // 转换为毫秒
-                    )
-                }
-
-                // 执行自动匹配
-                val bestMatch = LyricMatchAlgorithm.findBestMatch(
-                    targetInfo = targetInfo,
-                    searchResults = matchCandidates,
-                    minScore = 50f  // 最低50分才认为匹配
-                )
-
-                if (bestMatch != null) {
-                    // 找到最佳匹配，自动获取歌词
-                    val matchedSong = songList.find {
-                        it.id.toString() == bestMatch.song.id
+                if (songList.isNotEmpty()) {
+                    if (debug) {
+                        Timber.tag("Player").d("Found ${songList.size} songs, starting auto match")
                     }
 
-                    matchedSong?.let { song ->
+                    // 构建目标歌曲信息
+                    val targetInfo = LyricMatchAlgorithm.SongMatchInfo(
+                        id = metadata.id.toString(),
+                        title = metadata.title,
+                        artist = metadata.artists.joinToString(",") { it.name },
+                        album = metadata.album.title,
+                        duration = container.duration
+                    )
+
+                    // 转换搜索结果为匹配算法格式
+                    val matchCandidates = songList.map { song ->
+                        LyricMatchAlgorithm.SongMatchInfo(
+                            id = song.id.toString(),
+                            title = song.title,
+                            artist = song.singer.joinToString(",") { it.name },
+                            album = song.album.title,
+                            duration = (song.interval) * 1000  // 转换为毫秒
+                        )
+                    }
+
+                    // 执行自动匹配
+                    val bestMatch = LyricMatchAlgorithm.findBestMatch(
+                        targetInfo = targetInfo,
+                        searchResults = matchCandidates,
+                        minScore = 50f  // 最低50分才认为匹配
+                    )
+
+                    if (bestMatch != null) {
+                        // 找到最佳匹配，返回结果用于主线程处理
+                        val matchedSong = songList.find {
+                            it.id.toString() == bestMatch.song.id
+                        }
+                        MatchResult.Success(matchedSong, bestMatch)
+                    } else {
+                        if (debug) {
+                            Timber.tag("Player").d("No suitable match found")
+                        }
+                        MatchResult.NoMatch
+                    }
+                } else {
+                    MatchResult.EmptyList
+                }
+            }
+
+            // Handle UI updates on main thread
+            when (result) {
+                is MatchResult.Success -> {
+                    val song = result.song
+                    val bestMatch = result.bestMatch
+
+                    song?.let {
                         if (debug) {
                             Timber.tag("Player").d(
                                 """Auto matched song:
@@ -314,13 +344,13 @@ fun rememberPlayerStateContainer(
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
-
                     }
-                } else {
-                    if (debug) {
-                        Timber.tag("Player").d("No suitable match found")
-                    }
+                }
+                is MatchResult.NoMatch -> {
                     container.autoMatchResult = "未找到合适的匹配，请手动选择"
+                }
+                is MatchResult.EmptyList -> {
+                    // Do nothing
                 }
             }
         }
