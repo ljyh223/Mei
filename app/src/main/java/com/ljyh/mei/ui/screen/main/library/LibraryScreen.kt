@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.main.library
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -13,6 +14,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -173,9 +175,14 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
 
 @Composable
 fun EmptyLoginState(navController: NavController) {
-    Button(
-        onClick = { Screen.ContentSettings.navigate(navController) },
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Text("去填写 Cookie 以同步数据")
+        Button(
+            onClick = { Screen.ContentSettings.navigate(navController) }
+        ) {
+            Text("去填写 Cookie 以同步数据")
+        }
     }
 }
