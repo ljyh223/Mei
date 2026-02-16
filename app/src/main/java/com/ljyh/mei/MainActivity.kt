@@ -58,7 +58,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -269,6 +273,30 @@ class MainActivity : ComponentActivity() {
                 }
 
             }
+            var navigationBarVisible by remember { mutableStateOf(true) }
+            val nestedScrollConnection = remember {
+                object : NestedScrollConnection {
+
+                    override fun onPreScroll(
+                        available: Offset,
+                        source: NestedScrollSource
+                    ): Offset {
+
+                        if (available.y < -10f) {
+                            // 向下滑
+                            navigationBarVisible = false
+                        }
+
+                        if (available.y > 10f) {
+                            // 向上滑
+                            navigationBarVisible = true
+                        }
+
+                        return Offset.Zero
+                    }
+                }
+            }
+
 
 
             MusicTheme(
@@ -279,6 +307,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surface)
+                        .nestedScroll(nestedScrollConnection)
                         .onSizeChanged {
                             isMeasured = true
                         }
@@ -287,6 +316,7 @@ class MainActivity : ComponentActivity() {
                     val density = LocalDensity.current
                     val windowsInsets = WindowInsets.systemBars
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
+
                     val bottomInset by remember {
                         derivedStateOf {
                             with(density) {
@@ -297,10 +327,15 @@ class MainActivity : ComponentActivity() {
 
                     val navigationItems = remember { Screen.MainScreens }
                     val showDialog = remember { mutableStateOf(false) }
-                    val shouldShowNavigationBar = remember(navBackStackEntry, active) {
-                        navBackStackEntry?.destination?.route == null ||
-                                navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } && !active
+
+
+                    val shouldShowNavigationBar = remember(navBackStackEntry, active, navigationBarVisible) {
+                        (navBackStackEntry?.destination?.route == null ||
+                                navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) &&
+                                !active &&
+                                navigationBarVisible
                     }
+
 
 
                     val searchBarFocusRequester = remember { FocusRequester() }
