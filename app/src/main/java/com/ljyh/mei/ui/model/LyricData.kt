@@ -7,6 +7,7 @@ import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 
 data class LyricData(
     val isVerbatim: Boolean = false,
+    val isPureMusic: Boolean = false,
     val source: LyricSource = LyricSource.Empty,
     val lyricLine: SyncedLyrics
 )
@@ -25,4 +26,5 @@ enum class LyricSource {
     NetEaseCloudMusic,
     QQMusic,
     AM,
+    Loading
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.TipsAndUpdates
@@ -29,7 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.ljyh.mei.constants.AutoMatchQQMusicLyricKey
 import com.ljyh.mei.constants.CookieKey
+import com.ljyh.mei.constants.MatchSuccessToastKey
 import com.ljyh.mei.constants.UseQQMusicLyricKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.ShareViewModel
@@ -54,6 +57,16 @@ fun ContentsSetting(
     val context = LocalContext.current
     val (useQQMusicLyric, onUseQQMusicLyricChange) = rememberPreference(
         UseQQMusicLyricKey,
+        defaultValue = true
+    )
+
+    val (autoMatchQQMusicLyric, onAutoMatchQQMusicLyricChange) = rememberPreference(
+        AutoMatchQQMusicLyricKey,
+        defaultValue = false
+    )
+
+    val (matchSuccessToast, onMatchSuccessToastChange) = rememberPreference(
+        MatchSuccessToastKey,
         defaultValue = true
     )
     val (cookie, onCookie) = rememberPreference(
@@ -111,14 +124,34 @@ fun ContentsSetting(
             )
             SwitchPreference(
                 title = { Text("启用QQ音乐歌词") },
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
+                icon = { Icon(Icons.Rounded.Lyrics, "启用QQ音乐歌词") },
                 checked = useQQMusicLyric,
                 onCheckedChange = onUseQQMusicLyricChange
             )
 
+
+            SwitchPreference(
+                title = { Text("自动匹配歌词") },
+                description = "源自LDDC项目, 试验性测试功能(未广泛测试)",
+                icon = { Icon(Icons.Rounded.AutoAwesome, "自动匹配歌词") },
+                isEnabled = useQQMusicLyric,
+                checked = autoMatchQQMusicLyric,
+                onCheckedChange = onAutoMatchQQMusicLyricChange
+            )
+
+            SwitchPreference(
+                title = { Text("匹配成功提示") },
+                icon = { Icon(Icons.Rounded.TipsAndUpdates, "匹配成功提示") },
+                isEnabled = autoMatchQQMusicLyric,
+                checked = matchSuccessToast,
+                onCheckedChange = onMatchSuccessToastChange
+            )
+
+
+
             EditTextPreference(
                 title = { Text("网易云Cookie: MUSIC_U") },
-                icon = { Icon(Icons.Rounded.Cookie, null) },
+                icon = { Icon(Icons.Rounded.Cookie, "网易云Cookie: MUSIC_U") },
                 value = cookie,
                 onValueChange = onCookie
             )
@@ -126,7 +159,7 @@ fun ContentsSetting(
             PreferenceEntry(
                 title = { Text("测试Cookie") },
                 description = userName,
-                icon = { Icon(Icons.Rounded.TipsAndUpdates, null) },
+                icon = { Icon(Icons.Rounded.TipsAndUpdates, "测试 Cookie") },
                 onClick = {
                     if (cookie == "") {
                         Toast.makeText(context, "还没有填写cookie", Toast.LENGTH_SHORT).show()

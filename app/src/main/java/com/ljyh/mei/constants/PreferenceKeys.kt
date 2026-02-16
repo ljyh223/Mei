@@ -40,6 +40,8 @@ val AccompanimentLyricTextSizeKey = stringPreferencesKey("accompanimentLyricText
 val AccompanimentLyricTextBoldKey = booleanPreferencesKey("accompanimentLyricTextBold")
 
 val UseQQMusicLyricKey = booleanPreferencesKey("useQQMusicLyric")
+val AutoMatchQQMusicLyricKey = booleanPreferencesKey("autoMatchQQMusicLyric")
+val MatchSuccessToastKey = booleanPreferencesKey("matchSuccessToast")
 
 val LoopPlaybackKey = booleanPreferencesKey("loopPlayback")
 val PreviousPlaybackKey = booleanPreferencesKey("previousPlayback")

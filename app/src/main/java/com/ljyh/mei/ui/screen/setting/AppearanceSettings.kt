@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.LinearScale
 import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Subtitles
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,7 @@ import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
+import com.ljyh.mei.constants.PlayerNoLyricWithDisplayKey
 import com.ljyh.mei.constants.PlayerStyle
 import com.ljyh.mei.constants.PlayerStyleKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
@@ -115,7 +117,6 @@ fun AppearanceSettings(
         defaultValue = PlaylistCoverStyle.Combination
     )
 
-    // PlaylistTrackTableHeaderKey
     val (playlistTrackTableHeader, onPlaylistTrackTableHeaderChange) = rememberPreference(
         key = PlaylistTrackTableHeaderKey,
         defaultValue = false
@@ -233,6 +234,7 @@ fun AppearanceSettings(
             PreferenceGroupTitle(
                 title = "LYRIC"
             )
+
             SwitchPreference(
                 title = { Text("主歌词字体加粗") },
                 icon = { Icon(Icons.Rounded.FormatBold, null) },

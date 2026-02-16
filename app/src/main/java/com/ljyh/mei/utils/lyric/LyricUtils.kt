@@ -1,21 +1,28 @@
 package com.ljyh.mei.utils.lyric
 
 import android.util.Log
+import com.ljyh.mei.data.model.qq.c.LyricCmd
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
+import com.mocharealm.accompanist.lyrics.core.parser.LrcParser
 import timber.log.Timber
 
-fun createDefaultLyricData(message: String): LyricData {
+fun createDefaultLyricData(
+    message: String,
+    isPureMusic: Boolean = false,
+    source: LyricSource = LyricSource.Empty
+): LyricData {
     return LyricData(
         isVerbatim = false,
-        lyricLine = SyncedLyrics(lines = listOf())
-//        lyricLine = LrcParser.parse("[00:00.00]${message}")
+        isPureMusic = isPureMusic,
+        source = source,
+        lyricLine = LrcParser.parse("[00:00.00]${message}")
     )
 }
 
-fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
+fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): LyricData {
 //    Timber.tag("LyricUtils").d("mergeLyrics: $sources")
     // 找到 NetEase 的逐字歌词（yrc + tlyric）
     val amSource = sources.filterIsInstance<LyricSourceData.AM>().firstOrNull()
@@ -24,6 +31,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
         Timber.tag("LyricUtils").d("TMLL")
         return LyricData(
             isVerbatim = true,
+            isPureMusic = isPureMusic,
             source = LyricSource.AM,
             lyricLine = TTMLParser.parse(a)
         )
@@ -36,6 +44,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
             // NetEase 逐字（最高优先）
             return LyricData(
                 isVerbatim = true,
+                isPureMusic = isPureMusic,
                 source = LyricSource.NetEaseCloudMusic,
                 lyricLine = YRCParser.parse(n.yrc.lyric, n.tlyric.lyric)
             )
@@ -50,6 +59,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
             Timber.tag("LyricUtils").d("qq.lyric and qq.trans")
             return LyricData(
                 isVerbatim = true,
+                isPureMusic = isPureMusic,
                 source = LyricSource.QQMusic,
                 lyricLine = QRCParser.parse(q.lyric, q.trans)
             )
@@ -59,12 +69,13 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
 
     // ===== 没有任何逐字歌词，按源优先回退 =====
     // 1) NetEase 非逐字（LRC）
-    if (neteaseSource != null ) {
+    if (neteaseSource != null) {
         val n = neteaseSource.lyric
-        if (n.lrc.lyric.isNotBlank() &&  n.tlyric?.lyric!= null) {
+        if (n.lrc.lyric.isNotBlank() && n.tlyric?.lyric != null) {
             Timber.tag("LyricUtils").d("NetEase LRC")
             return LyricData(
                 isVerbatim = false,
+                isPureMusic = isPureMusic,
                 source = LyricSource.NetEaseCloudMusic,
                 lyricLine = LRCParser.parse(n.lrc.lyric, n.tlyric.lyric)
             )
@@ -79,6 +90,7 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
             Timber.tag("LyricUtils").d("QQ LRC")
             return LyricData(
                 isVerbatim = false,
+                isPureMusic = isPureMusic,
                 source = LyricSource.QQMusic,
                 lyricLine = QRCParser.parse(q.lyric, q.trans) // trans 可能为空
             )
@@ -87,7 +99,11 @@ fun mergeLyrics(sources: List<LyricSourceData>): LyricData {
 
     // 都没有，返回默认
     Timber.tag("LyricUtils").d("no lyric")
-    return createDefaultLyricData("暂无歌词")
+    return createDefaultLyricData(
+        if (isPureMusic) "纯音乐，请欣赏" else "没有歌词",
+        isPureMusic = isPureMusic,
+        source = if (isPureMusic) LyricSource.NetEaseCloudMusic else LyricSource.Empty
+    )
 }
 
 
@@ -118,14 +134,17 @@ fun String.parseAsTime(): Int {
                 val secondsAndMillis = parseSecondsAndMillis(parts[2])
                 hours + minutes + secondsAndMillis
             }
+
             2 -> { // Format: MM:SS.ms
                 val minutes = parts[0].toIntOrNull()?.times(60 * 1000) ?: 0
                 val secondsAndMillis = parseSecondsAndMillis(parts[1])
                 minutes + secondsAndMillis
             }
+
             1 -> { // Format: SS.ms
                 parseSecondsAndMillis(parts[0])
             }
+
             else -> 0
         }
     } catch (_: Exception) {

@@ -190,7 +190,7 @@ fun CommonSongListScreen(
                     if (device.isTablet && device.isLandscape) {
                         // --- 平板布局：左右并排 ---
                         Row(modifier = Modifier.fillMaxSize()) {
-                            Box(modifier = Modifier.weight(0.4f)) {
+                            Box(modifier = Modifier.weight(0.4f).align(Alignment.CenterVertically)) {
                                 PlaylistHeader(
                                     title = uiData.title,
                                     cover = uiData.cover,
