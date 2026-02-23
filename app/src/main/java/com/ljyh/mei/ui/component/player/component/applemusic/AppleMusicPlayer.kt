@@ -99,7 +99,6 @@ fun AppleMusicPlayer(
 
     // --- Apple Music 特定状态 ---
     var showLyrics by remember { mutableStateOf(false) }
-    var areControlsVisible by remember { mutableStateOf(true) }
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
@@ -117,12 +116,6 @@ fun AppleMusicPlayer(
             showLyrics = false
         }
     }
-    LaunchedEffect(showLyrics) {
-        if (!showLyrics) {
-            areControlsVisible = true
-        }
-    }
-
     BackHandler(enabled = state.isExpanded && showLyrics) {
         showLyrics = false
     }
@@ -264,12 +257,11 @@ fun AppleMusicPlayer(
                                 }
                             },
                             onLongClick = {},
-                            onToggleControls = { show ->
-                                areControlsVisible = show
-                            }
+                            controlsVisible = stateContainer.controlsVisible,
+                            onToggleControls = { stateContainer.controlsVisible = it },
                         )
                         val spacerHeight by animateDpAsState(
-                            targetValue = if (areControlsVisible) bottomControlsHeightDp else 16.dp,
+                            targetValue = if (stateContainer.controlsVisible) bottomControlsHeightDp else 16.dp,
                             label = "spacer"
                         )
                         Spacer(modifier = Modifier.height(spacerHeight))
@@ -350,7 +342,7 @@ fun AppleMusicPlayer(
                         .background(Color.Transparent)
                         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                 ) {
-                    val isBottomBarVisible = !showLyrics || areControlsVisible
+                    val isBottomBarVisible = !showLyrics || stateContainer.controlsVisible
 
                     AnimatedVisibility(
                         visible = isBottomBarVisible,

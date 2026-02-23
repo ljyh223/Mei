@@ -116,7 +116,8 @@ fun ClassicImmersiveLayout(
                         .show()
                 }
             },
-            onToggleControls = {}
+            controlsVisible = stateContainer.controlsVisible,
+            onToggleControls = {},
         )
     }
 }

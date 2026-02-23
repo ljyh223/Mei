@@ -162,7 +162,8 @@ fun ClassicTabletLayout(
                         .show()
                 }
             },
-            onToggleControls = {}
+            controlsVisible = stateContainer.controlsVisible,
+            onToggleControls = {},
         )
     }
 }

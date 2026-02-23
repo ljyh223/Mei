@@ -134,7 +134,6 @@ fun ContentsSetting(
                 title = { Text("自动匹配歌词") },
                 description = "源自LDDC项目, 试验性测试功能(未广泛测试)",
                 icon = { Icon(Icons.Rounded.AutoAwesome, "自动匹配歌词") },
-                isEnabled = false,
                 checked = autoMatchQQMusicLyric,
                 onCheckedChange = onAutoMatchQQMusicLyricChange
             )
