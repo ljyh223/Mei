@@ -131,7 +131,7 @@ fun ClassicPlayer(
             else -> PlayerLayoutMode.PhonePortrait
         }
 
-        Timber.tag("PlayerLayoutMode").d(layoutMode.name)
+//        Timber.tag("PlayerLayoutMode").d(layoutMode.name)
 
 
         when (layoutMode) {

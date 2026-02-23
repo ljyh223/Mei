@@ -13,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.util.UnstableApi
@@ -198,24 +200,17 @@ fun rememberPlayerStateContainer(
         }
     }
 
-    // Job tracking for cancellation
-    var searchJob by remember { mutableStateOf<Job?>(null) }
-    var fetchJob by remember { mutableStateOf<Job?>(null) }
-    var lyricV1Job by remember { mutableStateOf<Job?>(null) }
-    var amllLyricJob by remember { mutableStateOf<Job?>(null) }
-
     // ========== 歌词加载 LaunchedEffect - MediaMetadata 变化 ==========
-    LaunchedEffect(container.mediaMetadata.value) {
+    LaunchedEffect(container.mediaMetadata.value?.id) {
         container.mediaMetadata.value?.let { meta ->
             try {
-                // Debounce: Small delay to let rapid changes settle
-                delay(100)
+                // Debounce: Let rapid song changes settle before triggering network calls
+                delay(300)
 
-                // Cancel previous work
-                searchJob?.cancel()
-                fetchJob?.cancel()
-                lyricV1Job?.cancel()
-                amllLyricJob?.cancel()
+                // Verify this is still the current song (after debounce)
+                if (container.mediaMetadata.value?.id != meta.id) {
+                    return@LaunchedEffect
+                }
 
                 // 重置状态
                 container.reset()
@@ -223,8 +218,8 @@ fun rememberPlayerStateContainer(
                 // 设置当前媒体元数据
                 playerViewModel.mediaMetadata = meta
 
-                // Launch new jobs and track them
-                lyricV1Job = launch {
+                // Launch network calls in parallel (LaunchedEffect auto-cancels on song change)
+                launch {
                     try {
                         playerViewModel.getLyricV1(meta.id.toString())
                     } catch (e: CancellationException) {
@@ -234,7 +229,7 @@ fun rememberPlayerStateContainer(
                     }
                 }
 
-                amllLyricJob = launch {
+                launch {
                     try {
                         playerViewModel.getAMLLyric(meta.id.toString())
                     } catch (e: CancellationException) {
@@ -246,7 +241,7 @@ fun rememberPlayerStateContainer(
 
                 // 如果启用了 QQ 音乐歌词
                 if (useQQMusicLyric) {
-                    fetchJob = launch {
+                    launch {
                         try {
                             playerViewModel.fetchQQSong(meta.id.toString())
                         } catch (e: CancellationException) {
@@ -256,7 +251,7 @@ fun rememberPlayerStateContainer(
                         }
                     }
 
-                    searchJob = launch {
+                    launch {
                         try {
                             playerViewModel.searchNew(meta.title)
                         } catch (e: CancellationException) {
@@ -428,51 +423,61 @@ fun rememberPlayerStateContainer(
         }
     }
 
+    // Mutex to prevent multiple simultaneous merge operations
+    val mergeMutex = remember { Mutex() }
+
     // ========== 歌词合并 LaunchedEffect ==========
-    LaunchedEffect(container.netLyricResult.value, container.qqLyricResult.value, container.amLyricResult.value) {
-        try {
-            withContext(Dispatchers.IO) {
-                val isPureMusic = (container.netLyricResult.value as? Resource.Success)?.data?.pureMusic == true
-                val sources = mutableListOf<LyricSourceData>()
-                // 添加 AML 歌词
-                (container.amLyricResult.value as? Resource.Success)?.let {
-                    sources.add(LyricSourceData.AM(it.data))
-                }
+    // Only trigger on netLyricResult changes to avoid multiple simultaneous merges
+    LaunchedEffect(container.netLyricResult.value) {
+        // Use mutex to ensure only one merge runs at a time
+        mergeMutex.withLock {
+            try {
+                // Additional debounce inside mutex
+                delay(100)
 
-                // 添加网易云歌词
-                (container.netLyricResult.value as? Resource.Success)?.data?.let {
-                    sources.add(LyricSourceData.NetEase(it))
-                }
+                withContext(Dispatchers.IO) {
+                    val isPureMusic = (container.netLyricResult.value as? Resource.Success)?.data?.pureMusic == true
+                    val sources = mutableListOf<LyricSourceData>()
+                    // 添加 AML 歌词
+                    (container.amLyricResult.value as? Resource.Success)?.let {
+                        sources.add(LyricSourceData.AM(it.data))
+                    }
 
-                // 添加 QQ 音乐歌词
-                (container.qqLyricResult.value as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
-                    try {
-                        val qrc = it.copy(
-                            lyric = QRCUtils.decodeLyric(it.lyric),
-                            trans = QRCUtils.decodeLyric(it.trans, true),
-                            roma = QRCUtils.decodeLyric(it.roma)
-                        )
-                        sources.add(LyricSourceData.QQMusic(qrc))
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Timber.e(e, "Error decoding QRC lyric")
+                    // 添加网易云歌词
+                    (container.netLyricResult.value as? Resource.Success)?.data?.let {
+                        sources.add(LyricSourceData.NetEase(it))
+                    }
+
+                    // 添加 QQ 音乐歌词
+                    (container.qqLyricResult.value as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
+                        try {
+                            val qrc = it.copy(
+                                lyric = QRCUtils.decodeLyric(it.lyric),
+                                trans = QRCUtils.decodeLyric(it.trans, true),
+                                roma = QRCUtils.decodeLyric(it.roma)
+                            )
+                            sources.add(LyricSourceData.QQMusic(qrc))
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error decoding QRC lyric")
+                        }
+                    }
+
+                    // 合并歌词
+                    val merged = mergeLyrics(sources, isPureMusic)
+
+                    // 切换回主线程更新 UI
+                    withContext(Dispatchers.Main) {
+                        container.lyricLine = merged
                     }
                 }
-
-                // 合并歌词
-                val merged = mergeLyrics(sources, isPureMusic)
-
-                // 切换回主线程更新 UI
-                withContext(Dispatchers.Main) {
-                    container.lyricLine = merged
-                }
+            } catch (e: CancellationException) {
+                // Expected when song changes, propagate
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Error in lyric merging LaunchedEffect")
             }
-        } catch (e: CancellationException) {
-            // Expected when song changes, propagate
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "Error in lyric merging LaunchedEffect")
         }
     }
 
