@@ -10,12 +10,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -26,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +68,7 @@ fun LyricScreen(
     playerConnection: PlayerConnection,
     onClick: (LyricSource) -> Unit,
     onLongClick: (LyricSource) -> Unit,
+    controlsVisible: Boolean,
     onToggleControls: (Boolean) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -89,22 +85,14 @@ fun LyricScreen(
         LyricTextSize.Size20
     )
     val (accompanimentLyricTextBold, _) = rememberPreference(AccompanimentLyricTextBoldKey, true)
-    var controlsVisible by remember { mutableStateOf(true) }
 
     LaunchedEffect(controlsVisible) {
         if (controlsVisible) {
             delay(3000)
-            controlsVisible = false
+            onToggleControls(false)
         }
     }
 
-
-    fun showControls() {
-        if (!controlsVisible) {
-            controlsVisible = true
-        }
-        onToggleControls(controlsVisible)
-    }
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
@@ -112,10 +100,9 @@ fun LyricScreen(
                 if (source == NestedScrollSource.UserInput) {
                     val delta = available.y
                     if (delta < -10) {
-                        controlsVisible = false
                         onToggleControls(false)
                     } else if (delta > 10) {
-                        showControls()
+                        onToggleControls(true)
                     }
                 }
                 return Offset.Zero
@@ -142,7 +129,7 @@ fun LyricScreen(
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
-            ) { showControls() }
+            ) { onToggleControls(true) }
     ) {
         Box(
             modifier = Modifier
@@ -156,7 +143,7 @@ fun LyricScreen(
                     currentPosition = { animatedPosition.toInt() },
                     onLineClicked = { line ->
                         playerConnection.player.seekTo(line.start.toLong())
-                        showControls()
+                        onToggleControls(true)
                     },
                     onLinePressed = { line ->
                         val result = when (line) {
@@ -182,7 +169,7 @@ fun LyricScreen(
                         }
                     },
                     modifier = Modifier
-                        .padding(PaddingValues(bottom = 48.dp, top = 16.dp))
+                        .padding(vertical = 8.dp)
                         .graphicsLayer {
                             blendMode = BlendMode.Plus
                             compositingStrategy = CompositingStrategy.Offscreen
@@ -203,7 +190,7 @@ fun LyricScreen(
                     source = lyricData.source,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding( end = 8.dp), // 关键修改：Bottom padding 避免与进度条时间重叠
+                        .padding( end = 8.dp),
                     onClick = onClick,
                     onLongClick = onLongClick
                 )
