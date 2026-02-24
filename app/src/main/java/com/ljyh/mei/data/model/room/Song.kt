@@ -22,5 +22,5 @@ data class QQSong(
     val title: String,
     val artist: String,
     val album: String,
-    val duration: Int,
+    val duration: Long,
 )

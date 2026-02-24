@@ -26,9 +26,11 @@ import com.ljyh.mei.di.LocalPlaylistRepository
 import com.ljyh.mei.di.ColorRepository
 import com.ljyh.mei.di.LikeRepository
 import com.ljyh.mei.di.QQSongRepository
+import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.model.SortOrder
 import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,19 +52,11 @@ class PlayerViewModel @Inject constructor(
     private val localPlaylistRepository: LocalPlaylistRepository,
     private val playlistRepository: PlaylistRepository,
     private val likeRepository: LikeRepository,
-    private val colorRepository: ColorRepository
+    private val colorRepository: ColorRepository,
+    val lyricManager: LyricManager
 ) : ViewModel() {
-    private val _searchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
-    val searchResult: StateFlow<Resource<SearchResult>> = _searchResult
-
-    private val _lyricResult = MutableStateFlow<Resource<LyricResult>>(Resource.Loading)
-    val lyricResult: StateFlow<Resource<LyricResult>> = _lyricResult
-
-    private val _lyric = MutableStateFlow<Resource<Lyric>>(Resource.Loading)
-    val lyric: StateFlow<Resource<Lyric>> = _lyric
-
-    private val _amLyric = MutableStateFlow<Resource<String>>(Resource.Loading)
-    val amLyric: StateFlow<Resource<String>> = _amLyric
+    val searchResult: StateFlow<Resource<SearchResult>> = lyricManager.qqSearchResult
+    val lyric: StateFlow<LyricData> = lyricManager.lyricData
 
     private val _like = MutableStateFlow<Like?>(null)
     val like: StateFlow<Like?> = _like
@@ -128,59 +122,20 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun clear() {
-        _searchResult.value = Resource.Loading
-        _lyricResult.value = Resource.Loading
-        _lyric.value = Resource.Loading
-        _amLyric.value = Resource.Loading
-        _qqSong.value = null
+        // Obsolete states removed, lyricManager handles its own state
     }
 
     private val _qqSong = MutableStateFlow<QQSong?>(null)
     val qqSong: StateFlow<QQSong?> = _qqSong
     fun searchNew(keyword: String) {
-        viewModelScope.launch {
-            _searchResult.value = Resource.Loading
-            _searchResult.value = repository.searchNew(keyword)
-        }
+        lyricManager.loadLyrics(mediaMetadata ?: return) // Or just let the UI call search
     }
 
 
-    fun getLyricNew(title: String, album: String, artist: String, duration: Long, id: Long) {
-        viewModelScope.launch {
-            _lyricResult.value = Resource.Loading
-            _lyricResult.value = repository.getLyricNew(title, album, artist, duration, id)
-        }
+    fun selectQQSong(song: SearchResult.Req0.Data.Body.Song.S) {
+        lyricManager.selectQQSongForLyric(mediaMetadata ?: return, song)
     }
 
-    // 旧版 没有逐字歌词
-    fun getLyric(id: String) {
-        viewModelScope.launch {
-            _lyric.value = Resource.Loading
-            _lyric.value = repository.getLyric(id)
-        }
-    }
-
-
-    // 新版 有逐字歌词
-    fun getLyricV1(id: String) {
-        viewModelScope.launch {
-            _lyric.value = Resource.Loading
-            _lyric.value = repository.getLyricV1(id)
-        }
-    }
-
-    fun fetchQQSong(id: String) {
-        viewModelScope.launch {
-            qqSongRepository.getQQSong(id)
-                .catch { e ->
-                    // 处理错误
-                    println("Error fetching song: ${e.message}")
-                }
-                .collect { song ->
-                    _qqSong.value = song
-                }
-        }
-    }
 
     fun insertSong(song: QQSong) {
         viewModelScope.launch {
@@ -191,16 +146,12 @@ class PlayerViewModel @Inject constructor(
     fun deleteSongById(id: String) {
         viewModelScope.launch {
             qqSongRepository.deleteSongById(id)
-            _lyricResult.value = Resource.Loading
-            _qqSong.value = null
+            lyricManager.loadLyrics(mediaMetadata ?: return@launch)
         }
     }
 
     fun getAMLLyric(id: String) {
-        viewModelScope.launch {
-            _amLyric.value = Resource.Loading
-            _amLyric.value = repository.getAMLLyric(id)
-        }
+       // Delegated
     }
 
     fun getColor(url: String): Color? {

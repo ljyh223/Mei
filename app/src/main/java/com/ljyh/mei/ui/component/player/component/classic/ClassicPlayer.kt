@@ -46,24 +46,17 @@ fun ClassicPlayer(
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     val device = rememberDeviceInfo()
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
-    val debug by rememberPreference(DebugKey, defaultValue = false)
+
 
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
-    val isPlaying by stateContainer.isPlaying
-    val playbackState by stateContainer.playbackState
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
     val duration by remember { derivedStateOf { stateContainer.duration } }
-    val isDragging by remember { derivedStateOf { stateContainer.isDragging } }
-    val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
-    val qqSong by stateContainer.qqSong
 
     // 背景颜色计算
     val colorScheme = MaterialTheme.colorScheme
@@ -105,22 +98,7 @@ fun ClassicPlayer(
             imageUrl = coverUrl
         )
 
-        // Debug 信息层
-        if (debug && mediaMetadata != null) {
-            Box(modifier = Modifier.align(Alignment.Center)) {
-                Debug(
-                    title = mediaMetadata!!.title,
-                    artist = mediaMetadata!!.artists.firstOrNull()?.name ?: "",
-                    album = mediaMetadata!!.album.title,
-                    duration = formatMilliseconds(duration).toString(),
-                    id = mediaMetadata!!.id.toString(),
-                    qid = qqSong?.qid ?: "null",
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                )
-            }
-        }
+
 
 
 

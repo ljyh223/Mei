@@ -79,6 +79,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.lerp
+import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.UnitUtils.toPx
 import kotlin.math.min
 
@@ -248,15 +249,20 @@ fun AppleMusicPlayer(
                                 .padding(horizontal = PlayerHorizontalPadding),
                             onClick = {
                                 mediaMetadata?.let {
-                                    if (overlayHandler.currentOverlayValue is OverlayState.None && stateContainer.playerViewModel.searchResult.value is Resource.Success) {
+                                    if (overlayHandler.currentOverlayValue is OverlayState.None) {
                                         overlayHandler.showQQMusicSelection(
-                                            searchResult = stateContainer.playerViewModel.searchResult.value as Resource.Success,
+                                            searchResult = stateContainer.playerViewModel.searchResult.value,
                                             mediaMetadata = it
                                         )
                                     }
                                 }
                             },
-                            onLongClick = {},
+                            onLongClick = { source ->
+                                if (source == LyricSource.QQMusic && mediaMetadata != null) {
+                                    stateContainer.playerViewModel.deleteSongById(id = mediaMetadata!!.id.toString())
+                                    android.widget.Toast.makeText(context, "已删除QQ音乐歌词", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            },
                             controlsVisible = stateContainer.controlsVisible,
                             onToggleControls = { stateContainer.controlsVisible = it },
                         )

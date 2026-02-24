@@ -135,11 +135,11 @@ fun ClassicPhoneLayout(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = PlayerHorizontalPadding),
-                        onClick = { source ->
+                        onClick = {
                             mediaMetadata?.let {
-                                if (overlayHandler.currentOverlayValue is OverlayState.None && stateContainer.playerViewModel.searchResult.value is Resource.Success) {
+                                if (overlayHandler.currentOverlayValue is OverlayState.None) {
                                     overlayHandler.showQQMusicSelection(
-                                        searchResult = stateContainer.playerViewModel.searchResult.value as Resource.Success,
+                                        searchResult = stateContainer.playerViewModel.searchResult.value,
                                         mediaMetadata = it
                                     )
                                 }

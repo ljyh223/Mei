@@ -190,7 +190,7 @@ fun LyricScreen(
                     source = lyricData.source,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding( end = 8.dp),
+                        .padding( start = 8.dp),
                     onClick = onClick,
                     onLongClick = onLongClick
                 )

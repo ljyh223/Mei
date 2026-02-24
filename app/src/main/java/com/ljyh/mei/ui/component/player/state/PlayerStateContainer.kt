@@ -34,6 +34,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
 import com.ljyh.mei.utils.encrypt.QRCUtils
@@ -83,6 +84,10 @@ class PlayerStateContainer(
     var lyricLine by mutableStateOf(createDefaultLyricData("歌词加载中"))
         internal set
 
+    // Track current song ID to verify lyric results and prevent applying stale data
+    var currentSongId: String? = null
+        internal set
+
 
     // ========== 状态槽（将在 Composable 中填充） ==========
 
@@ -95,19 +100,10 @@ class PlayerStateContainer(
     lateinit var mediaMetadata: State<MediaMetadata?>
         internal set
 
-    lateinit var netLyricResult: State<Resource<Lyric>>
-        internal set
-
-    lateinit var qqLyricResult: State<Resource<LyricResult>>
+    lateinit var lyricResult: State<LyricData>
         internal set
 
     lateinit var qqLyricSearch: State<Resource<SearchResult>>
-        internal set
-
-    lateinit var amLyricResult: State<Resource<String>>
-        internal set
-
-    lateinit var qqSong: State<QQSong?>
         internal set
 
     lateinit var isLiked: State<Like?>
@@ -127,6 +123,10 @@ class PlayerStateContainer(
 
 
     var autoMatchResult by mutableStateOf<String?>(null)
+        internal set
+
+
+    var controlsVisible by mutableStateOf(true)
         internal set
 
 
@@ -173,11 +173,8 @@ fun rememberPlayerStateContainer(
     container.canSkipNext = playerConnection.canSkipNext.collectAsState()
     container.isFMMode = playerConnection.isFMMode.collectAsState()
 
-    container.netLyricResult = playerViewModel.lyric.collectAsState()
-    container.qqLyricResult = playerViewModel.lyricResult.collectAsState()
+    container.lyricResult = playerViewModel.lyric.collectAsState()
     container.qqLyricSearch = playerViewModel.searchResult.collectAsState()
-    container.amLyricResult = playerViewModel.amLyric.collectAsState()
-    container.qqSong = playerViewModel.qqSong.collectAsState()
     container.isLiked = playerViewModel.like.collectAsState(initial = null)
     container.allPlaylist = playerViewModel.localPlaylists.collectAsState()
 
@@ -200,285 +197,18 @@ fun rememberPlayerStateContainer(
         }
     }
 
-    // ========== 歌词加载 LaunchedEffect - MediaMetadata 变化 ==========
+    // ========== Lyric Loading LaunchedEffect ==========
     LaunchedEffect(container.mediaMetadata.value?.id) {
         container.mediaMetadata.value?.let { meta ->
-            try {
-                // Debounce: Let rapid song changes settle before triggering network calls
-                delay(300)
-
-                // Verify this is still the current song (after debounce)
-                if (container.mediaMetadata.value?.id != meta.id) {
-                    return@LaunchedEffect
-                }
-
-                // 重置状态
-                container.reset()
-
-                // 设置当前媒体元数据
-                playerViewModel.mediaMetadata = meta
-
-                // Launch network calls in parallel (LaunchedEffect auto-cancels on song change)
-                launch {
-                    try {
-                        playerViewModel.getLyricV1(meta.id.toString())
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Timber.e(e, "Error fetching lyric V1")
-                    }
-                }
-
-                launch {
-                    try {
-                        playerViewModel.getAMLLyric(meta.id.toString())
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Timber.e(e, "Error fetching AMLL lyric")
-                    }
-                }
-
-                // 如果启用了 QQ 音乐歌词
-                if (useQQMusicLyric) {
-                    launch {
-                        try {
-                            playerViewModel.fetchQQSong(meta.id.toString())
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Timber.e(e, "Error fetching QQ song")
-                        }
-                    }
-
-                    launch {
-                        try {
-                            playerViewModel.searchNew(meta.title)
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Timber.e(e, "Error searching new")
-                        }
-                    }
-                }
-
-                if (debug) {
-                    Timber.tag("Player").d("MediaMetadata: $meta")
-                    Timber.tag("Player").d("MediaMetadata: cover ${meta.coverUrl}")
-                }
-            } catch (e: CancellationException) {
-                // Expected when song changes rapidly, propagate
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Error in media metadata LaunchedEffect")
-            }
+            container.currentSongId = meta.id.toString()
+            container.reset()
+            playerViewModel.lyricManager.loadLyrics(meta)
         }
     }
 
-    // ========== 歌词加载 LaunchedEffect - QQSong 变化 ==========
-    LaunchedEffect(container.qqSong.value) {
-        try {
-            if (debug) {
-                Timber.tag("Player").d("QQSong: ${container.qqSong.value}")
-            }
-            container.qqSong.value?.let { song ->
-                if (debug) {
-                    Timber.tag("Player").d("QQSong111: $song")
-                }
-                playerViewModel.getLyricNew(
-                    title = song.title,
-                    album = song.album,
-                    artist = song.artist,
-                    duration = song.duration.toLong(),
-                    id = song.qid.toLong()
-                )
-            }
-        } catch (e: CancellationException) {
-            // Expected when song changes, propagate
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "Error in QQSong LaunchedEffect")
-        }
-    }
-
-    LaunchedEffect(container.qqLyricSearch.value, container.mediaMetadata.value) {
-        try {
-            if(!autoMatchQQMusicLyric.value) return@LaunchedEffect
-            val searchResult = container.qqLyricSearch.value
-            val metadata = container.mediaMetadata.value
-
-            if (searchResult is Resource.Success && metadata != null) {
-                // Move heavy computation to background thread
-                val result = withContext(Dispatchers.Default) {
-                val songList = searchResult.data.req0.data.body.song.list
-
-                if (songList.isNotEmpty()) {
-                    if (debug) {
-                        Timber.tag("Player").d("Found ${songList.size} songs, starting auto match")
-                    }
-
-                    // 构建目标歌曲信息
-                    val targetInfo = LyricMatchAlgorithm.SongMatchInfo(
-                        id = metadata.id.toString(),
-                        title = metadata.title,
-                        artist = metadata.artists.joinToString(",") { it.name },
-                        album = metadata.album.title,
-                        duration = container.duration
-                    )
-
-                    // 转换搜索结果为匹配算法格式
-                    val matchCandidates = songList.map { song ->
-                        LyricMatchAlgorithm.SongMatchInfo(
-                            id = song.id.toString(),
-                            title = song.title,
-                            artist = song.singer.joinToString(",") { it.name },
-                            album = song.album.title,
-                            duration = (song.interval) * 1000  // 转换为毫秒
-                        )
-                    }
-
-                    // 执行自动匹配
-                    val bestMatch = LyricMatchAlgorithm.findBestMatch(
-                        targetInfo = targetInfo,
-                        searchResults = matchCandidates,
-                        minScore = 50f  // 最低50分才认为匹配
-                    )
-
-                    if (bestMatch != null) {
-                        // 找到最佳匹配，返回结果用于主线程处理
-                        val matchedSong = songList.find {
-                            it.id.toString() == bestMatch.song.id
-                        }
-                        MatchResult.Success(matchedSong, bestMatch)
-                    } else {
-                        if (debug) {
-                            Timber.tag("Player").d("No suitable match found")
-                        }
-                        MatchResult.NoMatch
-                    }
-                } else {
-                    MatchResult.EmptyList
-                }
-            }
-
-            // Handle UI updates on main thread
-            when (result) {
-                is MatchResult.Success -> {
-                    val song = result.song
-                    val bestMatch = result.bestMatch
-
-                    song?.let {
-                        if (debug) {
-                            Timber.tag("Player").d(
-                                """Auto matched song:
-                                    |Title: ${song.title}
-                                    |Score: ${bestMatch.totalScore}
-                                    |Title Score: ${bestMatch.titleScore}
-                                    |Artist Score: ${bestMatch.artistScore}
-                                """.trimMargin()
-                            )
-                        }
-
-                        container.autoMatchResult = """
-                            自动匹配成功:
-                            标题: ${song.title}
-                            歌手: ${song.singer.joinToString(",") { it.name }}
-                            匹配分数: ${"%.2f".format(bestMatch.totalScore)}
-                            标题分数: ${"%.2f".format(bestMatch.titleScore)}
-                            歌手分数: ${"%.2f".format(bestMatch.artistScore)}
-                        """.trimIndent()
-
-                        // 自动获取歌词
-                        playerViewModel.getLyricNew(
-                            title = song.title,
-                            album = song.album.title,
-                            artist = song.singer.joinToString(",") { it.name },
-                            duration = (song.interval) * 1000L,
-                            id = song.id
-                        )
-
-                        // 显示提示（可选）
-                        if(matchSuccessToast.value){
-                            Toast.makeText(
-                                context,
-                                "已自动匹配: ${song.title}",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                }
-                is MatchResult.NoMatch -> {
-                    container.autoMatchResult = "未找到合适的匹配，请手动选择"
-                }
-                is MatchResult.EmptyList -> {
-                    // Do nothing
-                }
-            }
-        }
-        } catch (e: CancellationException) {
-            // Expected when song changes, propagate
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "Error in auto-match LaunchedEffect")
-        }
-    }
-
-    // Mutex to prevent multiple simultaneous merge operations
-    val mergeMutex = remember { Mutex() }
-
-    // ========== 歌词合并 LaunchedEffect ==========
-    // Only trigger on netLyricResult changes to avoid multiple simultaneous merges
-    LaunchedEffect(container.netLyricResult.value) {
-        // Use mutex to ensure only one merge runs at a time
-        mergeMutex.withLock {
-            try {
-                // Additional debounce inside mutex
-                delay(100)
-
-                withContext(Dispatchers.IO) {
-                    val isPureMusic = (container.netLyricResult.value as? Resource.Success)?.data?.pureMusic == true
-                    val sources = mutableListOf<LyricSourceData>()
-                    // 添加 AML 歌词
-                    (container.amLyricResult.value as? Resource.Success)?.let {
-                        sources.add(LyricSourceData.AM(it.data))
-                    }
-
-                    // 添加网易云歌词
-                    (container.netLyricResult.value as? Resource.Success)?.data?.let {
-                        sources.add(LyricSourceData.NetEase(it))
-                    }
-
-                    // 添加 QQ 音乐歌词
-                    (container.qqLyricResult.value as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let {
-                        try {
-                            val qrc = it.copy(
-                                lyric = QRCUtils.decodeLyric(it.lyric),
-                                trans = QRCUtils.decodeLyric(it.trans, true),
-                                roma = QRCUtils.decodeLyric(it.roma)
-                            )
-                            sources.add(LyricSourceData.QQMusic(qrc))
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Timber.e(e, "Error decoding QRC lyric")
-                        }
-                    }
-
-                    // 合并歌词
-                    val merged = mergeLyrics(sources, isPureMusic)
-
-                    // 切换回主线程更新 UI
-                    withContext(Dispatchers.Main) {
-                        container.lyricLine = merged
-                    }
-                }
-            } catch (e: CancellationException) {
-                // Expected when song changes, propagate
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Error in lyric merging LaunchedEffect")
-            }
-        }
+    // Simplified: Use the merged lyric line directly
+    LaunchedEffect(container.lyricResult.value) {
+        container.lyricLine = container.lyricResult.value
     }
 
     return container

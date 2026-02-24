@@ -18,7 +18,7 @@ fun createDefaultLyricData(
         isVerbatim = false,
         isPureMusic = isPureMusic,
         source = source,
-        lyricLine = LrcParser.parse("[00:00.00]${message}")
+        lyricLine = LRCParser.parse("[00:00.00]${message}", null)
     )
 }
 
@@ -71,13 +71,13 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
     // 1) NetEase 非逐字（LRC）
     if (neteaseSource != null) {
         val n = neteaseSource.lyric
-        if (n.lrc.lyric.isNotBlank() && n.tlyric?.lyric != null) {
+        if (n.lrc.lyric.isNotBlank()) {
             Timber.tag("LyricUtils").d("NetEase LRC")
             return LyricData(
                 isVerbatim = false,
                 isPureMusic = isPureMusic,
                 source = LyricSource.NetEaseCloudMusic,
-                lyricLine = LRCParser.parse(n.lrc.lyric, n.tlyric.lyric)
+                lyricLine = LRCParser.parse(n.lrc.lyric, n.tlyric?.lyric)
             )
         }
     }
