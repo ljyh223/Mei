@@ -186,10 +186,6 @@ screenshot
 
 ---
 
-## 捐赠
-如果觉得这个软件不错，请作者喝杯咖啡。
-
-<img src="./screenshot/donate.png" width="200">
 
 ## 写在最后
 
