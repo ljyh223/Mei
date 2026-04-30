@@ -87,7 +87,8 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         GLES30.glClearColor(0f, 0f, 0f, 1f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
 
-        for (state in meshStates) {
+        for (i in meshStates.lastIndex downTo 0) {
+            val state = meshStates[i]
             val easeAlpha = easeInOutSine(state.alpha.coerceIn(0f, 1f))
             if (easeAlpha <= 0.01f) continue
 
@@ -118,6 +119,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             pendingAlbum = null
 
             val processed = AlbumTextureProcessor.process(bitmap)
+            bitmap.recycle()
             val textureId = uploadTexture(processed)
 
             val preset = selectPreset()
@@ -128,6 +130,9 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             processed.recycle()
 
             val newState = MeshState(mesh, textureId, 0f, 1f)
+            for (existing in meshStates) {
+                existing.targetAlpha = -1f
+            }
             meshStates.add(0, newState)
         }
     }
@@ -148,21 +153,14 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             val state = iter.next()
             state.alpha += deltaFactor * state.targetAlpha
 
-            if (state.alpha >= 1f && state.targetAlpha > 0f) {
+            if (state.targetAlpha > 0f && state.alpha >= 1f) {
                 state.alpha = 1f
                 state.targetAlpha = 0f
             }
 
-            if (state.alpha <= -0.1f) {
+            if (state.alpha <= 0f && state.targetAlpha < 0f) {
                 GLES30.glDeleteTextures(1, intArrayOf(state.textureId), 0)
                 iter.remove()
-            }
-        }
-
-        for (i in 1 until meshStates.size) {
-            val state = meshStates[i]
-            if (state.targetAlpha > 0f) {
-                state.targetAlpha = -1f
             }
         }
     }

@@ -11,9 +11,9 @@ import kotlin.math.sin
 data class ControlPoint(
     var x: Float,
     var y: Float,
-    var r: Float = 0f,
-    var g: Float = 0f,
-    var b: Float = 0f,
+    var r: Float = 1f,
+    var g: Float = 1f,
+    var b: Float = 1f,
     var ur: Float = 0f,
     var vr: Float = 0f,
     var up: Float = 1f,
@@ -124,10 +124,6 @@ class BHPMesh(
             cp.vr = cpConf.vr
             cp.up = uPower * cpConf.up
             cp.vp = vPower * cpConf.vp
-            val color = sampleColorFromBitmap(albumTexture, cpConf.x, cpConf.y)
-            cp.r = color[0]
-            cp.g = color[1]
-            cp.b = color[2]
         }
         updateMesh()
     }

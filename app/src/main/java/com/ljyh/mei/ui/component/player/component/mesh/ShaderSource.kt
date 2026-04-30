@@ -57,7 +57,7 @@ void main() {
 
     float dither = gradientNoise(gl_FragCoord.xy) / 255.0 - 0.5 / 255.0;
 
-    vec2 centered = v_uv - vec2(0.5);
+    vec2 centered = v_uv - vec2(0.2);
     vec2 rotated = rot(centered, timeVolume * 2.0);
     vec2 finalUV = rotated * max(0.001, 1.0 - volumeEffect) + vec2(0.5);
 
