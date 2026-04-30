@@ -31,14 +31,27 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
     private val meshStates = mutableListOf<MeshState>()
 
-    private var width: Int = 0
-    private var height: Int = 0
+    private var scaledWidth: Int = 0
+    private var scaledHeight: Int = 0
+    private var viewWidth: Int = 0
+    private var viewHeight: Int = 0
 
     private var startTimeNanos: Long = System.nanoTime()
-    private var flowSpeed: Float = 0.25f
 
     @Volatile
     var volume: Float = 0f
+
+    @Volatile
+    var flowSpeed: Float = 0.25f
+
+    @Volatile
+    var renderScale: Float = 0.75f
+
+    @Volatile
+    var subdivision: Int = 50
+
+    private var staticMode: Boolean = false
+    private var isStatic: Boolean = false
 
     private var pendingAlbum: Bitmap? = null
     private var albumChanged: Boolean = false
@@ -63,10 +76,15 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-        GLES30.glViewport(0, 0, width, height)
-        this.width = width
-        this.height = height
-        createFbo(width, height)
+        viewWidth = width
+        viewHeight = height
+        rebuildFbo()
+    }
+
+    fun rebuildFbo() {
+        scaledWidth = maxOf(1, (viewWidth * renderScale).toInt())
+        scaledHeight = maxOf(1, (viewHeight * renderScale).toInt())
+        createFbo(scaledWidth, scaledHeight)
     }
 
     override fun onDrawFrame(gl: GL10?) {
@@ -77,6 +95,8 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
             return
         }
+
+        if (staticMode && isStatic) return
 
         val now = System.nanoTime()
         val time = (now - startTimeNanos) / 1e9f * flowSpeed
@@ -93,6 +113,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             if (easeAlpha <= 0.01f) continue
 
             GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fbo)
+            GLES30.glViewport(0, 0, scaledWidth, scaledHeight)
             GLES30.glDisable(GLES30.GL_BLEND)
             GLES30.glClearColor(0f, 0f, 0f, 0f)
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
@@ -100,6 +121,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             drawMesh(state, time)
 
             GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+            GLES30.glViewport(0, 0, viewWidth, viewHeight)
             GLES30.glEnable(GLES30.GL_BLEND)
             GLES30.glBlendFuncSeparate(
                 GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA,
@@ -124,11 +146,12 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
             val preset = selectPreset()
             val mesh = BHPMesh(preset.width, preset.height)
-            mesh.resetSubdivision(50)
+            mesh.resetSubdivision(subdivision)
             mesh.configureFromPreset(preset, processed)
 
             processed.recycle()
 
+            isStatic = false
             val newState = MeshState(mesh, textureId, 0f, 1f)
             for (existing in meshStates) {
                 existing.targetAlpha = -1f
@@ -163,6 +186,19 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
                 iter.remove()
             }
         }
+
+        if (staticMode && meshStates.size == 1 && meshStates[0].alpha >= 1f) {
+            isStatic = true
+        }
+    }
+
+    fun setStaticMode(enable: Boolean) {
+        staticMode = enable
+        if (!enable) isStatic = false
+    }
+
+    fun setPlaying(playing: Boolean) {
+        // playing is controlled by MeshBackgroundView renderMode
     }
 
     private fun easeInOutSine(t: Float): Float {
@@ -204,7 +240,7 @@ private fun drawMesh(state: MeshState, time: Float) {
         GLES30.glUniform1i(uTexture, 0)
         GLES30.glUniform1f(uTime, time)
         GLES30.glUniform1f(uVolume, volume)
-        GLES30.glUniform1f(uAspect, if (height > 0) width.toFloat() / height else 1f)
+        GLES30.glUniform1f(uAspect, if (scaledHeight > 0) scaledWidth.toFloat() / scaledHeight else 1f)
 
         vertexBuffer.position(0)
         val strideBytes = 7 * 4
@@ -369,6 +405,27 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
 
     fun updateVolume(v: Float) {
         renderer.volume = v
+    }
+
+    fun setFlowSpeed(speed: Float) {
+        renderer.flowSpeed = speed
+    }
+
+    fun setRenderScale(scale: Float) {
+        renderer.renderScale = scale
+        queueEvent { renderer.rebuildFbo() }
+    }
+
+    fun setSubdivision(level: Int) {
+        renderer.subdivision = level
+    }
+
+    fun setStaticMode(enable: Boolean) {
+        queueEvent { renderer.setStaticMode(enable) }
+    }
+
+    fun setPlaying(playing: Boolean) {
+        renderMode = if (playing) RENDERMODE_CONTINUOUSLY else RENDERMODE_WHEN_DIRTY
     }
 
     override fun onDetachedFromWindow() {

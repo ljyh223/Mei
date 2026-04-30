@@ -12,8 +12,15 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.ljyh.mei.constants.MeshFlowSpeedKey
+import com.ljyh.mei.constants.MeshLowFreqVolumeKey
+import com.ljyh.mei.constants.MeshPlayingKey
+import com.ljyh.mei.constants.MeshRenderScaleKey
+import com.ljyh.mei.constants.MeshStaticModeKey
+import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.ui.component.player.component.mesh.MeshBackgroundView
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
+import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -25,6 +32,13 @@ fun SPlayerFluidBackground(
 ) {
     val context = LocalContext.current
     val bass by audioVisualizerManager.bassValue.collectAsState()
+
+    val (flowSpeed) = rememberPreference(MeshFlowSpeedKey, defaultValue = 0.25f)
+    val (renderScale) = rememberPreference(MeshRenderScaleKey, defaultValue = 0.75f)
+    val (staticMode) = rememberPreference(MeshStaticModeKey, defaultValue = false)
+    val (playing) = rememberPreference(MeshPlayingKey, defaultValue = true)
+    val (volumeScale) = rememberPreference(MeshLowFreqVolumeKey, defaultValue = 0.1f)
+    val (subdivision) = rememberPreference(MeshSubdivisionKey, defaultValue = 50)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         var meshView by remember { mutableStateOf<MeshBackgroundView?>(null) }
@@ -46,8 +60,28 @@ fun SPlayerFluidBackground(
             }
         }
 
-        LaunchedEffect(bass) {
-            meshView?.updateVolume(bass * 0.1f)
+        LaunchedEffect(bass, volumeScale) {
+            meshView?.updateVolume(bass * volumeScale)
+        }
+
+        LaunchedEffect(flowSpeed) {
+            meshView?.setFlowSpeed(flowSpeed)
+        }
+
+        LaunchedEffect(renderScale) {
+            meshView?.setRenderScale(renderScale)
+        }
+
+        LaunchedEffect(subdivision) {
+            meshView?.setSubdivision(subdivision)
+        }
+
+        LaunchedEffect(staticMode) {
+            meshView?.setStaticMode(staticMode)
+        }
+
+        LaunchedEffect(playing) {
+            meshView?.setPlaying(playing)
         }
 
         AndroidView(

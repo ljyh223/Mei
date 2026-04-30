@@ -1,6 +1,7 @@
 package com.ljyh.mei.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -52,6 +53,13 @@ val AndroidIdKey = stringPreferencesKey("androidId")
 // 原图封面
 val OriginalCoverKey = booleanPreferencesKey("originalCover")
 val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
+
+val MeshFlowSpeedKey = floatPreferencesKey("meshFlowSpeed")
+val MeshRenderScaleKey = floatPreferencesKey("meshRenderScale")
+val MeshStaticModeKey = booleanPreferencesKey("meshStaticMode")
+val MeshPlayingKey = booleanPreferencesKey("meshPlaying")
+val MeshLowFreqVolumeKey = floatPreferencesKey("meshLowFreqVolume")
+val MeshSubdivisionKey = intPreferencesKey("meshSubdivision")
 
 val PlayerStyleKey = stringPreferencesKey("playerStyle")
 val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
