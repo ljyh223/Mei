@@ -138,6 +138,7 @@ fun ClassicPhoneLayout(
                         onClick = {
                             mediaMetadata?.let {
                                 if (overlayHandler.currentOverlayValue is OverlayState.None) {
+                                    stateContainer.playerViewModel.searchQQSong(it.title)
                                     overlayHandler.showQQMusicSelection(
                                         searchResult = stateContainer.playerViewModel.searchResult.value,
                                         mediaMetadata = it

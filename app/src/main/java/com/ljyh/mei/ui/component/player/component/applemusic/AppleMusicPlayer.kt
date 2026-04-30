@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -70,8 +71,9 @@ import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
-import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
+import com.ljyh.mei.ui.component.player.component.SPlayerFluidBackground
 import com.ljyh.mei.ui.component.player.component.LyricScreen
+import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
@@ -225,7 +227,20 @@ fun AppleMusicPlayer(
             }
         ) {
             val coverUrl = mediaMetadata?.coverUrl
-            AppleMusicFluidBackground(imageUrl = coverUrl)
+            
+            val audioVisualizerManager = remember { AudioVisualizerManager(context) }
+            
+            LaunchedEffect(stateContainer.playerConnection.player) {
+                val player = stateContainer.playerConnection.player as? ExoPlayer
+                player?.audioSessionId?.let { sessionId ->
+                    audioVisualizerManager.attachToPlayer(sessionId)
+                }
+            }
+
+            SPlayerFluidBackground(
+                imageUrl = coverUrl,
+                audioVisualizerManager = audioVisualizerManager
+            )
 
             Box(modifier = Modifier.fillMaxSize()) {
 
@@ -250,6 +265,7 @@ fun AppleMusicPlayer(
                             onClick = {
                                 mediaMetadata?.let {
                                     if (overlayHandler.currentOverlayValue is OverlayState.None) {
+                                        stateContainer.playerViewModel.searchQQSong(it.title)
                                         overlayHandler.showQQMusicSelection(
                                             searchResult = stateContainer.playerViewModel.searchResult.value,
                                             mediaMetadata = it

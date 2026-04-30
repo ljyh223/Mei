@@ -12,7 +12,6 @@ import com.ljyh.mei.data.model.Tracks
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.Intelligence
-import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
@@ -42,6 +41,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -121,21 +121,17 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun clear() {
-        // Obsolete states removed, lyricManager handles its own state
-    }
 
     private val _qqSong = MutableStateFlow<QQSong?>(null)
     val qqSong: StateFlow<QQSong?> = _qqSong
-    fun searchNew(keyword: String) {
-        lyricManager.loadLyrics(mediaMetadata ?: return) // Or just let the UI call search
-    }
 
+    fun searchQQSong(keyword: String) {
+        lyricManager.searchQQSong(keyword)
+    }
 
     fun selectQQSong(song: SearchResult.Req0.Data.Body.Song.S) {
         lyricManager.selectQQSongForLyric(mediaMetadata ?: return, song)
     }
-
 
     fun insertSong(song: QQSong) {
         viewModelScope.launch {
@@ -150,13 +146,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun getAMLLyric(id: String) {
-       // Delegated
-    }
-
-    fun getColor(url: String): Color? {
-        return colorRepository.getFromMemory(url)
-    }
 
 
     fun syncUserPlaylists(uid: String, limit: Int = 100) {
@@ -210,7 +199,7 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             _songDetail.value = Resource.Loading
             val result = repository.getSongDetail(id)
-            Log.d("songDetail", "getSongDetail: $result")
+            Timber.tag("songDetail").d("getSongDetail: $result")
             _songDetail.value = result
         }
     }
