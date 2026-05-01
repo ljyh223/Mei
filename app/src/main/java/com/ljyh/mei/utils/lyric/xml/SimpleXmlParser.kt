@@ -1,7 +1,5 @@
 package com.ljyh.mei.utils.lyric.xml
 
-
-
 internal data class XmlAttribute(
     val name: String,
     val value: String
@@ -16,47 +14,51 @@ internal data class XmlElement(
 
 internal class SimpleXmlParser {
     fun parse(xml: String): XmlElement {
-        val cleanXml = xml.replace(Regex("\\s+"), " ").trim()
-        val stack = ArrayDeque<XmlElement>() // Use ArrayDeque for stack operations
+        val stack = ArrayDeque<MutableElement>()
         var i = 0
 
-        while (i < cleanXml.length) {
+        while (i < xml.length) {
+            val c = xml[i]
             when {
-                cleanXml[i] == '<' -> {
-                    if (i + 1 < cleanXml.length && cleanXml[i + 1] == '/') {
-                        // Handle closing tag
-                        val endIndex = cleanXml.indexOf('>', i + 1)
+                c == '<' -> {
+                    if (i + 1 < xml.length && xml[i + 1] == '/') {
+                        // Closing tag
+                        val endIndex = xml.indexOf('>', i + 1)
+                        if (endIndex == -1) break
+
                         if (stack.size > 1) {
-                            val currentElement = stack.removeLast()
-                            val parent = stack.removeLast() // Pop parent
-                            val newChildren = parent.children.toMutableList().apply { add(currentElement) }
-                            stack.addLast(parent.copy(children = newChildren)) // Push updated parent back
+                            val current = stack.removeLast().toXmlElement()
+                            stack.last().children.add(current)
                         }
                         i = endIndex + 1
+                    } else if (i + 1 < xml.length && xml[i + 1] == '!' && xml.startsWith("!--", i + 1)) {
+                        // Comment
+                        val endIndex = xml.indexOf("-->", i + 3)
+                        i = if (endIndex == -1) xml.length else endIndex + 3
+                    } else if (i + 1 < xml.length && xml[i + 1] == '?') {
+                        // Prolog/Processing instruction
+                        val endIndex = xml.indexOf("?>", i + 2)
+                        i = if (endIndex == -1) xml.length else endIndex + 2
                     } else {
-                        // Handle opening tag
-                        val endIndex = cleanXml.indexOf('>', i + 1)
-                        val tagPart = cleanXml.substring(i + 1, endIndex)
+                        // Opening tag
+                        val endIndex = xml.indexOf('>', i + 1)
+                        if (endIndex == -1) break
 
-                        val isSelfClosing = tagPart.endsWith("/")
-                        val actualTagPart = if (isSelfClosing) tagPart.dropLast(1).trim() else tagPart
+                        var tagPart = xml.substring(i + 1, endIndex)
+                        val isSelfClosing = tagPart.endsWith('/')
+                        if (isSelfClosing) {
+                            tagPart = tagPart.substring(0, tagPart.length - 1).trim()
+                        }
 
-                        val (tagName, attributes) = parseTagAndAttributes(actualTagPart)
-                        val newElement =
-                            XmlElement(
-                                tagName,
-                                attributes,
-                                emptyList(),
-                                ""
-                            )
+                        val (tagName, attributes) = parseTagAndAttributes(tagPart)
+                        val newElement = MutableElement(tagName, attributes.toMutableList())
 
                         if (isSelfClosing) {
                             if (stack.isNotEmpty()) {
-                                val parent = stack.removeLast() // Pop
-                                val newChildren = parent.children.toMutableList().apply { add(newElement) }
-                                stack.addLast(parent.copy(children = newChildren)) // Push updated
+                                stack.last().children.add(newElement.toXmlElement())
                             } else {
-                                stack.addLast(newElement) // This becomes the root
+                                // Root is self-closing? Rare but handle it.
+                                return newElement.toXmlElement()
                             }
                         } else {
                             stack.addLast(newElement)
@@ -64,86 +66,84 @@ internal class SimpleXmlParser {
                         i = endIndex + 1
                     }
                 }
+                c.isWhitespace() -> {
+                    // Handle whitespace
+                    var j = i
+                    while (j < xml.length && xml[j].isWhitespace()) {
+                        j++
+                    }
+                    val whitespace = xml.substring(i, j)
+                    if (stack.isNotEmpty()) {
+                        val textNode = XmlElement("#text", emptyList(), emptyList(), whitespace)
+                        stack.last().children.add(textNode)
+                    }
+                    i = j
+                }
                 else -> {
-                    // Handle text content
-                    val nextTagIndex = cleanXml.indexOf('<', i)
-                    if (nextTagIndex == -1) break
-
-                    val rawText = cleanXml.substring(i, nextTagIndex)
+                    // Text content
+                    val nextTagIndex = xml.indexOf('<', i)
+                    val rawText = if (nextTagIndex == -1) xml.substring(i) else xml.substring(i, nextTagIndex)
 
                     if (rawText.isNotEmpty() && stack.isNotEmpty()) {
-                        val trimmedText = rawText.trim()
-
-                        // Case 1: Add to current element's text
-                        if (trimmedText.isNotEmpty()) {
-                            val currentElement = stack.removeLast()
-                            stack.addLast(currentElement.copy(text = currentElement.text + trimmedText))
-                        }
-
-                        // Case 2: Handle whitespace as a separate text node child of the current top
-                        val stringBetweenTags = rawText.replace(trimmedText, "")
-                        if (stringBetweenTags.isNotEmpty()) {
-                            if (stack.isNotEmpty()) {
-                                val textNode =
-                                    XmlElement(
-                                        name = "#text",
-                                        text = stringBetweenTags,
-                                        attributes = emptyList(),
-                                        children = emptyList()
-                                    )
-                                val parent = stack.removeLast()
-                                val newChildren = parent.children.toMutableList().apply { add(textNode) }
-                                stack.addLast(parent.copy(children = newChildren))
-                            }
-                        }
+                        stack.last().textBuilder.append(rawText.trim())
                     }
-                    i = nextTagIndex
+                    i = if (nextTagIndex == -1) xml.length else nextTagIndex
                 }
             }
         }
 
-        return if (stack.isNotEmpty()) stack.first() else XmlElement(
-            "",
-            emptyList(),
-            emptyList(),
-            ""
-        )
+        return if (stack.isNotEmpty()) stack.first().toXmlElement() else XmlElement("", emptyList(), emptyList(), "")
     }
 
     private fun parseTagAndAttributes(tagPart: String): Pair<String, List<XmlAttribute>> {
-        val parts = tagPart.split(" ")
-        val tagName = parts.getOrElse(0) { "" }
+        val firstSpace = tagPart.indexOf(' ')
+        if (firstSpace == -1) return tagPart to emptyList()
+
+        val tagName = tagPart.substring(0, firstSpace)
         val attributes = mutableListOf<XmlAttribute>()
-        var i = 1
-        while (i < parts.size) {
-            val part = parts[i]
-            if (part.contains("=")) {
-                val attrParts = part.split("=", limit = 2)
-                if (attrParts.size == 2) {
-                    val attrName = attrParts[0]
-                    var attrValue = attrParts[1]
-                    if (attrValue.startsWith("\"") && !attrValue.endsWith("\"")) {
-                        var j = i + 1
-                        while (j < parts.size && !parts[j].endsWith("\"")) {
-                            attrValue += " " + parts[j]
-                            j++
-                        }
-                        if (j < parts.size) {
-                            attrValue += " " + parts[j]
-                        }
-                        i = j
-                    }
-                    attrValue = attrValue.removeSurrounding("\"")
-                    attributes.add(
-                        XmlAttribute(
-                            attrName,
-                            attrValue
-                        )
-                    )
-                }
+
+        var i = firstSpace + 1
+        while (i < tagPart.length) {
+            // Skip spaces
+            while (i < tagPart.length && tagPart[i].isWhitespace()) i++
+            if (i >= tagPart.length) break
+
+            val equalsIndex = tagPart.indexOf('=', i)
+            if (equalsIndex == -1) break
+
+            val attrName = tagPart.substring(i, equalsIndex).trim()
+            i = equalsIndex + 1
+
+            // Skip spaces after '='
+            while (i < tagPart.length && tagPart[i].isWhitespace()) i++
+            if (i >= tagPart.length) break
+
+            val quote = tagPart[i]
+            if (quote == '"' || quote == '\'') {
+                val nextQuote = tagPart.indexOf(quote, i + 1)
+                if (nextQuote == -1) break
+                val attrValue = tagPart.substring(i + 1, nextQuote)
+                attributes.add(XmlAttribute(attrName, attrValue))
+                i = nextQuote + 1
+            } else {
+                // Unquoted value
+                var nextSpace = i
+                while (nextSpace < tagPart.length && !tagPart[nextSpace].isWhitespace()) nextSpace++
+                val attrValue = tagPart.substring(i, nextSpace)
+                attributes.add(XmlAttribute(attrName, attrValue))
+                i = nextSpace
             }
-            i++
         }
+
         return tagName to attributes
+    }
+
+    private class MutableElement(
+        val name: String,
+        val attributes: MutableList<XmlAttribute> = mutableListOf(),
+        val children: MutableList<XmlElement> = mutableListOf(),
+        val textBuilder: StringBuilder = StringBuilder()
+    ) {
+        fun toXmlElement() = XmlElement(name, attributes, children, textBuilder.toString())
     }
 }

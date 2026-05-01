@@ -85,16 +85,27 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
         return withContext(Dispatchers.IO) {
             val file = getFileForPage(context, page)
             if (file.exists()) {
-                val json = file.readText()
-                Gson().fromJson(
-                    json,
-                    object : TypeToken<List<HomePageResourceShow.Data.Block>>() {}.type
-                )
+                try {
+                    val json = file.readText()
+                    if (json.isBlank()) {
+                        return@withContext emptyList()
+                    }
+                    val gson = Gson()
+                    gson.fromJson(
+                        json,
+                        object : TypeToken<List<HomePageResourceShow.Data.Block>>() {}.type
+                    )
+                } catch (e: Exception) {
+                    // 捕获 JSON 语法错误 (JsonSyntaxException)、IO读取错误等所有异常
+                    e.printStackTrace() // 打印错误日志方便调试，不需要的话可以删掉这行
+                    emptyList()
+                }
             } else {
                 emptyList()
             }
         }
     }
+
 
 
     private fun getFileForPage(context: Context, page: Int): File {

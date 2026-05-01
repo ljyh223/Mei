@@ -40,6 +40,10 @@ object LRCParser : ILyricsParser {
         return SyncedLyrics(lines = finalLines)
     }
 
+    override fun canParse(content: String): Boolean {
+        return true;
+    }
+
     /**
      * 【接口实现】解析一个字符串列表。
      * 这个实现保留了原始功能：处理元数据和在同一文件中交错的翻译行。

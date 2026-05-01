@@ -5,8 +5,6 @@ import com.ljyh.mei.data.model.qq.c.LyricCmd
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
-import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
-import com.mocharealm.accompanist.lyrics.core.parser.LrcParser
 import timber.log.Timber
 
 fun createDefaultLyricData(
@@ -33,7 +31,7 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
             isVerbatim = true,
             isPureMusic = isPureMusic,
             source = LyricSource.AM,
-            lyricLine = TTMLParser.parse(a)
+            lyricLine = TTMLParser().parse(a)
         )
     }
     val neteaseSource = sources.filterIsInstance<LyricSourceData.NetEase>().firstOrNull()
