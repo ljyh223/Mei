@@ -22,9 +22,9 @@ data class GetLyricData(
         @SerializedName("authst")
         val authst: String = "",
         @SerializedName("ct")
-        val ct: String = "19",
+        val ct: Int = 11,
         @SerializedName("cv")
-        val cv: String = "1942",
+        val cv: String = "1003006",
         @SerializedName("patch")
         val patch: String = "118",
         @SerializedName("psrf_access_token_expiresAt")
@@ -36,7 +36,7 @@ data class GetLyricData(
         @SerializedName("psrf_qqunionid")
         val psrfQqunionid: String = "",
         @SerializedName("tmeAppID")
-        val tmeAppID: String = "qqmusic",
+        val tmeAppID: String = "qqmusiclight",
         @SerializedName("tmeLoginType")
         val tmeLoginType: Int = 0,
         @SerializedName("uin")
@@ -56,13 +56,13 @@ data class GetLyricData(
     ){
         data class GetLyric(
             @SerializedName("albumName")
-            val albumName: String ,
+            val albumName: String,
             @SerializedName("crypt")
             val crypt: Int = 1,
             @SerializedName("ct")
             val ct: Int = 19,
             @SerializedName("cv")
-            val cv: Int = 1942,
+            val cv: Int = 2111,
             @SerializedName("interval")
             val interval: Long,
             @SerializedName("lrc_t")

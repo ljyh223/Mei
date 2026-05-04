@@ -1,7 +1,6 @@
 package com.ljyh.mei.utils.lyric
 
 import android.util.Log
-import com.ljyh.mei.data.model.qq.c.LyricCmd
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
@@ -37,15 +36,21 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
     val neteaseSource = sources.filterIsInstance<LyricSourceData.NetEase>().firstOrNull()
     if (neteaseSource != null) {
         val n = neteaseSource.lyric
-        if (n.yrc != null && n.tlyric != null) {
-            Timber.tag("LyricUtils").d("yrc and tlyric")
-            // NetEase 逐字（最高优先）
-            return LyricData(
-                isVerbatim = true,
-                isPureMusic = isPureMusic,
-                source = LyricSource.NetEaseCloudMusic,
-                lyricLine = YRCParser.parse(n.yrc.lyric, n.tlyric.lyric)
-            )
+        if (n.yrc != null && n.yrc.lyric.isNotBlank() && n.tlyric != null) {
+            val yrcContent = n.yrc.lyric.trim()
+            val hasYrcLines = yrcContent.lines().any { line ->
+                val trimmed = line.trim()
+                trimmed.startsWith("[") && trimmed.contains("]") && trimmed.contains("(")
+            }
+            if (hasYrcLines) {
+                Timber.tag("LyricUtils").d("yrc and tlyric")
+                return LyricData(
+                    isVerbatim = true,
+                    isPureMusic = isPureMusic,
+                    source = LyricSource.NetEaseCloudMusic,
+                    lyricLine = YRCParser.parse(n.yrc.lyric, n.tlyric.lyric)
+                )
+            }
         }
     }
 
@@ -53,7 +58,7 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
     val qqSource = sources.filterIsInstance<LyricSourceData.QQMusic>().firstOrNull()
     if (qqSource != null) {
         val q = qqSource.lyric
-        if (q.lyric.isNotBlank()) {
+        if (qqSource.isQRC && q.lyric.isNotBlank()) {
             Timber.tag("LyricUtils").d("qq.lyric and qq.trans")
             return LyricData(
                 isVerbatim = true,
@@ -80,17 +85,17 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
         }
     }
 
-    // 2) QQ 非逐字（QRC 没有 trans，或只有 lyric）
+    // 2) QQ 非逐字（LRC）
     if (qqSource != null) {
         val q = qqSource.lyric
-        if (q.lyric.isNotBlank()) {
-            // 如果有 trans 也可以用，但既然已经判定过逐字缺失，这里当作非逐字解析
+        val lrcText = qqSource.lrcContent ?: q.lyric
+        if (lrcText.isNotBlank()) {
             Timber.tag("LyricUtils").d("QQ LRC")
             return LyricData(
                 isVerbatim = false,
                 isPureMusic = isPureMusic,
                 source = LyricSource.QQMusic,
-                lyricLine = QRCParser.parse(q.lyric, q.trans) // trans 可能为空
+                lyricLine = LRCParser.parse(lrcText, q.trans)
             )
         }
     }

@@ -15,8 +15,11 @@ data class LyricData(
 
 sealed class LyricSourceData(val source: LyricSource, val priority: Int) {
     data class NetEase(val lyric: Lyric) : LyricSourceData(LyricSource.NetEaseCloudMusic, 2)
-    data class QQMusic(val lyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data) :
-        LyricSourceData(LyricSource.QQMusic, 1)
+    data class QQMusic(
+        val lyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data,
+        val isQRC: Boolean = true,
+        val lrcContent: String? = null
+    ) : LyricSourceData(LyricSource.QQMusic, 1)
 
     data class AM(val lyric: String) : LyricSourceData(LyricSource.AM, 3)
 }

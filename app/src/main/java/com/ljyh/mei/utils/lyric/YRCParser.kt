@@ -12,14 +12,8 @@ object YRCParser : ILyricsParser {
     private val YRC_SYLLABLE_REGEX = Regex("""\((\d+),(\d+),\d+\)""")
     private val BG_LINE_REGEX = Regex("""^\[bg:(.*)\](.*)$""")
     private val translationLineRegex = "\\[(\\d{2}):(\\d{2})[.:](\\d{2,3})\\].*".toRegex()
+    private val JSON_VERBATIM_REGEX = Regex("""^\s*\{.*"t"\s*:\s*\d+.*"c"\s*:\s*\[.*""".trimMargin())
 
-    /**
-     * 【推荐使用】解析 YRC 主歌词并合并可选的 LRC 翻译。
-     *
-     * @param yrcLyrics YRC 格式的主歌词文本。
-     * @param translationLrc 可选的 LRC 格式的翻译文本。
-     * @return 包含合并后歌词的 SyncedLyrics 对象。
-     */
     fun parse(yrcLyrics: String, translationLrc: String?): SyncedLyrics {
         val karaokeLines = parseInternal(yrcLyrics.lineSequence())
         val mergedLines = TranslationHelper.merge(karaokeLines, translationLrc)
@@ -37,12 +31,7 @@ object YRCParser : ILyricsParser {
             }
     }
 
-    /**
-     * 【接口实现】解析一个混合了 YRC 和 LRC 翻译的字符串列表。
-     * 不推荐直接调用，除非您必须使用 ILyricsParser 接口。
-     */
     override fun parse(lines: List<String>): SyncedLyrics {
-        // 智能分离主歌词行和翻译行
         val mainLyricsLines = lines.filter { line ->
             val trimmed = line.trim()
             YRC_LINE_REGEX.matches(trimmed) || trimmed.startsWith("[bg:")
@@ -55,10 +44,6 @@ object YRCParser : ILyricsParser {
         )
     }
 
-    /**
-     * 【接口实现】解析混合字符串。
-     * 不推荐直接调用，除非您必须使用 ILyricsParser 接口。
-     */
     override fun parse(content: String): SyncedLyrics {
         return parse(content.lines())
     }
@@ -73,7 +58,6 @@ object YRCParser : ILyricsParser {
             val line = raw.trim()
             if (line.isEmpty()) continue
 
-            // 参考Kugou：处理背景音行
             if (line.startsWith("[bg:")) {
                 parseBackgroundLine(line)?.let { bgLine ->
                     if (resultLines.isNotEmpty()) {
@@ -93,9 +77,14 @@ object YRCParser : ILyricsParser {
                 continue
             }
 
+            val jsonLine = parseJsonVerbatimLine(line)
+            if (jsonLine != null) {
+                resultLines.add(jsonLine)
+                continue
+            }
+
             val match = YRC_LINE_REGEX.find(line) ?: continue
 
-            // 参考Kugou：防止时间戳回退
             var lineStart = match.groupValues[1].toInt()
             if (lastLineStartTime != -1 && lineStart <= lastLineStartTime) {
                 lineStart = lastLineStartTime + 3
@@ -105,7 +94,6 @@ object YRCParser : ILyricsParser {
             val contentPart = match.groupValues[3]
             val rawSyllables = parseSyllablesAndMergeColons(contentPart, lineStart)
 
-            // 参考Kugou：判断对唱角色（主/副）
             val (alignment, finalSyllables, nextState) = determineRole(
                 rawSyllables,
                 currentRoleState
@@ -116,7 +104,7 @@ object YRCParser : ILyricsParser {
                 resultLines.add(
                     KaraokeLine.MainKaraokeLine(
                         syllables = finalSyllables,
-                        translation = null, // 翻译统一在外层处理
+                        translation = null,
                         alignment = alignment,
                         start = finalSyllables.first().start,
                         end = finalSyllables.last().end
@@ -126,6 +114,42 @@ object YRCParser : ILyricsParser {
         }
 
         return resultLines
+    }
+
+    private data class JsonVerbatimChar(val tx: String, val li: String?, val or: String?)
+
+    private fun parseJsonVerbatimLine(line: String): KaraokeLine.MainKaraokeLine? {
+        val trimmed = line.trim()
+        if (!trimmed.startsWith("{")) return null
+
+        val tMatch = Regex(""""t"\s*:\s*(\d+)""").find(trimmed) ?: return null
+        val lineStart = tMatch.groupValues[1].toIntOrNull() ?: return null
+
+        val cPattern = Regex("""\{"tx"\s*:\s*"((?:[^"\\]|\\.)*)"\s*(?:,"li"\s*:\s*"((?:[^"\\]|\\.)*)"\s*)?(?:,"or"\s*:\s*"((?:[^"\\]|\\.)*)"\s*)?\}""")
+        val chars = mutableListOf<KaraokeSyllable>()
+        var offset = 0
+
+        for (m in cPattern.findAll(trimmed)) {
+            val tx = m.groupValues[1].replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\")
+            if (tx.isEmpty()) continue
+            for (ch in tx) {
+                chars.add(KaraokeSyllable(ch.toString(), lineStart + offset, lineStart + offset + 1))
+                offset++
+            }
+        }
+
+        if (chars.isEmpty()) return null
+
+        val text = chars.joinToString("") { it.content }
+        val duration = offset.toLong().coerceAtLeast(1)
+
+        return KaraokeLine.MainKaraokeLine(
+            syllables = chars,
+            translation = null,
+            alignment = KaraokeAlignment.Unspecified,
+            start = lineStart,
+            end = lineStart + duration.toInt()
+        )
     }
 
     private fun parseBackgroundLine(line: String): KaraokeLine.AccompanimentKaraokeLine? {

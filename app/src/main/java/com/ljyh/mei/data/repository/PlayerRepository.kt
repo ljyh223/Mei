@@ -19,6 +19,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -44,6 +45,10 @@ class PlayerRepository(
         }
     }
 
+    private fun b64encode(str: String): String {
+        return Base64.encodeToString(str.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+    }
+
     suspend fun getLyricNew(
         title: String,
         album: String,
@@ -56,14 +61,42 @@ class PlayerRepository(
                 qqMusicUApiService.getLyric(
                     GetLyricData(
                         comm = GetLyricData.Comm(),
-                        getPlayLyricInfo =GetLyricData.GetPlayLyricInfo(
+                        getPlayLyricInfo = GetLyricData.GetPlayLyricInfo(
                             param = GetLyricData.GetPlayLyricInfo.GetLyric(
-                                singerName = artist,
-                                songName = title,
-                                albumName = album,
+                                singerName = b64encode(artist),
+                                songName = b64encode(title),
+                                albumName = b64encode(album),
                                 interval = duration,
                                 songID = id
+                            )
+                        )
+                    )
+                )
+            }
+        }
+    }
 
+    suspend fun getLyricLrc(
+        title: String,
+        album: String,
+        artist: String,
+        duration: Long,
+        id: Long
+    ): Resource<LyricResult> {
+        return withContext(Dispatchers.IO) {
+            safeApiCall {
+                qqMusicUApiService.getLyric(
+                    GetLyricData(
+                        comm = GetLyricData.Comm(),
+                        getPlayLyricInfo = GetLyricData.GetPlayLyricInfo(
+                            param = GetLyricData.GetPlayLyricInfo.GetLyric(
+                                singerName = b64encode(artist),
+                                songName = b64encode(title),
+                                albumName = b64encode(album),
+                                interval = duration,
+                                songID = id,
+                                qrc = 0,
+                                qrcT = 0
                             )
                         )
                     )

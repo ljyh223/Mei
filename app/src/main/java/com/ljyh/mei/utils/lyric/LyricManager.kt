@@ -62,6 +62,7 @@ class LyricManager @Inject constructor(
         qqLyricResult.value = Resource.Loading
         amLyricResult.value = Resource.Loading
         _qqSearchResult.value = Resource.Loading
+        lrcFallbackContent = null
 
         fetchJob = scope.launch {
             delay(100)
@@ -95,17 +96,56 @@ class LyricManager @Inject constructor(
         }
     }
 
+    private var currentQQSong: QQSong? = null
+
     fun fetchQQLyric(song: QQSong) {
         scope.launch {
+            currentQQSong = song
             qqLyricResult.value = Resource.Loading
             try {
-                qqLyricResult.value = repository.getLyricNew(
+                val result = repository.getLyricNew(
                     song.title, song.album, song.artist, song.duration, song.qid.toLong()
                 )
+                qqLyricResult.value = result
+                if (result is Resource.Success) {
+                    val qrcT = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data.qrcT
+                    if (qrcT != 0) {
+                        fetchQQLyricLrc(song)
+                    }
+                }
             } catch (e: Exception) {
                 Timber.e(e, "QQ fetch error")
                 qqLyricResult.value = Resource.Error("QQ fetch failed")
             }
+        }
+    }
+
+    private suspend fun fetchQQLyricLrc(song: QQSong) {
+        try {
+            val lrcResult = repository.getLyricLrc(
+                song.title, song.album, song.artist, song.duration, song.qid.toLong()
+            )
+            if (lrcResult is Resource.Success) {
+                val lrcContent = QRCUtils.decodeLyric(
+                    lrcResult.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data.lyric
+                )
+                lrcFallbackContent = lrcContent
+                remergeLyrics()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "QQ LRC fallback fetch error")
+        }
+    }
+
+    private var lrcFallbackContent: String? = null
+
+    private fun remergeLyrics() {
+        scope.launch {
+            mergeAndApply(
+                netLyricResult.value,
+                qqLyricResult.value,
+                amLyricResult.value
+            )
         }
     }
 
@@ -124,12 +164,13 @@ class LyricManager @Inject constructor(
             (net as? Resource.Success)?.data?.let { sources.add(LyricSourceData.NetEase(it)) }
             (qq as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let { data ->
                 try {
+                    val isQRC = data.qrcT != 0
                     val decoded = data.copy(
                         lyric = QRCUtils.decodeLyric(data.lyric),
                         trans = QRCUtils.decodeLyric(data.trans, true),
                         roma = QRCUtils.decodeLyric(data.roma)
                     )
-                    sources.add(LyricSourceData.QQMusic(decoded))
+                    sources.add(LyricSourceData.QQMusic(decoded, isQRC, lrcFallbackContent))
                 } catch (e: Exception) {
                     Timber.e(e, "QRC decoding failed")
                 }

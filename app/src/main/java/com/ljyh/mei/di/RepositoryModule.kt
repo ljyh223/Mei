@@ -1,7 +1,6 @@
 package com.ljyh.mei.di
 
 import com.ljyh.mei.data.network.api.ApiService
-import com.ljyh.mei.data.network.QQMusicCApiService
 import com.ljyh.mei.data.network.QQMusicUApiService
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.api.WeApiService
@@ -44,8 +43,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideShareRepository(apiService: ApiService, qqMusicApiCService: QQMusicCApiService, qqMusicUApiService: QQMusicUApiService ): ShareRepository {
-        return ShareRepository(apiService,qqMusicApiCService,qqMusicUApiService)
+    fun provideShareRepository(apiService: ApiService, qqMusicUApiService: QQMusicUApiService): ShareRepository {
+        return ShareRepository(apiService, qqMusicUApiService)
     }
 
 

@@ -10,11 +10,13 @@ data class MusicU(
 ) {
     data class Comm(
         @SerializedName("ct")
-        val ct: String,
+        val ct: Int = 11,
         @SerializedName("cv")
-        val cv: String,
+        val cv: String = "1003006",
         @SerializedName("uin")
-        val uin: String
+        val uin: String = "",
+        @SerializedName("tmeAppID")
+        val tmeAppID: String = "qqmusiclight"
     )
 
     data class Req(

@@ -4,7 +4,6 @@ import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.ljyh.mei.constants.AndroidUserAgent
-import com.ljyh.mei.data.network.QQMusicCApiService
 import com.ljyh.mei.data.network.QQMusicUApiService
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.EApiService
@@ -18,7 +17,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.converter.scalars.ScalarsConverterFactory
 import timber.log.Timber
 import java.lang.reflect.Type
 import java.security.cert.X509Certificate
@@ -127,27 +125,10 @@ object RetrofitModule {
 
     @Singleton
     @Provides
-    @Named("qqMusicRetrofitC")
-    fun provideQQMusicRetrofitC(): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl("https://c.y.qq.com/")  // 另一个 API 的 baseUrl
-            .addConverterFactory(ScalarsConverterFactory.create())
-            .build()
-    }
-
-    @Singleton
-    @Provides
-    fun provideQQMusicApiServiceC(@Named("qqMusicRetrofitC") retrofit: Retrofit): QQMusicCApiService {
-        return retrofit.create(QQMusicCApiService::class.java)
-    }
-
-
-    @Singleton
-    @Provides
     @Named("qqMusicRetrofitU")
     fun provideQQMusicRetrofitU(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://u.y.qq.com/")  // 另一个 API 的 baseUrl
+            .baseUrl("https://u.y.qq.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

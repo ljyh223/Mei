@@ -9,26 +9,14 @@ data class GetSearchData(
     val req: Req,
 ){
     data class Comm1(
-        @SerializedName("g_tk")
-        val gTk: Int = 0,
+        @SerializedName("ct")
+        val ct: Int = 11,
+        @SerializedName("cv")
+        val cv: String = "1003006",
         @SerializedName("uin")
         val uin: Long = 0,
-        @SerializedName("format")
-        val format: String = "",
-        @SerializedName("inCharset")
-        val inCharset: String = "",
-        @SerializedName("outCharset")
-        val outCharset: String = "",
-        @SerializedName("notice")
-        val notice: Int = 0,
-        @SerializedName("platform")
-        val platform: String = "",
-        @SerializedName("needNewCode")
-        val needNewCode: Int = 0,
-        @SerializedName("ct")
-        val ct: Int = 0,
-        @SerializedName("cv")
-        val cv: Int = 0
+        @SerializedName("tmeAppID")
+        val tmeAppID: String = "qqmusiclight"
     )
 
 
@@ -48,7 +36,9 @@ data class GetSearchData(
             @SerializedName("query")
             val query: String,
             @SerializedName("search_type")
-            val searchType: Int = 0
+            val searchType: Int = 0,
+            @SerializedName("grp")
+            val grp: Int = 1
         )
     }
 }
