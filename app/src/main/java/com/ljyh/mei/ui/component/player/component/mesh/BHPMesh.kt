@@ -167,8 +167,8 @@ class BHPMesh(
             out[12] = u10[axIdx]; out[13] = u11[axIdx]
             out[10] = 0f; out[11] = 0f; out[14] = 0f; out[15] = 0f
         } else {
-            out[2] = l01 - l00; out[3] = l11 - l10
-            out[6] = l11 - l10; out[7] = l01 - l00
+            out[2] = 0f; out[3] = 0f
+            out[6] = 0f; out[7] = 0f
             out[8] = 0f; out[9] = 0f; out[12] = 0f; out[13] = 0f
             out[10] = 0f; out[11] = 0f; out[14] = 0f; out[15] = 0f
         }

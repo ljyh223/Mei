@@ -4,6 +4,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
@@ -138,8 +139,8 @@ fun generateControlPoints(
             var x = baseX + pertX
             var y = baseY + pertY
 
-            val ur = if (isBorder) 0f else randomRange(random, -60f, 60f)
-            val vr = if (isBorder) 0f else randomRange(random, -60f, 60f)
+            val ur = if (isBorder) 0f else randomRange(random, -60f, 60f) * (PI.toFloat() / 180f)
+            val vr = if (isBorder) 0f else randomRange(random, -60f, 60f) * (PI.toFloat() / 180f)
             val up = if (isBorder) 1f else randomRange(random, 0.8f, 1.2f)
             val vp = if (isBorder) 1f else randomRange(random, 0.8f, 1.2f)
 

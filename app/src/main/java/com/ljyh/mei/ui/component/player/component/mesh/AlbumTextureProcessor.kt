@@ -6,13 +6,54 @@ import android.graphics.Color
 object AlbumTextureProcessor {
 
     fun process(bitmap: Bitmap): Bitmap {
-        var img = Bitmap.createScaledBitmap(bitmap, 32, 32, true)
+        val w = 32
+        val h = 32
+        var img = Bitmap.createScaledBitmap(bitmap, w, h, true)
+        val pixels = IntArray(w * h)
+        img.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        img = applyContrast(img, 0.4f)
-        img = applySaturation(img, 3.0f)
-        img = applyContrast(img, 1.7f)
-        img = applyBrightness(img, 0.75f)
+        // Combined color pipeline — single pass in float space, no intermediate clamping.
+        // This matches the original AMLL pipeline exactly.
+        for (i in pixels.indices) {
+            var r = Color.red(pixels[i]).toFloat()
+            var g = Color.green(pixels[i]).toFloat()
+            var b = Color.blue(pixels[i]).toFloat()
+            val a = Color.alpha(pixels[i])
 
+            // 1. contrast 0.4
+            r = (r - 128f) * 0.4f + 128f
+            g = (g - 128f) * 0.4f + 128f
+            b = (b - 128f) * 0.4f + 128f
+
+            // 2. saturation 3.0 (RGB weighted, exact original formula)
+            val gray = r * 0.3f + g * 0.59f + b * 0.11f
+            r = gray * -2.0f + r * 3.0f
+            g = gray * -2.0f + g * 3.0f
+            b = gray * -2.0f + b * 3.0f
+
+            // 3. contrast 1.7
+            r = (r - 128f) * 1.7f + 128f
+            g = (g - 128f) * 1.7f + 128f
+            b = (b - 128f) * 1.7f + 128f
+
+            // 4. brightness 0.75
+            r *= 0.75f
+            g *= 0.75f
+            b *= 0.75f
+
+            pixels[i] = Color.argb(
+                a,
+                r.toInt().coerceIn(0, 255),
+                g.toInt().coerceIn(0, 255),
+                b.toInt().coerceIn(0, 255)
+            )
+        }
+
+        img.recycle()
+        img = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        img.setPixels(pixels, 0, w, 0, 0, w, h)
+
+        // 5. stack blur 4x with radius 2
         for (i in 0 until 4) {
             img = stackBlur(img, 2)
         }
@@ -20,113 +61,64 @@ object AlbumTextureProcessor {
         return img
     }
 
-    private fun applyContrast(bitmap: Bitmap, contrast: Float): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-
-        for (i in pixels.indices) {
-            val r = Color.red(pixels[i])
-            val g = Color.green(pixels[i])
-            val b = Color.blue(pixels[i])
-            val a = Color.alpha(pixels[i])
-
-            val nr = clamp(((r / 255f - 0.5f) * contrast + 0.5f) * 255f)
-            val ng = clamp(((g / 255f - 0.5f) * contrast + 0.5f) * 255f)
-            val nb = clamp(((b / 255f - 0.5f) * contrast + 0.5f) * 255f)
-
-            pixels[i] = Color.argb(a, nr.toInt(), ng.toInt(), nb.toInt())
-        }
-
-        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        result.setPixels(pixels, 0, width, 0, 0, width, height)
-        if (bitmap !== result) bitmap.recycle()
-        return result
-    }
-
-    private fun applySaturation(bitmap: Bitmap, saturation: Float): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-
-        val hsv = FloatArray(3)
-        for (i in pixels.indices) {
-            Color.colorToHSV(pixels[i], hsv)
-            hsv[1] = (hsv[1] * saturation).coerceIn(0f, 1f)
-            if (hsv[1] < 0.15f) hsv[1] = 0.2f
-            pixels[i] = Color.HSVToColor(Color.alpha(pixels[i]), hsv)
-        }
-
-        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        result.setPixels(pixels, 0, width, 0, 0, width, height)
-        if (bitmap !== result) bitmap.recycle()
-        return result
-    }
-
-    private fun applyBrightness(bitmap: Bitmap, brightness: Float): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-
-        for (i in pixels.indices) {
-            val r = clamp(Color.red(pixels[i]) * brightness)
-            val g = clamp(Color.green(pixels[i]) * brightness)
-            val b = clamp(Color.blue(pixels[i]) * brightness)
-            val a = Color.alpha(pixels[i])
-            pixels[i] = Color.argb(a, r.toInt(), g.toInt(), b.toInt())
-        }
-
-        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        result.setPixels(pixels, 0, width, 0, 0, width, height)
-        if (bitmap !== result) bitmap.recycle()
-        return result
-    }
-
     private fun stackBlur(bitmap: Bitmap, radius: Int): Bitmap {
         val w = bitmap.width
         val h = bitmap.height
         val src = IntArray(w * h)
-        val dst = IntArray(w * h)
         bitmap.getPixels(src, 0, w, 0, 0, w, h)
 
         val r = radius.coerceAtLeast(1)
-        val divisor = r * 2 + 1
+        val window = r * 2 + 1
+        val invSize = 1f / window
+
+        // Horizontal pass — float accumulation, no integer truncation
+        val hR = FloatArray(w * h)
+        val hG = FloatArray(w * h)
+        val hB = FloatArray(w * h)
+        val hA = FloatArray(w * h)
 
         for (y in 0 until h) {
             for (x in 0 until w) {
-                var rr = 0; var gg = 0; var bb = 0; var aa = 0; var count = 0
+                var rr = 0f; var gg = 0f; var bb = 0f; var aa = 0f
                 for (kx in -r..r) {
                     val sx = (x + kx).coerceIn(0, w - 1)
                     val pixel = src[y * w + sx]
-                    rr += Color.red(pixel); gg += Color.green(pixel)
-                    bb += Color.blue(pixel); aa += Color.alpha(pixel); count++
+                    rr += Color.red(pixel).toFloat()
+                    gg += Color.green(pixel).toFloat()
+                    bb += Color.blue(pixel).toFloat()
+                    aa += Color.alpha(pixel).toFloat()
                 }
-                dst[y * w + x] = Color.argb(aa / count, rr / count, gg / count, bb / count)
+                val idx = y * w + x
+                hR[idx] = rr * invSize
+                hG[idx] = gg * invSize
+                hB[idx] = bb * invSize
+                hA[idx] = aa * invSize
             }
         }
 
-        val tmp = src.copyOf()
+        // Vertical pass — float accumulation, round-to-nearest
+        val dst = IntArray(w * h)
         for (x in 0 until w) {
             for (y in 0 until h) {
-                var rr = 0; var gg = 0; var bb = 0; var aa = 0; var count = 0
+                var rr = 0f; var gg = 0f; var bb = 0f; var aa = 0f
                 for (ky in -r..r) {
                     val sy = (y + ky).coerceIn(0, h - 1)
-                    val pixel = dst[sy * w + x]
-                    rr += Color.red(pixel); gg += Color.green(pixel)
-                    bb += Color.blue(pixel); aa += Color.alpha(pixel); count++
+                    val idx = sy * w + x
+                    rr += hR[idx]; gg += hG[idx]
+                    bb += hB[idx]; aa += hA[idx]
                 }
-                tmp[y * w + x] = Color.argb(aa / count, rr / count, gg / count, bb / count)
+                dst[y * w + x] = Color.argb(
+                    (aa * invSize + 0.5f).toInt().coerceIn(0, 255),
+                    (rr * invSize + 0.5f).toInt().coerceIn(0, 255),
+                    (gg * invSize + 0.5f).toInt().coerceIn(0, 255),
+                    (bb * invSize + 0.5f).toInt().coerceIn(0, 255)
+                )
             }
         }
 
         val result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        result.setPixels(tmp, 0, w, 0, 0, w, h)
+        result.setPixels(dst, 0, w, 0, 0, w, h)
         if (bitmap !== result) bitmap.recycle()
         return result
     }
-
-    private fun clamp(v: Float): Float = v.coerceIn(0f, 255f)
 }

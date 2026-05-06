@@ -61,8 +61,6 @@ void main() {
     vec2 rotated = rot(centered, timeVolume * 2.0);
     vec2 finalUV = rotated * max(0.001, 1.0 - volumeEffect) + vec2(0.5);
 
-    finalUV = clamp(finalUV, 0.0, 1.0);
-
     vec4 result = texture(u_texture, finalUV);
 
     float alphaVolume = max(0.5, 1.0 - u_volume * 0.5);

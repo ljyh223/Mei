@@ -76,13 +76,13 @@ fun LyricScreen(
     var animatedPosition by remember { mutableLongStateOf(0) }
     val (normalLyricTextSize, _) = rememberEnumPreference(
         NormalLyricTextSizeKey,
-        LyricTextSize.Size32
+        LyricTextSize.Size24
     )
     val (normalLyricTextBold, _) = rememberPreference(NormalLyricTextBoldKey, true)
 
     val (accompanimentLyricTextSize, _) = rememberEnumPreference(
         AccompanimentLyricTextSizeKey,
-        LyricTextSize.Size20
+        LyricTextSize.Size18
     )
     val (accompanimentLyricTextBold, _) = rememberPreference(AccompanimentLyricTextBoldKey, true)
 

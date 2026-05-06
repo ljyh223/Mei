@@ -36,19 +36,20 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
     val neteaseSource = sources.filterIsInstance<LyricSourceData.NetEase>().firstOrNull()
     if (neteaseSource != null) {
         val n = neteaseSource.lyric
-        if (n.yrc != null && n.yrc.lyric.isNotBlank() && n.tlyric != null) {
+        if (n.yrc != null && n.yrc.lyric.isNotBlank()) {
+            val translation = n.ytlrc?.lyric ?: n.tlyric?.lyric
             val yrcContent = n.yrc.lyric.trim()
             val hasYrcLines = yrcContent.lines().any { line ->
                 val trimmed = line.trim()
                 trimmed.startsWith("[") && trimmed.contains("]") && trimmed.contains("(")
             }
-            if (hasYrcLines) {
+            if (hasYrcLines && translation != null) {
                 Timber.tag("LyricUtils").d("yrc and tlyric")
                 return LyricData(
                     isVerbatim = true,
                     isPureMusic = isPureMusic,
                     source = LyricSource.NetEaseCloudMusic,
-                    lyricLine = YRCParser.parse(n.yrc.lyric, n.tlyric.lyric)
+                    lyricLine = YRCParser.parse(n.yrc.lyric, translation)
                 )
             }
         }

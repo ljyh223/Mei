@@ -137,4 +137,169 @@ class YRCAndTranslationTest {
         val second = lines.first { it.start == 22760 }
         assertEquals("并没有什么特别的感觉", second.translation)
     }
+
+    // ======================== Ruby text (furigana) tests ========================
+
+    private val yrcWithRuby = """{"t":0,"c":[{"tx":"作词: "},{"tx":"wowaka"}]}
+{"t":1000,"c":[{"tx":"作曲: "},{"tx":"wowaka"}]}
+[40320,3790](40320,631,0)ゆ(40951,631,0)ら(41582,631,0)り(42213,631,0)ふ(42844,631,0)ら(43475,635,0)り
+[52040,8070](52040,510,0)足(52550,840,0)元(53390,30,0)（(53420,30,0)あ(53450,30,0)し(53480,30,0)も(53510,30,0)と(53540,40,0)）(53580,3000,0)は(56580,2310,0)覚(58890,430,0)束(59320,0,0)（(59320,0,0)お(59320,0,0)ぼ(59320,0,0)つ(59320,0,0)か(59320,0,0)）(59320,380,0)な(59700,410,0)い
+[61900,3720](61900,1040,0)ゆ(62940,360,0)ら(63300,510,0)ゆ(63810,540,0)ら(64350,1270,0)り"""
+
+    private val ytlrcForRubySong = """[00:40.320]【摇摇晃晃】
+[00:52.040]【没有注意脚下】
+[01:01.900]【摇摇晃晃】"""
+
+    private val translationLrcForRuby = """[by:_以太_]
+[00:39.980]【摇摇晃晃】
+[00:45.550]【飘飘荡荡】
+[00:50.900]【没有注意脚下】"""
+
+    @Test
+    fun testYRCWithRubyTextParsesLines() {
+        val result = YRCParser.parse(yrcWithRuby, null)
+        val lines = result.lines as List<KaraokeLine>
+        assertTrue("Should parse lines from YRC with ruby text, got ${lines.size}", lines.size >= 3)
+    }
+
+    @Test
+    fun testYRCWithRubyTextContent() {
+        val result = YRCParser.parse(yrcWithRuby, null)
+        val lines = result.lines as List<KaraokeLine>
+
+        // The "足元" line at start=52040 should contain furigana inline
+        val rubyLine = lines.firstOrNull { it.start == 52040 }
+        assertNotNull("Should have line at 52040ms", rubyLine)
+        val text = rubyLine!!.syllables.joinToString("") { it.content }
+        // With current implementation, ruby text appears inline: "足元（あしもと）は..."
+        assertTrue("Ruby line should contain kanji '足元'", text.contains("足元"))
+        // Ruby furigana characters also appear (known limitation)
+        assertTrue("Ruby line contains furigana 'あしもと'", text.contains("あしもと"))
+    }
+
+    @Test
+    fun testYRCWithRubyTextTranslationAssigned() {
+        val result = YRCParser.parse(yrcWithRuby, translationLrcForRuby)
+        val lines = result.lines as List<KaraokeLine>
+
+        // Metadata at t=0 should NOT get a translation
+        val metaLine = lines.firstOrNull { it.start == 0 }
+        assertNotNull("Should have metadata line at t=0", metaLine)
+        assertNull("Metadata line should not have translation", metaLine!!.translation)
+
+        // The first lyric line at 40320 should get translation if matched
+        val firstLyric = lines.firstOrNull { it.start == 40320 }
+        assertNotNull("Should have lyric line at 40320", firstLyric)
+    }
+
+    @Test
+    fun testYRCWithYtlrcTranslationAssigned() {
+        // ytlrc format uses LRC syntax, directly passable as translation
+        val result = YRCParser.parse(yrcWithRuby, ytlrcForRubySong)
+        val lines = result.lines as List<KaraokeLine>
+
+        val yuraLine = lines.firstOrNull { it.start == 40320 }
+        assertNotNull("Should have line at 40320ms", yuraLine)
+        assertEquals("【摇摇晃晃】", yuraLine!!.translation)
+
+        val ashiLine = lines.firstOrNull { it.start == 52040 }
+        assertNotNull("Should have line at 52040ms", ashiLine)
+        assertEquals("【没有注意脚下】", ashiLine!!.translation)
+    }
+
+    @Test
+    fun testYRCWithRubyTextZeroDurationSyllables() {
+        // Furigana like "（おぼつか）" has 0ms duration syllables
+        // These should still be parsed but have start == end (invisible for animation)
+        val result = YRCParser.parse(yrcWithRuby, null)
+        val lines = result.lines as List<KaraokeLine>
+
+        val rubyLine = lines.first { it.start == 52040 }
+        // "束" is followed by "（おぼつか）" with 0 duration
+        // Find the zero-duration syllables
+        val zeroDurSyllables = rubyLine.syllables.filter { it.start == it.end }
+        assertTrue("Should have zero-duration furigana syllables", zeroDurSyllables.isNotEmpty())
+
+        // Base kanji "足" should have proper timing
+        val ashiSyllable = rubyLine.syllables.firstOrNull { it.content == "足" }
+        assertNotNull("Should have '足' syllable", ashiSyllable)
+        assertEquals("足 start time", 52040, ashiSyllable!!.start)
+        assertTrue("足 should have duration > 0", ashiSyllable.end > ashiSyllable.start)
+    }
+
+    // ======================== Edge cases ========================
+
+    @Test
+    fun testYRCWithNullTranslation() {
+        val result = YRCParser.parse(yrcRaw, null)
+        val lines = result.lines as List<KaraokeLine>
+        assertTrue("All lines should have null translation when none provided",
+            lines.all { it.translation == null })
+    }
+
+    @Test
+    fun testYRCWithEmptyTranslation() {
+        val result = YRCParser.parse(yrcRaw, "")
+        val lines = result.lines as List<KaraokeLine>
+        assertTrue("All lines should have null translation when empty string provided",
+            lines.all { it.translation == null })
+    }
+
+    @Test
+    fun testYRCWithBlankTranslation() {
+        val result = YRCParser.parse(yrcRaw, "   \n  ")
+        val lines = result.lines as List<KaraokeLine>
+        assertTrue("All lines should have null translation when whitespace only",
+            lines.all { it.translation == null })
+    }
+
+    @Test
+    fun testYRCWithOnlyHeaderTranslation() {
+        // Translation with only [by:xxx] header and no actual translation lines
+        val translationOnlyHeader = "[by:someone]"
+        val result = YRCParser.parse(yrcRaw, translationOnlyHeader)
+        val lines = result.lines as List<KaraokeLine>
+        assertTrue("No line should get translation from header-only data",
+            lines.all { it.translation == null })
+    }
+
+    @Test
+    fun testYRCTranslationTimestampEdgeCases() {
+        // Translation lines with exact boundary timestamps
+        val preciseYrc = "[20100,900](20100,300,0)A(20400,300,0)B(20700,300,0)C"
+        val preciseTrans = "[00:20.100]test A\n[00:20.700]test C\n[00:22.000]test D"
+
+        val result = YRCParser.parse(preciseYrc, preciseTrans)
+        val lines = result.lines as List<KaraokeLine>
+
+        assertEquals("Should match translation at 20100", "test A", lines[0].translation)
+    }
+
+    @Test
+    fun testYRCTranslationWithIgnoreKeywords() {
+        // Translation with lines that should be ignored (copyright, etc.)
+        val transWithIgnore = """[00:20.500]real translation
+[00:22.500]Provided by record label
+[00:24.500]another translation"""
+        val shortYrc = "[20500,1700](20500,300,0)x(20800,300,0)y"
+
+        val result = YRCParser.parse(shortYrc, transWithIgnore)
+        val lines = result.lines as List<KaraokeLine>
+
+        assertEquals("Should skip 'Provided by' line and match correct translation",
+            "real translation", lines[0].translation)
+    }
+
+    @Test
+    fun testYRCTranslationWithCommentLines() {
+        // Translation with lines starting with // should be ignored
+        val transWithComment = """[00:20.500]// This is a comment
+[00:22.500]good translation"""
+        val shortYrc = "[22500,1700](22500,300,0)x(22800,300,0)y"
+
+        val result = YRCParser.parse(shortYrc, transWithComment)
+        val lines = result.lines as List<KaraokeLine>
+
+        assertEquals("Should match non-comment translation", "good translation", lines[0].translation)
+    }
 }

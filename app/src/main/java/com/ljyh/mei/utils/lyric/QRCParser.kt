@@ -155,26 +155,16 @@ private fun parseSyllablesAndMergeColons(
     ): List<KaraokeSyllable> {
         data class TempToken(val offset: Int, val duration: Int, val text: String)
 
-        val matches = QRC_SYLLABLE_REGEX.findAll(content).toList()
-        if (matches.isEmpty()) return emptyList()
-
         val tokens = mutableListOf<TempToken>()
-        var cursor = 0
 
-        while (cursor < content.length) {
-            val m = QRC_SYLLABLE_REGEX.find(content, cursor) ?: break
-            val offset = m.groupValues[1].toIntOrNull() ?: 0
-            val duration = m.groupValues[2].toIntOrNull() ?: 0
+        for (m in QRC_SYLLABLE_REGEX.findAll(content)) {
+            val text = m.groupValues[1]
+            val offset = m.groupValues[2].toIntOrNull() ?: 0
+            val duration = m.groupValues[3].toIntOrNull() ?: 0
 
-            val textStart = m.range.last + 1
-            val nextMatch = QRC_SYLLABLE_REGEX.find(content, textStart)
-            val textEnd = nextMatch?.range?.first ?: content.length
-
-            if (textStart > textEnd) break
-
-            val text = content.substring(textStart, textEnd)
-            tokens.add(TempToken(offset, duration, text))
-            cursor = textEnd
+            if (text.isNotEmpty()) {
+                tokens.add(TempToken(offset, duration, text))
+            }
         }
 
         if (tokens.isEmpty()) return emptyList()

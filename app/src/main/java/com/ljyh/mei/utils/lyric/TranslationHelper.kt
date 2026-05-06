@@ -47,51 +47,36 @@ internal object TranslationHelper {
         val translationLines = parseTranslation(translationLrc)
         if (translationLines.isEmpty()) return karaokeLines
 
-        val maxDelay = 800
+        val maxDelay = 3000
+        val used = mutableSetOf<Int>()
         val finalLines = mutableListOf<ISyncedLine>()
-        var j = 0
 
-        for (i in karaokeLines.indices) {
-            val karaokeLine = karaokeLines[i]
+        for (idx in karaokeLines.indices) {
+            val karaokeLine = karaokeLines[idx]
             val lineStart = karaokeLine.start
             val lineEnd = karaokeLine.end
             val lineDuration = lineEnd - lineStart
 
-            while (j < translationLines.size - 1) {
-                val currDist = abs(translationLines[j].time - lineStart)
-                val nextDist = abs(translationLines[j + 1].time - lineStart)
-                if (nextDist < currDist) {
-                    j++
-                } else {
-                    break
+            if (lineDuration < 300 && lineDuration > 0) {
+                finalLines.add(karaokeLine)
+                continue
+            }
+
+            var bestIdx = -1
+            var bestDiff = maxDelay + 1
+
+            for (tj in translationLines.indices) {
+                if (tj in used) continue
+                val diff = abs(translationLines[tj].time - lineStart)
+                if (diff < bestDiff) {
+                    bestDiff = diff
+                    bestIdx = tj
                 }
             }
 
-            val bestTransMatch = translationLines[j]
-            val dist = abs(bestTransMatch.time - lineStart)
-
-            var shouldAssign = true
-
-            if (dist > maxDelay) {
-                shouldAssign = false
-            }
-
-            if (shouldAssign && i + 1 < karaokeLines.size) {
-                val nextKaraokeLine = karaokeLines[i + 1]
-                val distToNext = abs(bestTransMatch.time - nextKaraokeLine.start)
-                if (distToNext < dist) {
-                    shouldAssign = false
-                }
-            }
-
-            // Interval-based check: if the translation timestamp falls inside
-            // a very short metadata line (< 300ms duration), skip assignment
-            if (shouldAssign && lineDuration < 300 && lineDuration > 0) {
-                shouldAssign = false
-            }
-
-            if (shouldAssign) {
-                finalLines.add(karaokeLine.copy(translation = bestTransMatch.text))
+            if (bestIdx >= 0) {
+                finalLines.add(karaokeLine.copy(translation = translationLines[bestIdx].text))
+                used.add(bestIdx)
             } else {
                 finalLines.add(karaokeLine)
             }
@@ -109,7 +94,7 @@ internal object TranslationHelper {
             return lrcLines
         }
 
-        val maxDelay = 800
+        val maxDelay = 3000
         val finalLines = mutableListOf<ISyncedLine>()
         var j = 0
 

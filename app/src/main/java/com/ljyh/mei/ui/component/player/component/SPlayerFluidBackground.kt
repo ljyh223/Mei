@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 fun SPlayerFluidBackground(
     imageUrl: String?,
     audioVisualizerManager: AudioVisualizerManager,
+    isPlaying: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -36,7 +37,7 @@ fun SPlayerFluidBackground(
     val (flowSpeed) = rememberPreference(MeshFlowSpeedKey, defaultValue = 0.25f)
     val (renderScale) = rememberPreference(MeshRenderScaleKey, defaultValue = 0.75f)
     val (staticMode) = rememberPreference(MeshStaticModeKey, defaultValue = false)
-    val (playing) = rememberPreference(MeshPlayingKey, defaultValue = true)
+    val (meshPlaying) = rememberPreference(MeshPlayingKey, defaultValue = true)
     val (volumeScale) = rememberPreference(MeshLowFreqVolumeKey, defaultValue = 0.1f)
     val (subdivision) = rememberPreference(MeshSubdivisionKey, defaultValue = 50)
 
@@ -80,8 +81,9 @@ fun SPlayerFluidBackground(
             meshView?.setStaticMode(staticMode)
         }
 
-        LaunchedEffect(playing) {
-            meshView?.setPlaying(playing)
+        val shouldAnimate = !meshPlaying || isPlaying
+        LaunchedEffect(shouldAnimate, meshView) {
+            meshView?.setPlaying(shouldAnimate)
         }
 
         AndroidView(

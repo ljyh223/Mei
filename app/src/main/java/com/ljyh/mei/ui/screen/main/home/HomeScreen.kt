@@ -191,9 +191,14 @@ private fun HomeBlockItem(
     LaunchedEffect(intelligenceList) {
         if (intelligenceList is Resource.Success) {
             val songs = (intelligenceList as Resource.Success).data.data
-            val items = songs.map {
-                it.toMediaMetadata().toMediaItem()
-            }.toMutableList()
+            val items = try{
+                 songs.map {
+                    it.toMediaMetadata().toMediaItem()
+                }.toMutableList()
+            } catch (e: Exception){
+                mutableListOf()
+            }
+
 
             if (intelligenceFirstSong is Resource.Success) {
                 (intelligenceFirstSong as Resource.Success).data.songs.firstOrNull()

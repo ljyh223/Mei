@@ -86,7 +86,7 @@ fun AppearanceSettings(
 
     val (normalLyricTextSize, onNormalLyricTextSizeChange) = rememberEnumPreference(
         NormalLyricTextSizeKey,
-        defaultValue = LyricTextSize.Size30
+        defaultValue = LyricTextSize.Size24
     )
     val (normalLyricTextBold, onNormalLyricTextBoldChange) = rememberPreference(
         NormalLyricTextBoldKey,
@@ -95,7 +95,7 @@ fun AppearanceSettings(
 
     val (accompanimentLyricTextSize, onAccompanimentLyricTextSizeChange) = rememberEnumPreference(
         AccompanimentLyricTextSizeKey,
-        defaultValue = LyricTextSize.Size20
+        defaultValue = LyricTextSize.Size18
     )
 
     val (accompanimentLyricTextBold, onAccompanimentLyricTextBoldChange) = rememberPreference(
@@ -266,7 +266,7 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.Speed, null) },
                 value = meshFlowSpeed,
                 onValueChange = onMeshFlowSpeedChange,
-                valueRange = 0.05f..2f
+                valueRange = 0.05f..1f
             )
             SliderPreference(
                 title = { Text("渲染精度") },

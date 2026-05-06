@@ -37,6 +37,10 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     private var viewHeight: Int = 0
 
     private var startTimeNanos: Long = System.nanoTime()
+    @Volatile
+    private var pausedElapsedNanos: Long = 0L
+    @Volatile
+    private var isPlaying: Boolean = true
 
     @Volatile
     var volume: Float = 0f
@@ -99,7 +103,12 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         if (staticMode && isStatic) return
 
         val now = System.nanoTime()
-        val time = (now - startTimeNanos) / 1e9f * flowSpeed
+        val elapsed = if (isPlaying) {
+            now - startTimeNanos
+        } else {
+            pausedElapsedNanos
+        }
+        val time = elapsed / 1e9f * flowSpeed
 
         updateMeshStates(1f / 60f)
 
@@ -198,7 +207,12 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     }
 
     fun setPlaying(playing: Boolean) {
-        // playing is controlled by MeshBackgroundView renderMode
+        if (isPlaying && !playing) {
+            pausedElapsedNanos = System.nanoTime() - startTimeNanos
+        } else if (!isPlaying && playing) {
+            startTimeNanos = System.nanoTime() - pausedElapsedNanos
+        }
+        isPlaying = playing
     }
 
     private fun easeInOutSine(t: Float): Float {
@@ -276,6 +290,10 @@ private fun drawMesh(state: MeshState, time: Float) {
         GLES30.glUniform1i(uTexture, 0)
         GLES30.glUniform1f(uAlpha, alpha)
 
+        drawFullScreenQuad(aPos, aTexCoord)
+    }
+
+    private fun drawFullScreenQuad(aPos: Int, aTexCoord: Int) {
         val quadData = floatArrayOf(
             -1f, -1f, 0f, 0f,
              1f, -1f, 1f, 0f,
@@ -425,7 +443,7 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
     }
 
     fun setPlaying(playing: Boolean) {
-        renderMode = if (playing) RENDERMODE_CONTINUOUSLY else RENDERMODE_WHEN_DIRTY
+        renderer.setPlaying(playing)
     }
 
     override fun onDetachedFromWindow() {

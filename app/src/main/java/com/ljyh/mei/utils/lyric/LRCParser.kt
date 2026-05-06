@@ -8,10 +8,10 @@ import kotlin.math.abs
 
 private data class TranslationLine(val time: Int, val text: String)
 object LRCParser : ILyricsParser {
-    private val lrcLineRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[:.]\\d{2,3})]+(.*)")
+    private val lrcLineRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[.:]\\d{2,3})]+(.*)")
     // A separate regex for parsing translation files
     private val translationLrcRegex = Regex("\\[(\\d{2}):(\\d{2})[.:](\\d{2,3})](.*)")
-    private val timeStampRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[:.]\\d{2,3})]")
+    private val timeStampRegex = Regex("\\[(\\d{1,2}:\\d{1,2}[.:]\\d{2,3})]")
 
 
     /**

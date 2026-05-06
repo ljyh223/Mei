@@ -239,7 +239,8 @@ fun AppleMusicPlayer(
 
             SPlayerFluidBackground(
                 imageUrl = coverUrl,
-                audioVisualizerManager = audioVisualizerManager
+                audioVisualizerManager = audioVisualizerManager,
+                isPlaying = isPlaying
             )
 
             Box(modifier = Modifier.fillMaxSize()) {

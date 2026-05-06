@@ -20,6 +20,8 @@ data class Lyric(
     val sgc: Boolean,
     @SerializedName("tlyric")
     val tlyric: Tlyric?,
+    @SerializedName("ytlrc")
+    val ytlrc: Tlyric?,
     @SerializedName("yrc")
     val yrc: Yrc?,
     @SerializedName("pureMusic")
