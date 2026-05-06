@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.TimeUnit
 
 fun String.smallImage(): String {
 
@@ -51,25 +52,30 @@ class CoilImageLoader {
 }
 
 object ImageUtils {
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
     suspend fun downloadImageBytes(imageUrl: String): ByteArray? = withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
         val request = Request.Builder()
             .url(imageUrl)
             .build()
 
         try {
-            val response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                val bytes = response.body?.bytes() ?: return@withContext null
-                if(bytes[1].toInt()==80){
-                    pngToJpg(bytes)
-                }else{
-                    bytes
+            val result = httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val bytes = response.body?.bytes() ?: return@withContext null
+                    if (bytes[1].toInt() == 80) {
+                        pngToJpg(bytes)
+                    } else {
+                        bytes
+                    }
+                } else {
+                    null
                 }
-
-            } else {
-                null
             }
+            result
         } catch (e: Exception) {
             e.printStackTrace()
             null

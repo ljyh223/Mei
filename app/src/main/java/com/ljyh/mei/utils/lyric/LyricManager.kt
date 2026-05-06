@@ -21,6 +21,8 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
+
 @Singleton
 class LyricManager @Inject constructor(
     private val repository: PlayerRepository,
@@ -46,7 +48,8 @@ class LyricManager @Inject constructor(
     init {
         combine(netLyricResult, qqLyricResult, amLyricResult) { net, qq, am ->
             Triple(net, qq, am)
-        }.onEach { (net, qq, am) ->
+        }.sample(50)
+         .onEach { (net, qq, am) ->
             mergeAndApply(net, qq, am)
         }.launchIn(scope)
     }

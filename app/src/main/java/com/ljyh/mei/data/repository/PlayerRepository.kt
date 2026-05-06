@@ -25,6 +25,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.IOException
+import java.util.concurrent.TimeUnit
 
 class PlayerRepository(
     private val qqMusicUApiService: QQMusicUApiService,
@@ -140,35 +141,35 @@ class PlayerRepository(
         )
     }
 
+    private val amllClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
     suspend fun getAMLLyric(id: String): Resource<String> {
         return withContext(Dispatchers.IO) {
             try {
                 val url = "https://amlldb.bikonoo.com/ncm-lyrics/$id.ttml"
-                val request = Request.Builder()
-                    .url(url)
-                    .build()
-                // 使用 execute() 进行同步请求，因为我们已在 IO 协程中
-                val response = OkHttpClient().newCall(request).execute()
+                val request = Request.Builder().url(url).build()
 
-                if (response.isSuccessful) {
-                    val lyricContent = response.body?.string()
-                    // 检查响应体是否有效且不是"歌词不存在"的特定字符串
-                    if (!lyricContent.isNullOrEmpty() && lyricContent != "歌词不存在") {
-                        Resource.Success(lyricContent)
+                val result = amllClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val lyricContent = response.body?.string()
+                        if (!lyricContent.isNullOrEmpty() && lyricContent != "歌词不存在") {
+                            Resource.Success(lyricContent)
+                        } else {
+                            Resource.Error("歌词不存在")
+                        }
                     } else {
-                        // 服务器成功响应，但内容表明歌词不存在
-                        Resource.Error("歌词不存在")
-                    }
-                } else {
-                    // 处理 HTTP 错误，例如 404 Not Found 也意味着歌词不存在
-                    if (response.code == 404) {
-                        Resource.Error("歌词不存在")
-                    } else {
-                        Resource.Error("请求失败，错误码: ${response.code}")
+                        if (response.code == 404) {
+                            Resource.Error("歌词不存在")
+                        } else {
+                            Resource.Error("请求失败，错误码: ${response.code}")
+                        }
                     }
                 }
+                result
             } catch (e: IOException) {
-                // 处理网络连接等 IO 异常
                 Resource.Error("网络异常，请检查你的网络连接")
             }
         }
