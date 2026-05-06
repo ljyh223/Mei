@@ -16,6 +16,7 @@ import com.ljyh.mei.utils.encrypt.QRCUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlin.math.abs
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -70,10 +71,35 @@ class LyricManager @Inject constructor(
             launch { fetchNetEaseLyric(songId) }
             launch { fetchAMLLyric(songId) }
 
-            // Load cached QQ song mapping if available
             val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
             if (localSong != null) {
                 fetchQQLyric(localSong)
+            } else {
+                autoSearchAndPickBest(metadata)
+            }
+        }
+    }
+
+    private suspend fun autoSearchAndPickBest(metadata: MediaMetadata) {
+        val result = repository.searchNew(metadata.title)
+        _qqSearchResult.value = result
+        if (result is Resource.Success) {
+            val currentDurationSec = metadata.duration / 1000
+            val songs = result.data.req0.data.body.song.list
+            val best = songs.take(5).firstOrNull { song ->
+                abs(currentDurationSec - song.interval) <= 5
+            }
+            if (best != null) {
+                val qqSong = QQSong(
+                    id = metadata.id.toString(),
+                    qid = best.id.toString(),
+                    title = best.title,
+                    artist = best.singer.joinToString(",") { it.name },
+                    album = best.album.title,
+                    duration = best.interval
+                )
+                qqSongRepository.insertSong(qqSong)
+                fetchQQLyric(qqSong)
             }
         }
     }

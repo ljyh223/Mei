@@ -51,7 +51,7 @@ object YRCParser : ILyricsParser {
     private fun parseInternal(rawLinesSequence: Sequence<String>): List<KaraokeLine> {
         val resultLines = mutableListOf<KaraokeLine>()
 
-        var currentRoleState = KaraokeAlignment.Start
+        val roleState = RoleState()
         var lastLineStartTime = -1
 
         for (raw in rawLinesSequence) {
@@ -94,11 +94,7 @@ object YRCParser : ILyricsParser {
             val contentPart = match.groupValues[3]
             val rawSyllables = parseSyllablesAndMergeColons(contentPart, lineStart)
 
-            val (alignment, finalSyllables, nextState) = determineRole(
-                rawSyllables,
-                currentRoleState
-            )
-            currentRoleState = nextState
+            val (alignment, finalSyllables) = determineRole(rawSyllables, roleState)
 
             if (finalSyllables.isNotEmpty()) {
                 resultLines.add(
@@ -226,24 +222,77 @@ object YRCParser : ILyricsParser {
     }
 
     /**
-     * 参考Kugou：根据歌词首尾是否带有冒号(如 "男：" 或 "女：") 来自动切换对唱角色
+     * 对唱角色状态管理：记录每个角色名 -> 分配的 alignment，
+     * 支持多角色（非二元 toggle），同一角色名多次出现复用相同 alignment。
+     */
+    private class RoleState {
+        private val roleMap = mutableMapOf<String, KaraokeAlignment>()
+        var lastAlignment = KaraokeAlignment.Start
+            private set
+
+        fun getOrAssign(roleName: String): KaraokeAlignment {
+            return roleMap.getOrPut(roleName) {
+                val alignment = lastAlignment
+                lastAlignment = if (lastAlignment == KaraokeAlignment.Start)
+                    KaraokeAlignment.End else KaraokeAlignment.Start
+                alignment
+            }
+        }
+    }
+
+    /**
+     * 检测当前行的对唱角色。
+     *
+     * 独立标记行：整行仅包含 "name：" 或 "name:" → 作为角色指示器显示，不剔除
+     * 内嵌标记：  行首有 "name：lyrics" → 剔除 name：前缀，仅显示歌词部分
      */
     private fun determineRole(
         syllables: List<KaraokeSyllable>,
-        currentState: KaraokeAlignment
-    ): Triple<KaraokeAlignment, List<KaraokeSyllable>, KaraokeAlignment> {
-        if (syllables.isEmpty()) return Triple(KaraokeAlignment.Unspecified, syllables, currentState)
+        roleState: RoleState
+    ): Pair<KaraokeAlignment, List<KaraokeSyllable>> {
+        if (syllables.isEmpty()) return Pair(KaraokeAlignment.Unspecified, syllables)
 
         val rawText = syllables.joinToString("") { it.content }
-        val hasMarker = rawText.startsWith("：") || rawText.startsWith(":") ||
-                rawText.endsWith("：") || rawText.endsWith(":")
 
-        if (hasMarker) {
-            val newState =
-                if (currentState == KaraokeAlignment.Start) KaraokeAlignment.End else KaraokeAlignment.Start
-            return Triple(newState, syllables, newState)
+        val colonIdx = rawText.indexOfFirst { it == '：' || it == ':' }
+        if (colonIdx < 0) return Pair(roleState.lastAlignment, syllables)
+
+        val roleName = rawText.substring(0, colonIdx)
+        if (roleName.length > 15) return Pair(roleState.lastAlignment, syllables)
+
+        val alignment = roleState.getOrAssign(roleName)
+
+        if (colonIdx + 1 >= rawText.length) {
+            // 独立标记行 "mizuki：" → 完整保留
+            return Pair(alignment, syllables)
         }
 
-        return Triple(currentState, syllables, currentState)
+        // 内嵌标记 "女：歌词" → 剔除角色前缀音节
+        val adjusted = stripRolePrefix(syllables, colonIdx + 1)
+        return Pair(alignment, adjusted)
+    }
+
+    /**
+     * 剔除内嵌角色标记的前缀音节。
+     * 冒号合并后，首个音节形如 "女：" —— 直接 drop，仅保留后续歌词音节。
+     */
+    private fun stripRolePrefix(
+        syllables: List<KaraokeSyllable>,
+        lyricsStartPos: Int
+    ): List<KaraokeSyllable> {
+        if (syllables.size <= 1) return syllables
+
+        val firstContent = syllables[0].content
+        if (firstContent.contains("：") || firstContent.contains(":")) {
+            return syllables.drop(1)
+        }
+
+        // 冒号未被合并的极端情况：手动跳过前两个音节（名称 + 冒号）
+        val secondContent = syllables.getOrNull(1)?.content ?: ""
+        if (secondContent == "：" || secondContent == ":") {
+            return syllables.drop(2)
+        }
+
+        return syllables
     }
 }

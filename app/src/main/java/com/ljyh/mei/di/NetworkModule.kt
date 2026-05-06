@@ -126,10 +126,35 @@ object RetrofitModule {
     @Singleton
     @Provides
     @Named("qqMusicRetrofitU")
-    fun provideQQMusicRetrofitU(): Retrofit {
+    fun provideQQMusicRetrofitU(@Named("qqMusicOkHttp") okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl("https://u.y.qq.com/")
             .addConverterFactory(GsonConverterFactory.create())
+            .client(okHttpClient)
+            .build()
+    }
+
+    @Singleton
+    @Provides
+    @Named("qqMusicOkHttp")
+    fun provideQQMusicOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header(
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.164 Safari/537.36"
+                    )
+                    .header("Referer", "https://y.qq.com/")
+                    .build()
+                chain.proceed(request)
+            }
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = if (DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+            })
             .build()
     }
 
