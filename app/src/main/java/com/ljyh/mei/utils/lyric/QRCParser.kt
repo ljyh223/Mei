@@ -149,36 +149,54 @@ object QRCParser : ILyricsParser {
     /**
      * 针对 QRC 格式 (文本在时间标签前) 定制的解析方式：先提取Token，再将冒号合并至前一个音节
      */
-    private fun parseSyllablesAndMergeColons(
+private fun parseSyllablesAndMergeColons(
         content: String,
         baseStartTime: Int
     ): List<KaraokeSyllable> {
-        // 利用正则提取所有的匹配项
+        data class TempToken(val offset: Int, val duration: Int, val text: String)
+
         val matches = QRC_SYLLABLE_REGEX.findAll(content).toList()
         if (matches.isEmpty()) return emptyList()
 
+        val tokens = mutableListOf<TempToken>()
+        var cursor = 0
+
+        while (cursor < content.length) {
+            val m = QRC_SYLLABLE_REGEX.find(content, cursor) ?: break
+            val offset = m.groupValues[1].toIntOrNull() ?: 0
+            val duration = m.groupValues[2].toIntOrNull() ?: 0
+
+            val textStart = m.range.last + 1
+            val nextMatch = QRC_SYLLABLE_REGEX.find(content, textStart)
+            val textEnd = nextMatch?.range?.first ?: content.length
+
+            if (textStart > textEnd) break
+
+            val text = content.substring(textStart, textEnd)
+            tokens.add(TempToken(offset, duration, text))
+            cursor = textEnd
+        }
+
+        if (tokens.isEmpty()) return emptyList()
+
+        val useAbsoluteTime = tokens.isNotEmpty() && tokens[0].offset >= baseStartTime
+
         val mergedSyllables = mutableListOf<KaraokeSyllable>()
         var i = 0
-        while (i < matches.size) {
-            val current = matches[i]
-            val currentText = current.groupValues[1]
-            val currentOffset = current.groupValues[2].toIntOrNull() ?: 0
-            val currentDuration = current.groupValues[3].toIntOrNull() ?: 0
+        while (i < tokens.size) {
+            val current = tokens[i]
+            val next = tokens.getOrNull(i + 1)
 
-            val next = matches.getOrNull(i + 1)
-            val nextText = next?.groupValues?.getOrNull(1) ?: ""
+            val startTime = if (useAbsoluteTime) current.offset else baseStartTime + current.offset
 
-            // 如果下一个字符是冒号，将其时间合并到当前字符中
-            if (next != null && (nextText == "：" || nextText == ":")) {
-                val nextDuration = next.groupValues[3].toIntOrNull() ?: 0
-                val s = baseStartTime + currentOffset
-                val e = s + currentDuration + nextDuration
-                mergedSyllables.add(KaraokeSyllable(currentText + nextText, s, e))
+            if (next != null && (next.text == "：" || next.text == ":")) {
+                val nextStartTime = if (useAbsoluteTime) next.offset else baseStartTime + next.offset
+                val e = nextStartTime + next.duration
+                mergedSyllables.add(KaraokeSyllable(current.text + next.text, startTime, e))
                 i += 2
             } else {
-                val s = baseStartTime + currentOffset
-                val e = s + currentDuration
-                mergedSyllables.add(KaraokeSyllable(currentText, s, e))
+                val e = startTime + current.duration
+                mergedSyllables.add(KaraokeSyllable(current.text, startTime, e))
                 i++
             }
         }

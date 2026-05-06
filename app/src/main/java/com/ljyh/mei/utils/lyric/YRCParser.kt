@@ -125,12 +125,15 @@ object YRCParser : ILyricsParser {
         val tMatch = Regex(""""t"\s*:\s*(\d+)""").find(trimmed) ?: return null
         val lineStart = tMatch.groupValues[1].toIntOrNull() ?: return null
 
-        val cPattern = Regex("""\{"tx"\s*:\s*"((?:[^"\\]|\\.)*)"\s*(?:,"li"\s*:\s*"((?:[^"\\]|\\.)*)"\s*)?(?:,"or"\s*:\s*"((?:[^"\\]|\\.)*)"\s*)?\}""")
+        val txPattern = Regex(""""tx"\s*:\s*"((?:[^"\\]|\\.)*)"""")
         val chars = mutableListOf<KaraokeSyllable>()
         var offset = 0
 
-        for (m in cPattern.findAll(trimmed)) {
-            val tx = m.groupValues[1].replace("\\n", "\n").replace("\\\"", "\"").replace("\\\\", "\\")
+        for (m in txPattern.findAll(trimmed)) {
+            val tx = m.groupValues[1]
+                .replace("\\n", "\n")
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\")
             if (tx.isEmpty()) continue
             for (ch in tx) {
                 chars.add(KaraokeSyllable(ch.toString(), lineStart + offset, lineStart + offset + 1))
@@ -198,22 +201,24 @@ object YRCParser : ILyricsParser {
 
         if (tokens.isEmpty()) return emptyList()
 
+        val useAbsoluteTime = tokens.isNotEmpty() && tokens[0].offset >= baseStartTime
+
         val mergedSyllables = mutableListOf<KaraokeSyllable>()
         var i = 0
         while (i < tokens.size) {
             val current = tokens[i]
             val next = tokens.getOrNull(i + 1)
 
-            // 如果下一个字符是冒号，将其时间合并到当前字符中
+            val startTime = if (useAbsoluteTime) current.offset else baseStartTime + current.offset
+
             if (next != null && (next.text == "：" || next.text == ":")) {
-                val s = baseStartTime + current.offset
-                val e = s + current.duration + next.duration
-                mergedSyllables.add(KaraokeSyllable(current.text + next.text, s, e))
+                val nextStartTime = if (useAbsoluteTime) next.offset else baseStartTime + next.offset
+                val e = nextStartTime + next.duration
+                mergedSyllables.add(KaraokeSyllable(current.text + next.text, startTime, e))
                 i += 2
             } else {
-                val s = baseStartTime + current.offset
-                val e = s + current.duration
-                mergedSyllables.add(KaraokeSyllable(current.text, s, e))
+                val e = startTime + current.duration
+                mergedSyllables.add(KaraokeSyllable(current.text, startTime, e))
                 i++
             }
         }
