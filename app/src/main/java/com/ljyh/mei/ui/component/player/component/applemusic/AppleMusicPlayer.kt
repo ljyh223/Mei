@@ -68,10 +68,9 @@ import coil3.size.Precision
 import coil3.size.Size
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
-import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
-import com.ljyh.mei.ui.component.player.component.SPlayerFluidBackground
+import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
@@ -237,7 +236,7 @@ fun AppleMusicPlayer(
                 }
             }
 
-            SPlayerFluidBackground(
+            FluidBackground(
                 imageUrl = coverUrl,
                 audioVisualizerManager = audioVisualizerManager,
                 isPlaying = isPlaying

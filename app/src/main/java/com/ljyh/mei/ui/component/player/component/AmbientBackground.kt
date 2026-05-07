@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
@@ -33,12 +32,10 @@ import coil3.toBitmap
 import com.skydoves.cloudy.cloudy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.absoluteValue
-import kotlin.random.Random
 
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
-fun AppleMusicFluidBackground(
+fun AmbientBackground(
     imageUrl: String?,
     modifier: Modifier = Modifier
 ) {

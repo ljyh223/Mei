@@ -6,6 +6,7 @@ import androidx.datastore.dataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.AppContext
+import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.Tracks
@@ -29,6 +30,7 @@ import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.model.SortOrder
 import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,11 +80,21 @@ class PlayerViewModel @Inject constructor(
 
     var mediaMetadata: MediaMetadata? = null
 
+    val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
+
     val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000L), // 5秒内无订阅者则停止
-            initialValue = emptyList() // 初始值为空列表
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = emptyList()
+        )
+
+    val myPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
+        .map { it.filter { p -> p.author == userId } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = emptyList()
         )
 
     // 获取点赞状态

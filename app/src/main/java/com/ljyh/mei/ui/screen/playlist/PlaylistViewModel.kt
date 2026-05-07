@@ -21,6 +21,7 @@ import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.repository.PlaylistRepository
+import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.LikeRepository
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
@@ -35,6 +36,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
     private val repository: PlaylistRepository,
+    private val userRepository: UserRepository,
     private val likeRepository: LikeRepository,
     private val localPlaylistRepository: com.ljyh.mei.di.LocalPlaylistRepository,
     val apiService: ApiService
@@ -130,6 +132,27 @@ class PlaylistViewModel @Inject constructor(
     fun getAllMePlaylist(){
         viewModelScope.launch {
             _playlist.value = localPlaylistRepository.getPlaylistByAuthor(userId)
+            if (userId.isNotEmpty()) {
+                when (val result = userRepository.getUserPlaylist(userId, 100)) {
+                    is Resource.Success -> {
+                        val playlistsToInsert = result.data.playlist.map {
+                            Playlist(
+                                id = it.id.toString(),
+                                title = it.name,
+                                cover = it.coverImgUrl,
+                                author = it.creator.userId.toString(),
+                                authorName = it.creator.nickname,
+                                authorAvatar = it.creator.avatarUrl,
+                                count = it.trackCount
+                            )
+                        }
+                        localPlaylistRepository.insertPlaylists(playlistsToInsert)
+                        _playlist.value = localPlaylistRepository.getPlaylistByAuthor(userId)
+                    }
+                    is Resource.Error -> {}
+                    Resource.Loading -> {}
+                }
+            }
         }
     }
 

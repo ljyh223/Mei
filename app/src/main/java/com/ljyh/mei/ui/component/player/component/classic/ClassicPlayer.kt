@@ -5,36 +5,23 @@ import android.os.Build
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.platform.LocalContext
 import androidx.media3.common.util.UnstableApi
-import com.ljyh.mei.constants.DebugKey
-import com.ljyh.mei.constants.ProgressBarStyle
-import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.component.player.MiniPlayer
-import com.ljyh.mei.ui.component.player.component.AppleMusicFluidBackground
-import com.ljyh.mei.ui.component.player.component.Debug
+import com.ljyh.mei.ui.component.player.component.AmbientBackground
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
-import com.ljyh.mei.utils.TimeUtils.formatMilliseconds
-import com.ljyh.mei.utils.rememberEnumPreference
-import com.ljyh.mei.utils.rememberPreference
-import timber.log.Timber
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @RequiresApi(Build.VERSION_CODES.S)
@@ -94,7 +81,7 @@ fun ClassicPlayer(
     ) {
 
         val coverUrl = mediaMetadata?.coverUrl
-        AppleMusicFluidBackground(
+        AmbientBackground(
             imageUrl = coverUrl
         )
 

@@ -70,6 +70,9 @@ class PlayerStateContainer(
     lateinit var allPlaylist: State<List<Playlist>>
         internal set
 
+    lateinit var myPlaylist: State<List<Playlist>>
+        internal set
+
     lateinit var canSkipPrevious: State<Boolean>
         internal set
 
@@ -115,6 +118,7 @@ fun rememberPlayerStateContainer(
     container.qqLyricSearch = playerViewModel.searchResult.collectAsState()
     container.isLiked = playerViewModel.like.collectAsState(initial = null)
     container.allPlaylist = playerViewModel.localPlaylists.collectAsState()
+    container.myPlaylist = playerViewModel.myPlaylists.collectAsState()
 
     LaunchedEffect(container.playbackState.value, container.isPlaying.value, container.isDragging) {
         val playbackState = container.playbackState.value

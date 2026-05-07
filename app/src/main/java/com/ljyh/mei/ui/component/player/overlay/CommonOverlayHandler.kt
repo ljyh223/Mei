@@ -89,7 +89,7 @@ fun CommonOverlayHandler(
 
         is OverlayState.AddToPlaylist -> {
             AddToPlaylistSheet(
-                playlists = stateContainer.allPlaylist.value,
+                playlists = stateContainer.myPlaylist.value,
                 onDismiss = { overlayHandler.dismiss() },
                 onSelectPlaylist = { selectedPlaylist ->
                     overlayHandler.addSongToPlaylist(selectedPlaylist, overlay.mediaId)
