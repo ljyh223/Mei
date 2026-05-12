@@ -241,6 +241,7 @@ fun AlbumArtCard(item: PlaylistCard, onClick: (String) -> Unit) {
         Text(
             text = item.title,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
