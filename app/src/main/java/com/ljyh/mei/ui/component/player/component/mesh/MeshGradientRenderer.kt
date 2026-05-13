@@ -64,7 +64,10 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
     fun setAlbum(bitmap: Bitmap) {
         synchronized(this) {
-            pendingAlbum?.recycle()
+            val old = pendingAlbum
+            if (old !== null && old !== bitmap) {
+                old.recycle()
+            }
             pendingAlbum = bitmap
             albumChanged = true
         }
@@ -150,7 +153,6 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             pendingAlbum = null
 
             val processed = AlbumTextureProcessor.process(bitmap)
-            bitmap.recycle()
             val textureId = uploadTexture(processed)
 
             val preset = selectPreset()

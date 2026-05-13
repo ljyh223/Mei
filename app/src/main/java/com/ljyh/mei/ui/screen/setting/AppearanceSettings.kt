@@ -265,15 +265,15 @@ fun AppearanceSettings(
                 description = "渐变动画速度，值越大流动越快",
                 icon = { Icon(Icons.Rounded.Speed, null) },
                 selectedValue = meshFlowSpeed,
-                values = listOf(0.05f, 0.25f, 0.5f, 0.75f, 1.0f),
+                values = listOf(0.05f, 0.10f, 0.15f, 0.25f, 0.5f),
                 onValueSelected = onMeshFlowSpeedChange,
                 valueText = {
                     when (it) {
                         0.05f -> "极慢"
-                        0.25f -> "慢"
-                        0.5f -> "标准"
-                        0.75f -> "快"
-                        1.0f -> "极快"
+                        0.10f -> "慢"
+                        0.15f -> "标准"
+                        0.25f -> "快"
+                        0.5f -> "极快"
                         else -> "${(it * 100).toInt()}%"
                     }
                 }

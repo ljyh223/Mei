@@ -6,6 +6,11 @@ import android.graphics.Color
 object AlbumTextureProcessor {
 
     fun process(bitmap: Bitmap): Bitmap {
+        if (bitmap.isRecycled) {
+            val fallback = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
+            fallback.eraseColor(Color.BLACK)
+            return fallback
+        }
         val w = 32
         val h = 32
         var img = Bitmap.createScaledBitmap(bitmap, w, h, true)
