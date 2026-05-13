@@ -52,7 +52,7 @@ import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.rememberEnumPreference
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.S)
+
 @OptIn(UnstableApi::class)
 @Composable
 fun ClassicPhoneLayout(

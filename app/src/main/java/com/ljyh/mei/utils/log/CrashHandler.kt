@@ -134,7 +134,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
 
             // 存储路径：/Android/data/<package-name>/files/crash_logs/
             // 这种路径不需要申请运行时存储权限，且卸载应用后会自动删除，符合规范
-            val logDir = File(mContext.getExternalFilesDir(null), LOG_DIR_NAME)
+            val logDir = File(mContext.filesDir, LOG_DIR_NAME)
             if (!logDir.exists()) {
                 logDir.mkdirs()
             }

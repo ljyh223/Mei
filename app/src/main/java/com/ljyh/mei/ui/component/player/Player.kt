@@ -19,6 +19,7 @@ import com.ljyh.mei.ui.component.player.overlay.rememberOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.player.state.rememberPlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.rememberEnumPreference
@@ -35,6 +36,7 @@ fun BottomSheetPlayer(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
+    val device = rememberDeviceInfo()
 
     // 获取播放器样式
     val playerStyle by rememberEnumPreference(PlayerStyleKey, defaultValue = PlayerStyle.AppleMusic)
@@ -55,12 +57,23 @@ fun BottomSheetPlayer(
     // 单入口、双实现 - 根据样式渲染不同的播放器
     when (playerStyle) {
         PlayerStyle.AppleMusic -> {
-            AppleMusicPlayer(
-                state = state,
-                modifier = modifier,
-                stateContainer = stateContainer,
-                overlayHandler = overlayHandler
-            )
+            // 横屏模式下直接进入经典模式
+            if( device.isLandscape){
+                ClassicPlayer(
+                    state = state,
+                    modifier = modifier,
+                    stateContainer = stateContainer,
+                    overlayHandler = overlayHandler
+                )
+            }else{
+                AppleMusicPlayer(
+                    state = state,
+                    modifier = modifier,
+                    stateContainer = stateContainer,
+                    overlayHandler = overlayHandler
+                )
+            }
+
         }
         PlayerStyle.Classic -> {
             ClassicPlayer(

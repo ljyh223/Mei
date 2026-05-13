@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -90,6 +89,7 @@ fun PreferenceEntry(
 fun <T> ListPreference(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
+    description: String? = null,
     icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
     values: List<T>,
@@ -133,7 +133,7 @@ fun <T> ListPreference(
     PreferenceEntry(
         modifier = modifier,
         title = title,
-        description = valueText(selectedValue),
+        description = description ?: valueText(selectedValue),
         icon = icon,
         onClick = { showDialog = true },
         isEnabled = isEnabled
@@ -237,55 +237,4 @@ fun PreferenceGroupTitle(
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier.padding(16.dp)
     )
-}
-
-@Composable
-fun SliderPreference(
-    modifier: Modifier = Modifier,
-    title: @Composable () -> Unit,
-    description: String? = null,
-    icon: (@Composable () -> Unit)? = null,
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    steps: Int = 0,
-    isEnabled: Boolean = true,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .alpha(if (isEnabled) 1f else 0.5f)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (icon != null) {
-                Box(modifier = Modifier.padding(horizontal = 4.dp)) {
-                    icon()
-                }
-                Spacer(Modifier.width(12.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                ProvideTextStyle(MaterialTheme.typography.titleMedium) {
-                    title()
-                }
-                if (description != null) {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            }
-        }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange,
-            steps = steps,
-            enabled = isEnabled,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
 }

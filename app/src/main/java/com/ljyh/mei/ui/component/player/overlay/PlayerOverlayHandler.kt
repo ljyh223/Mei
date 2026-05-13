@@ -109,6 +109,10 @@ class PlayerOverlayHandler(
         _currentOverlay.value = OverlayState.TrackActionMenu(track)
     }
 
+    fun showSongInfo(metadata: MediaMetadata) {
+        _currentOverlay.value = OverlayState.SongInfo(metadata)
+    }
+
     /**
      * 关闭当前弹窗
      */
@@ -148,6 +152,11 @@ class PlayerOverlayHandler(
             }
             MoreAction.BOTTOM_ACTION -> {
                 showBottomAction()
+            }
+            MoreAction.SONG_INFO -> {
+                mediaMetadata?.let {
+                    showSongInfo(it)
+                }
             }
         }
     }

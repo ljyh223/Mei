@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -16,6 +18,7 @@ import com.ljyh.mei.ui.component.player.component.sheet.PlayerActionSettingsShee
 import com.ljyh.mei.ui.component.player.component.sheet.PlaylistBottomSheet
 import com.ljyh.mei.ui.component.player.component.sheet.QQMusicSelectSheet
 import com.ljyh.mei.ui.component.player.component.sheet.SleepTimerSheet
+import com.ljyh.mei.ui.component.player.component.sheet.SongInfoSheet
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.CreatePlaylistSheet
@@ -68,6 +71,17 @@ fun CommonOverlayHandler(
                     sheetState?.collapse(spring(stiffness = Spring.StiffnessVeryLow))
                 },
                 onDismissRequest = { overlayHandler.dismiss() },
+            )
+        }
+
+        is OverlayState.SongInfo -> {
+            val qqSongId by produceState<String?>(null, overlay.metadata.id) {
+                value = stateContainer.playerViewModel.getQQSongId(overlay.metadata.id)
+            }
+            SongInfoSheet(
+                metadata = overlay.metadata,
+                qqSongId = qqSongId,
+                onDismissRequest = { overlayHandler.dismiss() }
             )
         }
 

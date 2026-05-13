@@ -30,7 +30,9 @@ import com.ljyh.mei.ui.component.player.component.PlayerControls
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
+import com.ljyh.mei.ui.component.player.component.PlayerTableControls
 import com.ljyh.mei.ui.component.player.component.classic.component.Cover
+import com.ljyh.mei.ui.component.player.component.classic.component.PlayerHeader
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.LyricSource
@@ -78,7 +80,26 @@ fun ClassicTabletLayout(
                 )
             }
 
-            Spacer(Modifier.height(48.dp))
+
+
+            Spacer(Modifier.height(16.dp))
+            mediaMetadata?.let {
+                PlayerHeader(
+                    mediaMetadata = it,
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .padding(horizontal = PlayerHorizontalPadding),
+                    onClick = {
+                        overlayHandler.showAlbumArtist(it.album, it.artists, it.coverUrl)
+                    },
+                    onMoreClick = {
+                        overlayHandler.showMoreAction()
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(32.dp))
+
 
             if (progressBarStyle == ProgressBarStyle.LINEAR) {
                 FluidProgressSlider(
@@ -88,7 +109,7 @@ fun ClassicTabletLayout(
                         stateContainer.playerConnection.player.seekTo(newPosition)
                     },
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(0.7f)
                         .padding(horizontal = PlayerHorizontalPadding + 8.dp)
                 )
             } else {
@@ -100,40 +121,29 @@ fun ClassicTabletLayout(
                         stateContainer.playerConnection.player.seekTo(newPosition)
                     },
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(0.7f)
                         .padding(horizontal = PlayerHorizontalPadding + 8.dp)
                 )
             }
 
 
+
+
             Spacer(Modifier.height(16.dp))
 
-            PlayerControls(
+
+            PlayerTableControls(
                 playerConnection = stateContainer.playerConnection,
                 canSkipPrevious = stateContainer.canSkipPrevious.value,
                 canSkipNext = stateContainer.canSkipNext.value,
                 isPlaying = isPlaying,
                 playbackState = playbackState,
-                modifier = Modifier
-                    .fillMaxWidth(0.6f)
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            PlayerActionToolbar(
-                modifier = Modifier.fillMaxWidth(0.6f),
-                onLyricClick = {},
-                onPlaylistClick = { overlayHandler.showPlaylist() },
-                onSleepTimerClick = { overlayHandler.showSleepTimer() },
-                onAddToPlaylistClick = {
-                    mediaMetadata?.let {
-                        overlayHandler.showAddToPlaylist(it.id)
-                    }
-                },
-                onMoreClick = {
-                    overlayHandler.showMoreAction()
+                modifier = Modifier.fillMaxWidth(0.7f),
+                onPlaylistClick = {
+                    overlayHandler.showPlaylist()
                 }
             )
+
         }
 
         Spacer(Modifier.width(32.dp))
@@ -143,7 +153,8 @@ fun ClassicTabletLayout(
             playerConnection = stateContainer.playerConnection,
             modifier = Modifier
                 .weight(0.45f)
-                .fillMaxHeight()
+                .fillMaxHeight(0.95f)
+                .align(Alignment.CenterVertically)
                 .padding(horizontal = PlayerHorizontalPadding),
             onClick = {
                 mediaMetadata?.let {

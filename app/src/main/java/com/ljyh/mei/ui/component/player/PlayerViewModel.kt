@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -156,6 +157,10 @@ class PlayerViewModel @Inject constructor(
             qqSongRepository.deleteSongById(id)
             lyricManager.loadLyrics(mediaMetadata ?: return@launch)
         }
+    }
+
+    suspend fun getQQSongId(metadataId: Long): String? {
+        return qqSongRepository.getQQSong(metadataId.toString()).firstOrNull()?.qid
     }
 
 

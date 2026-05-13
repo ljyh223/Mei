@@ -56,8 +56,8 @@ import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
+import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
-import com.ljyh.mei.ui.component.SliderPreference
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -260,40 +260,60 @@ fun AppearanceSettings(
             PreferenceGroupTitle(
                 title = "FLUID BACKGROUND"
             )
-            SliderPreference(
+            ListPreference(
                 title = { Text("流动速度") },
                 description = "渐变动画速度，值越大流动越快",
                 icon = { Icon(Icons.Rounded.Speed, null) },
-                value = meshFlowSpeed,
-                onValueChange = onMeshFlowSpeedChange,
-                valueRange = 0.05f..1f
+                selectedValue = meshFlowSpeed,
+                values = listOf(0.05f, 0.25f, 0.5f, 0.75f, 1.0f),
+                onValueSelected = onMeshFlowSpeedChange,
+                valueText = {
+                    when (it) {
+                        0.05f -> "极慢"
+                        0.25f -> "慢"
+                        0.5f -> "标准"
+                        0.75f -> "快"
+                        1.0f -> "极快"
+                        else -> "${(it * 100).toInt()}%"
+                    }
+                }
             )
-            SliderPreference(
+            ListPreference(
                 title = { Text("渲染精度") },
                 description = "渲染分辨率缩放，越低越省电但越模糊",
                 icon = { Icon(Icons.Rounded.Visibility, null) },
-                value = meshRenderScale,
-                onValueChange = onMeshRenderScaleChange,
-                valueRange = 0.25f..1f,
-                steps = 2
+                selectedValue = meshRenderScale,
+                values = listOf(0.25f, 0.5f, 0.75f, 1.0f),
+                onValueSelected = onMeshRenderScaleChange,
+                valueText = { "${(it * 100).toInt()}%" }
             )
-            SliderPreference(
+            ListPreference(
                 title = { Text("节拍灵敏度") },
                 description = "低频节拍对背景的影响程度",
                 icon = { Icon(Icons.Rounded.Highlight, null) },
-                value = meshLowFreqVolume,
-                onValueChange = onMeshLowFreqVolumeChange,
-                valueRange = 0f..0.5f,
-                steps = 4
+                selectedValue = meshLowFreqVolume,
+                values = listOf(0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f),
+                onValueSelected = onMeshLowFreqVolumeChange,
+                valueText = {
+                    when (it) {
+                        0.0f -> "关闭"
+                        0.1f -> "极低"
+                        0.2f -> "低"
+                        0.3f -> "中"
+                        0.4f -> "高"
+                        0.5f -> "极高"
+                        else -> "${(it * 100).toInt()}%"
+                    }
+                }
             )
-            SliderPreference(
+            ListPreference(
                 title = { Text("网格细分") },
                 description = "网格细分级数，越大越平滑越耗GPU",
                 icon = { Icon(Icons.Rounded.GridOn, null) },
-                value = meshSubdivision.toFloat(),
-                onValueChange = { onMeshSubdivisionChange(it.toInt()) },
-                valueRange = 10f..80f,
-                steps = 6
+                selectedValue = meshSubdivision,
+                values = (1..8).map { it * 10 },
+                onValueSelected = onMeshSubdivisionChange,
+                valueText = { "$it" }
             )
             SwitchPreference(
                 title = { Text("静态模式") },

@@ -85,7 +85,7 @@ import com.ljyh.mei.utils.UnitUtils.toPx
 import kotlin.math.min
 
 
-@RequiresApi(Build.VERSION_CODES.S)
+
 @OptIn(UnstableApi::class)
 @Composable
 fun AppleMusicPlayer(

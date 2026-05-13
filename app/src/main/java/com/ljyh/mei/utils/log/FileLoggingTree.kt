@@ -30,7 +30,7 @@ class FileLoggingTree(private val context: Context) : Timber.Tree() {
 
     private fun saveLogToFile(priority: Int, tag: String?, message: String, t: Throwable?) {
         try {
-            val logDir = File(context.getExternalFilesDir(null), "app_logs")
+            val logDir = File(context.filesDir, "app_logs")
             if (!logDir.exists()) logDir.mkdirs()
 
             // 每天生成一个日志文件，方便管理

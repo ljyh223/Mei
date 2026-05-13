@@ -6,6 +6,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -32,7 +33,10 @@ enum class MoreAction(
     // --- 高级功能 ---
     SLEEP_TIMER("sleep", "睡眠定时", Icons.Rounded.Bedtime, 3, 2), // 辅助功能
     // 播放界面底部功能
-    BOTTOM_ACTION("bottom_action", "播放界面底部标签", Icons.Rounded.Tune, 4, 4);
+    BOTTOM_ACTION("bottom_action", "播放界面底部标签", Icons.Rounded.Tune, 4, 4),
+
+    // --- 信息 ---
+    SONG_INFO("song_info", "歌曲信息", Icons.Rounded.Info, 4, 1);
 
     companion object {
         // 简单工厂方法

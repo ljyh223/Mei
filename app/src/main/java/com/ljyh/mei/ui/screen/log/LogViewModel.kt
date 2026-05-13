@@ -42,8 +42,8 @@ class LogViewModel @Inject constructor(
     fun loadLogFiles() {
         viewModelScope.launch(Dispatchers.IO) {
             val context = getApplication<Application>()
-            val logDir = File(context.getExternalFilesDir(null), "app_logs")
-            val crashDir = File(context.getExternalFilesDir(null), "crash_logs")
+            val logDir = File(context.filesDir, "app_logs")
+            val crashDir = File(context.filesDir, "crash_logs")
 
             val files = mutableListOf<File>()
             // 安全检查文件夹是否存在
