@@ -94,7 +94,7 @@ fun PlaylistHeader(
 
                     if (coverList.size < 5) {
                         AsyncImage(
-                            model = cover.firstOrNull(),
+                            model = cover,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
