@@ -14,7 +14,6 @@ import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.qq.u.SearchResult
-import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.weapi.Radio
@@ -61,8 +60,8 @@ class PlayerViewModel @Inject constructor(
     val searchResult: StateFlow<Resource<SearchResult>> = lyricManager.qqSearchResult
     val lyric: StateFlow<LyricData> = lyricManager.lyricData
 
-    private val _like = MutableStateFlow<Like?>(null)
-    val like: StateFlow<Like?> = _like
+    private val _like = MutableStateFlow<Resource<Boolean>>(Resource.Loading)
+    val like: StateFlow<Resource<Boolean>> = _like
 
     private val _networkPlaylistsState = MutableStateFlow<Resource<UserPlaylist>>(Resource.Loading)
     val networkPlaylistsState: StateFlow<Resource<UserPlaylist>> = _networkPlaylistsState
@@ -99,37 +98,22 @@ class PlayerViewModel @Inject constructor(
         )
 
     // 获取点赞状态
-    fun getLike(id: String) {
+    fun getLike(id: Long) {
         viewModelScope.launch {
-            _like.value = likeRepository.getLike(id) // 只更新一次
+            Timber.tag("PlayerViewModel").d("get like $id")
+            _like.value = repository.checkSongLike(id)
         }
     }
 
     // 切换点赞状态
-    // TODO 优化逻辑，需要toast提示
     fun like(id: String) {
         viewModelScope.launch {
             try {
-                // 1. 缓存当前状态，避免多次查询
-                val currentLike = _like.value ?: likeRepository.getLike(id)
-
-                // 2. 确定点赞标志 (true: 点赞，false: 取消点赞)
-                val like = currentLike == null
-
-                // 3. 发送点赞状态到服务器
-                repository.like(id, like)
-
-                // 4. 更新数据库和 UI
-                if (like) {
-                    val newLike = Like(id)
-                    likeRepository.insertLike(newLike)
-                    _like.value = newLike
-                } else {
-                    likeRepository.deleteLike(id)
-                    _like.value = null
-                }
+                val currentLiked = (_like.value as? Resource.Success)?.data == true
+                repository.like(id, !currentLiked)
+                _like.value = Resource.Success(!currentLiked)
             } catch (e: Exception) {
-                e.printStackTrace() // 处理异常，防止崩溃
+                e.printStackTrace()
             }
         }
     }

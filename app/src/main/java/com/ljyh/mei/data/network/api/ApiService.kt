@@ -14,6 +14,8 @@ import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
+import com.ljyh.mei.data.model.api.CheckSongLike
+import com.ljyh.mei.data.model.api.CheckSongLikeResult
 import com.ljyh.mei.data.model.api.CreatePlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.DeletePlaylist
@@ -88,6 +90,9 @@ interface ApiService {
     suspend fun getUserPlaylist(
         @Body body: GetUserPlaylist
     ): UserPlaylist
+
+    @POST("/api/song/like/check")
+    suspend fun checkSongLike(@Body body: CheckSongLike): CheckSongLikeResult
 
     @POST("/api/album/sublist")
     suspend fun getCollectAlbumList(@Body body: GetAlbumList): UserAlbumList

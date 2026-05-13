@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.component.player.component.classic.component
 
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,8 +34,11 @@ import com.ljyh.mei.data.model.MediaMetadata
 fun PlayerHeader(
     modifier: Modifier,
     mediaMetadata: MediaMetadata,
+    isLiked: Boolean,
     onClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    iconColor: Color = Color.White
 ) {
 
     val shadowStyle = Shadow(
@@ -110,17 +116,32 @@ fun PlayerHeader(
             }
         }
 
-        // 右侧：更多按钮
-        IconButton(
-            onClick = onMoreClick,
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "更多选项",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ){
+            IconButton(onClick = onLikeClick) {
+                Icon(
+                    imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = "Like",
+                    tint = iconColor.copy(alpha = 0.8f),
+                    modifier = Modifier.size(24.dp) // 稍微调整大小适配不同高度
+                )
+            }
+            // 右侧：更多按钮
+            IconButton(
+                onClick = onMoreClick,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "更多选项",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
+
+
     }
 }

@@ -20,11 +20,13 @@ import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
 import android.util.Base64
+import com.ljyh.mei.data.model.api.CheckSongLike
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.IOException
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class PlayerRepository(
@@ -204,6 +206,16 @@ class PlayerRepository(
                 apiService.getSongDetail(
                     GetSongDetails(id)
                 )
+            }
+        }
+    }
+
+    suspend fun checkSongLike(id: Long): Resource<Boolean>{
+        return withContext(Dispatchers.IO){
+            safeApiCall {
+                val result = apiService.checkSongLike(CheckSongLike("[${id}]"))
+                Timber.tag("Player Repo").d(result.toString())
+                result.ids.contains(id)
             }
         }
     }

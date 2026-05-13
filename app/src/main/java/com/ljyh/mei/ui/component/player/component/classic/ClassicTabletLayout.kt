@@ -50,6 +50,7 @@ fun ClassicTabletLayout(
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
     val duration by remember { derivedStateOf { stateContainer.duration } }
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
+    val isLiked by stateContainer.isLiked
 
     val (progressBarStyle, _) = rememberEnumPreference(
         key = ProgressBarStyleKey,
@@ -94,6 +95,10 @@ fun ClassicTabletLayout(
                     },
                     onMoreClick = {
                         overlayHandler.showMoreAction()
+                    },
+                    isLiked = isLiked,
+                    onLikeClick = {
+                        stateContainer.playerViewModel.like(it.id.toString())
                     }
                 )
             }

@@ -70,7 +70,7 @@ fun ClassicPhoneLayout(
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
     val duration by remember { derivedStateOf { stateContainer.duration } }
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
-
+    val isLiked by stateContainer.isLiked
 
     val progressBarStyle = rememberEnumPreference(
         key = ProgressBarStyleKey,
@@ -85,7 +85,7 @@ fun ClassicPhoneLayout(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Header
-        mediaMetadata?.let {
+        mediaMetadata?.let { it ->
             PlayerHeader(
                 mediaMetadata = it,
                 modifier = Modifier
@@ -96,6 +96,10 @@ fun ClassicPhoneLayout(
                 },
                 onMoreClick = {
                     overlayHandler.showMoreAction()
+                },
+                isLiked = isLiked,
+                onLikeClick = {
+                    stateContainer.playerViewModel.like(it.id.toString())
                 }
             )
         }

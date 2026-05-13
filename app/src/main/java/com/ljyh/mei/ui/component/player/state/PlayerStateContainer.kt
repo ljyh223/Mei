@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -16,7 +17,6 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.qq.u.SearchResult
-import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayerConnection
@@ -28,6 +28,8 @@ import com.ljyh.mei.utils.lyric.createDefaultLyricData
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import timber.log.Timber
+import java.util.Timer
 
 @UnstableApi
 class PlayerStateContainer(
@@ -64,7 +66,10 @@ class PlayerStateContainer(
     lateinit var qqLyricSearch: State<Resource<SearchResult>>
         internal set
 
-    lateinit var isLiked: State<Like?>
+    lateinit var checkSongLike: State<Resource<Boolean>>
+        internal set
+
+    lateinit var isLiked: State<Boolean>
         internal set
 
     lateinit var allPlaylist: State<List<Playlist>>
@@ -98,7 +103,6 @@ fun rememberPlayerStateContainer(
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playerConnection: PlayerConnection
 ): PlayerStateContainer {
-    val debug by rememberPreference(DebugKey, defaultValue = false)
 
     val container = remember(playerConnection) {
         PlayerStateContainer(
@@ -116,9 +120,35 @@ fun rememberPlayerStateContainer(
 
     container.lyricResult = playerViewModel.lyric.collectAsState()
     container.qqLyricSearch = playerViewModel.searchResult.collectAsState()
-    container.isLiked = playerViewModel.like.collectAsState(initial = null)
+    container.checkSongLike = playerViewModel.like.collectAsState()
     container.allPlaylist = playerViewModel.localPlaylists.collectAsState()
     container.myPlaylist = playerViewModel.myPlaylists.collectAsState()
+
+    container.isLiked = remember {
+        derivedStateOf {
+            when (val result = container.checkSongLike.value) {
+                is Resource.Success -> result.data
+                Resource.Loading -> false
+                is Resource.Error -> {
+                    Timber.tag("Player State").d(result.message)
+                    false
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(container.mediaMetadata.value?.id) {
+        Timber.tag("Player State")
+            .d("metadata = ${container.mediaMetadata.value}")
+
+        Timber.tag("Player State")
+            .d("id = ${container.mediaMetadata.value?.id}")
+
+        container.mediaMetadata.value?.let { meta ->
+            Timber.tag("Player State").d("正在获取like state")
+            playerViewModel.getLike(meta.id)
+        }
+    }
 
     LaunchedEffect(container.playbackState.value, container.isPlaying.value, container.isDragging) {
         val playbackState = container.playbackState.value
@@ -148,6 +178,7 @@ fun rememberPlayerStateContainer(
     LaunchedEffect(container.lyricResult.value) {
         container.lyricLine = container.lyricResult.value
     }
+    
 
     return container
 }
