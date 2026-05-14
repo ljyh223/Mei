@@ -17,7 +17,7 @@
 ## 项目介绍
 
 Mei 是一款使用 **Jetpack Compose** 开发的 **网易云音乐第三方客户端**。
-好久不见，最近会整合代码，并带来一些新UI，比如将applemusic-liek-lyric那样的效果迁移到本项目中
+好久不见，最近会整合代码，并带来一些新UI，比如将applemusic-like-lyric那样的效果迁移到本项目中
 <table>
   <tr>
     <td><img src="./screenshot/2026-05-01/player1.jpg" width="200"></td>
