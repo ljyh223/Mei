@@ -6,6 +6,7 @@ import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
+import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -15,6 +16,11 @@ import kotlin.math.cos
 private const val TAG = "MeshGradientRenderer"
 
 class MeshGradientRenderer : GLSurfaceView.Renderer {
+    init {
+        Timber.tag(TAG).d(GLES30.glGetString(GLES30.GL_RENDERER))
+        Timber.tag(TAG).d(GLES30.glGetString(GLES30.GL_VENDOR))
+        Timber.tag(TAG).d(GLES30.glGetString(GLES30.GL_VERSION))
+    }
 
     private data class MeshState(
         val mesh: BHPMesh,
@@ -396,6 +402,8 @@ private fun drawMesh(state: MeshState, time: Float) {
         val shader = GLES30.glCreateShader(type)
         GLES30.glShaderSource(shader, source)
         GLES30.glCompileShader(shader)
+        val log = GLES30.glGetProgramInfoLog(shader)
+        Timber.tag(TAG).d(log)
 
         val compileStatus = IntArray(1)
         GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, compileStatus, 0)

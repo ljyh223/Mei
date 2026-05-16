@@ -37,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +51,12 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.ljyh.mei.constants.PlaylistCardSize
+import com.ljyh.mei.constants.PlaylistCardSizeTablet
+import com.ljyh.mei.constants.RecommendCardHeight
+import com.ljyh.mei.constants.RecommendCardHeightTablet
+import com.ljyh.mei.constants.RecommendCardWidth
+import com.ljyh.mei.constants.RecommendCardWidthTablet
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.toMediaItem
@@ -62,6 +69,7 @@ import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.component.home.RecommendCard
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.playlist.PlayingImageView
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -71,6 +79,7 @@ import com.ljyh.mei.utils.positionComparator
 import com.ljyh.mei.utils.rememberPreference
 import timber.log.Timber
 import java.util.UUID
+import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +99,7 @@ fun HomeScreen(
     val homePageResourceShowPage1 by viewModel.homePageResourceShow.collectAsState()
     val userId by rememberPreference(UserIdKey, "")
     val isRefreshing by remember { mutableStateOf(false) }
+    val device = rememberDeviceInfo()
 
     // 滚动到顶部逻辑
     LaunchedEffect(scrollToTop) {
@@ -117,6 +127,7 @@ fun HomeScreen(
                         result.data.sortedWith(positionComparator)
                     }
 
+
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
@@ -128,14 +139,14 @@ fun HomeScreen(
                     ) {
                         items(
                             items = sortedBlocks,
-                            // 假设 positionCode 是唯一的，用作 key 可以大幅提升性能
                             key = { it.positionCode }
                         ) { block ->
                             HomeBlockItem(
                                 block = block,
                                 navController = navController,
                                 viewModel = viewModel,
-                                playerViewModel = playerViewModel
+                                playerViewModel = playerViewModel,
+                                device = device
                             )
                         }
                     }
@@ -162,10 +173,15 @@ private fun HomeBlockItem(
     block: HomePageResourceShow.Data.Block,
     navController: NavController,
     viewModel: HomeViewModel,
-    playerViewModel: PlayerViewModel
+    playerViewModel: PlayerViewModel,
+    device: com.ljyh.mei.ui.component.utils.DeviceInfo
 ) {
     val gson = remember { Gson() }
     val playerConnection = LocalPlayerConnection.current ?: return
+
+    val playlistCardSize = if (device.isTablet) PlaylistCardSizeTablet else PlaylistCardSize
+    val recommendCardWidth = if (device.isTablet) RecommendCardWidthTablet else RecommendCardWidth
+    val recommendCardHeight = if (device.isTablet) RecommendCardHeightTablet else RecommendCardHeight
 
     // Watch intelligence list for Success state to play the queue
     val intelligenceList by playerViewModel.intelligenceList.collectAsState()
@@ -260,6 +276,8 @@ private fun HomeBlockItem(
                         icon = resource.iconDesc?.image,
                         text = resource.subTitle
                     ),
+                    cardWidth = recommendCardWidth,
+                    cardHeight = recommendCardHeight,
                     viewModel = viewModel
                 ) {
                     when (resource.resourceType) {
@@ -311,7 +329,13 @@ private fun HomeBlockItem(
         "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",
         "PAGE_RECOMMEND_MIXED_ARTIST_PLAYLIST",
         "PAGE_RECOMMEND_RANK",
-        "PAGE_RECOMMEND_MY_SHEET" -> {
+        "PAGE_RECOMMEND_MY_SHEET",
+        "PAGE_RECOMMEND_COMBINATION",
+        "PAGE_RECOMMEND_FEELING_PLAYLIST_LOCATION",
+        "PAGE_RECOMMEND_SCENE_PLAYLIST_LOCATION",
+        "PAGE_RECOMMEND_MONTH_YEAR_PLAYLIST",
+
+            -> {
             // 将这些相似的逻辑合并处理，减少代码重复
             val title = if (block.positionCode == "PAGE_RECOMMEND_RADAR")
                 (blockData.get("title")?.asString ?: "雷达歌单")
@@ -344,6 +368,7 @@ private fun HomeBlockItem(
                     extInfo = resource.resourceInteractInfo?.playCount,
                     // 只有非 thumbnail 的图片才使用大图加载逻辑，优化内存
                     imageSize = !resource.coverImg.contains("thumbnail"),
+                    cardSize = playlistCardSize,
                 ) {
                     Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
                 }
@@ -367,7 +392,9 @@ private fun HomeBlockItem(
 
             Title(title)
             TripleLaneSlider(
-                songsArray = songsBlocks
+                songsArray = songsBlocks,
+                isTablet = device.isTablet,
+                screenWidthDp = device.screenWidthDp,
             ) { songs, index ->
                 val flatSongs = songs.flatMap { it.items }.map { it.resourceId to null }
                 if (playerConnection.isPlaying(flatSongs[index].first)) {
@@ -431,12 +458,19 @@ fun Title(text: String) {
 @Composable
 fun TripleLaneSlider(
     songsArray: List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>,
+    isTablet: Boolean = false,
+    screenWidthDp: Int = 0,
     onClick: (List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>, Int) -> Unit
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val currentMetadata by playerConnection.mediaMetadata.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
 
+    val columns = when {
+        screenWidthDp >= 900 -> 3
+        isTablet -> 2
+        else -> 1
+    }
 
     val pagerState = rememberPagerState(pageCount = { songsArray.size })
 
@@ -445,65 +479,100 @@ fun TripleLaneSlider(
         contentPadding = PaddingValues(horizontal = 16.dp),
         pageSpacing = 16.dp
     ) { page ->
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            songsArray[page].items.forEachIndexed { index, song ->
-                val showPause = currentMetadata?.id.toString() == song.resourceId && isPlaying
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    PlayingImageView(
-                        imageUrl = song.coverUrl,
-                        isPlaying = showPause,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(8.dp))
+        val items = songsArray[page].items
+
+        if (columns == 1) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                items.forEachIndexed { index, song ->
+                    val globalIndex = songsArray.take(page).sumOf { it.items.size } + index
+                    SongRow(
+                        song = song,
+                        currentMetadataId = currentMetadata?.id?.toString(),
+                        showPause = isPlaying,
+                        onClick = { onClick(songsArray, globalIndex) }
                     )
-
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = song.title,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 15.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = song.artistName,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-
-                    Box(modifier = Modifier.padding(8.dp)) {
-                        IconButton(
-                            onClick = {
-                                onClick(songsArray, page * 3 + index)
-                            }
-                        ) {
-                            Icon(
-                                imageVector = if (showPause) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
+                }
+            }
+        } else {
+            val itemsPerColumn = ceil(items.size.toFloat() / columns).toInt()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                for (col in 0 until columns) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        val startIdx = col * itemsPerColumn
+                        val endIdx = minOf(startIdx + itemsPerColumn, items.size)
+                        for (i in startIdx until endIdx) {
+                            val song = items[i]
+                            val globalIndex = songsArray.take(page).sumOf { it.items.size } + i
+                            SongRow(
+                                song = song,
+                                currentMetadataId = currentMetadata?.id?.toString(),
+                                showPause = isPlaying,
+                                onClick = { onClick(songsArray, globalIndex) }
                             )
                         }
-
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SongRow(
+    song: HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item.Item,
+    currentMetadataId: String?,
+    showPause: Boolean,
+    onClick: () -> Unit
+) {
+    val isCurrentSong = currentMetadataId == song.resourceId && showPause
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PlayingImageView(
+            imageUrl = song.coverUrl,
+            isPlaying = isCurrentSong,
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp))
+        )
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = song.title,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 15.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = song.artistName,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Box(modifier = Modifier.padding(8.dp)) {
+            IconButton(onClick = onClick) {
+                Icon(
+                    imageVector = if (isCurrentSong) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberDominantColorState
+import androidx.compose.ui.unit.Dp
 import com.ljyh.mei.constants.RecommendCardHeight
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.ui.screen.main.home.HomeViewModel
@@ -48,6 +49,8 @@ fun RecommendCard(
     title: String? = null,
     extInfo: CardExtInfo,
     showPlay: Boolean = false,
+    cardWidth: Dp = RecommendCardWidth,
+    cardHeight: Dp = RecommendCardHeight,
     viewModel: HomeViewModel,
     onClick: () -> Unit = {}
 ) {
@@ -92,14 +95,14 @@ fun RecommendCard(
 
     Column(
         modifier = Modifier
-            .width(RecommendCardWidth)
+            .width(cardWidth)
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
     ) {
         // 图片区域
         Box(
             modifier = Modifier
-                .size(RecommendCardWidth, RecommendCardHeight)
+                .size(cardWidth, cardHeight)
         ) {
             AsyncImage(
                 model = cover.largeImage(),

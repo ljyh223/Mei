@@ -8,11 +8,14 @@ import com.ljyh.mei.data.model.room.Playlist
 
 val RecommendCardWidth = 160.dp
 val RecommendCardHeight = 160.dp
+val RecommendCardWidthTablet = 220.dp
+val RecommendCardHeightTablet = 220.dp
 
 val RecommendCardSpacing = 24.dp
 val PlaylistCardSpacing = 20.dp
 
 val PlaylistCardSize = 120.dp
+val PlaylistCardSizeTablet = 170.dp
 
 val NavigationBarHeight = 80.dp
 val MiniPlayerHeight = 64.dp
