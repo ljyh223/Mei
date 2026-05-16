@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.utils.largeImage
+import androidx.compose.ui.unit.Dp
 
 @Composable
 fun PlaylistCard(
@@ -43,6 +44,7 @@ fun PlaylistCard(
     subTitle: List<String>? = null,
     extInfo: String? = null,
     imageSize: Boolean = true,
+    cardSize: Dp = PlaylistCardSize,
     onClick: () -> Unit
 ) {
     // 常用阴影样式，提取出来复用
@@ -54,12 +56,12 @@ fun PlaylistCard(
 
     Column(
         modifier = Modifier
-            .width(PlaylistCardSize)
+            .width(cardSize)
             .clip(RoundedCornerShape(8.dp)) // 整个组件裁切，防止水波纹溢出
             .clickable { onClick() }
     ) {
         Box(
-            modifier = Modifier.size(PlaylistCardSize)
+            modifier = Modifier.size(cardSize)
         ) {
             AsyncImage(
                 model = if (imageSize) coverImg.largeImage() else coverImg,
