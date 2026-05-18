@@ -4,6 +4,7 @@ package com.ljyh.mei.ui.screen.about
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,17 +15,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Source
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +42,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,11 +57,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.ljyh.mei.BuildConfig
 import com.ljyh.mei.R
+import com.ljyh.mei.constants.DevModeKey
 import com.ljyh.mei.constants.Github
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.utils.rememberPreference
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +72,11 @@ import java.time.LocalDate
 fun AboutScreen() {
     val context = LocalContext.current
     val navController = LocalNavController.current
+    val viewModel: AboutViewModel = hiltViewModel()
+
+    val (devMode, onDevModeChange) = rememberPreference(DevModeKey, defaultValue = false)
+    var clickCount by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -89,6 +107,13 @@ fun AboutScreen() {
                         .size(80.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable {
+                            clickCount++
+                            if (clickCount >= 7 && !devMode) {
+                                onDevModeChange(true)
+                                Toast.makeText(context, "开发者模式已开启", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                 )
                 Spacer(Modifier.height(16.dp))
                 Text(
@@ -174,6 +199,49 @@ fun AboutScreen() {
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)
                 )
                 Spacer(Modifier.height(24.dp))
+            }
+
+            if (devMode) {
+                item {
+                    AboutSectionTitle("开发者调试")
+                    Card(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Column {
+                            ListItem(
+                                modifier = Modifier.clickable {
+                                    viewModel.deleteAllCachedLyrics()
+                                    Toast.makeText(context, "已清除AI歌词缓存", Toast.LENGTH_SHORT).show()
+                                },
+                                leadingContent = {
+                                    Icon(Icons.Rounded.Storage, contentDescription = null, modifier = Modifier.size(20.dp))
+                                },
+                                headlineContent = { Text("删除AI歌词数据", style = MaterialTheme.typography.bodyLarge) },
+                                supportingContent = { Text("清除 cached_lyric 表", style = MaterialTheme.typography.bodySmall) },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                            ListItem(
+                                modifier = Modifier.clickable {
+                                    viewModel.deleteAllQQSongs()
+                                    Toast.makeText(context, "已清除QQ音乐ID映射", Toast.LENGTH_SHORT).show()
+                                },
+                                leadingContent = {
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
+                                },
+                                headlineContent = { Text("删除QQ音乐ID数据", style = MaterialTheme.typography.bodyLarge) },
+                                supportingContent = { Text("清除 qqSong 表", style = MaterialTheme.typography.bodySmall) },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+                        }
+                    }
+                }
+                item {
+                    Spacer(Modifier.height(24.dp))
+                }
             }
         }
     }

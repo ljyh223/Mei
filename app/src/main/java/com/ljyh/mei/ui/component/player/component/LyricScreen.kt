@@ -226,6 +226,7 @@ private fun LyricSourceBadge(
                     LyricSource.NetEaseCloudMusic -> R.drawable.netease
                     LyricSource.QQMusic -> R.drawable.qq
                     LyricSource.AM -> R.drawable.am
+                    LyricSource.AIEnhanced -> R.drawable.ai
                 }
             ),
             modifier = Modifier.size(16.dp),

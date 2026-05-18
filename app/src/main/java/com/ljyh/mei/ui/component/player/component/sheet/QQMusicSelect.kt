@@ -41,6 +41,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.TimeUtils.formatSeconds
+import timber.log.Timber
 import kotlin.math.abs
 
 
@@ -96,6 +97,7 @@ fun QQMusicSelectSheet(
                                 targetDuration = mediaMetadata.duration,
                                 targetTitle = mediaMetadata.title,
                                 onClick = {
+                                    Timber.tag("QQMusicSelect").d(song.toString())
                                     viewmodel.selectQQSong(song)
                                     onDismiss()
                                 }

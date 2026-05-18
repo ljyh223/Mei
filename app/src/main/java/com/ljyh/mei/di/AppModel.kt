@@ -55,6 +55,10 @@ object AppModule {
     @Provides
     fun provideAlbumsDao(db: AppDatabase): AlbumsRepository = AlbumsRepository(db.AlbumsDao())
 
+    @Provides
+    fun provideCachedLyricDao(db: AppDatabase): CachedLyricRepository =
+        CachedLyricRepository(db.cachedLyricDao())
+
     // 单例gson
     @Provides
     @Singleton

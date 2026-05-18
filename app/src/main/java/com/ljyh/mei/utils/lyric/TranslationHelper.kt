@@ -68,6 +68,13 @@ internal object TranslationHelper {
                 if (diff < bestDiff) {
                     bestDiff = diff
                     bestIdx = i
+                } else if (diff == bestDiff && bestIdx >= 0) {
+                    // 时间相同，取文本更长的一方（长文本更可能是实际歌词而非角色标记）
+                    val curTextLen = (line as KaraokeLine).syllables.joinToString("") { it.content }.length
+                    val bestTextLen = (result[bestIdx] as KaraokeLine).syllables.joinToString("") { it.content }.length
+                    if (curTextLen > bestTextLen) {
+                        bestIdx = i
+                    }
                 }
             }
 
@@ -102,6 +109,12 @@ internal object TranslationHelper {
                 if (diff < bestDiff) {
                     bestDiff = diff
                     bestIdx = i
+                } else if (diff == bestDiff && bestIdx >= 0) {
+                    val curLen = (line as UncheckedSyncedLine).content.length
+                    val bestLen = (result[bestIdx] as UncheckedSyncedLine).content.length
+                    if (curLen > bestLen) {
+                        bestIdx = i
+                    }
                 }
             }
 

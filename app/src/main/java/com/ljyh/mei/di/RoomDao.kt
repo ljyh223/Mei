@@ -10,15 +10,18 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ljyh.mei.data.model.room.AlbumArtistCrossRef
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.AlbumWithArtists
 import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.model.room.CacheColor
+import com.ljyh.mei.data.model.room.CachedLyric
 import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.data.model.room.Like
-import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.PlaybackHistory
+import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.room.Song
 import kotlinx.coroutines.flow.Flow
@@ -43,6 +46,9 @@ interface QQSongDao {
 
     @Query("DELETE FROM qqSong WHERE id = :id")
     suspend fun deleteSongById(id: String)
+
+    @Query("DELETE FROM qqSong")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -296,10 +302,28 @@ interface AlbumsDao {
 
 }
 
+@Dao
+interface CachedLyricDao {
+    @Query("SELECT * FROM cached_lyric WHERE songId = :songId")
+    fun get(songId: String): Flow<CachedLyric?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(lyric: CachedLyric)
+
+    @Query("DELETE FROM cached_lyric WHERE songId = :songId")
+    suspend fun delete(songId: String)
+
+    @Query("DELETE FROM cached_lyric WHERE updatedAt < :before")
+    suspend fun deleteOld(before: Long)
+
+    @Query("DELETE FROM cached_lyric")
+    suspend fun deleteAll()
+}
+
 
 @Database(
-    entities = [CacheColor::class, Song::class, Like::class, QQSong::class, Playlist::class, PlaybackHistory::class, AlbumEntity::class, ArtistEntity::class, AlbumArtistCrossRef::class],
-    version = 8
+    entities = [CacheColor::class, Song::class, Like::class, QQSong::class, Playlist::class, PlaybackHistory::class, AlbumEntity::class, ArtistEntity::class, AlbumArtistCrossRef::class, CachedLyric::class],
+    version = 9
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
@@ -309,8 +333,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun historyDao(): HistoryDao
     abstract fun AlbumsDao(): AlbumsDao
+    abstract fun cachedLyricDao(): CachedLyricDao
 
     companion object {
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS cached_lyric (
+                        songId TEXT NOT NULL PRIMARY KEY,
+                        content TEXT NOT NULL,
+                        translation TEXT,
+                        isVerbatim INTEGER NOT NULL DEFAULT 0,
+                        isPureMusic INTEGER NOT NULL DEFAULT 0,
+                        sourceName TEXT NOT NULL DEFAULT 'Empty',
+                        parserType TEXT NOT NULL DEFAULT 'LRC',
+                        aiProcessed INTEGER NOT NULL DEFAULT 0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            }
+        }
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -320,7 +362,8 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "app_database"
-                ).build()
+                ).addMigrations(MIGRATION_8_9)
+                 .build()
                 INSTANCE = instance
                 instance
             }
