@@ -139,7 +139,7 @@ class PlayerViewModel @Inject constructor(
     fun deleteSongById(id: String) {
         viewModelScope.launch {
             qqSongRepository.deleteSongById(id)
-            lyricManager.loadLyrics(mediaMetadata ?: return@launch)
+            lyricManager.loadLyrics(mediaMetadata ?: return@launch, forceReload = true)
         }
     }
 

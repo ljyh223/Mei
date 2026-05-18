@@ -16,6 +16,7 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
@@ -138,14 +139,7 @@ fun rememberPlayerStateContainer(
     }
 
     LaunchedEffect(container.mediaMetadata.value?.id) {
-        Timber.tag("Player State")
-            .d("metadata = ${container.mediaMetadata.value}")
-
-        Timber.tag("Player State")
-            .d("id = ${container.mediaMetadata.value?.id}")
-
         container.mediaMetadata.value?.let { meta ->
-            Timber.tag("Player State").d("正在获取like state")
             playerViewModel.getLike(meta.id)
         }
     }
@@ -178,7 +172,19 @@ fun rememberPlayerStateContainer(
     LaunchedEffect(container.lyricResult.value) {
         container.lyricLine = container.lyricResult.value
     }
-    
+
+    val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
+    val queueWindows by playerConnection.queueWindows.collectAsState()
+
+    LaunchedEffect(currentWindowIndex, queueWindows.size) {
+        val idx = currentWindowIndex
+        if (idx >= 0 && idx + 1 < queueWindows.size) {
+            val nextMeta = queueWindows[idx + 1].mediaItem?.metadata
+            if (nextMeta != null) {
+                playerViewModel.lyricManager.preloadLyrics(nextMeta)
+            }
+        }
+    }
 
     return container
 }

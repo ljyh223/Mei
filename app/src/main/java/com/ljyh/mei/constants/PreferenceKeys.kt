@@ -48,6 +48,7 @@ val RepeatModeKey = intPreferencesKey("repeatMode")
 
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
+val DevModeKey = booleanPreferencesKey("dev_mode")
 val AndroidIdKey = stringPreferencesKey("androidId")
 
 // 原图封面
@@ -64,6 +65,26 @@ val MeshSubdivisionKey = intPreferencesKey("meshSubdivision")
 val PlayerStyleKey = stringPreferencesKey("playerStyle")
 val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
 val PlaylistTrackTableHeaderKey = booleanPreferencesKey("playlistTrackTableHeader")
+
+val AiTriggerModeKey = stringPreferencesKey("ai_trigger_mode")
+val AiBaseUrlKey = stringPreferencesKey("ai_base_url")
+val AiApiKeyKey = stringPreferencesKey("ai_api_key")
+val AiModelKey = stringPreferencesKey("ai_model")
+val QqTimeoutKey = stringPreferencesKey("qq_timeout")
+
+enum class AiTriggerMode {
+    Off,
+    OnMissing,
+    Always
+}
+
+enum class QqTimeout(val seconds: Int, val label: String) {
+    Sec3(3, "3秒"),
+    Sec5(5, "5秒"),
+    Sec8(8, "8秒"),
+    Sec10(10, "10秒"),
+    Sec15(15, "15秒")
+}
 
 enum class PlayerStyle {
     AppleMusic,

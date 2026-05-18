@@ -132,11 +132,20 @@ fun String.parseAsTime(): Int {
     return try {
         val parts = this.split(":")
         when (parts.size) {
-            3 -> { // Format: HH:MM:SS.ms
-                val hours = parts[0].toIntOrNull()?.times(3600 * 1000) ?: 0
-                val minutes = parts[1].toIntOrNull()?.times(60 * 1000) ?: 0
-                val secondsAndMillis = parseSecondsAndMillis(parts[2])
-                hours + minutes + secondsAndMillis
+            3 -> {
+                if (parts[2].contains('.')) {
+                    // Format: HH:MM:SS.ms (TTML)
+                    val hours = parts[0].toIntOrNull()?.times(3600 * 1000) ?: 0
+                    val minutes = parts[1].toIntOrNull()?.times(60 * 1000) ?: 0
+                    val secondsAndMillis = parseSecondsAndMillis(parts[2])
+                    hours + minutes + secondsAndMillis
+                } else {
+                    // Format: MM:SS:CC (LRC with colon-separated centiseconds)
+                    val minutes = parts[0].toIntOrNull()?.times(60 * 1000) ?: 0
+                    val seconds = parts[1].toIntOrNull()?.times(1000) ?: 0
+                    val centis = parts[2].toIntOrNull()?.times(10) ?: 0
+                    minutes + seconds + centis
+                }
             }
 
             2 -> { // Format: MM:SS.ms

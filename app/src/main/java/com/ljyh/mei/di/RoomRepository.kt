@@ -16,6 +16,7 @@ import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.AlbumWithArtists
 import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.model.room.CacheColor
+import com.ljyh.mei.data.model.room.CachedLyric
 import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.PlaybackHistory
@@ -155,6 +156,9 @@ class QQSongRepository @Inject constructor(private val qqSongDao: QQSongDao) {
         qqSongDao.deleteSongById(id)
     }
 
+    suspend fun deleteAll() {
+        qqSongDao.deleteAll()
+    }
 }
 
 class SongRepository @Inject constructor(private val songDao: SongDao) {
@@ -344,4 +348,16 @@ class AlbumsRepository(
             dao.deleteArtist(artistId)
         }
     }
+}
+
+class CachedLyricRepository @Inject constructor(private val dao: CachedLyricDao) {
+    fun get(songId: String): Flow<CachedLyric?> = dao.get(songId)
+
+    suspend fun insert(lyric: CachedLyric) = dao.insert(lyric)
+
+    suspend fun delete(songId: String) = dao.delete(songId)
+
+    suspend fun deleteOld(before: Long) = dao.deleteOld(before)
+
+    suspend fun deleteAll() = dao.deleteAll()
 }

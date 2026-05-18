@@ -51,59 +51,24 @@ object YRCParser : ILyricsParser {
     private fun parseInternal(rawLinesSequence: Sequence<String>): List<KaraokeLine> {
         val resultLines = mutableListOf<KaraokeLine>()
 
-        val roleState = RoleState()
-        var lastLineStartTime = -1
-
         for (raw in rawLinesSequence) {
             val line = raw.trim()
             if (line.isEmpty()) continue
 
-            if (line.startsWith("[bg:")) {
-                parseBackgroundLine(line)?.let { bgLine ->
-                    if (resultLines.isNotEmpty()) {
-                        val last = resultLines.last()
-                        if (last is KaraokeLine.MainKaraokeLine) {
-                            resultLines[resultLines.size - 1] = last.copy(
-                                accompanimentLines = (last.accompanimentLines
-                                    ?: emptyList()) + bgLine
-                            )
-                        } else {
-                            resultLines.add(bgLine)
-                        }
-                    } else {
-                        resultLines.add(bgLine)
-                    }
-                }
-                continue
-            }
-
-            val jsonLine = parseJsonVerbatimLine(line)
-            if (jsonLine != null) {
-                resultLines.add(jsonLine)
-                continue
-            }
-
             val match = YRC_LINE_REGEX.find(line) ?: continue
-
-            var lineStart = match.groupValues[1].toInt()
-            if (lastLineStartTime != -1 && lineStart <= lastLineStartTime) {
-                lineStart = lastLineStartTime + 3
-            }
-            lastLineStartTime = lineStart
-
+            val lineStart = match.groupValues[1].toInt()
             val contentPart = match.groupValues[3]
             val rawSyllables = parseSyllablesAndMergeColons(contentPart, lineStart)
 
-            val (alignment, finalSyllables) = determineRole(rawSyllables, roleState)
-
-            if (finalSyllables.isNotEmpty()) {
+            // 对唱识别交给 AiLyricProcessor.applyDuetAlignment 统一处理
+            if (rawSyllables.isNotEmpty()) {
                 resultLines.add(
                     KaraokeLine.MainKaraokeLine(
-                        syllables = finalSyllables,
+                        syllables = rawSyllables,
                         translation = null,
-                        alignment = alignment,
-                        start = finalSyllables.first().start,
-                        end = finalSyllables.last().end
+                        alignment = KaraokeAlignment.Unspecified,
+                        start = rawSyllables.first().start,
+                        end = rawSyllables.last().end
                     )
                 )
             }
@@ -219,80 +184,5 @@ object YRCParser : ILyricsParser {
             }
         }
         return mergedSyllables
-    }
-
-    /**
-     * 对唱角色状态管理：记录每个角色名 -> 分配的 alignment，
-     * 支持多角色（非二元 toggle），同一角色名多次出现复用相同 alignment。
-     */
-    private class RoleState {
-        private val roleMap = mutableMapOf<String, KaraokeAlignment>()
-        var lastAlignment = KaraokeAlignment.Start
-            private set
-
-        fun getOrAssign(roleName: String): KaraokeAlignment {
-            return roleMap.getOrPut(roleName) {
-                val alignment = lastAlignment
-                lastAlignment = if (lastAlignment == KaraokeAlignment.Start)
-                    KaraokeAlignment.End else KaraokeAlignment.Start
-                alignment
-            }
-        }
-    }
-
-    /**
-     * 检测当前行的对唱角色。
-     *
-     * 独立标记行：整行仅包含 "name：" 或 "name:" → 作为角色指示器显示，不剔除
-     * 内嵌标记：  行首有 "name：lyrics" → 剔除 name：前缀，仅显示歌词部分
-     */
-    private fun determineRole(
-        syllables: List<KaraokeSyllable>,
-        roleState: RoleState
-    ): Pair<KaraokeAlignment, List<KaraokeSyllable>> {
-        if (syllables.isEmpty()) return Pair(KaraokeAlignment.Unspecified, syllables)
-
-        val rawText = syllables.joinToString("") { it.content }
-
-        val colonIdx = rawText.indexOfFirst { it == '：' || it == ':' }
-        if (colonIdx < 0) return Pair(roleState.lastAlignment, syllables)
-
-        val roleName = rawText.substring(0, colonIdx)
-        if (roleName.length > 15) return Pair(roleState.lastAlignment, syllables)
-
-        val alignment = roleState.getOrAssign(roleName)
-
-        if (colonIdx + 1 >= rawText.length) {
-            // 独立标记行 "mizuki：" → 完整保留
-            return Pair(alignment, syllables)
-        }
-
-        // 内嵌标记 "女：歌词" → 剔除角色前缀音节
-        val adjusted = stripRolePrefix(syllables, colonIdx + 1)
-        return Pair(alignment, adjusted)
-    }
-
-    /**
-     * 剔除内嵌角色标记的前缀音节。
-     * 冒号合并后，首个音节形如 "女：" —— 直接 drop，仅保留后续歌词音节。
-     */
-    private fun stripRolePrefix(
-        syllables: List<KaraokeSyllable>,
-        lyricsStartPos: Int
-    ): List<KaraokeSyllable> {
-        if (syllables.size <= 1) return syllables
-
-        val firstContent = syllables[0].content
-        if (firstContent.contains("：") || firstContent.contains(":")) {
-            return syllables.drop(1)
-        }
-
-        // 冒号未被合并的极端情况：手动跳过前两个音节（名称 + 冒号）
-        val secondContent = syllables.getOrNull(1)?.content ?: ""
-        if (secondContent == "：" || secondContent == ":") {
-            return syllables.drop(2)
-        }
-
-        return syllables
     }
 }
