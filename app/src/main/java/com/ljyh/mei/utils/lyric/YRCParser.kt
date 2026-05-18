@@ -8,11 +8,10 @@ import com.mocharealm.accompanist.lyrics.core.parser.ILyricsParser
 
 object YRCParser : ILyricsParser {
 
-    private val YRC_LINE_REGEX = Regex("""^\[(\d+),(\d+)\](.*)$""")
+    private val YRC_LINE_REGEX = Regex("""^\[(\d+),(\d+)\](.*)${'$'}""")
     private val YRC_SYLLABLE_REGEX = Regex("""\((\d+),(\d+),\d+\)""")
-    private val BG_LINE_REGEX = Regex("""^\[bg:(.*)\](.*)$""")
+    private val BG_LINE_REGEX = Regex("""^\[bg:(.*)\](.*)${'$'}""")
     private val translationLineRegex = "\\[(\\d{2}):(\\d{2})[.:](\\d{2,3})\\].*".toRegex()
-    private val JSON_VERBATIM_REGEX = Regex("""^\s*\{.*"t"\s*:\s*\d+.*"c"\s*:\s*\[.*""".trimMargin())
 
     fun parse(yrcLyrics: String, translationLrc: String?): SyncedLyrics {
         val karaokeLines = parseInternal(yrcLyrics.lineSequence())
@@ -23,12 +22,9 @@ object YRCParser : ILyricsParser {
     override fun canParse(content: String): Boolean {
         val lineTimeRegex = """^\[\d+,\d+\]""".toRegex()
         val wordTimeRegex = """\(\d+,\d+,\d+\).{1}""".toRegex()
-
         return content.lineSequence()
             .map { it.trim() }
-            .any { line ->
-                lineTimeRegex.containsMatchIn(line) && wordTimeRegex.containsMatchIn(line)
-            }
+            .any { line -> lineTimeRegex.containsMatchIn(line) && wordTimeRegex.containsMatchIn(line) }
     }
 
     override fun parse(lines: List<String>): SyncedLyrics {
@@ -37,7 +33,6 @@ object YRCParser : ILyricsParser {
             YRC_LINE_REGEX.matches(trimmed) || trimmed.startsWith("[bg:")
         }
         val translationLines = lines.filter { translationLineRegex.matches(it.trim()) }
-
         return parse(
             yrcLyrics = mainLyricsLines.joinToString("\n"),
             translationLrc = translationLines.joinToString("\n").ifBlank { null }
@@ -60,7 +55,6 @@ object YRCParser : ILyricsParser {
             val contentPart = match.groupValues[3]
             val rawSyllables = parseSyllablesAndMergeColons(contentPart, lineStart)
 
-            // 对唱识别交给 AiLyricProcessor.applyDuetAlignment 统一处理
             if (rawSyllables.isNotEmpty()) {
                 resultLines.add(
                     KaraokeLine.MainKaraokeLine(
@@ -77,112 +71,52 @@ object YRCParser : ILyricsParser {
         return resultLines
     }
 
-    private data class JsonVerbatimChar(val tx: String, val li: String?, val or: String?)
-
-    private fun parseJsonVerbatimLine(line: String): KaraokeLine.MainKaraokeLine? {
-        val trimmed = line.trim()
-        if (!trimmed.startsWith("{")) return null
-
-        val tMatch = Regex(""""t"\s*:\s*(\d+)""").find(trimmed) ?: return null
-        val lineStart = tMatch.groupValues[1].toIntOrNull() ?: return null
-
-        val txPattern = Regex(""""tx"\s*:\s*"((?:[^"\\]|\\.)*)"""")
-        val chars = mutableListOf<KaraokeSyllable>()
-        var offset = 0
-
-        for (m in txPattern.findAll(trimmed)) {
-            val tx = m.groupValues[1]
-                .replace("\\n", "\n")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\")
-            if (tx.isEmpty()) continue
-            for (ch in tx) {
-                chars.add(KaraokeSyllable(ch.toString(), lineStart + offset, lineStart + offset + 1))
-                offset++
-            }
-        }
-
-        if (chars.isEmpty()) return null
-
-        val text = chars.joinToString("") { it.content }
-        val duration = offset.toLong().coerceAtLeast(1)
-
-        return KaraokeLine.MainKaraokeLine(
-            syllables = chars,
-            translation = null,
-            alignment = KaraokeAlignment.Unspecified,
-            start = lineStart,
-            end = lineStart + duration.toInt()
-        )
-    }
-
     private fun parseBackgroundLine(line: String): KaraokeLine.AccompanimentKaraokeLine? {
         val m = BG_LINE_REGEX.find(line) ?: return null
-        // 兼容可能存在的后续内容
         val content = m.groupValues[1] + m.groupValues[2]
         val syllables = parseSyllablesAndMergeColons(content, 0)
         if (syllables.isEmpty()) return null
-
         return KaraokeLine.AccompanimentKaraokeLine(
-            syllables = syllables,
-            translation = null,
-            alignment = KaraokeAlignment.Unspecified,
-            start = syllables.first().start,
-            end = syllables.last().end
+            syllables = syllables, translation = null, alignment = KaraokeAlignment.Unspecified,
+            start = syllables.first().start, end = syllables.last().end
         )
     }
 
-    /**
-     * 参考Kugou的解析方式：先提取Token，再将冒号合并至前一个音节
-     */
     private fun parseSyllablesAndMergeColons(
-        content: String,
-        baseStartTime: Int
+        content: String, baseStartTime: Int
     ): List<KaraokeSyllable> {
         data class TempToken(val offset: Int, val duration: Int, val text: String)
-
         val tokens = mutableListOf<TempToken>()
         var cursor = 0
-
         while (cursor < content.length) {
             val m = YRC_SYLLABLE_REGEX.find(content, cursor) ?: break
             val offset = m.groupValues[1].toIntOrNull() ?: 0
             val duration = m.groupValues[2].toIntOrNull() ?: 0
-
             val textStart = m.range.last + 1
             val nextMatch = YRC_SYLLABLE_REGEX.find(content, textStart)
             val textEnd = nextMatch?.range?.first ?: content.length
-
             if (textStart > textEnd) break
-
             val text = content.substring(textStart, textEnd)
             tokens.add(TempToken(offset, duration, text))
             cursor = textEnd
         }
-
         if (tokens.isEmpty()) return emptyList()
-
         val useAbsoluteTime = tokens.isNotEmpty() && tokens[0].offset >= baseStartTime
-
-        val mergedSyllables = mutableListOf<KaraokeSyllable>()
+        val merged = mutableListOf<KaraokeSyllable>()
         var i = 0
         while (i < tokens.size) {
-            val current = tokens[i]
-            val next = tokens.getOrNull(i + 1)
-
-            val startTime = if (useAbsoluteTime) current.offset else baseStartTime + current.offset
-
-            if (next != null && (next.text == "：" || next.text == ":")) {
-                val nextStartTime = if (useAbsoluteTime) next.offset else baseStartTime + next.offset
-                val e = nextStartTime + next.duration
-                mergedSyllables.add(KaraokeSyllable(current.text + next.text, startTime, e))
+            val cur = tokens[i]
+            val nxt = tokens.getOrNull(i + 1)
+            val st = if (useAbsoluteTime) cur.offset else baseStartTime + cur.offset
+            if (nxt != null && (nxt.text == "：" || nxt.text == ":")) {
+                val ns = if (useAbsoluteTime) nxt.offset else baseStartTime + nxt.offset
+                merged.add(KaraokeSyllable(cur.text + nxt.text, st, ns + nxt.duration))
                 i += 2
             } else {
-                val e = startTime + current.duration
-                mergedSyllables.add(KaraokeSyllable(current.text, startTime, e))
+                merged.add(KaraokeSyllable(cur.text, st, st + cur.duration))
                 i++
             }
         }
-        return mergedSyllables
+        return merged
     }
 }

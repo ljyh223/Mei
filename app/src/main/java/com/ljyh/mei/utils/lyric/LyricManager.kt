@@ -72,8 +72,6 @@ class LyricManager @Inject constructor(
     private var fetchJob: Job? = null
     /** 标记 QQ 源是否已终结（Success 或 Error），防止同一首歌多个 combine 触发重复处理 */
     private var qqFinalized = false
-    /** 标记当前显示的歌词是否来自 AI/缓存，防止被非AI merge 结果覆盖 */
-    private var currentDisplayIsAI = false
 
     // ==================== 歌词缓存 ====================
 
@@ -126,7 +124,6 @@ class LyricManager @Inject constructor(
         currentSongId = songId
         fetchJob?.cancel()
         qqFinalized = false
-        currentDisplayIsAI = false
 
         // 重置所有源状态
         netLyricResult.value = Resource.Loading
@@ -143,7 +140,6 @@ class LyricManager @Inject constructor(
         if (!forceReload) {
             lyricCache.remove(songId)?.let { cached ->
                 _lyricData.value = cached
-                if (cached.source == LyricSource.AIEnhanced) currentDisplayIsAI = true
             } ?: run {
                 val dbCached = runBlocking(Dispatchers.IO) {
                     cachedLyricRepository.get(songId).firstOrNull()
@@ -152,14 +148,12 @@ class LyricManager @Inject constructor(
                     val data = dbCached.toLyricData()
                     _lyricData.value = data
                     lyricCache[songId] = data
-                    if (dbCached.aiProcessed) currentDisplayIsAI = true
                 }
             }
         }
 
-        // 已有 AI 缓存 → 跳过网络拉取，避免切歌时源闪烁
-        if (!currentDisplayIsAI) {
-            fetchJob = scope.launch {
+        // 网络拉取
+        fetchJob = scope.launch {
                 delay(100)
 
                 launch { fetchNetEaseLyric(songId) }
@@ -186,7 +180,6 @@ class LyricManager @Inject constructor(
                     qqLyricResult.value = Resource.Error("QQ timed out")
                 }
             }
-        }
     }
 
     /**
@@ -457,13 +450,11 @@ class LyricManager @Inject constructor(
         if (currentSongId != songIdAtStart) return
         if (songIdAtStart == null) return
 
-        // 守卫：当前已显示 AI 增强结果时，非 AI 合并不覆盖 UI（避免切歌源闪烁），但 AI 处理块照常执行
+        // 守卫：同一源不重复更新 UI
         val currentSource = _lyricData.value.source
-        val skipUiUpdate = (currentDisplayIsAI && mergeResult.lyricData.source != LyricSource.AIEnhanced)
-            || (currentSource != LyricSource.Loading && currentSource != LyricSource.Empty
-                && mergeResult.lyricData.source == currentSource)
+        val skipUiUpdate = currentSource != LyricSource.Loading && currentSource != LyricSource.Empty
+            && mergeResult.lyricData.source == currentSource
         val cacheContent = mergeResult.cacheContent
-        currentDisplayIsAI = false
 
         if (!skipUiUpdate) {
             _lyricData.value = mergeResult.lyricData
@@ -487,12 +478,9 @@ class LyricManager @Inject constructor(
             }
         }
 
-        // ===== AI 处理（仅在 QQ 源终结后触发一次） =====
-        val metadata = getCurrentMetadata()
-        if (metadata == null) return
-
+        // ===== 本地对唱合并（仅在 QQ 源终结后触发一次） =====
         val amSuccess = am as? Resource.Success
-        if (amSuccess != null) return  // AM 优先，不触发 AI
+        if (amSuccess != null) return
 
         val netSuccess = net as? Resource.Success
         val qqSuccess = qq as? Resource.Success
@@ -501,52 +489,38 @@ class LyricManager @Inject constructor(
         if (qqTerminal && !qqFinalized) {
             qqFinalized = true
 
-            when {
-                // 双源就绪 → AI 综合合并
-                netSuccess != null && qqSuccess != null -> {
-                    scope.launch {
-                        val netease = LyricSourceData.NetEase(netSuccess.data)
-                        val qqParsed = parseQQSource(qqSuccess)
-                        if (qqParsed == null) {
-                            Timber.tag(TAG).d("qq音乐响应，但是无歌词，单一源")
-                            triggerSingleEnhance(mergeResult.lyricData, mergeResult.sources, metadata, songIdAtStart, cacheContent, mergeResult.cacheTranslation)
-                            return@launch
-                        }
-                        Timber.tag(TAG).d("双源，智能处理")
-                        val merged = aiProcessor.smartMerge(netease, qqParsed, metadata)
-                        if (merged != null && currentSongId == songIdAtStart) {
-                            _lyricData.value = merged
-                            lyricCache[songIdAtStart] = merged
-                            // 逐字歌词 cacheContent 可能为 null，用逐行兜底持久化
-                            val persistContent = cacheContent
-                                ?: (netease.lyric.lrc.lyric.takeIf { it.isNotBlank() }
-                                    ?: qqParsed.lrcContent?.takeIf { it.isNotBlank() }
-                                    ?: qqParsed.lyric.lyric.takeIf { it.isNotBlank() })
-                            if (persistContent != null) {
-                                cachedLyricRepository.insert(
-                                    CachedLyric(
-                                        songId = songIdAtStart,
-                                        content = persistContent,
-                                        translation = mergeResult.cacheTranslation,
-                                        isVerbatim = merged.isVerbatim,
-                                        isPureMusic = merged.isPureMusic,
-                                        sourceName = merged.source.name,
-                                        parserType = if (merged.isVerbatim) "LRC" else mergeResult.cacheParserType,
-                                        aiProcessed = true,
-                                        updatedAt = System.currentTimeMillis()
-                                    )
-                                )
-                            }
-                        } else {
-                            Timber.tag(TAG).d("双源AI失败，降级单源处理")
-                            triggerSingleEnhance(mergeResult.lyricData, mergeResult.sources, metadata, songIdAtStart, cacheContent, mergeResult.cacheTranslation)
-                        }
+            // 仅在有对唱标记的网易云歌词时触发本地对唱解析
+            val neteaseData = netSuccess?.data
+            val lrcText = neteaseData?.lrc?.lyric?.takeIf { it.isNotBlank() }
+            val hasDuet = lrcText != null && aiProcessor.isDuetLikely(lrcText)
+            Timber.tag(TAG).d("duet check: hasLrc=${lrcText != null}, isDuet=$hasDuet, lrcLen=${lrcText?.length}")
+            if (hasDuet) {
+                val netease = LyricSourceData.NetEase(neteaseData)
+                val qqParsed = qqSuccess?.let { parseQQSource(it) }
+                val dueted = if (qqParsed != null) {
+                    aiProcessor.mergeWithDuet(netease, qqParsed)
+                } else {
+                    aiProcessor.singleDuet(netease)
+                }
+                if (dueted != null) {
+                    _lyricData.value = dueted
+                    lyricCache[songIdAtStart] = dueted
+                }
+            }
+
+            // AI 缓存失效：网络返回翻译 → 删除本地 AI 翻译缓存
+            val winnerHasTrans = when (mergeResult.lyricData.source) {
+                LyricSource.NetEaseCloudMusic -> (netSuccess?.data?.tlyric?.lyric?.isNotBlank() ?: false)
+                LyricSource.QQMusic -> (qqSuccess?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.trans?.isNotBlank() ?: false)
+                else -> false
+            }
+            if (winnerHasTrans) {
+                scope.launch {
+                    val cached = cachedLyricRepository.get(songIdAtStart).firstOrNull()
+                    if (cached != null && cached.aiProcessed) {
+                        cachedLyricRepository.delete(songIdAtStart)
                     }
                 }
-                // 仅网易云 → 单源 AI
-                netSuccess != null -> triggerSingleEnhance(mergeResult.lyricData, mergeResult.sources, metadata, songIdAtStart, cacheContent, mergeResult.cacheTranslation)
-                // 仅 QQ → 单源 AI
-                qqSuccess != null -> triggerSingleEnhance(mergeResult.lyricData, mergeResult.sources, metadata, songIdAtStart, cacheContent, mergeResult.cacheTranslation)
             }
         }
     }
@@ -578,57 +552,9 @@ class LyricManager @Inject constructor(
      * 检查触发条件后调用 [AiLyricProcessor.singleEnhance]。
      * 增强结果写入 _lyricData 和 Room。
      */
-    private suspend fun triggerSingleEnhance(
-        lyricData: LyricData,
-        sources: List<LyricSourceData>,
-        metadata: MediaMetadata,
-        songId: String,
-        cacheContent: String?,
-        cacheTranslation: String?
-    ) {
-        if (!aiProcessor.shouldEnhance(lyricData, sources)) return
-        scope.launch {
-            val enhanced = aiProcessor.singleEnhance(sources, metadata)
-            if (enhanced != null && currentSongId == songId) {
-                _lyricData.value = enhanced
-                lyricCache[songId] = enhanced
-                val persistContent = cacheContent
-                    ?: extractLineLrc(sources)
-                if (persistContent != null) {
-                    cachedLyricRepository.insert(
-                        CachedLyric(
-                            songId = songId,
-                            content = persistContent,
-                            translation = cacheTranslation,
-                            isVerbatim = enhanced.isVerbatim,
-                            isPureMusic = enhanced.isPureMusic,
-                            sourceName = enhanced.source.name,
-                            parserType = if (enhanced.isVerbatim) "LRC" else "LRC",
-                            aiProcessed = true,
-                            updatedAt = System.currentTimeMillis()
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    /** 当前加载的歌曲元数据，供 AI 处理时获取歌名/艺术家 */
     private var lastMetadata: MediaMetadata? = null
 
     private fun getCurrentMetadata(): MediaMetadata? = lastMetadata
-
-    /**
-     * 从 sources 列表中提取逐行 LRC 文本（用于持久化兜底）
-     */
-    private fun extractLineLrc(sources: List<LyricSourceData>): String? {
-        return when (val s = sources.firstOrNull()) {
-            is LyricSourceData.NetEase -> s.lyric.lrc.lyric.takeIf { it.isNotBlank() }
-            is LyricSourceData.QQMusic -> s.lrcContent?.takeIf { it.isNotBlank() }
-                ?: s.lyric.lyric.takeIf { it.isNotBlank() }
-            else -> null
-        }
-    }
 
     /**
      * 手动搜索 QQ 音乐（供选歌 sheet 使用）
@@ -665,6 +591,32 @@ class LyricManager @Inject constructor(
     /**
      * 取消当前所有拉取和预加载任务
      */
+    fun manualTranslate() {
+        val metadata = lastMetadata ?: return
+        val songId = metadata.id.toString()
+        scope.launch {
+            val sources = mutableListOf<LyricSourceData>()
+            (netLyricResult.value as? Resource.Success)?.data?.let { sources.add(LyricSourceData.NetEase(it)) }
+            (qqLyricResult.value as? Resource.Success)?.let { qqRes ->
+                parseQQSource(qqRes)?.let { sources.add(it) }
+            }
+            if (sources.isEmpty()) return@launch
+
+            val result = aiProcessor.manualTranslate(sources, metadata)
+            if (result != null && currentSongId == songId) {
+                _lyricData.value = result
+                lyricCache[songId] = result
+                val netLine = (sources.filterIsInstance<LyricSourceData.NetEase>().firstOrNull())
+                    ?.lyric?.lrc?.lyric?.takeIf { it.isNotBlank() }
+                if (netLine != null) {
+                    cachedLyricRepository.insert(
+                        CachedLyric(songId, netLine, null, false, false, result.source.name, "LRC", true, System.currentTimeMillis())
+                    )
+                }
+            }
+        }
+    }
+
     fun cancelAll() {
         fetchJob?.cancel()
         preloadJob?.cancel()

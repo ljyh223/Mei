@@ -143,6 +143,10 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun manualTranslate() {
+        lyricManager.manualTranslate()
+    }
+
     suspend fun getQQSongId(metadataId: Long): String? {
         return qqSongRepository.getQQSong(metadataId.toString()).firstOrNull()?.qid
     }
