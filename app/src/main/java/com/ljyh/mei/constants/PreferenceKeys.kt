@@ -65,11 +65,14 @@ val MeshSubdivisionKey = intPreferencesKey("meshSubdivision")
 val PlayerStyleKey = stringPreferencesKey("playerStyle")
 val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
 val PlaylistTrackTableHeaderKey = booleanPreferencesKey("playlistTrackTableHeader")
+val TabletAnimationStyleKey = stringPreferencesKey("tabletAnimationStyle")
 
 val AiTriggerModeKey = stringPreferencesKey("ai_trigger_mode")
 val AiBaseUrlKey = stringPreferencesKey("ai_base_url")
 val AiApiKeyKey = stringPreferencesKey("ai_api_key")
 val AiModelKey = stringPreferencesKey("ai_model")
+val DownloadPathKey = stringPreferencesKey("downloadPath")
+val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 val QqTimeoutKey = stringPreferencesKey("qq_timeout")
 
 enum class AiTriggerMode {
@@ -121,6 +124,22 @@ enum class MusicQuality(val text: String, val explanation:String) {
 }
 
 
+enum class DownloadQuality(val text: String, val label: String, val description: String) {
+    STANDARD("standard", "标准", "标准音质, 文件较小"),
+    EXHIGH("exhigh", "极高", "极高音质, 推荐"),
+    LOSSLESS("lossless", "无损", "CD级无损音质"),
+    HIRES("hires", "Hi-Res", "高解析度无损"),
+    JYMASTER("jymaster", "超清母带", "母带级音质");
+
+    fun toMusicQuality(): MusicQuality = when (this) {
+        STANDARD -> MusicQuality.STANDARD
+        EXHIGH -> MusicQuality.EXHIGH
+        LOSSLESS -> MusicQuality.LOSSLESS
+        HIRES -> MusicQuality.HIRES
+        JYMASTER -> MusicQuality.JYMASTER
+    }
+}
+
 enum class LyricTextSize(val text: Int) {
     Size18(18),
     Size20(20),
@@ -135,4 +154,11 @@ enum class LyricTextSize(val text: Int) {
 enum class ProgressBarStyle(val label: String) {
     WAVE("动态波浪"),       // 原来的波浪样式
     LINEAR("正常样式")   // 新写的直线样式
+}
+
+enum class TabletAnimationStyle(val label: String) {
+    SLIDE("水平滑动"),
+    CROSSFADE("渐变"),
+    ZOOM("缩放"),
+    FLIP_3D("3D翻转")
 }

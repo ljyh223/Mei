@@ -65,10 +65,8 @@ import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
-import com.ljyh.mei.di.HistoryDao
-import com.ljyh.mei.di.HistoryRepository
-import com.ljyh.mei.di.SongDao
-import com.ljyh.mei.di.SongRepository
+import com.ljyh.mei.di.repository.HistoryRepository
+import com.ljyh.mei.di.repository.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.CacheManager.getCacheDataSourceFactory

@@ -2,8 +2,8 @@ package com.ljyh.mei.ui.screen.about
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.di.CachedLyricRepository
-import com.ljyh.mei.di.QQSongRepository
+import com.ljyh.mei.di.repository.CachedLyricRepository
+import com.ljyh.mei.di.repository.QQSongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject

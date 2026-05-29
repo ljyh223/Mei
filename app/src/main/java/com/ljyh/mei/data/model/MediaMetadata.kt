@@ -222,6 +222,20 @@ val MediaItem.metadata: MediaMetadata?
     get() = localConfiguration?.tag as? MediaMetadata
 
 
+fun com.ljyh.mei.data.model.room.Song.toMediaMetadata(): MediaMetadata {
+    val songId = id.removePrefix("local_").removePrefix("-").let { sid ->
+        sid.toLongOrNull() ?: sid.hashCode().toLong().let { if (it < 0) -it else it }
+    }
+    return MediaMetadata(
+        id = songId,
+        title = title,
+        coverUrl = cover,
+        artists = listOf(MediaMetadata.Artist(id = artist.hashCode().toLong().let { if (it < 0) -it else it }, name = artist)),
+        duration = duration,
+        album = MediaMetadata.Album(id = album.hashCode().toLong().let { if (it < 0) -it else it }, title = album)
+    )
+}
+
 data class SongEntity(
     val id: Long,
     val title: String,

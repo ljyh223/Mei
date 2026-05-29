@@ -7,12 +7,15 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.ljyh.mei.AppContext
+import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.PlaylistDetail
+import com.ljyh.mei.data.model.Tracks
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
+import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
@@ -22,7 +25,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.di.LikeRepository
+import com.ljyh.mei.di.repository.LikeRepository
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +41,7 @@ class PlaylistViewModel @Inject constructor(
     private val repository: PlaylistRepository,
     private val userRepository: UserRepository,
     private val likeRepository: LikeRepository,
-    private val localPlaylistRepository: com.ljyh.mei.di.LocalPlaylistRepository,
+    private val localPlaylistRepository: com.ljyh.mei.di.repository.LocalPlaylistRepository,
     val apiService: ApiService
 ) : ViewModel() {
     val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
@@ -208,6 +211,12 @@ class PlaylistViewModel @Inject constructor(
             _deletePlaylist.value = repository.deletePlaylist(id)
         }
     }
+
+    suspend fun resolveSongUrls(ids: List<String>, quality: MusicQuality) =
+        repository.getSongUrlV1(ids, quality)
+
+    suspend fun getSongDetails(ids: List<String>): Tracks =
+        apiService.getSongDetail(GetSongDetails(c = ids.joinToString(",")))
 
 
 

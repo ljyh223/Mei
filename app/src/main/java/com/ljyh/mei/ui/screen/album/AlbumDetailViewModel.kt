@@ -2,13 +2,14 @@ package com.ljyh.mei.ui.screen.album
 
 import androidx.lifecycle.ViewModel
     import androidx.lifecycle.viewModelScope
+import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.data.model.AlbumDetail
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlaylistRepository
-import com.ljyh.mei.di.AlbumsRepository
+import com.ljyh.mei.di.repository.AlbumsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,5 +73,8 @@ class AlbumDetailViewModel @Inject constructor(
             albumsRepository.deleteArtistWithCleanup(id)
         }
     }
+
+    suspend fun resolveSongUrls(ids: List<String>, quality: MusicQuality) =
+        repository.getSongUrlV1(ids, quality)
 
 }

@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.core.net.toUri
 import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.network.api.ApiService // 假设你的API都在这
-import com.ljyh.mei.di.SongRepository // 假设你处理本地文件
+import com.ljyh.mei.di.repository.SongRepository // 假设你处理本地文件
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext

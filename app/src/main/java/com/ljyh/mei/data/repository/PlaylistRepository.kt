@@ -61,7 +61,7 @@ class PlaylistRepository(
             safeApiCall {
                 apiService.getSongUrlV1(
                     GetSongUrlV1(
-                        ids = ids.joinToString(","),
+                        ids = "[${ids.joinToString(",")}]",
                         level = quality.text
                     )
                 )

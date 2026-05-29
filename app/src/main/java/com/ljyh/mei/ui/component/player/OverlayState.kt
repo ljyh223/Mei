@@ -1,8 +1,6 @@
 package com.ljyh.mei.ui.component.player
 
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.qq.u.SearchResult
-import com.ljyh.mei.data.network.Resource
 
 sealed interface OverlayState {
     data object None : OverlayState
@@ -12,7 +10,6 @@ sealed interface OverlayState {
     data class AddToPlaylist(val mediaId: Long) : OverlayState
     data class MusicQualitySelection(val current: Int) : OverlayState
     data class QQMusicSelection(
-        val searchResult: Resource<SearchResult>,
         val mediaMetadata: MediaMetadata
     ): OverlayState
 

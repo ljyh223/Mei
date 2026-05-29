@@ -21,10 +21,10 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.di.LocalPlaylistRepository
-import com.ljyh.mei.di.ColorRepository
-import com.ljyh.mei.di.LikeRepository
-import com.ljyh.mei.di.QQSongRepository
+import com.ljyh.mei.di.repository.LocalPlaylistRepository
+import com.ljyh.mei.di.repository.ColorRepository
+import com.ljyh.mei.di.repository.LikeRepository
+import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.model.SortOrder

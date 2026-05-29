@@ -3,14 +3,17 @@ package com.ljyh.mei.data.model.room
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-
 @Entity(tableName = "playlist")
 data class Playlist(
     @PrimaryKey val id: String,
-    val title:String,
-    val cover:String,
-    val author:String,
+    val title: String,
+    val cover: String,
+    val author: String,
     val authorName: String,
     val authorAvatar: String,
-    val count:Int
+    val count: Int,
+    val type: PlaylistType = PlaylistType.NETEAST,
+    val description: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
 )

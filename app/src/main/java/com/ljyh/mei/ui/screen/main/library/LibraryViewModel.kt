@@ -12,8 +12,8 @@ import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.weapi.UserSubcount
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.di.AlbumsRepository
-import com.ljyh.mei.di.LocalPlaylistRepository
+import com.ljyh.mei.di.repository.AlbumsRepository
+import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

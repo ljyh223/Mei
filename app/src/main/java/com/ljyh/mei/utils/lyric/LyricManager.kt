@@ -11,8 +11,8 @@ import com.ljyh.mei.data.model.room.CachedLyric
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
-import com.ljyh.mei.di.CachedLyricRepository
-import com.ljyh.mei.di.QQSongRepository
+import com.ljyh.mei.di.repository.CachedLyricRepository
+import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
@@ -48,6 +48,7 @@ class LyricManager @Inject constructor(
     private val qqSongRepository: QQSongRepository,
     private val cachedLyricRepository: CachedLyricRepository,
     private val aiProcessor: AiLyricProcessor,
+    private val preloader: LyricPreloader,
     @ApplicationContext private val context: Context
 ) {
 
@@ -136,50 +137,58 @@ class LyricManager @Inject constructor(
 
         lastMetadata = metadata
 
-        // 缓存查找：内存 → Room
+        // 缓存查找：内存（同步）
         if (!forceReload) {
             lyricCache.remove(songId)?.let { cached ->
                 _lyricData.value = cached
-            } ?: run {
-                val dbCached = runBlocking(Dispatchers.IO) {
-                    cachedLyricRepository.get(songId).firstOrNull()
-                }
-                if (dbCached != null) {
-                    val data = dbCached.toLyricData()
-                    _lyricData.value = data
-                    lyricCache[songId] = data
-                }
             }
         }
 
         // 网络拉取
         fetchJob = scope.launch {
-                delay(100)
-
-                launch { fetchNetEaseLyric(songId) }
-                launch { fetchAMLLyric(songId) }
-
-                // QQ 音乐拉取（带超时控制）
-                val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
-                val qqTimeout = try {
-                    QqTimeout.valueOf(
-                        context.dataStore.data.first()[QqTimeoutKey] ?: QqTimeout.Sec8.name
-                    ).seconds
-                } catch (_: Exception) {
-                    8
+            // Room 缓存查找（异步，不阻塞主线程）
+            if (!forceReload && currentSongId == songId) {
+                val dbCached = withContext(Dispatchers.IO) {
+                    cachedLyricRepository.get(songId).firstOrNull()
                 }
-                try {
-                    withTimeout(qqTimeout * 1000L) {
-                        if (localSong != null) {
-                            fetchQQLyric(localSong)
-                        } else {
-                            autoSearchAndPickBest(metadata)
-                        }
-                    }
-                } catch (_: TimeoutCancellationException) {
-                    qqLyricResult.value = Resource.Error("QQ timed out")
+                if (dbCached != null && currentSongId == songId) {
+                    val data = dbCached.toLyricData()
+                    _lyricData.value = data
+                    lyricCache[songId] = data
                 }
             }
+
+            delay(100)
+
+            launch { fetchNetEaseLyric(songId) }
+            launch { fetchAMLLyric(songId) }
+
+            // QQ 音乐拉取（带超时控制）
+            val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
+            val qqTimeout = try {
+                QqTimeout.valueOf(
+                    context.dataStore.data.first()[QqTimeoutKey] ?: QqTimeout.Sec8.name
+                ).seconds
+            } catch (_: Exception) {
+                8
+            }
+            try {
+                withTimeout(qqTimeout * 1000L) {
+                    if (localSong != null) {
+                        fetchQQLyric(localSong)
+                    } else {
+                        autoSearchAndPickBest(metadata)
+                    }
+                }
+            } catch (_: TimeoutCancellationException) {
+                qqLyricResult.value = Resource.Error("QQ timed out")
+            }
+
+            // 预加载已有 QQSong 时，补充填充搜索结果供 Sheet 使用
+            if (localSong != null) {
+                launch { searchAndMatchBest(metadata) }
+            }
+        }
     }
 
     /**
@@ -403,13 +412,12 @@ class LyricManager @Inject constructor(
     ) {
         val songIdAtStart = currentSongId
 
-        // 守卫：三方 Loading 且已有缓存歌词（非 Loading/Empty），不覆盖
-        if (net is Resource.Loading && qq is Resource.Loading && am is Resource.Loading) {
-            val source = _lyricData.value.source
-            if (source != LyricSource.Loading && source != LyricSource.Empty) {
-                return
-            }
+        // 守卫：三源全 Loading 且已有有效歌词 → 不覆盖
+        val hasValidLyrics = _lyricData.value.let {
+            it.source != LyricSource.Loading && it.source != LyricSource.Empty
+                && it.lyricLine.lines.isNotEmpty()
         }
+        if (hasValidLyrics && net is Resource.Loading && qq is Resource.Loading && am is Resource.Loading) return
 
         data class MergeResult(
             val lyricData: LyricData,
@@ -449,6 +457,10 @@ class LyricManager @Inject constructor(
         // 歌曲已切换，放弃旧结果
         if (currentSongId != songIdAtStart) return
         if (songIdAtStart == null) return
+
+        // 守卫：不拿空结果覆盖已有有效歌词（竞态保护）
+        if (_lyricData.value.lyricLine.lines.isNotEmpty()
+            && mergeResult.lyricData.lyricLine.lines.isEmpty()) return
 
         // 守卫：同一源不重复更新 UI
         val currentSource = _lyricData.value.source
@@ -562,8 +574,8 @@ class LyricManager @Inject constructor(
      * 结果写入 [_qqSearchResult]，UI 层通过 [qqSearchResult] 观察。
      */
     fun searchQQSong(keyword: String) {
+        _qqSearchResult.value = Resource.Loading
         scope.launch {
-            _qqSearchResult.value = Resource.Loading
             _qqSearchResult.value = repository.searchNew(keyword)
         }
     }
@@ -629,7 +641,7 @@ class LyricManager @Inject constructor(
      * 预加载指定歌曲的歌词到内存缓存
      *
      * 由 [PlayerStateContainer] 在切歌时调用，提前拉取下一首。
-     * 效果：下一首命中缓存 → 歌词瞬间显示。
+     * 委托给 [LyricPreloader] 执行，不干扰当前歌词展示。
      */
     fun preloadLyrics(metadata: MediaMetadata) {
         val songId = metadata.id.toString()
@@ -637,109 +649,11 @@ class LyricManager @Inject constructor(
 
         preloadJob?.cancel()
         preloadJob = scope.launch {
-            val result = fetchAndMergeLyrics(metadata, songId)
+            val result = preloader.preload(metadata)
             if (result != null) {
                 lyricCache[songId] = result
                 trimCache()
             }
-        }
-    }
-
-    /**
-     * 独立拉取三源并合并（预加载专用）
-     *
-     * 与主流程的 [mergeAndApply] 不同，此方法使用独立的 fetch*Result
-     * 变体（不更新共享 StateFlow），因此不会干扰当前歌词展示。
-     */
-    private suspend fun fetchAndMergeLyrics(metadata: MediaMetadata, songId: String): LyricData? {
-        val (netResult, amResult, qqResult) = coroutineScope {
-            val netDeferred = async { fetchNetEaseLyricResult(songId) }
-            val amDeferred = async { fetchAMLLyricResult(songId) }
-            val qqDeferred = async { fetchQQLyricResult(metadata) }
-            Triple(netDeferred.await(), amDeferred.await(), qqDeferred.await())
-        }
-
-        return withContext(Dispatchers.IO) {
-            val isPureMusic = (netResult as? Resource.Success)?.data?.pureMusic == true
-            val sources = mutableListOf<LyricSourceData>()
-
-            (amResult as? Resource.Success)?.let { sources.add(LyricSourceData.AM(it.data)) }
-            (netResult as? Resource.Success)?.data?.let { sources.add(LyricSourceData.NetEase(it)) }
-            (qqResult as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let { data ->
-                try {
-                    val isQRC = data.qrcT != 0
-                    val decoded = data.copy(
-                        lyric = QRCUtils.decodeLyric(data.lyric),
-                        trans = QRCUtils.decodeLyric(data.trans, true),
-                        roma = QRCUtils.decodeLyric(data.roma)
-                    )
-                    sources.add(LyricSourceData.QQMusic(decoded, isQRC, null))
-                } catch (e: Exception) {
-                    Timber.e(e, "QRC decoding failed in preload")
-                }
-            }
-
-            mergeLyrics(sources, isPureMusic)
-        }
-    }
-
-    /** 预加载用——网易云歌词拉取（返回结果，不更新共享 StateFlow） */
-    private suspend fun fetchNetEaseLyricResult(id: String): Resource<Lyric> {
-        return try {
-            repository.getLyricV1(id)
-        } catch (e: Exception) {
-            Timber.e(e, "NetEase preload fetch error")
-            Resource.Error("NetEase fetch failed")
-        }
-    }
-
-    /** 预加载用——AM 歌词拉取（返回结果，不更新共享 StateFlow） */
-    private suspend fun fetchAMLLyricResult(id: String): Resource<String> {
-        return try {
-            repository.getAMLLyric(id)
-        } catch (e: Exception) {
-            Timber.e(e, "AML preload fetch error")
-            Resource.Error("AML fetch failed")
-        }
-    }
-
-    /** 预加载用——QQ 歌词拉取（含搜索匹配，返回结果，不更新共享 StateFlow） */
-    private suspend fun fetchQQLyricResult(metadata: MediaMetadata): Resource<LyricResult> {
-        val songId = metadata.id.toString()
-
-        val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
-        if (localSong != null) {
-            return try {
-                repository.getLyricNew(
-                    localSong.title, localSong.album, localSong.artist,
-                    localSong.duration, localSong.qid.toLong()
-                )
-            } catch (e: Exception) {
-                Timber.e(e, "QQ preload fetch error")
-                Resource.Error("QQ fetch failed")
-            }
-        }
-
-        val best = searchAndMatchBest(metadata) ?: return Resource.Error("No QQ match found")
-
-        val qqSong = QQSong(
-            id = songId,
-            qid = best.id.toString(),
-            title = best.title,
-            artist = best.singer.joinToString(",") { it.name },
-            album = best.album.title,
-            duration = best.interval
-        )
-        qqSongRepository.insertSong(qqSong)
-
-        return try {
-            repository.getLyricNew(
-                qqSong.title, qqSong.album, qqSong.artist,
-                qqSong.duration, qqSong.qid.toLong()
-            )
-        } catch (e: Exception) {
-            Timber.e(e, "QQ preload fetch error after search")
-            Resource.Error("QQ fetch failed")
         }
     }
 
