@@ -259,8 +259,17 @@ class LocalMusicScanner(
     private fun copyToTemp(uri: android.net.Uri): File? {
         val tempFile = File(context.cacheDir, "scan_${System.nanoTime()}")
         return try {
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                tempFile.outputStream().use { output -> input.copyTo(output) }
+            val fd = context.contentResolver.openFileDescriptor(uri, "r")
+            if (fd != null) {
+                fd.use { pfd ->
+                    pfd.fileDescriptor.let { fileDesc ->
+                        java.io.FileInputStream(fileDesc).use { input ->
+                            tempFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                    }
+                }
             }
             if (tempFile.exists() && tempFile.length() > 0) tempFile else null
         } catch (e: Exception) {
