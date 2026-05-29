@@ -149,8 +149,8 @@ object DownloadManager {
     fun isSongDownloaded(songId: String): Boolean {
         val db = AppDatabase.getDatabase(AppContext.instance)
         val song = kotlinx.coroutines.runBlocking { db.songDao().getSong(songId).first() }
-        val path = song?.path
-        return path != null && File(path).exists()
+        val path = song?.path ?: return false
+        return File(path).exists()
     }
 
     suspend fun isSongDownloading(songId: String): Boolean {

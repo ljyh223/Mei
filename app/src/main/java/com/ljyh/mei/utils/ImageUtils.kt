@@ -20,16 +20,17 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 
 fun String.smallImage(): String {
-
+    if (this.startsWith("/")) return this
     return "$this?param=100y100"
 }
 
 fun String.middleImage(): String {
+    if (this.startsWith("/")) return this
     return "$this?param=300y300"
 }
 
 fun String.largeImage(): String {
-
+    if (this.startsWith("/")) return this
     return "$this?param=500y500"
 }
 

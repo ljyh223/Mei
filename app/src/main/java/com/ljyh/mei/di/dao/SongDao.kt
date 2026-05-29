@@ -35,6 +35,9 @@ interface SongDao {
     @Query("SELECT * FROM song WHERE artist = :artist AND path IS NOT NULL AND path != ''")
     fun getLocalSongsByArtist(artist: String): Flow<List<Song>>
 
+    @Query("SELECT * FROM song WHERE artist LIKE '%' || :artist || '%' AND path IS NOT NULL AND path != ''")
+    fun getLocalSongsByArtistContains(artist: String): Flow<List<Song>>
+
     @Query("SELECT * FROM song WHERE album = :album AND path IS NOT NULL AND path != ''")
     fun getLocalSongsByAlbum(album: String): Flow<List<Song>>
 
@@ -43,6 +46,38 @@ interface SongDao {
 
     @Query("UPDATE song SET path = :path, updatedAt = :time WHERE id = :id")
     suspend fun updatePath(id: String, path: String?, time: Long = System.currentTimeMillis())
+
+    @Query("""
+        UPDATE song SET 
+            title = :title, 
+            artist = :artist, 
+            album = :album, 
+            cover = :cover, 
+            duration = :duration, 
+            path = :path, 
+            fileHash = :fileHash, 
+            fileSize = :fileSize, 
+            fileFormat = :fileFormat, 
+            bitrate = :bitrate, 
+            sampleRate = :sampleRate, 
+            updatedAt = :time 
+        WHERE id = :id
+    """)
+    suspend fun updateMetadata(
+        id: String,
+        title: String,
+        artist: String,
+        album: String,
+        cover: String,
+        duration: Long,
+        path: String?,
+        fileHash: String?,
+        fileSize: Long,
+        fileFormat: String?,
+        bitrate: Int?,
+        sampleRate: Int?,
+        time: Long = System.currentTimeMillis()
+    )
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(song: Song)

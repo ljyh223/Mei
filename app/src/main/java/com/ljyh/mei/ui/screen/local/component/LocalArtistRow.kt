@@ -35,7 +35,9 @@ internal fun ArtistRow(artists: List<String>, songs: List<Song>, onArtistClick: 
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(artists) { artist ->
-            val artistSongs = songs.filter { it.artist == artist }
+            val artistSongs = songs.filter { song ->
+                song.artist.contains(artist, ignoreCase = true)
+            }
             val cover = artistSongs.firstOrNull { it.cover.isNotEmpty() }?.cover
             ArtistCard(artist, "${artistSongs.size} 首", cover, onClick = { onArtistClick(artist) })
         }

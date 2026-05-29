@@ -1,7 +1,6 @@
 package com.ljyh.mei.ui.screen.local
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,8 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,9 +43,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.PlaylistType
-import com.ljyh.mei.data.model.room.ScanFolder
-import com.ljyh.mei.data.model.room.Song
-import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
@@ -52,12 +51,22 @@ import com.ljyh.mei.ui.screen.local.component.AlbumRow
 import com.ljyh.mei.ui.screen.local.component.ArtistRow
 import com.ljyh.mei.ui.screen.local.component.EmptyLocalMusic
 import com.ljyh.mei.ui.screen.local.component.FolderItem
-import com.ljyh.mei.ui.screen.local.component.LibraryStats
 import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.ManagementCards
 import com.ljyh.mei.ui.screen.local.component.ScanProgressCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
+import com.ljyh.mei.utils.PermissionsUtils
 import kotlinx.coroutines.launch
+
+private val ARTIST_SEPARATORS = Regex("[、/;|&]")
+
+private fun splitArtists(artist: String): List<String> {
+    if (artist.isBlank()) return emptyList()
+    return artist.split(ARTIST_SEPARATORS)
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .ifEmpty { listOf(artist.trim()) }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,24 +79,24 @@ fun LocalMusicScreen(
     val db = AppDatabase.getDatabase(context)
 
     val localSongs by db.songDao().getLocalSongs().collectAsState(initial = emptyList())
-    val artists by db.songDao().getLocalArtists().collectAsState(initial = emptyList())
     val albums by db.songDao().getLocalAlbums().collectAsState(initial = emptyList())
     val scanFolders by db.scanFolderDao().getAll().collectAsState(initial = emptyList())
     val scanState by viewModel.scanState.collectAsState()
+    val hasPermission by viewModel.hasPermission.collectAsState()
+
+    val artists = remember(localSongs) {
+        localSongs.flatMap { song ->
+            splitArtists(song.artist)
+        }.distinct().sorted()
+    }
 
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    val folderPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
-    ) { uri ->
-        if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            viewModel.scanFolderUri(uri)
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) {
+            viewModel.scanAllMusic()
         }
     }
 
@@ -104,6 +113,18 @@ fun LocalMusicScreen(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             tint = MaterialTheme.colorScheme.onSurface,
                             contentDescription = null
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { viewModel.scanAllMusic() },
+                        enabled = !scanState.isScanning && hasPermission
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Refresh,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            contentDescription = "重新扫描"
                         )
                     }
                 },
@@ -125,20 +146,33 @@ fun LocalMusicScreen(
                 ScanProgressCard(scanState)
             }
 
-            if (localSongs.isEmpty() && !scanState.isScanning) {
+            if (!hasPermission) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    EmptyLocalMusic(onAddFolder = { folderPickerLauncher.launch(null) })
+                    EmptyLocalMusic(
+                        onAddFolder = {
+                            val activity = context as? Activity
+                            if (activity != null) {
+                                PermissionsUtils.checkAndRequestFilesPermissions(activity)
+                                viewModel.checkPermission()
+                            }
+                        }
+                    )
+                }
+            } else if (localSongs.isEmpty() && !scanState.isScanning) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyLocalMusic(onAddFolder = { viewModel.scanAllMusic() })
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    item { LibraryStats(localSongs) }
-
                     item { SectionHeader("歌曲", "${localSongs.size} 首") }
                     item {
                         ManagementCard(
@@ -203,7 +237,7 @@ fun LocalMusicScreen(
                     item { SectionHeader("管理", null) }
                     item {
                         ManagementCards(
-                            onAddFolder = { folderPickerLauncher.launch(null) },
+                            onAddFolder = { viewModel.scanAllMusic() },
                             onCreatePlaylist = { showCreatePlaylistDialog = true }
                         )
                     }

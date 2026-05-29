@@ -15,6 +15,9 @@ interface ScanFolderDao {
     @Query("SELECT * FROM scan_folder")
     fun getAll(): Flow<List<ScanFolder>>
 
+    @Query("SELECT * FROM scan_folder WHERE path = :path LIMIT 1")
+    suspend fun getByPath(path: String): ScanFolder?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(folder: ScanFolder)
 

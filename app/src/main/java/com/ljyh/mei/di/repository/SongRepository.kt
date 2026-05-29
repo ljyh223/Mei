@@ -20,6 +20,23 @@ class SongRepository @Inject constructor(private val songDao: SongDao) {
     fun getLocalSongsByAlbum(album: String): Flow<List<Song>> = songDao.getLocalSongsByAlbum(album)
     fun getLosslessSongs(): Flow<List<Song>> = songDao.getLosslessSongs()
     suspend fun updatePath(id: String, path: String?) = songDao.updatePath(id, path)
+
+    suspend fun updateMetadata(
+        id: String,
+        title: String,
+        artist: String,
+        album: String,
+        cover: String,
+        duration: Long,
+        path: String?,
+        fileHash: String?,
+        fileSize: Long,
+        fileFormat: String?,
+        bitrate: Int?,
+        sampleRate: Int?
+    ) = songDao.updateMetadata(
+        id, title, artist, album, cover, duration, path, fileHash, fileSize, fileFormat, bitrate, sampleRate
+    )
     suspend fun insertSong(song: Song) = songDao.insertSong(song)
     suspend fun insertSongs(songs: List<Song>) = songDao.insertSongs(songs)
     suspend fun deleteById(id: String) = songDao.deleteById(id)

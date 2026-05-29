@@ -1,8 +1,6 @@
 package com.ljyh.mei.utils
 
 import android.content.Context
-import android.net.Uri
-import androidx.documentfile.provider.DocumentFile
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.PlaylistSongCrossRef
 import com.ljyh.mei.data.model.room.PlaylistType
@@ -41,58 +39,50 @@ class LocalMusicScanner(
         )
     }
 
-    suspend fun scanFolder(
-        uri: Uri,
-        label: String? = null,
-        isDefault: Boolean = false,
+    suspend fun scanAllMusic(
+        rootPath: String,
         onProgress: (ScanProgress) -> Unit = {}
     ) = withContext(Dispatchers.IO) {
-        Timber.d("scanFolder started: $uri")
-        val decodedPath = uri.toString().let {
-            try { java.net.URLDecoder.decode(it, "UTF-8") } catch (_: Exception) { it }
-        }
-
-        val folder = ScanFolder(
-            path = decodedPath,
-            label = label,
-            isDefault = isDefault,
-            enabled = true,
-            lastScanAt = System.currentTimeMillis()
-        )
-        scanFolderRepository.insert(folder)
-
-        val documentFile = DocumentFile.fromTreeUri(context, uri)
-        if (documentFile == null) {
-            Timber.e("DocumentFile.fromTreeUri returned null for $uri")
+        val rootDir = File(rootPath)
+        if (!rootDir.exists() || !rootDir.isDirectory) {
+            Timber.w("scanAllMusic: rootPath does not exist: $rootPath")
             return@withContext
         }
 
-        if (!documentFile.exists()) {
-            Timber.e("DocumentFile does not exist: $uri")
-            return@withContext
+        Timber.d("scanAllMusic started: $rootPath")
+
+        val subDirs = rootDir.listFiles { f -> f.isDirectory } ?: emptyArray()
+        val rootFiles = collectAudioFiles(rootDir, recursive = false)
+
+        val totalDirs = subDirs.size + if (rootFiles.isNotEmpty()) 1 else 0
+        var processedDirs = 0
+
+        if (rootFiles.isNotEmpty()) {
+            onProgress(ScanProgress(0, totalDirs, "扫描根目录...", true))
+            val songIds = insertOrUpdateSongs(rootFiles, rootPath, onProgress)
+            createPlaylistFromScan(rootPath, rootFiles.size, songIds)
+            registerScanFolder(rootPath, "本地音乐", isDefault = false, songCount = rootFiles.size)
+            processedDirs++
         }
 
-        val allFiles = mutableListOf<AudioFileInfo>()
-        scanDirectory(documentFile, allFiles)
+        for (subDir in subDirs) {
+            if (!subDir.exists() || !subDir.isDirectory) continue
+            onProgress(ScanProgress(processedDirs, totalDirs, subDir.name, true))
 
-        Timber.d("scanFolder found ${allFiles.size} files")
+            val files = collectAudioFiles(subDir, recursive = true)
+            if (files.isEmpty()) {
+                processedDirs++
+                continue
+            }
 
-        onProgress(ScanProgress(current = 0, total = allFiles.size, currentFile = "正在处理...", isScanning = true))
-
-        val insertedSongIds = insertSongs(allFiles, folder.path, onProgress)
-        createPlaylistFromScan(folder.path, allFiles.size, insertedSongIds)
-
-        val updatedFolder = scanFolderRepository.getAll().firstOrNull()
-            ?.find { it.path == decodedPath }
-        if (updatedFolder != null) {
-            scanFolderRepository.updateScanResult(
-                updatedFolder.id,
-                System.currentTimeMillis(),
-                allFiles.size
-            )
+            val songIds = insertOrUpdateSongs(files, subDir.absolutePath, onProgress)
+            createPlaylistFromScan(subDir.absolutePath, files.size, songIds)
+            registerScanFolder(subDir.absolutePath, subDir.name, isDefault = false, songCount = files.size)
+            processedDirs++
         }
 
-        Timber.d("Scan complete: ${allFiles.size} files found")
+        onProgress(ScanProgress(totalDirs, totalDirs, "扫描完成", false))
+        Timber.d("scanAllMusic complete: $processedDirs directories processed")
     }
 
     suspend fun scanFilePaths(
@@ -104,78 +94,40 @@ class LocalMusicScanner(
         val rootDir = File(rootPath)
         if (!rootDir.exists() || !rootDir.isDirectory) return@withContext
 
-        val folder = ScanFolder(
-            path = rootPath,
-            label = label,
-            isDefault = isDefault,
-            enabled = true,
-            lastScanAt = System.currentTimeMillis()
-        )
-        scanFolderRepository.insert(folder)
+        Timber.d("scanFilePaths started: $rootPath")
 
-        val allFiles = mutableListOf<File>()
-        collectFiles(rootDir, allFiles)
+        val files = collectAudioFiles(rootDir, recursive = true)
+        registerScanFolder(rootPath, label, isDefault, files.size)
 
-        val insertedSongIds = insertFileSongs(allFiles, folder.path, onProgress)
-        createPlaylistFromScan(rootPath, allFiles.size, insertedSongIds)
+        val insertedSongIds = insertOrUpdateSongs(files, rootPath, onProgress)
+        createPlaylistFromScan(rootPath, files.size, insertedSongIds)
 
-        val updatedFolder = scanFolderRepository.getAll().firstOrNull()
-            ?.find { it.path == rootPath }
-        if (updatedFolder != null) {
-            scanFolderRepository.updateScanResult(
-                updatedFolder.id,
-                System.currentTimeMillis(),
-                allFiles.size
-            )
-        }
-
-        Timber.d("Scan complete: ${allFiles.size} files found")
+        Timber.d("scanFilePaths complete: ${files.size} files found")
     }
 
-    private suspend fun insertSongs(
-        files: List<AudioFileInfo>,
-        folderPath: String,
-        onProgress: (ScanProgress) -> Unit = {}
-    ): List<String> {
-        val songsToInsert = mutableListOf<Song>()
-        val songIds = mutableListOf<String>()
-        val existingSongs = try { songRepository.getLocalSongs().firstOrNull() } catch (_: Exception) { null }
-            ?.associateBy { it.path } ?: emptyMap()
-
-        files.forEachIndexed { index, info ->
-            onProgress(
-                ScanProgress(
-                    current = index + 1, total = files.size,
-                    currentFile = info.path.substringAfterLast('/'),
-                    isScanning = true
-                )
+    private suspend fun registerScanFolder(
+        path: String,
+        label: String?,
+        isDefault: Boolean,
+        songCount: Int
+    ) {
+        val existing = scanFolderRepository.getByPath(path)
+        if (existing != null) {
+            scanFolderRepository.updateScanResult(existing.id, System.currentTimeMillis(), songCount)
+        } else {
+            val folder = ScanFolder(
+                path = path,
+                label = label ?: path.substringAfterLast('/').ifEmpty { path },
+                isDefault = isDefault,
+                enabled = true,
+                lastScanAt = System.currentTimeMillis(),
+                songCount = songCount
             )
-            val existing = existingSongs[info.path]
-            if (existing != null) {
-                songRepository.updatePath(existing.id, existing.path)
-                songIds.add(existing.id)
-            } else {
-                val song = try {
-                    createSongFromUri(info, folderPath)
-                } catch (e: Exception) {
-                    Timber.e(e, "createSongFromUri failed: ${info.path}")
-                    null
-                }
-                if (song != null) {
-                    songsToInsert.add(song)
-                    songIds.add(song.id)
-                }
-            }
+            scanFolderRepository.insert(folder)
         }
-
-        if (songsToInsert.isNotEmpty()) {
-            songRepository.insertSongs(songsToInsert)
-        }
-
-        return songIds
     }
 
-    private suspend fun insertFileSongs(
+    private suspend fun insertOrUpdateSongs(
         files: List<File>,
         folderPath: String,
         onProgress: (ScanProgress) -> Unit
@@ -197,7 +149,23 @@ class LocalMusicScanner(
 
             val existing = existingSongs[file.absolutePath]
             if (existing != null) {
-                songRepository.updatePath(existing.id, existing.path)
+                val updatedSong = createSongFromFile(file, folderPath)
+                if (updatedSong != null) {
+                    songRepository.updateMetadata(
+                        id = existing.id,
+                        title = updatedSong.title,
+                        artist = updatedSong.artist,
+                        album = updatedSong.album,
+                        cover = updatedSong.cover,
+                        duration = updatedSong.duration,
+                        path = updatedSong.path,
+                        fileHash = updatedSong.fileHash,
+                        fileSize = updatedSong.fileSize,
+                        fileFormat = updatedSong.fileFormat,
+                        bitrate = updatedSong.bitrate,
+                        sampleRate = updatedSong.sampleRate
+                    )
+                }
                 songIds.add(existing.id)
             } else {
                 val song = createSongFromFile(file, folderPath)
@@ -215,38 +183,12 @@ class LocalMusicScanner(
         return songIds
     }
 
-    private fun scanDirectory(
-        dir: DocumentFile,
-        results: MutableList<AudioFileInfo>
-    ) {
-        val files = dir.listFiles()
-        for (doc in files) {
-            if (doc.isDirectory) {
-                scanDirectory(doc, results)
-            } else if (doc.isFile) {
-                val name = doc.name ?: ""
-                val ext = name.substringAfterLast('.', "").lowercase()
-                if (ext in AUDIO_EXTENSIONS) {
-                    results.add(
-                        AudioFileInfo(
-                            path = doc.uri.toString().let {
-                                try { java.net.URLDecoder.decode(it, "UTF-8") }
-                                catch (_: Exception) { it }
-                            },
-                            size = doc.length(),
-                            uri = doc.uri
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    private fun collectFiles(dir: File, results: MutableList<File>) {
-        val files = dir.listFiles() ?: return
+    private fun collectAudioFiles(dir: File, recursive: Boolean): List<File> {
+        val results = mutableListOf<File>()
+        val files = dir.listFiles() ?: return results
         for (file in files) {
-            if (file.isDirectory) {
-                collectFiles(file, results)
+            if (file.isDirectory && recursive) {
+                results.addAll(collectAudioFiles(file, recursive = true))
             } else if (file.isFile) {
                 val ext = file.extension.lowercase()
                 if (ext in AUDIO_EXTENSIONS) {
@@ -254,92 +196,7 @@ class LocalMusicScanner(
                 }
             }
         }
-    }
-
-    private fun copyToTemp(uri: android.net.Uri): File? {
-        val tempFile = File(context.cacheDir, "scan_${System.nanoTime()}")
-        return try {
-            val fd = context.contentResolver.openFileDescriptor(uri, "r")
-            if (fd != null) {
-                fd.use { pfd ->
-                    pfd.fileDescriptor.let { fileDesc ->
-                        java.io.FileInputStream(fileDesc).use { input ->
-                            tempFile.outputStream().use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-                    }
-                }
-            }
-            if (tempFile.exists() && tempFile.length() > 0) tempFile else null
-        } catch (e: Exception) {
-            Timber.e(e, "copyToTemp failed for $uri")
-            tempFile.delete()
-            null
-        }
-    }
-
-    private fun createSongFromUri(info: AudioFileInfo, folderPath: String): Song? {
-        val uri = info.uri ?: return null
-        val (coverPath, tagData) = if (info.path.startsWith("content://")) {
-            val tempFile = copyToTemp(uri)
-            if (tempFile == null) {
-                Timber.w("copyToTemp returned null for ${info.path}")
-                "" to TagResult("", "", "", 0, null, null)
-            } else {
-                val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(tempFile) } catch (e: Exception) {
-                    Timber.e(e, "AudioFileIO.read failed for temp file")
-                    null
-                }
-                val result = try { readTagsFromAudioFile(audioFile) } catch (e: Exception) {
-                    Timber.e(e, "readTagsFromAudioFile failed")
-                    TagResult("", "", "", 0, null, null)
-                }
-                val cover = try { extractCoverArt(audioFile, computeHash(info)) } catch (e: Exception) {
-                    Timber.e(e, "extractCoverArt failed")
-                    ""
-                }
-                tempFile.delete()
-                cover to result
-            }
-        } else {
-            val file = File(info.path)
-            val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(file) } catch (e: Exception) {
-                Timber.e(e, "AudioFileIO.read failed for ${info.path}")
-                null
-            }
-            val result = try { readTagsFromAudioFile(audioFile) } catch (e: Exception) {
-                Timber.e(e, "readTagsFromAudioFile failed")
-                TagResult("", "", "", 0, null, null)
-            }
-            val cover = try { extractCoverArt(audioFile, computeHash(info)) } catch (e: Exception) {
-                Timber.e(e, "extractCoverArt failed")
-                ""
-            }
-            cover to result
-        }
-        val fileName = info.path.substringAfterLast('/')
-        val ext = info.path.substringAfterLast('.').lowercase()
-        val hash = computeHash(info)
-
-        return Song(
-            id = generateSongId(info.path),
-            title = tagData.title.ifBlank { fileName.substringBeforeLast('.') },
-            artist = tagData.artist.ifBlank { "未知艺术家" },
-            album = tagData.album.ifBlank { "未知专辑" },
-            cover = coverPath,
-            duration = tagData.duration,
-            path = info.path,
-            sourceType = SourceType.LOCAL,
-            fileHash = hash,
-            fileSize = info.size,
-            fileFormat = ext,
-            bitrate = tagData.bitrate,
-            sampleRate = tagData.sampleRate,
-            folderPath = folderPath,
-            addedAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
+        return results
     }
 
     private fun createSongFromFile(file: File, folderPath: String): Song? {
@@ -377,17 +234,6 @@ class LocalMusicScanner(
         )
     }
 
-    private fun computeHash(info: AudioFileInfo): String {
-        return try {
-            val input = "${info.path}_${info.size}"
-            val digest = MessageDigest.getInstance("MD5")
-            val hash = digest.digest(input.toByteArray())
-            hash.joinToString("") { "%02x".format(it) }
-        } catch (e: Exception) {
-            ""
-        }
-    }
-
     private fun computeHashForFile(file: File): String {
         return try {
             val input = "${file.absolutePath}_${file.length()}"
@@ -403,20 +249,9 @@ class LocalMusicScanner(
         return "local_${path.hashCode().toUInt()}"
     }
 
-    data class AudioFileInfo(
-        val path: String,
-        val size: Long,
-        val uri: Uri? = null
-    )
-
     private suspend fun createPlaylistFromScan(folderPath: String, songCount: Int, songIds: List<String>) {
         val playlistId = "folder_${folderPath.hashCode().toUInt()}"
-
-        val folderName = if (folderPath.startsWith("content://")) {
-            "扫描文件夹"
-        } else {
-            folderPath.substringAfterLast('/').ifEmpty { folderPath }
-        }
+        val folderName = folderPath.substringAfterLast('/').ifEmpty { folderPath }
 
         val firstSong = songIds.firstOrNull()?.let { songRepository.getSong(it).firstOrNull() }
 
