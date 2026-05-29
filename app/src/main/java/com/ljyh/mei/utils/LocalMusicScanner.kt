@@ -47,6 +47,7 @@ class LocalMusicScanner(
         isDefault: Boolean = false,
         onProgress: (ScanProgress) -> Unit = {}
     ) = withContext(Dispatchers.IO) {
+        Timber.d("scanFolder started: $uri")
         val decodedPath = uri.toString().let {
             try { java.net.URLDecoder.decode(it, "UTF-8") } catch (_: Exception) { it }
         }
@@ -61,12 +62,24 @@ class LocalMusicScanner(
         scanFolderRepository.insert(folder)
 
         val documentFile = DocumentFile.fromTreeUri(context, uri)
-            ?: return@withContext
+        if (documentFile == null) {
+            Timber.e("DocumentFile.fromTreeUri returned null for $uri")
+            return@withContext
+        }
+
+        if (!documentFile.exists()) {
+            Timber.e("DocumentFile does not exist: $uri")
+            return@withContext
+        }
 
         val allFiles = mutableListOf<AudioFileInfo>()
         scanDirectory(documentFile, allFiles)
 
-        val insertedSongIds = insertSongs(allFiles, folder.path)
+        Timber.d("scanFolder found ${allFiles.size} files")
+
+        onProgress(ScanProgress(current = 0, total = allFiles.size, currentFile = "正在处理...", isScanning = true))
+
+        val insertedSongIds = insertSongs(allFiles, folder.path, onProgress)
         createPlaylistFromScan(folder.path, allFiles.size, insertedSongIds)
 
         val updatedFolder = scanFolderRepository.getAll().firstOrNull()
@@ -121,20 +134,33 @@ class LocalMusicScanner(
 
     private suspend fun insertSongs(
         files: List<AudioFileInfo>,
-        folderPath: String
+        folderPath: String,
+        onProgress: (ScanProgress) -> Unit = {}
     ): List<String> {
         val songsToInsert = mutableListOf<Song>()
         val songIds = mutableListOf<String>()
-        val existingSongs = songRepository.getLocalSongs().firstOrNull()
+        val existingSongs = try { songRepository.getLocalSongs().firstOrNull() } catch (_: Exception) { null }
             ?.associateBy { it.path } ?: emptyMap()
 
-        for (info in files) {
+        files.forEachIndexed { index, info ->
+            onProgress(
+                ScanProgress(
+                    current = index + 1, total = files.size,
+                    currentFile = info.path.substringAfterLast('/'),
+                    isScanning = true
+                )
+            )
             val existing = existingSongs[info.path]
             if (existing != null) {
                 songRepository.updatePath(existing.id, existing.path)
                 songIds.add(existing.id)
             } else {
-                val song = createSongFromUri(info, folderPath)
+                val song = try {
+                    createSongFromUri(info, folderPath)
+                } catch (e: Exception) {
+                    Timber.e(e, "createSongFromUri failed: ${info.path}")
+                    null
+                }
                 if (song != null) {
                     songsToInsert.add(song)
                     songIds.add(song.id)
@@ -230,22 +256,59 @@ class LocalMusicScanner(
         }
     }
 
+    private fun copyToTemp(uri: android.net.Uri): File? {
+        val tempFile = File(context.cacheDir, "scan_${System.nanoTime()}")
+        return try {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                tempFile.outputStream().use { output -> input.copyTo(output) }
+            }
+            if (tempFile.exists() && tempFile.length() > 0) tempFile else null
+        } catch (e: Exception) {
+            Timber.e(e, "copyToTemp failed for $uri")
+            tempFile.delete()
+            null
+        }
+    }
+
     private fun createSongFromUri(info: AudioFileInfo, folderPath: String): Song? {
         val uri = info.uri ?: return null
-        val tags = if (info.path.startsWith("content://")) {
+        val (coverPath, tagData) = if (info.path.startsWith("content://")) {
             val tempFile = copyToTemp(uri)
-            val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(tempFile) } catch (_: Exception) { null }
-            val result = try { readTagsFromAudioFile(audioFile) } catch (_: Exception) { TagResult("", "", "", 0, null, null) }
-            val coverPath = extractCoverArt(audioFile, computeHash(info))
-            tempFile.delete()
-            coverPath to result
+            if (tempFile == null) {
+                Timber.w("copyToTemp returned null for ${info.path}")
+                "" to TagResult("", "", "", 0, null, null)
+            } else {
+                val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(tempFile) } catch (e: Exception) {
+                    Timber.e(e, "AudioFileIO.read failed for temp file")
+                    null
+                }
+                val result = try { readTagsFromAudioFile(audioFile) } catch (e: Exception) {
+                    Timber.e(e, "readTagsFromAudioFile failed")
+                    TagResult("", "", "", 0, null, null)
+                }
+                val cover = try { extractCoverArt(audioFile, computeHash(info)) } catch (e: Exception) {
+                    Timber.e(e, "extractCoverArt failed")
+                    ""
+                }
+                tempFile.delete()
+                cover to result
+            }
         } else {
             val file = File(info.path)
-            val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(file) } catch (_: Exception) { null }
-            val result = try { readTagsFromAudioFile(audioFile) } catch (_: Exception) { TagResult("", "", "", 0, null, null) }
-            extractCoverArt(audioFile, computeHash(info)) to result
+            val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(file) } catch (e: Exception) {
+                Timber.e(e, "AudioFileIO.read failed for ${info.path}")
+                null
+            }
+            val result = try { readTagsFromAudioFile(audioFile) } catch (e: Exception) {
+                Timber.e(e, "readTagsFromAudioFile failed")
+                TagResult("", "", "", 0, null, null)
+            }
+            val cover = try { extractCoverArt(audioFile, computeHash(info)) } catch (e: Exception) {
+                Timber.e(e, "extractCoverArt failed")
+                ""
+            }
+            cover to result
         }
-        val (coverPath, tagData) = tags
         val fileName = info.path.substringAfterLast('/')
         val ext = info.path.substringAfterLast('.').lowercase()
         val hash = computeHash(info)
@@ -374,14 +437,6 @@ class LocalMusicScanner(
             )
         }
         crossRefRepository.insertAll(crossRefs)
-    }
-
-    private fun copyToTemp(uri: android.net.Uri): File {
-        val tempFile = File(context.cacheDir, "scan_${System.currentTimeMillis()}")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            tempFile.outputStream().use { output -> input.copyTo(output) }
-        }
-        return tempFile
     }
 
     private fun readTagsFromAudioFile(audioFile: org.jaudiotagger.audio.AudioFile?): TagResult {
