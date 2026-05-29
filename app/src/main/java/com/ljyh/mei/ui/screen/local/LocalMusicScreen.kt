@@ -168,7 +168,14 @@ fun LocalMusicScreen(
                     if (scanFolders.isNotEmpty()) {
                         item { SectionHeader("文件夹", "${scanFolders.filter { it.enabled }.size} 个文件夹") }
                         items(scanFolders, key = { it.id }) { folder ->
-                            FolderItem(folder)
+                            FolderItem(
+                                folder = folder,
+                                onClick = {
+                                    Screen.LocalSongList.navigate(navController) {
+                                        addPath("folder"); addPath(folder.path)
+                                    }
+                                }
+                            )
                         }
                     }
 

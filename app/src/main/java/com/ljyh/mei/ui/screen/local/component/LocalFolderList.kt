@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.local.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,9 +45,10 @@ internal fun SectionHeader(title: String, subtitle: String?) {
 }
 
 @Composable
-internal fun FolderItem(folder: ScanFolder) {
+internal fun FolderItem(folder: ScanFolder, onClick: () -> Unit = {}) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
         shape = RoundedCornerShape(10.dp)
     ) {

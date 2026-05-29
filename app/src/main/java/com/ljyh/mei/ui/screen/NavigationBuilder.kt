@@ -98,6 +98,7 @@ fun NavGraphBuilder.navigationBuilder(
             title = when (type) {
                 "artist" -> name
                 "album" -> name
+                "folder" -> name.substringAfterLast('/').ifEmpty { name.substringAfterLast(":") }
                 else -> "全部歌曲"
             },
             scrollBehavior = scrollBehavior

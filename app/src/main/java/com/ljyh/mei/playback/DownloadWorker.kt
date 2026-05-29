@@ -171,6 +171,10 @@ class DownloadWorker(
         val statusText = if (failedCount > 0) "完成 $completedCount, 失败 $failedCount" else "全部下载完成"
         showNotification(statusText, 100, ongoing = false)
 
+        if (completedCount > 0) {
+            triggerIncrementalScan(downloadPath)
+        }
+
         return Result.success()
     }
 
@@ -259,6 +263,29 @@ class DownloadWorker(
             NotificationManagerCompat.from(applicationContext).notify(NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
             Timber.w(e, "Notification permission not granted")
+        }
+    }
+    private fun triggerIncrementalScan(downloadPath: String) {
+        try {
+            val db = AppDatabase.getDatabase(applicationContext)
+            val folder = kotlinx.coroutines.runBlocking {
+                db.scanFolderDao().getAll().first().find { it.path == downloadPath }
+            }
+            if (folder != null) {
+                val scanner = com.ljyh.mei.utils.LocalMusicScanner(
+                    applicationContext,
+                    com.ljyh.mei.di.repository.SongRepository(db.songDao()),
+                    com.ljyh.mei.di.repository.ScanFolderRepository(db.scanFolderDao()),
+                    com.ljyh.mei.di.repository.LocalPlaylistRepository(db.playlistDao()),
+                    com.ljyh.mei.di.repository.PlaylistSongCrossRefRepository(db.playlistSongCrossRefDao())
+                )
+                kotlinx.coroutines.runBlocking {
+                    scanner.scanFilePaths(downloadPath)
+                }
+                Timber.d("Incremental scan completed for $downloadPath")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Incremental scan failed")
         }
     }
 }

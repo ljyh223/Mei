@@ -9,6 +9,7 @@ import com.google.gson.Gson
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.data.model.room.DownloadTask
+import com.ljyh.mei.data.model.room.ScanFolder
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.DownloadWorker
 import com.ljyh.mei.playback.SongDownloadInfo
@@ -49,6 +50,8 @@ object DownloadManager {
 
         withContext(Dispatchers.IO) {
             val db = AppDatabase.getDatabase(context)
+            ensureDefaultScanFolder(db, downloadPath)
+
             val uniqueWorkName = WORK_NAME_PREFIX + playlistId.ifEmpty { System.currentTimeMillis().toString() }
 
             val tasks = songs.map { info ->
@@ -152,5 +155,23 @@ object DownloadManager {
         val db = AppDatabase.getDatabase(AppContext.instance)
         val task = db.downloadDao().getBySongId(songId)
         return task?.status == DownloadStatus.DOWNLOADING || task?.status == DownloadStatus.PENDING
+    }
+
+    private suspend fun ensureDefaultScanFolder(db: AppDatabase, downloadPath: String) {
+        val allFolders = db.scanFolderDao().getAll().first()
+        val defaultFolderName = downloadPath.substringAfterLast('/').ifEmpty { downloadPath }
+        val existing = allFolders.find { it.path == downloadPath && it.isDefault }
+        if (existing == null) {
+            db.scanFolderDao().insert(
+                ScanFolder(
+                    path = downloadPath,
+                    label = defaultFolderName,
+                    isDefault = true,
+                    enabled = true,
+                    songCount = 0
+                )
+            )
+            Timber.tag("DownloadManager").d("Auto-registered default ScanFolder: $downloadPath")
+        }
     }
 }
