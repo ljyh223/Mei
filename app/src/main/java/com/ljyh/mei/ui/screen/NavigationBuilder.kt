@@ -91,7 +91,8 @@ fun NavGraphBuilder.navigationBuilder(
         )
     ) {
         val type = it.arguments?.getString("type") ?: "all"
-        val name = it.arguments?.getString("name") ?: ""
+        val rawName = it.arguments?.getString("name") ?: ""
+        val name = try { java.net.URLDecoder.decode(rawName, "UTF-8") } catch (_: Exception) { rawName }
         LocalSongListScreen(
             filterType = type,
             filterValue = name,

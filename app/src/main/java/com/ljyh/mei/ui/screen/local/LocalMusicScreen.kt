@@ -147,7 +147,7 @@ fun LocalMusicScreen(
                             Icons.Rounded.MusicNote,
                             onClick = {
                                 Screen.LocalSongList.navigate(navController) {
-                                    addPath("all"); addPath("all")
+                                    addPath("all"); addPath(java.net.URLEncoder.encode("all", "UTF-8"))
                                 }
                             }
                         )
@@ -161,7 +161,7 @@ fun LocalMusicScreen(
                                 songs = localSongs,
                                 onArtistClick = { name ->
                                     Screen.LocalSongList.navigate(navController) {
-                                        addPath("artist"); addPath(name)
+                                        addPath("artist"); addPath(java.net.URLEncoder.encode(name, "UTF-8"))
                                     }
                                 }
                             )
@@ -176,7 +176,7 @@ fun LocalMusicScreen(
                                 songs = localSongs,
                                 onAlbumClick = { name ->
                                     Screen.LocalSongList.navigate(navController) {
-                                        addPath("album"); addPath(name)
+                                        addPath("album"); addPath(java.net.URLEncoder.encode(name, "UTF-8"))
                                     }
                                 }
                             )
@@ -193,7 +193,7 @@ fun LocalMusicScreen(
                                 coverUrl = coverUrl,
                                 onClick = {
                                     Screen.LocalSongList.navigate(navController) {
-                                        addPath("folder"); addPath(folder.path)
+                                        addPath("folder"); addPath(java.net.URLEncoder.encode(folder.path, "UTF-8"))
                                     }
                                 }
                             )

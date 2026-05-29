@@ -48,8 +48,12 @@ class LocalMusicScanner(
         isDefault: Boolean = false,
         onProgress: (ScanProgress) -> Unit = {}
     ) = withContext(Dispatchers.IO) {
+        val decodedPath = uri.toString().let {
+            try { java.net.URLDecoder.decode(it, "UTF-8") } catch (_: Exception) { it }
+        }
+
         val folder = ScanFolder(
-            path = uri.toString(),
+            path = decodedPath,
             label = label,
             isDefault = isDefault,
             enabled = true,
@@ -67,7 +71,7 @@ class LocalMusicScanner(
         createPlaylistFromScan(folder.path, allFiles.size, insertedSongIds)
 
         val updatedFolder = scanFolderRepository.getAll().firstOrNull()
-            ?.find { it.path == uri.toString() }
+            ?.find { it.path == decodedPath }
         if (updatedFolder != null) {
             scanFolderRepository.updateScanResult(
                 updatedFolder.id,
@@ -200,7 +204,10 @@ class LocalMusicScanner(
                 if (ext in AUDIO_EXTENSIONS) {
                     results.add(
                         AudioFileInfo(
-                            path = doc.uri.toString(),
+                            path = doc.uri.toString().let {
+                                try { java.net.URLDecoder.decode(it, "UTF-8") }
+                                catch (_: Exception) { it }
+                            },
                             size = doc.length(),
                             uri = doc.uri
                         )
