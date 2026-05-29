@@ -14,6 +14,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.compose.ui.platform.LocalContext
+import com.ljyh.mei.di.AppDatabase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import com.ljyh.mei.ui.screen.about.AboutScreen
 import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
 import com.ljyh.mei.ui.screen.history.HistoryScreen
@@ -91,17 +95,46 @@ fun NavGraphBuilder.navigationBuilder(
         )
     ) {
         val type = it.arguments?.getString("type") ?: "all"
-        val rawName = it.arguments?.getString("name") ?: ""
-        val name = try { java.net.URLDecoder.decode(rawName, "UTF-8") } catch (_: Exception) { rawName }
+        val name = it.arguments?.getString("name") ?: ""
+        val context = LocalContext.current
+
+        val filterValue: String
+        val title: String
+
+        when (type) {
+            "folder_id" -> {
+                val folderId = name.toLongOrNull()
+                val folder = if (folderId != null) {
+                    runBlocking { AppDatabase.getDatabase(context).scanFolderDao().getAll().first().find { f -> f.id == folderId } }
+                } else null
+                filterValue = folder?.path ?: name
+                title = filterValue.substringAfterLast('/').ifEmpty { filterValue.substringAfterLast(":") }
+            }
+            "folder" -> {
+                filterValue = name
+                title = filterValue.substringAfterLast('/').ifEmpty { filterValue.substringAfterLast(":") }
+            }
+            "artist" -> {
+                filterValue = name
+                title = name
+            }
+            "album" -> {
+                filterValue = name
+                title = name
+            }
+            else -> {
+                filterValue = name
+                title = "全部歌曲"
+            }
+        }
+
         LocalSongListScreen(
-            filterType = type,
-            filterValue = name,
-            title = when (type) {
-                "artist" -> name
-                "album" -> name
-                "folder" -> name.substringAfterLast('/').ifEmpty { name.substringAfterLast(":") }
-                else -> "全部歌曲"
+            filterType = when (type) {
+                "folder_id", "folder" -> "folder"
+                else -> type
             },
+            filterValue = filterValue,
+            title = title,
             scrollBehavior = scrollBehavior
         )
     }

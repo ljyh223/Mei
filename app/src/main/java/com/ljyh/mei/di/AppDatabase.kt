@@ -37,7 +37,7 @@ import com.ljyh.mei.di.dao.SongDao
         PlaybackHistory::class, AlbumEntity::class, ArtistEntity::class, AlbumArtistCrossRef::class,
         CachedLyric::class, DownloadTask::class, PlaylistSongCrossRef::class, ScanFolder::class
     ],
-    version = 11
+    version = 12
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun colorDao(): ColorDao
@@ -107,6 +107,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Clean up URL-encoded data from broken SAF scanner
+                db.execSQL("DELETE FROM scan_folder")
+                db.execSQL("DELETE FROM playlist_song_cross_ref WHERE playlistId LIKE 'folder_%'")
+                db.execSQL("DELETE FROM playlist WHERE type = 'FOLDER'")
+                db.execSQL("DELETE FROM song WHERE sourceType = 'LOCAL'")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -116,7 +126,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "app_database"
-                ).addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                ).addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                     .build()
                     .also { INSTANCE = it }
             }
