@@ -140,23 +140,26 @@ fun AlbumDetailScreen(
             val songIds = tracks.map { it.id.toString() }
             val result = viewModel.resolveSongUrls(songIds, downloadQuality.toMusicQuality())
             val urlMap = if (result is Resource.Success) {
-                result.data.data.associate { it.id.toString() to it.url }
+                result.data.data.associate { it.id.toString() to (it.url to it.encodeType) }
             } else {
                 emptyMap()
             }
 
-            val downloadInfos = tracks.map { track ->
-                val url = urlMap[track.id.toString()]
-                SongDownloadInfo(
-                    songId = track.id.toString(),
-                    url = url,
-                    songTitle = track.title,
-                    songArtist = track.artists.joinToString(", ") { it.name },
-                    songAlbum = track.album.title,
-                    songCover = track.coverUrl,
-                    duration = track.duration
-                )
-            }.filter { it.url != null }
+            val downloadInfos = tracks.mapNotNull { track ->
+                val (url, encodeType) = urlMap[track.id.toString()] ?: return@mapNotNull null
+                if (url != null) {
+                    SongDownloadInfo(
+                        songId = track.id.toString(),
+                        url = url,
+                        songTitle = track.title,
+                        songArtist = track.artists.joinToString(", ") { it.name },
+                        songAlbum = track.album.title,
+                        songCover = track.coverUrl,
+                        duration = track.duration,
+                        fileType = encodeType
+                    )
+                } else null
+            }
 
             if (downloadInfos.isEmpty()) {
                 Toast.makeText(context, "无法获取歌曲链接，请稍后重试", Toast.LENGTH_SHORT).show()

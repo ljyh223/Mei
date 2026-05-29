@@ -59,7 +59,9 @@ object DownloadManager {
                     songId = info.songId,
                     url = info.url ?: "",
                     fileName = "",
-                    fileType = info.url?.substringBeforeLast("?")?.substringAfterLast(".") ?: "",
+                    fileType = info.fileType.ifBlank {
+                        info.url?.substringBeforeLast("?")?.substringAfterLast(".") ?: ""
+                    },
                     status = DownloadStatus.PENDING,
                     progress = 0,
                     songTitle = info.songTitle,

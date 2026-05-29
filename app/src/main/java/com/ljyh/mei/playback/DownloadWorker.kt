@@ -122,7 +122,9 @@ class DownloadWorker(
 
             updateTask(db, songId, DownloadStatus.DOWNLOADING, 0)
 
-            val suffix = task.url.substringBeforeLast("?").substringAfterLast(".")
+            val suffix = task.fileType.ifBlank {
+                task.url.substringBeforeLast("?").substringAfterLast(".")
+            }
             if (suffix.isBlank()) {
                 failedCount++
                 updateTask(db, songId, DownloadStatus.FAILED, 0)
@@ -298,5 +300,6 @@ data class SongDownloadInfo(
     val songAlbum: String,
     val songCover: String,
     val duration: Long,
+    val fileType: String = "",
     val lyric: String = ""
 )

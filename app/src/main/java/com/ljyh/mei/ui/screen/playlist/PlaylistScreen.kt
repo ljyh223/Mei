@@ -191,13 +191,13 @@ fun PlaylistScreen(
             val songIds = allTracks.map { it.id.toString() }
             val result = viewModel.resolveSongUrls(songIds, downloadQuality.toMusicQuality())
             val urlMap = if (result is Resource.Success) {
-                result.data.data.associate { it.id.toString() to it.url }
+                result.data.data.associate { it.id.toString() to (it.url to it.encodeType) }
             } else {
                 emptyMap()
             }
 
             val downloadInfos = allTracks.mapNotNull { track ->
-                val url = urlMap[track.id.toString()]
+                val (url, encodeType) = urlMap[track.id.toString()] ?: return@mapNotNull null
                 if (url != null) {
                     SongDownloadInfo(
                         songId = track.id.toString(),
@@ -206,7 +206,8 @@ fun PlaylistScreen(
                         songArtist = track.artists.joinToString(", ") { it.name },
                         songAlbum = track.album.title,
                         songCover = track.coverUrl,
-                        duration = track.duration
+                        duration = track.duration,
+                        fileType = encodeType
                     )
                 } else null
             }
