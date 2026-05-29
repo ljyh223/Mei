@@ -1,7 +1,6 @@
 package com.ljyh.mei.di
 
 import android.content.Context
-import androidx.room.Room
 import com.google.gson.Gson
 import com.ljyh.mei.di.repository.AlbumsRepository
 import com.ljyh.mei.di.repository.CachedLyricRepository
@@ -27,8 +26,7 @@ import javax.inject.Singleton
 object AppModule {
     @Provides
     fun provideDatabase(@ApplicationContext appContext: Context): AppDatabase =
-        Room.databaseBuilder(appContext, AppDatabase::class.java, "app_database")
-            .build()
+        AppDatabase.getDatabase(appContext)
 
     @Provides @Singleton
     fun provideColorDao(db: AppDatabase): ColorRepository =
