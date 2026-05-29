@@ -85,13 +85,13 @@ fun LibraryMobileLayout(
                 lastPlayedCover = userPhoto,
                 onHistoryClick = { Screen.History.navigate(navController)},
                 onLocalClick = {
-                    Toast.makeText(context, "尽请期待", Toast.LENGTH_SHORT).show()
+                    Screen.LocalMusic.navigate(navController)
                 },
                 onCloudClick = {
                     Toast.makeText(context, "尽请期待", Toast.LENGTH_SHORT).show()
                 },
                 onDownloadClick = {
-                    Toast.makeText(context, "尽请期待", Toast.LENGTH_SHORT).show()
+                    Screen.DownloadManage.navigate(navController)
                 }
             )
             Spacer(modifier = Modifier.height(32.dp))

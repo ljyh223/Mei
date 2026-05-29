@@ -35,6 +35,7 @@ fun ClassicImmersiveLayout(
 ) {
     val context = LocalContext.current
     val mediaMetadata by stateContainer.mediaMetadata
+    val isPlaying by stateContainer.isPlaying
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
 
 
@@ -55,6 +56,7 @@ fun ClassicImmersiveLayout(
                 Cover(
                     playerConnection = stateContainer.playerConnection,
                     mediaMetadata = it,
+                    isPlaying = isPlaying,
                     modifier = Modifier
                         .fillMaxWidth(0.75f)
                         .aspectRatio(1f),
@@ -104,7 +106,6 @@ fun ClassicImmersiveLayout(
                     if (overlayHandler.currentOverlayValue is OverlayState.None) {
                         stateContainer.playerViewModel.searchQQSong(it.title)
                         overlayHandler.showQQMusicSelection(
-                            searchResult = stateContainer.playerViewModel.searchResult.value,
                             mediaMetadata = it
                         )
                     }

@@ -87,7 +87,6 @@ fun CommonOverlayHandler(
 
         is OverlayState.QQMusicSelection -> {
             QQMusicSelectSheet(
-                searchNew = overlay.searchResult,
                 viewmodel = playerViewModel,
                 mediaMetadata = overlay.mediaMetadata,
                 onDismiss = { overlayHandler.dismiss() }

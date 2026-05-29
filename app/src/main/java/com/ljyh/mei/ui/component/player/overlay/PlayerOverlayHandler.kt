@@ -10,8 +10,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
@@ -91,8 +89,8 @@ class PlayerOverlayHandler(
     /**
      * 显示QQ音乐选择弹窗
      */
-    fun showQQMusicSelection(searchResult: Resource<SearchResult>, mediaMetadata: MediaMetadata) {
-        _currentOverlay.value = OverlayState.QQMusicSelection(searchResult, mediaMetadata)
+    fun showQQMusicSelection(mediaMetadata: MediaMetadata) {
+        _currentOverlay.value = OverlayState.QQMusicSelection(mediaMetadata)
     }
 
     /**

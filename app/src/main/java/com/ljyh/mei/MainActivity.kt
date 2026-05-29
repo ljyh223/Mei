@@ -102,10 +102,9 @@ import com.ljyh.mei.constants.NavigationBarHeight
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
-import com.ljyh.mei.di.ColorRepository
+import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.playback.MusicService
 import com.ljyh.mei.playback.PlayerConnection
-import com.ljyh.mei.ui.component.ConfirmationDialog
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
@@ -124,12 +123,7 @@ import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.log.CrashHandler
-import com.ljyh.mei.utils.MusicUtils
-import com.ljyh.mei.utils.PermissionsUtils.checkAndRequestFilesPermissions
-import com.ljyh.mei.utils.PermissionsUtils.checkFilesPermissions
 import com.ljyh.mei.utils.cache.preloadImage
-import com.ljyh.mei.utils.checkAndRequestNotificationPermission
-import com.ljyh.mei.utils.createNotificationChannel
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.log.FileLoggingTree
@@ -325,7 +319,6 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val navigationItems = remember { Screen.MainScreens }
-                    val showDialog = remember { mutableStateOf(false) }
 
 
                     val shouldShowNavigationBar = remember(navBackStackEntry, active, navigationBarVisible) {
@@ -423,46 +416,16 @@ class MainActivity : ComponentActivity() {
                     )
 
 
-                    ConfirmationDialog(
-                        title = "申请文件访问权限",
-                        text = "用于下载音乐",
-                        onConfirm = {
-                            createNotificationChannel(this@MainActivity)
-                            checkAndRequestNotificationPermission(this@MainActivity)
-                            checkAndRequestFilesPermissions(this@MainActivity)
-                        },
-                        onDismiss = {
-                            Toast.makeText(
-                                this@MainActivity,
-                                "已取消",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                        openDialog = showDialog
-                    )
-
-                    LaunchedEffect(key1 = showDialog.value) {
-                        if (!checkFilesPermissions(this@MainActivity)) {
-                            showDialog.value = true
-                        } else {
-
-                            Timber.tag("MainActivity").d("permission granted")
-                            lifecycleScope.launch {
-                                getAndroidId(this@MainActivity)
-                                if (dataStore.get(FirstLaunchKey, true)) {
-                                    dataStore.edit { settings ->
-                                        settings[FirstLaunchKey] = false
-                                        settings[DeviceIdKey] = com.ljyh.mei.utils.getDeviceId()
-                                    }
-                                    Timber.tag("MainActivity").d("load local music")
-                                    withContext(Dispatchers.IO) {
-                                        val localSongs = MusicUtils.getLocalMusic()
-                                        database.songDao().insertSongs(localSongs)
-                                    }
+                    LaunchedEffect(Unit) {
+                        lifecycleScope.launch {
+                            getAndroidId(this@MainActivity)
+                            if (dataStore.get(FirstLaunchKey, true)) {
+                                dataStore.edit { settings ->
+                                    settings[FirstLaunchKey] = false
+                                    settings[DeviceIdKey] = com.ljyh.mei.utils.getDeviceId()
                                 }
                             }
                         }
-
                     }
                     LaunchedEffect(isMeasured, playerConnection) {
                         if (isMeasured && playerConnection?.player?.currentMediaItem != null) {

@@ -56,17 +56,16 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.media3.common.util.UnstableApi
 
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistBottomSheet(
-    onDismiss: () -> Unit
+fun PlaylistContent(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    showTitleBar: Boolean = true
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     val lazyListState = rememberLazyListState()
     val hapticFeedback = LocalHapticFeedback.current
-    val sheetState = rememberModalBottomSheetState()
     val mediaItems = remember {
         mutableStateListOf<MediaItem>().apply {
             addAll(playerConnection.player.mediaItems)
@@ -90,19 +89,8 @@ fun PlaylistBottomSheet(
         })
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(
-                    bottom = WindowInsets.systemBars.asPaddingValues()
-                        .calculateBottomPadding()
-                )
-        ) {
-            // 标题栏
+    Column(modifier = modifier) {
+        if (showTitleBar) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -127,58 +115,80 @@ fun PlaylistBottomSheet(
                     )
                 }
             }
+        }
 
-            // 播放列表
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                state = lazyListState,
-            ) {
-                itemsIndexed(
-                    mediaItems,
-                    key = { _, item -> item.mediaId }) { index, mediaItem ->
-                    ReorderableItem(
-                        reorderableLazyListState,
-                        key = mediaItem.mediaId
-                    ) { isDragging ->
-                        mediaItem.metadata?.let {
-                            PlaylistItem(
-                                modifier = Modifier.longPressDraggableHandle(
-                                    onDragStarted = {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
-                                    },
-                                    onDragStopped = {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                                    },
-                                ),
-                                metadata = it,
-                                isCurrentPlaying = index == currentMediaItemIndex,
-                                onItemClick = {
-                                    playerConnection.player.seekToDefaultPosition(index)
-                                    playerConnection.player.playWhenReady = true
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            state = lazyListState,
+        ) {
+            itemsIndexed(
+                mediaItems,
+                key = { _, item -> item.mediaId }) { index, mediaItem ->
+                ReorderableItem(
+                    reorderableLazyListState,
+                    key = mediaItem.mediaId
+                ) { isDragging ->
+                    mediaItem.metadata?.let {
+                        PlaylistItem(
+                            modifier = Modifier.longPressDraggableHandle(
+                                onDragStarted = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
                                 },
-                                onRemoveClick = {
-                                    if (mediaItems.size > 1) {
-                                        playerConnection.player.removeMediaItem(index)
-                                        mediaItems.removeAt(index)
-                                        if (index == currentMediaItemIndex) {
-                                            playerConnection.seekToNext()
-                                        }
-                                    } else {
-                                        Toast.makeText(
-                                            context,
-                                            "不能移除最后一首歌曲",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                onDragStopped = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                },
+                            ),
+                            metadata = it,
+                            isCurrentPlaying = index == currentMediaItemIndex,
+                            onItemClick = {
+                                playerConnection.player.seekToDefaultPosition(index)
+                                playerConnection.player.playWhenReady = true
+                            },
+                            onRemoveClick = {
+                                if (mediaItems.size > 1) {
+                                    playerConnection.player.removeMediaItem(index)
+                                    mediaItems.removeAt(index)
+                                    if (index == currentMediaItemIndex) {
+                                        playerConnection.seekToNext()
                                     }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "不能移除最后一首歌曲",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }
         }
+    }
+}
+
+@androidx.annotation.OptIn(UnstableApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlaylistBottomSheet(
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
+    ) {
+        PlaylistContent(
+            onDismiss = onDismiss,
+            modifier = Modifier.padding(
+                bottom = WindowInsets.systemBars.asPaddingValues()
+                    .calculateBottomPadding()
+            )
+        )
     }
 }
 

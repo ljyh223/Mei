@@ -1,144 +1,156 @@
 package com.ljyh.mei.utils
 
-
+import android.content.Context
 import android.os.Environment
-import android.util.Log
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.google.gson.Gson
-import com.ljyh.mei.data.model.SimplePlaylist
-import com.ljyh.mei.utils.StringUtils.specialReplace
-import kotlinx.coroutines.CoroutineScope
+import com.ljyh.mei.AppContext
+import com.ljyh.mei.data.model.room.DownloadStatus
+import com.ljyh.mei.data.model.room.DownloadTask
+import com.ljyh.mei.di.AppDatabase
+import com.ljyh.mei.playback.DownloadWorker
+import com.ljyh.mei.playback.SongDownloadInfo
+import com.ljyh.mei.utils.PermissionsUtils
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import timber.log.Timber
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okio.IOException
 import java.io.File
 
-
 object DownloadManager {
-    private const val TAG = "DownloadUtils"
-    private val scope = CoroutineScope(Dispatchers.IO)
-    private val client = OkHttpClient()
-    private val relativePath: String = Environment.DIRECTORY_MUSIC
-    fun downloadSongs(
-        playlist: SimplePlaylist, onProgress: (Int, Int, Int) -> Unit, onComplete: () -> Unit
-    ) {
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(relativePath)
-        val saveInfo = File(downloadsDir, "${playlist.id}.json")
-        if (!saveInfo.exists()) {
-            saveInfo.createNewFile()
-        }
-        var mSimplePlaylist: SimplePlaylist
-        saveInfo.readText().let {
-            if (it == "") mSimplePlaylist = SimplePlaylist(
-                playlist.id,
-                playlist.name,
-                ArrayList()
-            )
-            mSimplePlaylist = Gson().fromJson(it, SimplePlaylist::class.java)
-        }
+    private const val WORK_NAME_PREFIX = "download_playlist_"
 
-        //判断downloadDir 下是否有name
-        val playlistDir = File(downloadsDir, playlist.name)
-        if (!playlistDir.exists()) {
-            playlistDir.mkdir()
-        }
-
-        var downloadedCount = 0
-        var lose = 0
-        scope.launch {
-            playlist.songs.forEach { song ->
-                try {
-                    val suffix = song.url.substringBeforeLast("?").substringAfterLast(".")
-                    val fileName = "${specialReplace("${song.name} - ${song.artist}")}.$suffix"
-                    val songFile = File(playlistDir, fileName)
-                    val status = downloadFile(song.url, songFile)
-                    if (!status) lose++
-                    if (songFile.exists()) {
-                        when (suffix) {
-                            "flac" -> SongMate.writeFALC(song, songFile.path)
-                            "mp3" -> SongMate.writeMP3(song, songFile.path)
-                            else -> {}
-                        }
-                    }
-                    mSimplePlaylist.songs.add(song)
-                    saveInfo.writeText(Gson().toJson(mSimplePlaylist.toMap()))
-                    downloadedCount++
-                    onProgress(downloadedCount, playlist.songs.size, lose)
-
-                } catch (e: Exception) {
-                    saveInfo.writeText(Gson().toJson(mSimplePlaylist))
-                    Log.d(TAG, "Download failed: ${e.message}")
-                }
+    fun ensurePermission(context: Context): Boolean {
+        return if (PermissionsUtils.checkFilesPermissions(context)) {
+            true
+        } else {
+            if (context is android.app.Activity) {
+                PermissionsUtils.checkAndRequestFilesPermissions(context)
             }
-            onComplete()
+            false
         }
     }
 
+    fun getDefaultDownloadPath(): String {
+        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+            .resolve("Mei").absolutePath
+    }
 
-    private suspend fun downloadFile(url: String, file: File): Boolean =
+    suspend fun enqueue(
+        context: Context,
+        songs: List<SongDownloadInfo>,
+        playlistName: String,
+        playlistId: String = "",
+        downloadPath: String = getDefaultDownloadPath()
+    ) {
+        DownloadWorker.createNotificationChannel(context)
+
         withContext(Dispatchers.IO) {
-            Log.d(TAG, "Downloading file from URL: $url")
-            Log.d(TAG, "File path: ${file.absolutePath}")
-            Log.d(TAG, file.path.substringBeforeLast("/"))
-            val request = Request.Builder().url(url).build()
-            try {
-                val response = client.newCall(request).execute()
-                response.use {
-                    if (!response.isSuccessful) {
-                        Log.d(TAG, "Download failed: ${response.code}")
-                        return@withContext false
-                    }
+            val db = AppDatabase.getDatabase(context)
+            val uniqueWorkName = WORK_NAME_PREFIX + playlistId.ifEmpty { System.currentTimeMillis().toString() }
 
-
-                    val inputStream = response.body?.byteStream()
-
-                    inputStream?.use { input ->
-                        file.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
-                true
-            } catch (e: IOException) {
-                Log.e(TAG, "IOException while downloading file", e)
-                false
+            val tasks = songs.map { info ->
+                DownloadTask(
+                    songId = info.songId,
+                    url = info.url ?: "",
+                    fileName = "",
+                    fileType = info.url?.substringBeforeLast("?")?.substringAfterLast(".") ?: "",
+                    status = DownloadStatus.PENDING,
+                    progress = 0,
+                    songTitle = info.songTitle,
+                    songArtist = info.songArtist,
+                    songAlbum = info.songAlbum,
+                    songCover = info.songCover,
+                    quality = "",
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis()
+                )
             }
-        }
 
-    fun isExist(pid: String, name: String, id: String): String {
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(relativePath)
-        val playlistDir = File(downloadsDir, name)
-        if (!playlistDir.exists()) return ""
-        val saveInfo = File(downloadsDir, "${pid}.json")
-        if (!saveInfo.exists()) {
-            println("jsonFile not exist")
-            return ""
-        } else {
-            val mSimplePlaylist: SimplePlaylist =
-                Gson().fromJson(saveInfo.readText(), SimplePlaylist::class.java)
-            val song = mSimplePlaylist.songs.find { it.id == id }
-            if (song == null) {
-                println("song is null")
-                return ""
-            }
-            val name = specialReplace("${song.name} - ${song.artist}")
-            val name1 = specialReplace(song.name)
-            val name2=specialReplace("${song.artist} - ${song.name}")
-            return playlistDir.listFiles()?.find {
-                println(name)
-                println(name1)
-                println(name2)
-                name == it.name.substringBeforeLast(".") || name1 == it.name.substringBeforeLast(".")
-                        || name2 == it.name.substringBeforeLast(".")
-            }?.path
-                ?: ""
+            db.downloadDao().insertAll(tasks)
+
+            val songIdsJson = Gson().toJson(songs.map { it.songId })
+
+            val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+                .addTag("download")
+                .addTag(uniqueWorkName)
+                .setInputData(
+                    androidx.work.Data.Builder()
+                        .putString(DownloadWorker.KEY_SONG_IDS, songIdsJson)
+                        .putString(DownloadWorker.KEY_PLAYLIST_NAME, playlistName)
+                        .putString(DownloadWorker.KEY_DOWNLOAD_PATH, downloadPath)
+                        .build()
+                )
+                .build()
+
+            val wm = WorkManager.getInstance(context)
+            wm.enqueueUniqueWork(uniqueWorkName, ExistingWorkPolicy.REPLACE, workRequest)
+            Timber.tag("DownloadManager").d("Work enqueued: name=$uniqueWorkName, songs=${songs.size}")
         }
+    }
+
+    fun pauseSong(context: Context, songId: String) {
+        kotlinx.coroutines.runBlocking {
+            AppDatabase.getDatabase(context).downloadDao().updateStatus(songId, DownloadStatus.PAUSED)
+        }
+    }
+
+    suspend fun resumeSong(
+        context: Context,
+        songId: String,
+        playlistName: String,
+        downloadPath: String = getDefaultDownloadPath()
+    ) {
+        val db = AppDatabase.getDatabase(context)
+        val task = db.downloadDao().getBySongId(songId) ?: return
+        db.downloadDao().updateStatus(songId, DownloadStatus.PENDING)
+        enqueue(
+            context = context,
+            songs = listOf(
+                SongDownloadInfo(
+                    songId = task.songId,
+                    url = task.url,
+                    songTitle = task.songTitle,
+                    songArtist = task.songArtist,
+                    songAlbum = task.songAlbum,
+                    songCover = task.songCover,
+                    duration = 0
+                )
+            ),
+            playlistName = playlistName,
+            playlistId = "resume_${System.currentTimeMillis()}",
+            downloadPath = downloadPath
+        )
+    }
+
+    fun deleteTask(context: Context, songId: String) {
+        kotlinx.coroutines.runBlocking {
+            AppDatabase.getDatabase(context).downloadDao().delete(songId)
+        }
+    }
+
+    fun deleteAll(context: Context) {
+        kotlinx.coroutines.runBlocking {
+            AppDatabase.getDatabase(context).downloadDao().deleteAll()
+        }
+    }
+
+    fun cancelAll(context: Context) {
+        WorkManager.getInstance(context).cancelAllWorkByTag("download")
+    }
+
+    fun isSongDownloaded(songId: String): Boolean {
+        val db = AppDatabase.getDatabase(AppContext.instance)
+        val song = kotlinx.coroutines.runBlocking { db.songDao().getSong(songId).first() }
+        val path = song?.path
+        return path != null && File(path).exists()
+    }
+
+    suspend fun isSongDownloading(songId: String): Boolean {
+        val db = AppDatabase.getDatabase(AppContext.instance)
+        val task = db.downloadDao().getBySongId(songId)
+        return task?.status == DownloadStatus.DOWNLOADING || task?.status == DownloadStatus.PENDING
     }
 }
-
-
-
-
-

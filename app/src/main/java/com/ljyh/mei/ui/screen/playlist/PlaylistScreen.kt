@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,16 +22,26 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.ljyh.mei.constants.DownloadPathKey
+import com.ljyh.mei.constants.DownloadQuality
+import com.ljyh.mei.constants.DownloadQualityKey
 import com.ljyh.mei.constants.UserIdKey
+import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.playback.SongDownloadInfo
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.ui.component.DownloadConfirmDialog
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.utils.DownloadManager
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -48,6 +59,7 @@ fun PlaylistScreen(
     val context = LocalContext.current
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    val scope = rememberCoroutineScope()
 
     // 2. 状态收集
     val userId by rememberPreference(UserIdKey, "")
@@ -60,6 +72,14 @@ fun PlaylistScreen(
         viewModel.getPlaylistTracks(playlistDetail)
     }
     val lazyPagingItems = pagingFlow.collectAsLazyPagingItems()
+
+    // Download dialog state
+    var showDownloadDialog by remember { mutableStateOf(false) }
+    var pendingDownloadTracks by remember { mutableStateOf<List<MediaMetadata>>(emptyList()) }
+    var isPreparingDownload by remember { mutableStateOf(false) }
+
+    val (downloadPath) = rememberPreference(DownloadPathKey, DownloadManager.getDefaultDownloadPath())
+    val (downloadQuality) = rememberEnumPreference(DownloadQualityKey, DownloadQuality.EXHIGH)
 
     // 4. 管理收藏状态 (乐观更新核心)
     // 默认 false，等待数据加载后同步
@@ -165,7 +185,129 @@ fun PlaylistScreen(
         return null
     }
 
-    // 7. UI 渲染
+    // 7. 下载处理逻辑
+    fun doBulkDownload(allTracks: List<MediaMetadata>) {
+        scope.launch {
+            val songIds = allTracks.map { it.id.toString() }
+            val result = viewModel.resolveSongUrls(songIds, downloadQuality.toMusicQuality())
+            val urlMap = if (result is Resource.Success) {
+                result.data.data.associate { it.id.toString() to it.url }
+            } else {
+                emptyMap()
+            }
+
+            val downloadInfos = allTracks.mapNotNull { track ->
+                val url = urlMap[track.id.toString()]
+                if (url != null) {
+                    SongDownloadInfo(
+                        songId = track.id.toString(),
+                        url = url,
+                        songTitle = track.title,
+                        songArtist = track.artists.joinToString(", ") { it.name },
+                        songAlbum = track.album.title,
+                        songCover = track.coverUrl,
+                        duration = track.duration
+                    )
+                } else null
+            }
+
+            if (downloadInfos.isEmpty()) {
+                Toast.makeText(context, "无法获取歌曲链接，请稍后重试", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val detail = playlistDetail
+            val playlistName = if (detail is Resource.Success) {
+                detail.data.playlist.name
+            } else {
+                "未分类"
+            }
+
+            DownloadManager.enqueue(
+                context = context,
+                songs = downloadInfos,
+                playlistName = playlistName,
+                playlistId = id.toString(),
+                downloadPath = downloadPath
+            )
+            Toast.makeText(context, "已添加 ${downloadInfos.size} 首到下载队列", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun handleDownload() {
+        val detail = playlistDetail
+        if (detail !is Resource.Success) return
+        val playlist = detail.data.playlist
+
+        if (playlist.trackCount > 500) {
+            Toast.makeText(context, "暂不支持超过500首歌曲下载", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (!DownloadManager.ensurePermission(context)) {
+            Toast.makeText(context, "请先授予文件访问权限后再试", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (isPreparingDownload) return
+        isPreparingDownload = true
+
+        scope.launch {
+            val allIds = playlist.trackIds.map { it.id }
+            val knownTracks = playlist.tracks.associateBy { it.id }.toMutableMap()
+
+            val missingIds = allIds.filter { it !in knownTracks }.map { it.toString() }
+            if (missingIds.isNotEmpty()) {
+                missingIds.chunked(200).forEach { chunk ->
+                    try {
+                        val details = viewModel.getSongDetails(chunk)
+                        details.songs.forEach { track ->
+                            knownTracks[track.id] = track
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+
+            val allTracks = allIds.mapNotNull { id ->
+                knownTracks[id]?.toMediaMetadata()
+            }
+
+            isPreparingDownload = false
+            pendingDownloadTracks = allTracks
+            showDownloadDialog = true
+        }
+    }
+
+    fun handleTrackDownload(track: MediaMetadata) {
+        if (!DownloadManager.ensurePermission(context)) {
+            Toast.makeText(context, "请先授予文件访问权限后再试", Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingDownloadTracks = listOf(track)
+        showDownloadDialog = true
+    }
+
+    if (showDownloadDialog) {
+        DownloadConfirmDialog(
+            currentQuality = downloadQuality,
+            downloadPath = downloadPath,
+            onDismiss = { showDownloadDialog = false },
+            onConfirm = {
+                showDownloadDialog = false
+                doBulkDownload(pendingDownloadTracks)
+            },
+            onGoToSettings = {
+                showDownloadDialog = false
+                Screen.DownloadSettings.navigate(navController)
+            },
+            onGoToDownloadManage = {
+                showDownloadDialog = false
+                Screen.DownloadManage.navigate(navController)
+            }
+        )
+    }
+
+    // 8. UI 渲染
     if (playlistDetail is Resource.Error) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Error: ${(playlistDetail as Resource.Error).message}")
@@ -195,6 +337,10 @@ fun PlaylistScreen(
                     viewModel.unsubscribePlaylist(uiData.id.toString())
                 }
             },
+
+            // 下载
+            onDownload = { handleDownload() },
+            onTrackDownload = { track -> handleTrackDownload(track) },
 
             // 播放全部
             onPlayAll = {

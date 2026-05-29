@@ -2,6 +2,9 @@ package com.ljyh.mei.ui.component.player.component.classic.component
 
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -34,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -63,6 +67,7 @@ import net.engawapg.lib.zoomable.zoomable
 fun Cover(
     playerConnection: PlayerConnection,
     mediaMetadata: MediaMetadata,
+    isPlaying: Boolean,
     modifier: Modifier,
     onDoubleClick: (Offset, Int) -> Unit = { _, _ ->}
 ) {
@@ -80,6 +85,15 @@ fun Cover(
         RoundedCornerShape(12.dp)
     }
 
+    val coverScale by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0.9f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "CoverScale"
+    )
+
     var showFullImage by remember { mutableStateOf(false) }
     Box(
         modifier = modifier,
@@ -91,7 +105,11 @@ fun Cover(
             transitionSpec = {
                 fadeIn(tween(500)) togetherWith fadeOut(tween(500))
             },
-            label = "CoverTransition"
+            label = "CoverTransition",
+            modifier = Modifier.graphicsLayer {
+                scaleX = coverScale
+                scaleY = coverScale
+            }
         ) { url ->
 
             Surface(

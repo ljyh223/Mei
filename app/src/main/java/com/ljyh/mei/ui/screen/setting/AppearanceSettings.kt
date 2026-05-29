@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Subtitles
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Highlight
@@ -54,6 +55,8 @@ import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
+import com.ljyh.mei.constants.TabletAnimationStyle
+import com.ljyh.mei.constants.TabletAnimationStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
@@ -116,6 +119,11 @@ fun AppearanceSettings(
     val (progressBarStyle, onProgressBarStyleChange) = rememberEnumPreference(
         key = ProgressBarStyleKey,
         defaultValue = ProgressBarStyle.WAVE // 默认值设为你喜欢的
+    )
+
+    val (tabletAnimStyle, onTabletAnimStyleChange) = rememberEnumPreference(
+        key = TabletAnimationStyleKey,
+        defaultValue = TabletAnimationStyle.FLIP_3D
     )
 
     val (playerStyle, onPlayerStyleChange) = rememberEnumPreference(
@@ -254,6 +262,13 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.LinearScale, null) },
                 selectedValue = progressBarStyle,
                 onValueSelected = onProgressBarStyleChange,
+                valueText = { it.label }
+            )
+            EnumListPreference(
+                title = { Text("平板切换动画") },
+                icon = { Icon(Icons.Rounded.SwapHoriz, null) },
+                selectedValue = tabletAnimStyle,
+                onValueSelected = onTabletAnimStyleChange,
                 valueText = { it.label }
             )
 

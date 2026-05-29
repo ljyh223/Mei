@@ -124,6 +124,7 @@ fun ClassicPhoneLayout(
                             Cover(
                                 playerConnection = stateContainer.playerConnection,
                                 mediaMetadata = it,
+                                isPlaying = isPlaying,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(1f)
@@ -144,7 +145,6 @@ fun ClassicPhoneLayout(
                                 if (overlayHandler.currentOverlayValue is OverlayState.None) {
                                     stateContainer.playerViewModel.searchQQSong(it.title)
                                     overlayHandler.showQQMusicSelection(
-                                        searchResult = stateContainer.playerViewModel.searchResult.value,
                                         mediaMetadata = it
                                     )
                                 }

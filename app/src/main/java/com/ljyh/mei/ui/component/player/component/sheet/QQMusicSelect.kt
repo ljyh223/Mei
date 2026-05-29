@@ -25,6 +25,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,11 +50,11 @@ import kotlin.math.abs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QQMusicSelectSheet(
-    searchNew: Resource<SearchResult>,
     viewmodel: PlayerViewModel,
     mediaMetadata: MediaMetadata,
     onDismiss: () -> Unit,
 ) {
+    val searchNew by viewmodel.searchResult.collectAsState()
     val sheetState = rememberModalBottomSheetState()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -63,7 +65,8 @@ fun QQMusicSelectSheet(
         Column(modifier = Modifier.fillMaxWidth()) {
             CurrentReferenceHeader(mediaMetadata.title, mediaMetadata.artists[0].name, mediaMetadata.duration)
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
-            when (searchNew) {
+            val result = searchNew
+            when (result) {
                 is Resource.Loading -> {
                     Box(
                         Modifier
@@ -77,14 +80,14 @@ fun QQMusicSelectSheet(
 
                 is Resource.Error -> {
                     Text(
-                        searchNew.message,
+                        result.message,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(20.dp)
                     )
                 }
 
                 is Resource.Success -> {
-                    val songs = searchNew.data.req0.data.body.song.list
+                    val songs = result.data.req0.data.body.song.list
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()

@@ -54,6 +54,7 @@ fun PlaylistHeader(
     isSubscribed: Boolean,
     onPlayAll: () -> Unit,
     onSubscribed: (Boolean) -> Unit,
+    onDownload: () -> Unit = {},
     actionIcon: ImageVector,
     actionLabel: String,
 ) {
@@ -190,18 +191,7 @@ fun PlaylistHeader(
             ActionButton(
                 icon = Icons.Filled.Download,
                 text = "下载",
-                onClick = {
-//                    handleDownloadClick(
-//                        context = context,
-//                        isCreator = isCreator,
-//                        playlistDetail = playlistDetail,
-//                        onShowDialog = { count, ids ->
-//                            downloadCount.intValue = count
-//                            downloadIds.value = ids
-//                            showDownloadDialog.value = true
-//                        }
-//                    )
-                }
+                onClick = onDownload
             )
         }
 

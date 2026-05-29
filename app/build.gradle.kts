@@ -16,8 +16,6 @@ plugins {
 android {
     namespace = "com.ljyh.mei"
     compileSdk = 36
-
-
     defaultConfig {
         applicationId = "com.ljyh.mei"
         minSdk = 29

@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -294,38 +295,42 @@ fun LibraryHeroHeader(nickname: String, avatarUrl: String, onAvatarClick: () -> 
 
 @Composable
 fun QuickActionGrid() {
+    val navController = LocalNavController.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        val actions = listOf(
-            Icons.Rounded.Folder to "Local",
-            Icons.Rounded.Cloud to "Cloud",
-            Icons.Rounded.Download to "Down"
+        QuickActionItem(Icons.Rounded.Folder, "Local", onClick = { Screen.LocalMusic.navigate(navController) })
+        QuickActionItem(Icons.Rounded.Cloud, "Cloud", onClick = {})
+        QuickActionItem(
+            Icons.Rounded.Download, "Down",
+            onClick = { Screen.DownloadManage.navigate(navController) }
         )
+    }
+}
 
-        actions.forEach { (icon, label) ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Surface(
-                    onClick = { /* TODO */ },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
+@Composable
+private fun QuickActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            onClick = onClick,
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.size(56.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp))
             }
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
     }
 }
 

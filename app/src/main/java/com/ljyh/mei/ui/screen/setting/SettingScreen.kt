@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,6 +89,14 @@ fun SettingScreen(
                 icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null) },
                 onClick = {
                     Screen.PlaySettings.navigate(navController)
+                }
+            )
+
+            PreferenceEntry(
+                title = { Text("下载") },
+                icon = { Icon(Icons.Rounded.Download, contentDescription = null) },
+                onClick = {
+                    Screen.DownloadSettings.navigate(navController)
                 }
             )
 

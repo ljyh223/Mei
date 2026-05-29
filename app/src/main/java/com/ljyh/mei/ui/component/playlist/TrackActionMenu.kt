@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.component.playlist
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteSweep
@@ -21,6 +22,7 @@ fun TrackActionMenu(
     isCreator: Boolean = false,
     onDismiss: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onDownloadTrack: (() -> Unit)? = null,
     onDelete: () -> Unit? = {},
     onCopyId: () -> Unit,
     onCopyName: () -> Unit
@@ -41,6 +43,17 @@ fun TrackActionMenu(
                         onAddToPlaylist()
                     }
                 )
+
+                onDownloadTrack?.let { downloadFunc ->
+                    GridMenuItem(
+                        icon = Icons.Filled.Download,
+                        title = "下载",
+                        onClick = {
+                            onDismiss()
+                            downloadFunc()
+                        }
+                    )
+                }
 
                 if (isCreator) {
                     GridMenuItem(

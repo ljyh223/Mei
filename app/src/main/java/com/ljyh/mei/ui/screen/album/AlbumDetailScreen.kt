@@ -14,20 +14,32 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.constants.DownloadPathKey
+import com.ljyh.mei.constants.DownloadQuality
+import com.ljyh.mei.constants.DownloadQualityKey
+import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.playback.SongDownloadInfo
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.ui.component.DownloadConfirmDialog
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.CommonSongListScreen
+import com.ljyh.mei.utils.DownloadManager
+import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.rememberPreference
+import kotlinx.coroutines.launch
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,7 +125,101 @@ fun AlbumDetailScreen(
         }
     }
 
-    // 5. 提取播放队列构建逻辑 (避免重复)
+    val scope = rememberCoroutineScope()
+
+    // Download dialog state
+    var showDownloadDialog by remember { mutableStateOf(false) }
+    var pendingDownloadTracks by remember { mutableStateOf<List<MediaMetadata>>(emptyList()) }
+
+    val (downloadPath) = rememberPreference(DownloadPathKey, DownloadManager.getDefaultDownloadPath())
+    val (downloadQuality) = rememberEnumPreference(DownloadQualityKey, DownloadQuality.EXHIGH)
+
+    // 5. 下载处理逻辑
+    fun doDownload(tracks: List<MediaMetadata>) {
+        scope.launch {
+            val songIds = tracks.map { it.id.toString() }
+            val result = viewModel.resolveSongUrls(songIds, downloadQuality.toMusicQuality())
+            val urlMap = if (result is Resource.Success) {
+                result.data.data.associate { it.id.toString() to it.url }
+            } else {
+                emptyMap()
+            }
+
+            val downloadInfos = tracks.map { track ->
+                val url = urlMap[track.id.toString()]
+                SongDownloadInfo(
+                    songId = track.id.toString(),
+                    url = url,
+                    songTitle = track.title,
+                    songArtist = track.artists.joinToString(", ") { it.name },
+                    songAlbum = track.album.title,
+                    songCover = track.coverUrl,
+                    duration = track.duration
+                )
+            }.filter { it.url != null }
+
+            if (downloadInfos.isEmpty()) {
+                Toast.makeText(context, "无法获取歌曲链接，请稍后重试", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val detail = albumDetail
+            val playlistName = if (detail is Resource.Success) {
+                detail.data.album.name
+            } else {
+                "未分类"
+            }
+
+            DownloadManager.enqueue(
+                context = context,
+                songs = downloadInfos,
+                playlistName = playlistName,
+                playlistId = id.toString(),
+                downloadPath = downloadPath
+            )
+            Toast.makeText(context, "已添加 ${downloadInfos.size} 首到下载队列", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun handleDownload() {
+        if (!DownloadManager.ensurePermission(context)) {
+            Toast.makeText(context, "请先授予文件访问权限后再试", Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingDownloadTracks = uiData.tracks
+        showDownloadDialog = true
+    }
+
+    fun handleTrackDownload(track: MediaMetadata) {
+        if (!DownloadManager.ensurePermission(context)) {
+            Toast.makeText(context, "请先授予文件访问权限后再试", Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingDownloadTracks = listOf(track)
+        showDownloadDialog = true
+    }
+
+    if (showDownloadDialog) {
+        DownloadConfirmDialog(
+            currentQuality = downloadQuality,
+            downloadPath = downloadPath,
+            onDismiss = { showDownloadDialog = false },
+            onConfirm = {
+                showDownloadDialog = false
+                doDownload(pendingDownloadTracks)
+            },
+            onGoToSettings = {
+                showDownloadDialog = false
+                Screen.DownloadSettings.navigate(navController)
+            },
+            onGoToDownloadManage = {
+                showDownloadDialog = false
+                Screen.DownloadManage.navigate(navController)
+            }
+        )
+    }
+
+    // 6. 提取播放队列构建逻辑 (避免重复)
     fun buildListQueue(startIndex: Int = 0): ListQueue? {
         val detail = albumDetail
         if (detail is Resource.Success) {
@@ -159,6 +265,10 @@ fun AlbumDetailScreen(
                     viewModel.unSubscribeAlbum(uiData.id.toString())
                 }
             },
+
+            // 下载
+            onDownload = { handleDownload() },
+            onTrackDownload = { track -> handleTrackDownload(track) },
 
             // 播放全部
             onPlayAll = {

@@ -54,6 +54,7 @@ import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.smallImage
 
@@ -72,6 +73,7 @@ fun MiniPlayer(
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
     val (playerStyle, _) = rememberEnumPreference(PlayerStyleKey, PlayerStyle.AppleMusic)
+    val device = rememberDeviceInfo()
 
     Surface(
         modifier = modifier
@@ -107,7 +109,7 @@ fun MiniPlayer(
                             mediaMetadata = it,
                             error = error,
                             modifier = Modifier.padding(horizontal = 6.dp),
-                            showCover = playerStyle == PlayerStyle.Classic
+                            showCover = playerStyle == PlayerStyle.Classic || device.isLandscape
                         )
                     }
                 }

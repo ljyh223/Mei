@@ -42,9 +42,8 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     private var viewWidth: Int = 0
     private var viewHeight: Int = 0
 
-    private var startTimeNanos: Long = System.nanoTime()
-    @Volatile
-    private var pausedElapsedNanos: Long = 0L
+    private var accumulatedPlayingNanos: Long = 0L
+    private var lastFrameNanos: Long = System.nanoTime()
     @Volatile
     private var isPlaying: Boolean = true
 
@@ -112,12 +111,13 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         if (staticMode && isStatic) return
 
         val now = System.nanoTime()
-        val elapsed = if (isPlaying) {
-            now - startTimeNanos
-        } else {
-            pausedElapsedNanos
+        val playing = isPlaying
+        val frameDelta = now - lastFrameNanos
+        lastFrameNanos = now
+        if (playing) {
+            accumulatedPlayingNanos += frameDelta
         }
-        val time = elapsed / 1e9f * flowSpeed
+        val time = accumulatedPlayingNanos / 1e9f * flowSpeed
 
         updateMeshStates(1f / 60f)
 
@@ -128,7 +128,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         for (i in meshStates.lastIndex downTo 0) {
             val state = meshStates[i]
             val easeAlpha = easeInOutSine(state.alpha.coerceIn(0f, 1f))
-            if (easeAlpha <= 0.01f) continue
+            if (easeAlpha <= 0.0f) continue
 
             GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fbo)
             GLES30.glViewport(0, 0, scaledWidth, scaledHeight)
@@ -215,10 +215,8 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     }
 
     fun setPlaying(playing: Boolean) {
-        if (isPlaying && !playing) {
-            pausedElapsedNanos = System.nanoTime() - startTimeNanos
-        } else if (!isPlaying && playing) {
-            startTimeNanos = System.nanoTime() - pausedElapsedNanos
+        if (!isPlaying && playing) {
+            lastFrameNanos = System.nanoTime()
         }
         isPlaying = playing
     }

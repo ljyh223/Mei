@@ -102,11 +102,13 @@ fun CommonSongListScreen(
     // 头部操作
     onPlayAll: () -> Unit,
     onHeaderAction: () -> Unit,
+    onDownload: () -> Unit = {},
     headerActionIcon: ImageVector,
     headerActionLabel: String,
 
     // 列表操作
     onTrackClick: (MediaMetadata, Int) -> Unit,
+    onTrackDownload: ((MediaMetadata) -> Unit)? = null,
     onBack: () -> Unit,
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -197,6 +199,7 @@ fun CommonSongListScreen(
                                     coverList = uiData.coverList,
                                     creator = uiData.creatorName,
                                     onPlayAll = onPlayAll,
+                                    onDownload = onDownload,
                                     actionIcon = headerActionIcon,
                                     actionLabel = headerActionLabel,
                                     count = uiData.count,
@@ -214,7 +217,8 @@ fun CommonSongListScreen(
                                 staticTracks = uiData.tracks,
                                 isTablet = true,
                                 onTrackClick = onTrackClick,
-                                onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) }
+                                onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                                onTrackDownload = onTrackDownload
                             )
                         }
                     }else{
@@ -230,6 +234,7 @@ fun CommonSongListScreen(
                                     coverList = uiData.coverList,
                                     creator = uiData.creatorName,
                                     onPlayAll = onPlayAll,
+                                    onDownload = onDownload,
                                     actionIcon = headerActionIcon,
                                     actionLabel = headerActionLabel,
                                     count = uiData.count,
@@ -241,6 +246,7 @@ fun CommonSongListScreen(
                             },
                             onTrackClick = onTrackClick,
                             onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                            onTrackDownload = onTrackDownload,
                             // 手机端需要考虑底部播放器的高度
                             contentPadding = PaddingValues(
                                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
@@ -285,6 +291,7 @@ fun CommonSongListScreen(
                 allMePlaylist = allMePlaylist,
                 onDismiss = { currentOverlay = OverlayState.None },
                 onUpdateOverlay = { currentOverlay = it },
+                onDownloadTrack = onTrackDownload,
                 viewModel = viewModel
             )
         }
