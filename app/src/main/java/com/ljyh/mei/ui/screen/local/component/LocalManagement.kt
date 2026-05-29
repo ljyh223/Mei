@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,13 +30,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal fun ManagementCards(onAddFolder: () -> Unit) {
+internal fun ManagementCards(onAddFolder: () -> Unit, onCreatePlaylist: () -> Unit = {}) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ManagementCard("添加文件夹", "选择文件夹以扫描本地音频文件",
             Icons.Rounded.Folder, onClick = onAddFolder)
+        ManagementCard("创建歌单", "新建一个空歌单",
+            Icons.Rounded.Add, onClick = onCreatePlaylist)
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -20,17 +21,29 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ljyh.mei.di.AppDatabase
+import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.room.PlaylistType
+import com.ljyh.mei.data.model.room.ScanFolder
+import com.ljyh.mei.data.model.room.Song
+import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
@@ -44,6 +57,7 @@ import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.ManagementCards
 import com.ljyh.mei.ui.screen.local.component.ScanProgressCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +74,10 @@ fun LocalMusicScreen(
     val albums by db.songDao().getLocalAlbums().collectAsState(initial = emptyList())
     val scanFolders by db.scanFolderDao().getAll().collectAsState(initial = emptyList())
     val scanState by viewModel.scanState.collectAsState()
+
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
 
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -168,8 +186,11 @@ fun LocalMusicScreen(
                     if (scanFolders.isNotEmpty()) {
                         item { SectionHeader("文件夹", "${scanFolders.filter { it.enabled }.size} 个文件夹") }
                         items(scanFolders, key = { it.id }) { folder ->
+                            val folderSongs = localSongs.filter { it.folderPath == folder.path }
+                            val coverUrl = folderSongs.firstOrNull { it.cover.isNotEmpty() }?.cover
                             FolderItem(
                                 folder = folder,
+                                coverUrl = coverUrl,
                                 onClick = {
                                     Screen.LocalSongList.navigate(navController) {
                                         addPath("folder"); addPath(folder.path)
@@ -182,11 +203,63 @@ fun LocalMusicScreen(
                     item { SectionHeader("管理", null) }
                     item {
                         ManagementCards(
-                            onAddFolder = { folderPickerLauncher.launch(null) }
+                            onAddFolder = { folderPickerLauncher.launch(null) },
+                            onCreatePlaylist = { showCreatePlaylistDialog = true }
                         )
                     }
                 }
             }
         }
+    }
+
+    if (showCreatePlaylistDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreatePlaylistDialog = false },
+            title = { Text("创建歌单") },
+            text = {
+                TextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    placeholder = { Text("歌单名称") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newPlaylistName.isNotBlank()) {
+                            val playlist = Playlist(
+                                id = "user_${System.currentTimeMillis()}",
+                                title = newPlaylistName,
+                                cover = "",
+                                author = "local",
+                                authorName = "本地音乐",
+                                authorAvatar = "",
+                                count = 0,
+                                type = PlaylistType.USER,
+                                createdAt = System.currentTimeMillis(),
+                                updatedAt = System.currentTimeMillis()
+                            )
+                            scope.launch {
+                                db.playlistDao().insertPlaylist(playlist)
+                            }
+                            newPlaylistName = ""
+                            showCreatePlaylistDialog = false
+                        }
+                    }
+                ) {
+                    Text("创建")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    newPlaylistName = ""
+                    showCreatePlaylistDialog = false
+                }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }

@@ -45,7 +45,7 @@ internal fun SectionHeader(title: String, subtitle: String?) {
 }
 
 @Composable
-internal fun FolderItem(folder: ScanFolder, onClick: () -> Unit = {}) {
+internal fun FolderItem(folder: ScanFolder, coverUrl: String? = null, onClick: () -> Unit = {}) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
@@ -56,7 +56,10 @@ internal fun FolderItem(folder: ScanFolder, onClick: () -> Unit = {}) {
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Rounded.Folder, null, tint = Color(0xFFFFA726), modifier = Modifier.size(24.dp))
+            CoverCollage(
+                covers = coverUrl?.let { listOf(it) } ?: emptyList(),
+                size = 44.dp
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(folder.label ?: folder.path.substringAfterLast("/"),

@@ -357,10 +357,12 @@ class LocalMusicScanner(
             folderPath.substringAfterLast('/').ifEmpty { folderPath }
         }
 
+        val firstSong = songIds.firstOrNull()?.let { songRepository.getSong(it).firstOrNull() }
+
         val playlist = Playlist(
             id = playlistId,
             title = folderName,
-            cover = "",
+            cover = firstSong?.cover ?: "",
             author = "local",
             authorName = "本地音乐",
             authorAvatar = "",
