@@ -123,7 +123,9 @@ class DownloadWorker(
             updateTask(db, songId, DownloadStatus.DOWNLOADING, 0)
 
             val suffix = task.fileType.ifBlank {
-                task.url.substringBeforeLast("?").substringAfterLast(".")
+                val pathWithoutQuery = task.url.substringBefore("?")
+                val lastSegment = pathWithoutQuery.substringAfterLast("/")
+                lastSegment.substringAfterLast(".", "")
             }
             if (suffix.isBlank()) {
                 failedCount++
@@ -139,10 +141,14 @@ class DownloadWorker(
                     updateTask(db, songId, DownloadStatus.DOWNLOADING, progress)
                 }
                 if (success && songFile.exists()) {
-                    SongMate.writeTags(
-                        task.songTitle, task.songArtist, task.songAlbum,
-                        task.songCover, songFile.absolutePath
-                    )
+                    try {
+                        SongMate.writeTags(
+                            task.songTitle, task.songArtist, task.songAlbum,
+                            task.songCover, songFile.absolutePath
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "writeTags failed for ${task.songTitle}")
+                    }
                     db.songDao().insertSong(
                         Song(
                             id = songId,

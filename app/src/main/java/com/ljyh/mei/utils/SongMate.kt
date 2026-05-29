@@ -10,6 +10,7 @@ import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.flac.FlacTag
 import org.jaudiotagger.tag.id3.valuepair.ImageFormats
 import org.jaudiotagger.tag.images.ArtworkFactory
+import timber.log.Timber
 import java.io.File
 
 object SongMate {
@@ -113,51 +114,91 @@ object SongMate {
         coverUrl: String,
         filePath: String
     ) {
-        val suffix = filePath.substringAfterLast(".")
-        when (suffix.lowercase()) {
-            "flac" -> {
-                val file = File(filePath)
-                val audioFile: AudioFile = AudioFileIO.read(file)
-                val tag = audioFile.tagOrCreateAndSetDefault as FlacTag
-                tag.setField(FieldKey.TITLE, title)
-                tag.setField(FieldKey.ARTIST, artist)
-                tag.setField(FieldKey.ALBUM, album)
-                tag.setField(FieldKey.ALBUM_ARTIST, artist)
-                if (coverUrl.isNotBlank()) {
-                    tag.setField(
-                        tag.createArtworkField(
-                            downloadImageBytes(coverUrl),
-                            6,
-                            ImageFormats.MIME_TYPE_JPEG,
-                            "Image",
-                            1400,
-                            1400,
-                            24,
-                            0
-                        )
-                    )
+        val suffix = filePath.substringAfterLast(".").lowercase()
+        try {
+            when (suffix) {
+                "flac" -> writeFlacTags(title, artist, album, coverUrl, filePath)
+                "mp3" -> writeMp3Tags(title, artist, album, coverUrl, filePath)
+                else -> {
+                    try {
+                        val file = File(filePath)
+                        val audioFile: AudioFile = AudioFileIO.read(file)
+                        val tag = audioFile.tagOrCreateAndSetDefault
+                        tag.setField(FieldKey.TITLE, title)
+                        tag.setField(FieldKey.ARTIST, artist)
+                        tag.setField(FieldKey.ALBUM, album)
+                        tag.setField(FieldKey.ALBUM_ARTIST, artist)
+                        val imageBytes = downloadImageBytes(coverUrl)
+                        if (coverUrl.isNotBlank() && imageBytes != null) {
+                            tag.deleteArtworkField()
+                            val artwork = ArtworkFactory.getNew()
+                            artwork.mimeType = "image/jpeg"
+                            artwork.binaryData = imageBytes
+                            artwork.pictureType = 6
+                            artwork.description = "Cover"
+                            tag.setField(artwork)
+                        }
+                        audioFile.commit()
+                    } catch (e: Exception) {
+                        Timber.e(e, "writeTags fallback failed for $filePath")
+                    }
                 }
-                audioFile.commit()
             }
-            "mp3" -> {
-                val file = File(filePath)
-                val audioFile: AudioFile = AudioFileIO.read(file)
-                val tag = audioFile.tagOrCreateAndSetDefault
-                tag.setField(FieldKey.TITLE, title)
-                tag.setField(FieldKey.ARTIST, artist)
-                tag.setField(FieldKey.ALBUM, album)
-                tag.setField(FieldKey.ALBUM_ARTIST, artist)
-                if (coverUrl.isNotBlank()) {
-                    val artwork = ArtworkFactory.getNew()
-                    artwork.mimeType = "image/jpeg"
-                    artwork.binaryData = downloadImageBytes(coverUrl)
-                    artwork.pictureType = 6
-                    artwork.description = "Cover"
-                    tag.setField(artwork)
-                }
-                audioFile.commit()
+        } catch (e: Exception) {
+            Timber.e(e, "writeTags error for $filePath")
+        }
+    }
+
+    private suspend fun writeFlacTags(
+        title: String, artist: String, album: String,
+        coverUrl: String, filePath: String
+    ) {
+        val file = File(filePath)
+        val audioFile: AudioFile = AudioFileIO.read(file)
+        val tag = audioFile.tagOrCreateAndSetDefault as FlacTag
+        tag.setField(FieldKey.TITLE, title)
+        tag.setField(FieldKey.ARTIST, artist)
+        tag.setField(FieldKey.ALBUM, album)
+        tag.setField(FieldKey.ALBUM_ARTIST, artist)
+        if (coverUrl.isNotBlank()) {
+            val imageBytes = downloadImageBytes(coverUrl)
+            if (imageBytes != null) {
+                tag.setField(
+                    tag.createArtworkField(
+                        imageBytes,
+                        6, ImageFormats.MIME_TYPE_JPEG, "Image",
+                        1400, 1400, 24, 0
+                    )
+                )
             }
         }
+        audioFile.commit()
+    }
+
+    private suspend fun writeMp3Tags(
+        title: String, artist: String, album: String,
+        coverUrl: String, filePath: String
+    ) {
+        val file = File(filePath)
+        val audioFile: AudioFile = AudioFileIO.read(file)
+        val tag = audioFile.tagOrCreateAndSetDefault
+        tag.setField(FieldKey.TITLE, title)
+        tag.setField(FieldKey.ARTIST, artist)
+        tag.setField(FieldKey.ALBUM, album)
+        tag.setField(FieldKey.ALBUM_ARTIST, artist)
+        if (coverUrl.isNotBlank()) {
+            val imageBytes = downloadImageBytes(coverUrl)
+            if (imageBytes != null) {
+                tag.deleteArtworkField()
+                val artwork = ArtworkFactory.getNew()
+                artwork.mimeType = "image/jpeg"
+                artwork.binaryData = imageBytes
+                artwork.pictureType = 6
+                artwork.description = "Cover"
+                tag.setField(artwork)
+            }
+        }
+        audioFile.commit()
     }
 
     fun writeLyric(filePath: String, lyric: String): Boolean {

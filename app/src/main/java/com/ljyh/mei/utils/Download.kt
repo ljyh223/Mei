@@ -60,7 +60,9 @@ object DownloadManager {
                     url = info.url ?: "",
                     fileName = "",
                     fileType = info.fileType.ifBlank {
-                        info.url?.substringBeforeLast("?")?.substringAfterLast(".") ?: ""
+                        val pathWithoutQuery = (info.url ?: "").substringBefore("?")
+                        val lastSegment = pathWithoutQuery.substringAfterLast("/")
+                        lastSegment.substringAfterLast(".", "")
                     },
                     status = DownloadStatus.PENDING,
                     progress = 0,

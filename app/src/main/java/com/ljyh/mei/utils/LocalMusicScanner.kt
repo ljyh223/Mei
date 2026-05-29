@@ -151,12 +151,16 @@ class LocalMusicScanner(
             if (existing != null) {
                 val updatedSong = createSongFromFile(file, folderPath)
                 if (updatedSong != null) {
+                    val fileHasTags = try {
+                        val tag = org.jaudiotagger.audio.AudioFileIO.read(file).tag
+                        tag?.getFirst(FieldKey.TITLE)?.isNotBlank() == true
+                    } catch (_: Exception) { false }
                     songRepository.updateMetadata(
                         id = existing.id,
-                        title = updatedSong.title,
-                        artist = updatedSong.artist,
-                        album = updatedSong.album,
-                        cover = updatedSong.cover,
+                        title = if (fileHasTags) updatedSong.title else existing.title,
+                        artist = if (fileHasTags) updatedSong.artist else existing.artist,
+                        album = if (fileHasTags) updatedSong.album else existing.album,
+                        cover = if (fileHasTags && updatedSong.cover.isNotEmpty()) updatedSong.cover else existing.cover,
                         duration = updatedSong.duration,
                         path = updatedSong.path,
                         fileHash = updatedSong.fileHash,
