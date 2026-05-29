@@ -16,7 +16,6 @@ import com.ljyh.mei.di.repository.SongRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
-import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import timber.log.Timber
 import java.io.File
@@ -232,25 +231,39 @@ class LocalMusicScanner(
     }
 
     private fun createSongFromUri(info: AudioFileInfo, folderPath: String): Song? {
-        val tags = readTagsFromUri(info.uri ?: return null)
+        val uri = info.uri ?: return null
+        val tags = if (info.path.startsWith("content://")) {
+            val tempFile = copyToTemp(uri)
+            val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(tempFile) } catch (_: Exception) { null }
+            val result = try { readTagsFromAudioFile(audioFile) } catch (_: Exception) { TagResult("", "", "", 0, null, null) }
+            val coverPath = extractCoverArt(audioFile, computeHash(info))
+            tempFile.delete()
+            coverPath to result
+        } else {
+            val file = File(info.path)
+            val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(file) } catch (_: Exception) { null }
+            val result = try { readTagsFromAudioFile(audioFile) } catch (_: Exception) { TagResult("", "", "", 0, null, null) }
+            extractCoverArt(audioFile, computeHash(info)) to result
+        }
+        val (coverPath, tagData) = tags
         val fileName = info.path.substringAfterLast('/')
         val ext = info.path.substringAfterLast('.').lowercase()
         val hash = computeHash(info)
 
         return Song(
             id = generateSongId(info.path),
-            title = tags.title.ifBlank { fileName.substringBeforeLast('.') },
-            artist = tags.artist.ifBlank { "未知艺术家" },
-            album = tags.album.ifBlank { "未知专辑" },
-            cover = "",
-            duration = tags.duration,
+            title = tagData.title.ifBlank { fileName.substringBeforeLast('.') },
+            artist = tagData.artist.ifBlank { "未知艺术家" },
+            album = tagData.album.ifBlank { "未知专辑" },
+            cover = coverPath,
+            duration = tagData.duration,
             path = info.path,
             sourceType = SourceType.LOCAL,
             fileHash = hash,
             fileSize = info.size,
             fileFormat = ext,
-            bitrate = tags.bitrate,
-            sampleRate = tags.sampleRate,
+            bitrate = tagData.bitrate,
+            sampleRate = tagData.sampleRate,
             folderPath = folderPath,
             addedAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
@@ -258,8 +271,9 @@ class LocalMusicScanner(
     }
 
     private fun createSongFromFile(file: File, folderPath: String): Song? {
+        val audioFile = try { org.jaudiotagger.audio.AudioFileIO.read(file) } catch (_: Exception) { null }
         val tags = try {
-            readTagsFromFile(file)
+            readTagsFromAudioFile(audioFile)
         } catch (e: Exception) {
             Timber.e(e, "Failed to read tags for ${file.name}")
             TagResult("", "", "", 0, null, null)
@@ -269,13 +283,14 @@ class LocalMusicScanner(
         val nameWithoutExt = fileName.substringBeforeLast('.')
         val ext = file.extension.lowercase()
         val hash = computeHashForFile(file)
+        val coverPath = extractCoverArt(audioFile, hash)
 
         return Song(
             id = generateSongId(file.absolutePath),
             title = tags.title.ifBlank { nameWithoutExt },
             artist = tags.artist.ifBlank { "未知艺术家" },
             album = tags.album.ifBlank { "未知专辑" },
-            cover = "",
+            cover = coverPath,
             duration = tags.duration,
             path = file.absolutePath,
             sourceType = SourceType.LOCAL,
@@ -288,39 +303,6 @@ class LocalMusicScanner(
             addedAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
-    }
-
-    private fun readTagsFromFile(file: File): TagResult {
-        if (!file.exists()) return TagResult("", "", "", 0, null, null)
-
-        val audioFile = AudioFileIO.read(file)
-        val tag = audioFile.tag
-        val header = audioFile.audioHeader
-
-        return TagResult(
-            title = tag?.getFirst(FieldKey.TITLE) ?: "",
-            artist = tag?.getFirst(FieldKey.ARTIST) ?: "",
-            album = tag?.getFirst(FieldKey.ALBUM) ?: "",
-            duration = header.trackLength.toLong(),
-            bitrate = header.bitRate?.toInt(),
-            sampleRate = header.sampleRate?.toInt()
-        )
-    }
-
-    private fun readTagsFromUri(uri: Uri): TagResult {
-        return try {
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                val tempFile = File(context.cacheDir, "scan_temp_${System.currentTimeMillis()}")
-                tempFile.outputStream().use { output ->
-                    stream.copyTo(output)
-                }
-                val result = readTagsFromFile(tempFile)
-                tempFile.delete()
-                result
-            } ?: TagResult("", "", "", 0, null, null)
-        } catch (e: Exception) {
-            TagResult("", "", "", 0, null, null)
-        }
     }
 
     private fun computeHash(info: AudioFileInfo): String {
@@ -392,6 +374,47 @@ class LocalMusicScanner(
             )
         }
         crossRefRepository.insertAll(crossRefs)
+    }
+
+    private fun copyToTemp(uri: android.net.Uri): File {
+        val tempFile = File(context.cacheDir, "scan_${System.currentTimeMillis()}")
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            tempFile.outputStream().use { output -> input.copyTo(output) }
+        }
+        return tempFile
+    }
+
+    private fun readTagsFromAudioFile(audioFile: org.jaudiotagger.audio.AudioFile?): TagResult {
+        if (audioFile == null) return TagResult("", "", "", 0, null, null)
+        val tag = audioFile.tag
+        val header = audioFile.audioHeader
+        return TagResult(
+            title = tag?.getFirst(FieldKey.TITLE) ?: "",
+            artist = tag?.getFirst(FieldKey.ARTIST) ?: "",
+            album = tag?.getFirst(FieldKey.ALBUM) ?: "",
+            duration = header.trackLength.toLong(),
+            bitrate = header.bitRate?.toInt(),
+            sampleRate = header.sampleRate?.toInt()
+        )
+    }
+
+    private fun extractCoverArt(audioFile: org.jaudiotagger.audio.AudioFile?, songHash: String): String {
+        try {
+            val artwork = audioFile?.tag?.firstArtwork ?: return ""
+            val imageData = artwork.binaryData ?: return ""
+            val coverDir = File(context.cacheDir, "covers")
+            if (!coverDir.exists()) coverDir.mkdirs()
+            val ext = when (artwork.mimeType) {
+                "image/jpeg" -> "jpg"
+                "image/png" -> "png"
+                else -> "jpg"
+            }
+            val coverFile = File(coverDir, "${songHash}.$ext")
+            coverFile.writeBytes(imageData)
+            return coverFile.absolutePath
+        } catch (_: Exception) {
+            return ""
+        }
     }
 
     private data class TagResult(
