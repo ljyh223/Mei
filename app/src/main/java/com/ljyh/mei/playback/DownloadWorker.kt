@@ -179,7 +179,11 @@ class DownloadWorker(
                             Song(
                                 id = songId,
                                 title = task.songTitle,
-                                artist = task.songArtist,
+                                artist = task.songArtist
+                                    .split(Regex("[/、,;]"))
+                                    .map { it.trim() }
+                                    .filter { it.isNotBlank() }
+                                    .ifEmpty { listOf(task.songArtist.trim()) },
                                 album = task.songAlbum,
                                 cover = task.songCover,
                                 duration = audioDuration.toLong(),
@@ -348,7 +352,7 @@ data class SongDownloadInfo(
     val songId: String,
     val url: String?,
     val songTitle: String,
-    val songArtist: String,
+    val songArtist: List<String>,
     val songAlbum: String,
     val songCover: String,
     val duration: Long,

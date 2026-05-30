@@ -203,7 +203,7 @@ fun PlaylistScreen(
                         songId = track.id.toString(),
                         url = url,
                         songTitle = track.title,
-                        songArtist = track.artists.joinToString(", ") { it.name },
+                        songArtist = track.artists.map { it.name },
                         songAlbum = track.album.title,
                         songCover = track.coverUrl,
                         duration = track.duration,

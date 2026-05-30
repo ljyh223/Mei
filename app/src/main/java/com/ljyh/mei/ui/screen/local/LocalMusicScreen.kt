@@ -41,16 +41,6 @@ import com.ljyh.mei.ui.screen.local.component.FolderItem
 import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
 
-private val ARTIST_SEPARATORS = Regex("[、/;|&]")
-
-private fun splitArtists(artist: String): List<String> {
-    if (artist.isBlank()) return emptyList()
-    return artist.split(ARTIST_SEPARATORS)
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .ifEmpty { listOf(artist.trim()) }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalMusicScreen(
@@ -64,9 +54,7 @@ fun LocalMusicScreen(
     val albums by db.songDao().getLocalAlbums().collectAsState(initial = emptyList())
 
     val artists = remember(localSongs) {
-        localSongs.flatMap { song ->
-            splitArtists(song.artist)
-        }.distinct().sorted()
+        localSongs.flatMap { it.artist }.distinct().sorted()
     }
 
     val folders = remember(localSongs) {

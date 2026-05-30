@@ -24,7 +24,7 @@ class SongRepository @Inject constructor(private val songDao: SongDao) {
     suspend fun updateMetadata(
         id: String,
         title: String,
-        artist: String,
+        artist: List<String>,
         album: String,
         cover: String,
         duration: Long,

@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.room.Song
 
+fun isSoloArtist(artistList: List<String>): Boolean = artistList.size == 1
+
 @Composable
 internal fun ArtistRow(artists: List<String>, songs: List<Song>, onArtistClick: (String) -> Unit = {}) {
     LazyRow(
@@ -36,9 +38,12 @@ internal fun ArtistRow(artists: List<String>, songs: List<Song>, onArtistClick: 
     ) {
         items(artists) { artist ->
             val artistSongs = songs.filter { song ->
-                song.artist.contains(artist, ignoreCase = true)
+                artist in song.artist
             }
-            val cover = artistSongs.firstOrNull { it.cover.isNotEmpty() }?.cover
+            val cover = artistSongs
+                .firstOrNull { isSoloArtist(it.artist) && it.cover.isNotEmpty() }
+                ?.cover
+                ?: artistSongs.firstOrNull { it.cover.isNotEmpty() }?.cover
             ArtistCard(artist, "${artistSongs.size} 首", cover, onClick = { onArtistClick(artist) })
         }
     }

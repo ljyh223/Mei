@@ -173,7 +173,7 @@ fun HistoryItemRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // 歌手
                 Text(
-                    text = item.song.artist,
+                    text = item.song.artist.joinToString(" / "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1

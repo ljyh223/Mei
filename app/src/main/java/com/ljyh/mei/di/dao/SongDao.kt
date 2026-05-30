@@ -29,10 +29,10 @@ interface SongDao {
     @Query("SELECT DISTINCT album FROM song WHERE album != '' AND path IS NOT NULL AND path != ''")
     fun getLocalAlbums(): Flow<List<String>>
 
-    @Query("SELECT DISTINCT artist FROM song WHERE artist != '' AND path IS NOT NULL AND path != ''")
+    @Query("SELECT DISTINCT artist FROM song WHERE artist != '[]' AND path IS NOT NULL AND path != ''")
     fun getLocalArtists(): Flow<List<String>>
 
-    @Query("SELECT * FROM song WHERE artist = :artist AND path IS NOT NULL AND path != ''")
+    @Query("SELECT * FROM song WHERE artist LIKE '%\"' || :artist || '\"%' AND path IS NOT NULL AND path != ''")
     fun getLocalSongsByArtist(artist: String): Flow<List<Song>>
 
     @Query("SELECT * FROM song WHERE artist LIKE '%' || :artist || '%' AND path IS NOT NULL AND path != ''")
@@ -66,7 +66,7 @@ interface SongDao {
     suspend fun updateMetadata(
         id: String,
         title: String,
-        artist: String,
+        artist: List<String>,
         album: String,
         cover: String,
         duration: Long,

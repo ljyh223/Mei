@@ -68,9 +68,9 @@ object SongMate {
         val audioFile: AudioFile = AudioFileIO.read(file)
         val tag = audioFile.tagOrCreateAndSetDefault as FlacTag
         tag.setField(FieldKey.TITLE, info.songTitle)
-        tag.setField(FieldKey.ARTIST, info.songArtist)
+        tag.setField(FieldKey.ARTIST, info.songArtist.joinToString(","))
         tag.setField(FieldKey.ALBUM, info.songAlbum)
-        tag.setField(FieldKey.ALBUM_ARTIST, info.songArtist)
+        tag.setField(FieldKey.ALBUM_ARTIST, info.songArtist.joinToString(","))
         if (info.songCover.isNotBlank()) {
             tag.setField(
                 tag.createArtworkField(
@@ -93,9 +93,9 @@ object SongMate {
         val audioFile: AudioFile = AudioFileIO.read(file)
         val tag = audioFile.tagOrCreateAndSetDefault
         tag.setField(FieldKey.TITLE, info.songTitle)
-        tag.setField(FieldKey.ARTIST, info.songArtist)
+        tag.setField(FieldKey.ARTIST, info.songArtist.joinToString(","))
         tag.setField(FieldKey.ALBUM, info.songAlbum)
-        tag.setField(FieldKey.ALBUM_ARTIST, info.songArtist)
+        tag.setField(FieldKey.ALBUM_ARTIST, info.songArtist.joinToString(","))
         if (info.songCover.isNotBlank()) {
             val artwork = ArtworkFactory.getNew()
             artwork.mimeType = "image/jpeg"

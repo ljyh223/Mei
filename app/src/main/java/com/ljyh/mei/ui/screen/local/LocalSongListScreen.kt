@@ -316,7 +316,7 @@ private fun LocalSongListHeader(
         }
 
         if (filterType == "album") {
-            val artists = songs.flatMap { splitArtistString(it.artist) }.distinct()
+            val artists = songs.flatMap { it.artist }.distinct()
             if (artists.isNotEmpty()) {
                 Text(
                     text = if (artists.size <= 2) artists.joinToString(" / ")
@@ -348,14 +348,6 @@ private fun LocalSongListHeader(
 
         Spacer(Modifier.height(24.dp))
     }
-}
-
-private val SEPARATORS = Regex("[、/;|&]")
-
-private fun splitArtistString(artist: String): List<String> {
-    if (artist.isBlank()) return emptyList()
-    return artist.split(SEPARATORS).map { it.trim() }.filter { it.isNotEmpty() }
-        .ifEmpty { listOf(artist.trim()) }
 }
 
 private fun formatDuration(seconds: Long): String {

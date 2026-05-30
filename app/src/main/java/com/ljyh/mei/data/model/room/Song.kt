@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class Song(
     @PrimaryKey val id: String,
     val title: String,
-    val artist: String,
+    val artist: List<String>,
     val album: String,
     val cover: String,
     val duration: Long,

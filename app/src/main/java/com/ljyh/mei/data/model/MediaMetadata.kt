@@ -230,7 +230,9 @@ fun com.ljyh.mei.data.model.room.Song.toMediaMetadata(): MediaMetadata {
         id = songId,
         title = title,
         coverUrl = cover,
-        artists = listOf(MediaMetadata.Artist(id = artist.hashCode().toLong().let { if (it < 0) -it else it }, name = artist)),
+        artists = artist.map { name ->
+            MediaMetadata.Artist(id = name.hashCode().toLong().let { if (it < 0) -it else it }, name = name)
+        },
         duration = duration * 1000,
         album = MediaMetadata.Album(id = album.hashCode().toLong().let { if (it < 0) -it else it }, title = album)
     )

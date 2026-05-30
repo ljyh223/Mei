@@ -51,7 +51,7 @@ object DownloadManager {
                     status = DownloadStatus.PENDING,
                     progress = 0,
                     songTitle = info.songTitle,
-                    songArtist = info.songArtist,
+                    songArtist = info.songArtist.joinToString("/"),
                     songAlbum = info.songAlbum,
                     songCover = info.songCover,
                     quality = "",
@@ -104,7 +104,7 @@ object DownloadManager {
                     songId = task.songId,
                     url = task.url,
                     songTitle = task.songTitle,
-                    songArtist = task.songArtist,
+                    songArtist = task.songArtist.split("/").map { it.trim() }.filter { it.isNotBlank() },
                     songAlbum = task.songAlbum,
                     songCover = task.songCover,
                     duration = 0
