@@ -17,7 +17,6 @@ import com.ljyh.mei.data.model.room.PlaybackHistory
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.PlaylistSongCrossRef
 import com.ljyh.mei.data.model.room.QQSong
-import com.ljyh.mei.data.model.room.ScanFolder
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.di.dao.AlbumsDao
 import com.ljyh.mei.di.dao.CachedLyricDao
@@ -28,14 +27,13 @@ import com.ljyh.mei.di.dao.LikeDao
 import com.ljyh.mei.di.dao.PlaylistDao
 import com.ljyh.mei.di.dao.PlaylistSongCrossRefDao
 import com.ljyh.mei.di.dao.QQSongDao
-import com.ljyh.mei.di.dao.ScanFolderDao
 import com.ljyh.mei.di.dao.SongDao
 
 @Database(
     entities = [
         CacheColor::class, Song::class, Like::class, QQSong::class, Playlist::class,
         PlaybackHistory::class, AlbumEntity::class, ArtistEntity::class, AlbumArtistCrossRef::class,
-        CachedLyric::class, DownloadTask::class, PlaylistSongCrossRef::class, ScanFolder::class
+        CachedLyric::class, DownloadTask::class, PlaylistSongCrossRef::class
     ],
     version = 13
 )
@@ -50,7 +48,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun cachedLyricDao(): CachedLyricDao
     abstract fun downloadDao(): DownloadDao
     abstract fun playlistSongCrossRefDao(): PlaylistSongCrossRefDao
-    abstract fun scanFolderDao(): ScanFolderDao
 
     companion object {
         val MIGRATION_8_9 = object : Migration(8, 9) {

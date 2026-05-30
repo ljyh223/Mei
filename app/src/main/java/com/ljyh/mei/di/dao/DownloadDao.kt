@@ -13,7 +13,7 @@ interface DownloadDao {
     @Query("SELECT * FROM download_task WHERE songId = :songId")
     suspend fun getBySongId(songId: String): DownloadTask?
 
-    @Query("SELECT * FROM download_task ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM download_task ORDER BY createdAt DESC")
     fun getAll(): Flow<List<DownloadTask>>
 
     @Query("SELECT COUNT(*) FROM download_task WHERE status = 'DOWNLOADING' OR status = 'PENDING'")

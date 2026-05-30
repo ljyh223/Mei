@@ -1,7 +1,6 @@
 package com.ljyh.mei.utils
 
 import android.content.Context
-import android.os.Environment
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -9,11 +8,9 @@ import com.google.gson.Gson
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.data.model.room.DownloadTask
-import com.ljyh.mei.data.model.room.ScanFolder
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.DownloadWorker
 import com.ljyh.mei.playback.SongDownloadInfo
-import com.ljyh.mei.utils.PermissionsUtils
 import kotlinx.coroutines.Dispatchers
 import timber.log.Timber
 import kotlinx.coroutines.flow.first
@@ -23,20 +20,8 @@ import java.io.File
 object DownloadManager {
     private const val WORK_NAME_PREFIX = "download_playlist_"
 
-    fun ensurePermission(context: Context): Boolean {
-        return if (PermissionsUtils.checkFilesPermissions(context)) {
-            true
-        } else {
-            if (context is android.app.Activity) {
-                PermissionsUtils.checkAndRequestFilesPermissions(context)
-            }
-            false
-        }
-    }
-
     fun getDefaultDownloadPath(): String {
-        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-            .resolve("Mei").absolutePath
+        return "Music/Mei"
     }
 
     suspend fun enqueue(
@@ -50,7 +35,6 @@ object DownloadManager {
 
         withContext(Dispatchers.IO) {
             val db = AppDatabase.getDatabase(context)
-            ensureDefaultScanFolder(db, downloadPath)
 
             val uniqueWorkName = WORK_NAME_PREFIX + playlistId.ifEmpty { System.currentTimeMillis().toString() }
 
@@ -152,6 +136,7 @@ object DownloadManager {
         val db = AppDatabase.getDatabase(AppContext.instance)
         val song = kotlinx.coroutines.runBlocking { db.songDao().getSong(songId).first() }
         val path = song?.path ?: return false
+        if (path.startsWith("content://")) return true
         return File(path).exists()
     }
 
@@ -159,23 +144,5 @@ object DownloadManager {
         val db = AppDatabase.getDatabase(AppContext.instance)
         val task = db.downloadDao().getBySongId(songId)
         return task?.status == DownloadStatus.DOWNLOADING || task?.status == DownloadStatus.PENDING
-    }
-
-    private suspend fun ensureDefaultScanFolder(db: AppDatabase, downloadPath: String) {
-        val allFolders = db.scanFolderDao().getAll().first()
-        val defaultFolderName = downloadPath.substringAfterLast('/').ifEmpty { downloadPath }
-        val existing = allFolders.find { it.path == downloadPath && it.isDefault }
-        if (existing == null) {
-            db.scanFolderDao().insert(
-                ScanFolder(
-                    path = downloadPath,
-                    label = defaultFolderName,
-                    isDefault = true,
-                    enabled = true,
-                    songCount = 0
-                )
-            )
-            Timber.tag("DownloadManager").d("Auto-registered default ScanFolder: $downloadPath")
-        }
     }
 }

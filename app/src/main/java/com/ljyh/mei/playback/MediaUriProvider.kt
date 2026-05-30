@@ -26,6 +26,9 @@ class MediaUriProvider @Inject constructor(
         val localPath = songRepository.getSong(mediaId).firstOrNull()?.path
             ?: songRepository.getSong("local_$mediaId").firstOrNull()?.path
         if (localPath != null) {
+            if (localPath.startsWith("content://")) {
+                return Uri.parse(localPath)
+            }
             val file = File(localPath)
             if (file.exists()) {
                 return Uri.fromFile(file)

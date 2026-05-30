@@ -11,7 +11,6 @@ import com.ljyh.mei.di.repository.LikeRepository
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import com.ljyh.mei.di.repository.PlaylistSongCrossRefRepository
 import com.ljyh.mei.di.repository.QQSongRepository
-import com.ljyh.mei.di.repository.ScanFolderRepository
 import com.ljyh.mei.di.repository.SongRepository
 import dagger.Module
 import dagger.Provides
@@ -63,10 +62,6 @@ object AppModule {
     @Provides
     fun providePlaylistSongCrossRefDao(db: AppDatabase): PlaylistSongCrossRefRepository =
         PlaylistSongCrossRefRepository(db.playlistSongCrossRefDao())
-
-    @Provides
-    fun provideScanFolderDao(db: AppDatabase): ScanFolderRepository =
-        ScanFolderRepository(db.scanFolderDao())
 
     @Provides
     fun provideCachedLyricDao(db: AppDatabase): CachedLyricRepository =

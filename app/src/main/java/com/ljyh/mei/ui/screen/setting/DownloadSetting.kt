@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.setting
 
-import android.os.Environment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only

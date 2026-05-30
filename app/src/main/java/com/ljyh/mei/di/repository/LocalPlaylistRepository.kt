@@ -23,13 +23,3 @@ class PlaylistSongCrossRefRepository @Inject constructor(private val dao: Playli
     suspend fun deleteByPlaylist(playlistId: String) = dao.deleteByPlaylist(playlistId)
     suspend fun delete(playlistId: String, songId: String) = dao.delete(playlistId, songId)
 }
-
-class ScanFolderRepository @Inject constructor(private val dao: com.ljyh.mei.di.dao.ScanFolderDao) {
-    fun getEnabled(): Flow<List<com.ljyh.mei.data.model.room.ScanFolder>> = dao.getEnabled()
-    fun getAll(): Flow<List<com.ljyh.mei.data.model.room.ScanFolder>> = dao.getAll()
-    suspend fun getByPath(path: String): com.ljyh.mei.data.model.room.ScanFolder? = dao.getByPath(path)
-    suspend fun insert(folder: com.ljyh.mei.data.model.room.ScanFolder) = dao.insert(folder)
-    suspend fun updateScanResult(id: Long, time: Long, count: Int) = dao.updateScanResult(id, time, count)
-    suspend fun setEnabled(id: Long, enabled: Boolean) = dao.setEnabled(id, enabled)
-    suspend fun delete(id: Long) = dao.delete(id)
-}

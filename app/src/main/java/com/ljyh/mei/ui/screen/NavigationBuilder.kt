@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.ljyh.mei.di.AppDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import java.net.URLDecoder
 import com.ljyh.mei.ui.screen.about.AboutScreen
 import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
 import com.ljyh.mei.ui.screen.history.HistoryScreen
@@ -102,16 +103,8 @@ fun NavGraphBuilder.navigationBuilder(
         val title: String
 
         when (type) {
-            "folder_id" -> {
-                val folderId = name.toLongOrNull()
-                val folder = if (folderId != null) {
-                    runBlocking { AppDatabase.getDatabase(context).scanFolderDao().getAll().first().find { f -> f.id == folderId } }
-                } else null
-                filterValue = folder?.path ?: name
-                title = filterValue.substringAfterLast('/').ifEmpty { filterValue.substringAfterLast(":") }
-            }
             "folder" -> {
-                filterValue = name
+                filterValue = URLDecoder.decode(name, "UTF-8")
                 title = filterValue.substringAfterLast('/').ifEmpty { filterValue.substringAfterLast(":") }
             }
             "artist" -> {
@@ -130,7 +123,7 @@ fun NavGraphBuilder.navigationBuilder(
 
         LocalSongListScreen(
             filterType = when (type) {
-                "folder_id", "folder" -> "folder"
+                "folder" -> "folder"
                 else -> type
             },
             filterValue = filterValue,

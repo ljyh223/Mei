@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.data.model.room.ScanFolder
 
 @Composable
 internal fun SectionHeader(title: String, subtitle: String?) {
@@ -45,7 +44,13 @@ internal fun SectionHeader(title: String, subtitle: String?) {
 }
 
 @Composable
-internal fun FolderItem(folder: ScanFolder, coverUrl: String? = null, onClick: () -> Unit = {}) {
+internal fun FolderItem(
+    folderPath: String,
+    folderName: String,
+    songCount: Int,
+    coverUrl: String? = null,
+    onClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
@@ -62,13 +67,13 @@ internal fun FolderItem(folder: ScanFolder, coverUrl: String? = null, onClick: (
             )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(folder.label ?: folder.path.substringAfterLast("/"),
+                Text(folderName,
                     style = MaterialTheme.typography.bodyMedium)
-                Text(folder.path, style = MaterialTheme.typography.bodySmall,
+                Text(folderPath, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text("${folder.songCount} 首", style = MaterialTheme.typography.labelSmall,
+            Text("$songCount 首", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

@@ -245,11 +245,6 @@ fun PlaylistScreen(
             return
         }
 
-        if (!DownloadManager.ensurePermission(context)) {
-            Toast.makeText(context, "请先授予文件访问权限后再试", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         if (isPreparingDownload) return
         isPreparingDownload = true
 
@@ -280,10 +275,6 @@ fun PlaylistScreen(
     }
 
     fun handleTrackDownload(track: MediaMetadata) {
-        if (!DownloadManager.ensurePermission(context)) {
-            Toast.makeText(context, "请先授予文件访问权限后再试", Toast.LENGTH_SHORT).show()
-            return
-        }
         pendingDownloadTracks = listOf(track)
         showDownloadDialog = true
     }

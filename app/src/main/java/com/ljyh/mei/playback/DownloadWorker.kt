@@ -3,9 +3,11 @@ package com.ljyh.mei.playback
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.os.Environment
+import android.net.Uri
+import android.provider.MediaStore
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
@@ -73,8 +75,7 @@ class DownloadWorker(
         }
         val playlistName = inputData.getString(KEY_PLAYLIST_NAME) ?: "未分类"
         val downloadPath = inputData.getString(KEY_DOWNLOAD_PATH)
-            ?: Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-                .resolve("Mei").absolutePath
+            ?: "Music/Mei"
 
         val songIds: List<String> = try {
             Gson().fromJson(songIdsJson, object : TypeToken<List<String>>() {}.type)
@@ -93,8 +94,9 @@ class DownloadWorker(
         var failedCount = 0
 
         val sanitizedPlaylistName = specialReplace(playlistName).trim()
-        val saveDir = File(downloadPath, sanitizedPlaylistName)
-        if (!saveDir.exists()) saveDir.mkdirs()
+        val relativePath = "Music/Mei/$sanitizedPlaylistName"
+        val tempDir = File(applicationContext.cacheDir, "download")
+        if (!tempDir.exists()) tempDir.mkdirs()
 
         showNotification("准备下载...", 0)
 
@@ -113,11 +115,23 @@ class DownloadWorker(
             }
 
             val existingSong = db.songDao().getSong(songId).first()
-            if (existingSong != null && existingSong.path != null && File(existingSong.path).exists()) {
-                updateTask(db, songId, DownloadStatus.COMPLETED, 100)
-                completedCount++
-                showNotification("正在下载 ($completedCount/$totalCount)", completedCount * 100 / totalCount)
-                continue
+            if (existingSong != null && existingSong.path != null) {
+                val isValid = if (existingSong.path.startsWith("content://")) {
+                    try {
+                        applicationContext.contentResolver.openInputStream(
+                            Uri.parse(existingSong.path)
+                        )?.close()
+                        true
+                    } catch (_: Exception) { false }
+                } else {
+                    File(existingSong.path).exists()
+                }
+                if (isValid) {
+                    updateTask(db, songId, DownloadStatus.COMPLETED, 100)
+                    completedCount++
+                    showNotification("正在下载 ($completedCount/$totalCount)", completedCount * 100 / totalCount)
+                    continue
+                }
             }
 
             updateTask(db, songId, DownloadStatus.DOWNLOADING, 0)
@@ -134,35 +148,53 @@ class DownloadWorker(
             }
 
             val fileName = "${specialReplace("${task.songTitle} - ${task.songArtist}")}.$suffix"
-            val songFile = File(saveDir, fileName)
+            val tempFile = File(tempDir, fileName)
 
             try {
-                val success = downloadFile(task.url, songFile) { progress ->
+                val success = downloadFile(task.url, tempFile) { progress ->
                     updateTask(db, songId, DownloadStatus.DOWNLOADING, progress)
                 }
-                if (success && songFile.exists()) {
+                if (success && tempFile.exists()) {
                     try {
                         SongMate.writeTags(
                             task.songTitle, task.songArtist, task.songAlbum,
-                            task.songCover, songFile.absolutePath
+                            task.songCover, tempFile.absolutePath
                         )
                     } catch (e: Exception) {
                         Timber.e(e, "writeTags failed for ${task.songTitle}")
                     }
-                    db.songDao().insertSong(
-                        Song(
-                            id = songId,
-                            title = task.songTitle,
-                            artist = task.songArtist,
-                            album = task.songAlbum,
-                            cover = task.songCover,
-                            duration = 0,
-                            path = songFile.absolutePath,
-                            sourceType = SourceType.DOWNLOAD
+
+                    val audioDuration = withContext(Dispatchers.IO) {
+                        try {
+                            org.jaudiotagger.audio.AudioFileIO.read(tempFile).audioHeader.trackLength
+                        } catch (_: Exception) { 0 }
+                    }
+
+                    val mediaStoreUri = withContext(Dispatchers.IO) {
+                        insertToMediaStore(applicationContext, tempFile, fileName, suffix, relativePath)
+                    }
+
+                    if (mediaStoreUri != null) {
+                        db.songDao().insertSong(
+                            Song(
+                                id = songId,
+                                title = task.songTitle,
+                                artist = task.songArtist,
+                                album = task.songAlbum,
+                                cover = task.songCover,
+                                duration = audioDuration.toLong(),
+                                path = mediaStoreUri.toString(),
+                                sourceType = SourceType.DOWNLOAD,
+                                folderPath = relativePath
+                            )
                         )
-                    )
-                    updateTask(db, songId, DownloadStatus.COMPLETED, 100)
-                    completedCount++
+                        updateTask(db, songId, DownloadStatus.COMPLETED, 100)
+                        completedCount++
+                    } else {
+                        failedCount++
+                        updateTask(db, songId, DownloadStatus.FAILED, 0)
+                    }
+                    tempFile.delete()
                 } else {
                     failedCount++
                     updateTask(db, songId, DownloadStatus.FAILED, 0)
@@ -179,11 +211,48 @@ class DownloadWorker(
         val statusText = if (failedCount > 0) "完成 $completedCount, 失败 $failedCount" else "全部下载完成"
         showNotification(statusText, 100, ongoing = false)
 
-        if (completedCount > 0) {
-            triggerIncrementalScan(downloadPath)
-        }
-
         return Result.success()
+    }
+
+    private fun insertToMediaStore(
+        context: Context,
+        srcFile: File,
+        displayName: String,
+        fileType: String,
+        relativePath: String
+    ): android.net.Uri? {
+        val mimeType = when (fileType.lowercase()) {
+            "flac" -> "audio/flac"
+            "aac" -> "audio/aac"
+            "ogg" -> "audio/ogg"
+            "wav" -> "audio/wav"
+            "m4a" -> "audio/mp4"
+            "opus" -> "audio/opus"
+            else -> "audio/mpeg"
+        }
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Audio.Media.DISPLAY_NAME, displayName)
+            put(MediaStore.Audio.Media.RELATIVE_PATH, "$relativePath/")
+            put(MediaStore.Audio.Media.MIME_TYPE, mimeType)
+            put(MediaStore.Audio.Media.IS_PENDING, 1)
+        }
+        val uri = context.contentResolver.insert(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues
+        ) ?: return null
+
+        try {
+            context.contentResolver.openOutputStream(uri)?.use { os ->
+                srcFile.inputStream().use { input -> input.copyTo(os) }
+            }
+            contentValues.clear()
+            contentValues.put(MediaStore.Audio.Media.IS_PENDING, 0)
+            context.contentResolver.update(uri, contentValues, null, null)
+            return uri
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to write to MediaStore")
+            context.contentResolver.delete(uri, null, null)
+            return null
+        }
     }
 
     private suspend fun downloadFile(
@@ -271,29 +340,6 @@ class DownloadWorker(
             NotificationManagerCompat.from(applicationContext).notify(NOTIFICATION_ID, notification)
         } catch (e: SecurityException) {
             Timber.w(e, "Notification permission not granted")
-        }
-    }
-    private fun triggerIncrementalScan(downloadPath: String) {
-        try {
-            val db = AppDatabase.getDatabase(applicationContext)
-            val folder = kotlinx.coroutines.runBlocking {
-                db.scanFolderDao().getAll().first().find { it.path == downloadPath }
-            }
-            if (folder != null) {
-                val scanner = com.ljyh.mei.utils.LocalMusicScanner(
-                    applicationContext,
-                    com.ljyh.mei.di.repository.SongRepository(db.songDao()),
-                    com.ljyh.mei.di.repository.ScanFolderRepository(db.scanFolderDao()),
-                    com.ljyh.mei.di.repository.LocalPlaylistRepository(db.playlistDao()),
-                    com.ljyh.mei.di.repository.PlaylistSongCrossRefRepository(db.playlistSongCrossRefDao())
-                )
-                kotlinx.coroutines.runBlocking {
-                    scanner.scanFilePaths(downloadPath)
-                }
-                Timber.d("Incremental scan completed for $downloadPath")
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Incremental scan failed")
         }
     }
 }
