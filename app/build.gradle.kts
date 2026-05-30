@@ -136,7 +136,7 @@ dependencies {
     // implementation(kotlin("reflect"))
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.21")
 
-    implementation(libs.android.gpuimage)
+
     // 列表拖拽
     implementation(libs.reorderable)
 

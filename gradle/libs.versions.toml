@@ -6,7 +6,6 @@ composeShimmer = "1.4.0"
 core = "0.90.3"
 datastorePreferences = "1.2.1"
 foundation = "1.9.5"
-gpuimageVersion = "2.1.0"
 jaudiotagger = "3.0.1"
 korlibsCrypto = "6.0.1"
 kotlin = "2.2.0"
@@ -47,7 +46,6 @@ cloudy = "0.5.0"
 material3WindowSizeClass = "1.4.0"
 
 [libraries]
-android-gpuimage = { module = "jp.co.cyberagent.android:gpuimage", version.ref = "gpuimageVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
