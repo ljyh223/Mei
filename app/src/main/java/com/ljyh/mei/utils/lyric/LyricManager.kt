@@ -58,7 +58,8 @@ class LyricManager @Inject constructor(
     // ==================== 状态暴露 ====================
 
     /** 当前歌词数据，UI 层通过 collectAsState 消费 */
-    private val _lyricData = MutableStateFlow(createDefaultLyricData("歌词加载中", source = LyricSource.Loading))
+    private val _lyricData =
+        MutableStateFlow(createDefaultLyricData("歌词加载中", source = LyricSource.Loading))
     val lyricData: StateFlow<LyricData> = _lyricData.asStateFlow()
 
     /** QQ 音乐搜索结果，供手动选歌 sheet 使用 */
@@ -69,8 +70,10 @@ class LyricManager @Inject constructor(
 
     /** 当前正在加载歌词的歌曲 ID，用于防止重复加载 */
     private var currentSongId: String? = null
+
     /** 当前歌词拉取协程 Job，切歌时 cancel */
     private var fetchJob: Job? = null
+
     /** 标记 QQ 源是否已终结（Success 或 Error），防止同一首歌多个 combine 触发重复处理 */
     private var qqFinalized = false
 
@@ -78,6 +81,7 @@ class LyricManager @Inject constructor(
 
     /** 内存缓存，FIFO 淘汰，最多 5 首 */
     private val lyricCache = LinkedHashMap<String, LyricData>()
+
     /** 预加载协程 Job */
     private var preloadJob: Job? = null
 
@@ -85,8 +89,10 @@ class LyricManager @Inject constructor(
 
     /** 网易云歌词拉取状态 */
     private val netLyricResult = MutableStateFlow<Resource<Lyric>>(Resource.Loading)
+
     /** QQ 音乐歌词拉取状态 */
     private val qqLyricResult = MutableStateFlow<Resource<LyricResult>>(Resource.Loading)
+
     /** AM (Apple Music TTML) 歌词拉取状态 */
     private val amLyricResult = MutableStateFlow<Resource<String>>(Resource.Loading)
 
@@ -100,9 +106,9 @@ class LyricManager @Inject constructor(
         combine(netLyricResult, qqLyricResult, amLyricResult) { net, qq, am ->
             Triple(net, qq, am)
         }.sample(50)
-         .onEach { (net, qq, am) ->
-            mergeAndApply(net, qq, am)
-        }.launchIn(scope)
+            .onEach { (net, qq, am) ->
+                mergeAndApply(net, qq, am)
+            }.launchIn(scope)
     }
 
     // ==================== 公开 API ====================
@@ -415,7 +421,7 @@ class LyricManager @Inject constructor(
         // 守卫：三源全 Loading 且已有有效歌词 → 不覆盖
         val hasValidLyrics = _lyricData.value.let {
             it.source != LyricSource.Loading && it.source != LyricSource.Empty
-                && it.lyricLine.lines.isNotEmpty()
+                    && it.lyricLine.lines.isNotEmpty()
         }
         if (hasValidLyrics && net is Resource.Loading && qq is Resource.Loading && am is Resource.Loading) return
 
@@ -449,7 +455,10 @@ class LyricManager @Inject constructor(
 
             val lyricData = mergeLyrics(sources, isPureMusic)
 
-            val (cacheContent, cacheTranslation, cacheParserType) = buildCacheInfo(sources, lyricData)
+            val (cacheContent, cacheTranslation, cacheParserType) = buildCacheInfo(
+                sources,
+                lyricData
+            )
 
             MergeResult(lyricData, cacheContent, cacheTranslation, cacheParserType, sources)
         }
@@ -460,12 +469,14 @@ class LyricManager @Inject constructor(
 
         // 守卫：不拿空结果覆盖已有有效歌词（竞态保护）
         if (_lyricData.value.lyricLine.lines.isNotEmpty()
-            && mergeResult.lyricData.lyricLine.lines.isEmpty()) return
+            && mergeResult.lyricData.lyricLine.lines.isEmpty()
+        ) return
 
         // 守卫：同一源不重复更新 UI
         val currentSource = _lyricData.value.source
-        val skipUiUpdate = currentSource != LyricSource.Loading && currentSource != LyricSource.Empty
-            && mergeResult.lyricData.source == currentSource
+        val skipUiUpdate =
+            currentSource != LyricSource.Loading && currentSource != LyricSource.Empty
+                    && mergeResult.lyricData.source == currentSource
         val cacheContent = mergeResult.cacheContent
 
         if (!skipUiUpdate) {
@@ -504,7 +515,8 @@ class LyricManager @Inject constructor(
             val neteaseData = netSuccess?.data
             val lrcText = neteaseData?.lrc?.lyric?.takeIf { it.isNotBlank() }
             val hasDuet = lrcText != null && duetDetector.isDuetLikely(lrcText)
-            Timber.tag(TAG).d("duet check: hasLrc=${lrcText != null}, isDuet=$hasDuet, lrcLen=${lrcText?.length}")
+            Timber.tag(TAG)
+                .d("duet check: hasLrc=${lrcText != null}, isDuet=$hasDuet, lrcLen=${lrcText?.length}")
             if (hasDuet) {
                 val netease = LyricSourceData.NetEase(neteaseData)
                 val qqParsed = qqSuccess?.let { parseQQSource(it) }
@@ -641,6 +653,7 @@ class LyricManager @Inject constructor(
                     Triple(lrc, translation, "LRC")
                 }
             }
+
             LyricSource.QQMusic -> {
                 val qq = sources.filterIsInstance<LyricSourceData.QQMusic>().firstOrNull()
                 val lrc = qq?.lrcContent?.takeIf { it.isNotBlank() }
@@ -652,31 +665,40 @@ class LyricManager @Inject constructor(
                     Triple(lrc, translation, "LRC")
                 }
             }
+
             else -> Triple(null, null, "LRC")
-            }
-    }
-
-/**
-
- * 从 Room 缓存恢复 [LyricData]
- *
- * 根据 parserType 选择对应的解析器：
- * - TTML → TTMLParser
- * - YRC  → YRCParser
- * - QRC  → QRCParser (decoded trans)
- * - LRC  → LRCParser (default)
- */
-fun CachedLyric.toLyricData(): LyricData = LyricData(
-    isVerbatim = isVerbatim,
-    isPureMusic = isPureMusic,
-    source = try { LyricSource.valueOf(sourceName) } catch (_: Exception) { LyricSource.Empty },
-    lyricLine = when (parserType) {
-        "TTML" -> TTMLParser().parse(content)
-        "YRC" -> YRCParser.parse(content, translation ?: "")
-        "QRC" -> {
-            val decoded = translation?.let { QRCUtils.decodeLyric(it) } ?: ""
-            QRCParser.parse(content, decoded)
         }
-        else -> LRCParser.parse(content, translation)
     }
-)
+
+    /**
+
+     * 从 Room 缓存恢复 [LyricData]
+     *
+     * 根据 parserType 选择对应的解析器：
+     * - TTML → TTMLParser
+     * - YRC  → YRCParser
+     * - QRC  → QRCParser (decoded trans)
+     * - LRC  → LRCParser (default)
+     */
+    fun CachedLyric.toLyricData(): LyricData = LyricData(
+        isVerbatim = isVerbatim,
+        isPureMusic = isPureMusic,
+        source = try {
+            LyricSource.valueOf(sourceName)
+        } catch (_: Exception) {
+            LyricSource.Empty
+        },
+        lyricLine = when (parserType) {
+            "TTML" -> TTMLParser().parse(content)
+            "YRC" -> YRCParser.parse(content, translation ?: "")
+            "QRC" -> {
+                val decoded = translation?.let { QRCUtils.decodeLyric(it) } ?: ""
+                QRCParser.parse(content, decoded)
+            }
+
+            else -> LRCParser.parse(content, translation)
+        }
+    )
+
+
+}
