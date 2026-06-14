@@ -17,34 +17,40 @@ object ChineseIpUtils {
         val count: Long,
         val location: String
     )
+    data class RawIpRange(
+        val startIp: String,
+        val endIp: String,
+        val count: Long,
+        val city: String
+    )
 
     // 原始数据：开始IP, 结束IP, IP个数, 位置
     private val chinaIPRangesRaw = listOf(
-        arrayOf("1.0.1.0", "1.0.3.255", 768, "福州"),
-        arrayOf("1.0.8.0", "1.0.15.255", 2048, "广州"),
-        arrayOf("1.0.32.0", "1.0.63.255", 8192, "广州"),
-        arrayOf("1.1.0.0", "1.1.0.255", 256, "福州"),
-        arrayOf("1.1.2.0", "1.1.63.255", 15872, "广州"),
-        arrayOf("1.2.0.0", "1.2.2.255", 768, "北京"),
-        arrayOf("1.2.4.0", "1.2.127.255", 31744, "广州"),
-        arrayOf("1.3.0.0", "1.3.255.255", 65536, "广州"),
-        arrayOf("1.4.1.0", "1.4.127.255", 32512, "广州"),
-        arrayOf("1.8.0.0", "1.8.255.255", 65536, "北京"),
-        arrayOf("1.10.0.0", "1.10.9.255", 2560, "福州"),
-        arrayOf("1.10.11.0", "1.10.127.255", 29952, "广州"),
-        arrayOf("1.12.0.0", "1.15.255.255", 262144, "上海"),
-        arrayOf("1.18.128.0", "1.18.128.255", 256, "北京"),
-        arrayOf("1.24.0.0", "1.31.255.255", 524288, "赤峰"),
-        arrayOf("1.45.0.0", "1.45.255.255", 65536, "北京"),
-        arrayOf("1.48.0.0", "1.51.255.255", 262144, "济南"),
-        arrayOf("1.56.0.0", "1.63.255.255", 524288, "伊春"),
-        arrayOf("1.68.0.0", "1.71.255.255", 262144, "忻州"),
-        arrayOf("1.80.0.0", "1.95.255.255", 1048576, "北京"),
-        arrayOf("1.116.0.0", "1.117.255.255", 131072, "上海"),
-        arrayOf("1.119.0.0", "1.119.255.255", 65536, "北京"),
-        arrayOf("1.180.0.0", "1.185.255.255", 393216, "桂林"),
-        arrayOf("1.188.0.0", "1.199.255.255", 786432, "洛阳"),
-        arrayOf("1.202.0.0", "1.207.255.255", 393216, "铜仁")
+        RawIpRange("1.0.1.0", "1.0.3.255", 768, "福州"),
+        RawIpRange("1.0.8.0", "1.0.15.255", 2048, "广州"),
+        RawIpRange("1.0.32.0", "1.0.63.255", 8192, "广州"),
+        RawIpRange("1.1.0.0", "1.1.0.255", 256, "福州"),
+        RawIpRange("1.1.2.0", "1.1.63.255", 15872, "广州"),
+        RawIpRange("1.2.0.0", "1.2.2.255", 768, "北京"),
+        RawIpRange("1.2.4.0", "1.2.127.255", 31744, "广州"),
+        RawIpRange("1.3.0.0", "1.3.255.255", 65536, "广州"),
+        RawIpRange("1.4.1.0", "1.4.127.255", 32512, "广州"),
+        RawIpRange("1.8.0.0", "1.8.255.255", 65536, "北京"),
+        RawIpRange("1.10.0.0", "1.10.9.255", 2560, "福州"),
+        RawIpRange("1.10.11.0", "1.10.127.255", 29952, "广州"),
+        RawIpRange("1.12.0.0", "1.15.255.255", 262144, "上海"),
+        RawIpRange("1.18.128.0", "1.18.128.255", 256, "北京"),
+        RawIpRange("1.24.0.0", "1.31.255.255", 524288, "赤峰"),
+        RawIpRange("1.45.0.0", "1.45.255.255", 65536, "北京"),
+        RawIpRange("1.48.0.0", "1.51.255.255", 262144, "济南"),
+        RawIpRange("1.56.0.0", "1.63.255.255", 524288, "伊春"),
+        RawIpRange("1.68.0.0", "1.71.255.255", 262144, "忻州"),
+        RawIpRange("1.80.0.0", "1.95.255.255", 1048576, "北京"),
+        RawIpRange("1.116.0.0", "1.117.255.255", 131072, "上海"),
+        RawIpRange("1.119.0.0", "1.119.255.255", 65536, "北京"),
+        RawIpRange("1.180.0.0", "1.185.255.255", 393216, "桂林"),
+        RawIpRange("1.188.0.0", "1.199.255.255", 786432, "洛阳"),
+        RawIpRange("1.202.0.0", "1.207.255.255", 393216, "铜仁")
     )
 
     private val rangeList: List<IpRange>
@@ -57,20 +63,13 @@ object ChineseIpUtils {
         var sum = 0L
 
         for (row in chinaIPRangesRaw) {
-            val startIpStr = row[0] as String
-            val endIpStr = row[1] as String
-            val count = (row[2] as Number).toLong()
-            val location = row[3] as String
 
-            val startLong = ipToLong(startIpStr)
-            val endLong = ipToLong(endIpStr)
 
-            // JS 逻辑兼容：如果有预设 count 则使用，否则通过 end - start + 1 计算
-            // 虽然 rawData 里都有 count，但为了严谨复刻逻辑：
-            val finalCount = if (count > 0) count else (endLong - startLong + 1)
+            val startLong = ipToLong(row.startIp)
+            val endLong = ipToLong(row.endIp)
 
-            list.add(IpRange(startLong, endLong, finalCount, location))
-            sum += finalCount
+            list.add(IpRange(startLong, endLong, row.count, row.city))
+            sum += row.count
         }
 
         rangeList = list
