@@ -11,6 +11,7 @@ import com.ljyh.mei.data.repository.SearchRepository
 import com.ljyh.mei.data.repository.ShareRepository
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.data.repository.ArtistRepository
+import com.ljyh.mei.data.repository.CommentRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -64,6 +65,12 @@ object RepositoryModule {
     @Provides
     fun provideArtistRepository(apiService: ApiService): ArtistRepository {
         return ArtistRepository(apiService)
+    }
+
+    @Singleton
+    @Provides
+    fun provideCommentRepository(apiService: ApiService, weApiService: WeApiService): CommentRepository {
+        return CommentRepository(apiService, weApiService)
     }
 }
 

@@ -6,6 +6,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Comment
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Tune
@@ -36,7 +37,10 @@ enum class MoreAction(
     BOTTOM_ACTION("bottom_action", "播放界面底部标签", Icons.Rounded.Tune, 4, 4),
 
     // --- 信息 ---
-    SONG_INFO("song_info", "歌曲信息", Icons.Rounded.Info, 4, 1);
+    SONG_INFO("song_info", "歌曲信息", Icons.Rounded.Info, 4, 1),
+
+    // --- 评论 ---
+    COMMENT("comment", "查看评论", Icons.Rounded.Comment, 7, 1);
 
     companion object {
         // 简单工厂方法

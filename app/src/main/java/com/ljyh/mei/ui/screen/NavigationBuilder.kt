@@ -38,6 +38,7 @@ import com.ljyh.mei.ui.screen.setting.DownloadSetting
 import com.ljyh.mei.ui.screen.setting.PlaySetting
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 import com.ljyh.mei.ui.screen.log.LogScreen
+import com.ljyh.mei.ui.screen.comment.CommentScreen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -214,6 +215,17 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.History.route) {
         HistoryScreen()
+    }
+
+    composable(
+        route = "${Screen.Comment.route}/{songId}",
+        arguments = listOf(
+            navArgument("songId") { type = NavType.StringType }
+        )
+    ) {
+        CommentScreen(
+            songId = it.arguments!!.getString("songId")!!
+        )
     }
 }
 

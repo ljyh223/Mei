@@ -25,6 +25,7 @@ sealed class Screen(val route:String) {
     data object Album: Screen("album")
     data object Artist: Screen("artist")
     data object History: Screen("history")
+    data object Comment: Screen("comment")
     data object Test:Screen("test")
     data object About: Screen("about")
     data object Log: Screen("log")
