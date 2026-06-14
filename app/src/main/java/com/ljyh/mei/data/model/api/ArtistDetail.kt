@@ -94,9 +94,9 @@ data class ArtistDetail(
             @SerializedName("alias")
             val alias: List<Any>,
             @SerializedName("identities")
-            val identities: List<Any>,
+            val identities: List<String>,
             @SerializedName("identifyTag")
-            val identifyTag: List<String>,
+            val identifyTag: List<String>?,
             @SerializedName("briefDesc")
             val briefDesc: String,
             @SerializedName("rank")
