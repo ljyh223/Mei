@@ -42,7 +42,7 @@ fun PlayerControlsSection(
 
     val (progressBarStyle, _) = rememberEnumPreference(
         key = ProgressBarStyleKey,
-        defaultValue = ProgressBarStyle.WAVE
+        defaultValue = ProgressBarStyle.LINEAR
     )
 
     val isFM = playerConnection.isFMMode.collectAsState()

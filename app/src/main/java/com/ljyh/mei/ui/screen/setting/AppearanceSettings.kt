@@ -118,7 +118,7 @@ fun AppearanceSettings(
     )
     val (progressBarStyle, onProgressBarStyleChange) = rememberEnumPreference(
         key = ProgressBarStyleKey,
-        defaultValue = ProgressBarStyle.WAVE // 默认值设为你喜欢的
+        defaultValue = ProgressBarStyle.LINEAR // 默认值设为你喜欢的
     )
 
     val (tabletAnimStyle, onTabletAnimStyleChange) = rememberEnumPreference(
@@ -133,7 +133,7 @@ fun AppearanceSettings(
 
     val (playlistStyle, onPlaylistStyleChange) = rememberEnumPreference(
         key = PlaylistCoverStyleKey,
-        defaultValue = PlaylistCoverStyle.Combination
+        defaultValue = PlaylistCoverStyle.Cover
     )
 
     val (playlistTrackTableHeader, onPlaylistTrackTableHeaderChange) = rememberPreference(

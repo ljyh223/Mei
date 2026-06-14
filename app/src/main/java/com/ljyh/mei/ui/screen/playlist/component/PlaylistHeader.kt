@@ -59,7 +59,7 @@ fun PlaylistHeader(
     actionLabel: String,
 ) {
 
-    val playlistCoverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Combination)
+    val playlistCoverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
     Column(
         modifier = Modifier
             .fillMaxWidth()

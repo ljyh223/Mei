@@ -74,7 +74,7 @@ fun ClassicPhoneLayout(
 
     val progressBarStyle = rememberEnumPreference(
         key = ProgressBarStyleKey,
-        defaultValue = ProgressBarStyle.WAVE
+        defaultValue = ProgressBarStyle.LINEAR
     )
 
     Column(

@@ -132,7 +132,19 @@ fun CommonOverlayHandler(
                     overlayHandler.dismiss()
                 },
                 onActionClick = { action ->
-                    overlayHandler.handleMoreAction(action)
+                    if(action == MoreAction.COMMENT){
+                        stateContainer.mediaMetadata.value?.let { v->
+                            Screen.Comment.navigate(navController) {
+                                addPath(v.id.toString())
+                            }
+                            overlayHandler.dismiss()
+                            sheetState?.collapse(spring(stiffness = Spring.StiffnessVeryLow))
+                        }
+
+                    }else{
+                        overlayHandler.handleMoreAction(action)
+                    }
+
                 },
                 viewModel = playerViewModel
             )

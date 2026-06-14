@@ -73,7 +73,7 @@ fun ClassicTabletLayout(
 
     val (progressBarStyle, _) = rememberEnumPreference(
         key = ProgressBarStyleKey,
-        defaultValue = ProgressBarStyle.WAVE
+        defaultValue = ProgressBarStyle.LINEAR
     )
 
     Row(
