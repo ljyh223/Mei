@@ -16,12 +16,6 @@ import kotlin.math.cos
 private const val TAG = "MeshGradientRenderer"
 
 class MeshGradientRenderer : GLSurfaceView.Renderer {
-    init {
-        Timber.tag(TAG).d(GLES30.glGetString(GLES30.GL_RENDERER))
-        Timber.tag(TAG).d(GLES30.glGetString(GLES30.GL_VENDOR))
-        Timber.tag(TAG).d(GLES30.glGetString(GLES30.GL_VERSION))
-    }
-
     private data class MeshState(
         val mesh: BHPMesh,
         val textureId: Int,
@@ -44,6 +38,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
     private var accumulatedPlayingNanos: Long = 0L
     private var lastFrameNanos: Long = System.nanoTime()
+
     @Volatile
     private var isPlaying: Boolean = true
 
@@ -79,12 +74,19 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: javax.microedition.khronos.egl.EGLConfig?) {
+
+        Timber.tag(TAG).d("GPU 渲染器: ${GLES30.glGetString(GLES30.GL_RENDERER)}")
+        Timber.tag(TAG).d("GPU 厂商: ${GLES30.glGetString(GLES30.GL_VENDOR)}")
+        Timber.tag(TAG).d("GL 版本: ${GLES30.glGetString(GLES30.GL_VERSION)}")
+
         GLES30.glClearColor(0f, 0f, 0f, 1f)
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
 
-        mainProgram = createProgram(ShaderSource.MESH_VERTEX_SHADER, ShaderSource.MESH_FRAGMENT_SHADER)
-        quadProgram = createProgram(ShaderSource.QUAD_VERTEX_SHADER, ShaderSource.QUAD_FRAGMENT_SHADER)
+        mainProgram =
+            createProgram(ShaderSource.MESH_VERTEX_SHADER, ShaderSource.MESH_FRAGMENT_SHADER)
+        quadProgram =
+            createProgram(ShaderSource.QUAD_VERTEX_SHADER, ShaderSource.QUAD_FRAGMENT_SHADER)
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -230,8 +232,16 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         val texIds = IntArray(1)
         GLES30.glGenTextures(1, texIds, 0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texIds[0])
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_MIRRORED_REPEAT)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_MIRRORED_REPEAT)
+        GLES30.glTexParameteri(
+            GLES30.GL_TEXTURE_2D,
+            GLES30.GL_TEXTURE_WRAP_S,
+            GLES30.GL_MIRRORED_REPEAT
+        )
+        GLES30.glTexParameteri(
+            GLES30.GL_TEXTURE_2D,
+            GLES30.GL_TEXTURE_WRAP_T,
+            GLES30.GL_MIRRORED_REPEAT
+        )
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
         GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bitmap, 0)
@@ -239,7 +249,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         return texIds[0]
     }
 
-private fun drawMesh(state: MeshState, time: Float) {
+    private fun drawMesh(state: MeshState, time: Float) {
         val mesh = state.mesh
         val vertexBuffer = mesh.buffer ?: return
         val indexBuffer = mesh.generateIndexBuffer()
@@ -260,7 +270,10 @@ private fun drawMesh(state: MeshState, time: Float) {
         GLES30.glUniform1i(uTexture, 0)
         GLES30.glUniform1f(uTime, time)
         GLES30.glUniform1f(uVolume, volume)
-        GLES30.glUniform1f(uAspect, if (scaledHeight > 0) scaledWidth.toFloat() / scaledHeight else 1f)
+        GLES30.glUniform1f(
+            uAspect,
+            if (scaledHeight > 0) scaledWidth.toFloat() / scaledHeight else 1f
+        )
 
         vertexBuffer.position(0)
         val strideBytes = 7 * 4
@@ -276,7 +289,12 @@ private fun drawMesh(state: MeshState, time: Float) {
         GLES30.glEnableVertexAttribArray(aUv)
         GLES30.glVertexAttribPointer(aUv, 2, GLES30.GL_FLOAT, false, strideBytes, vertexBuffer)
 
-        GLES30.glDrawElements(GLES30.GL_TRIANGLES, mesh.indices, GLES30.GL_UNSIGNED_INT, indexBuffer)
+        GLES30.glDrawElements(
+            GLES30.GL_TRIANGLES,
+            mesh.indices,
+            GLES30.GL_UNSIGNED_INT,
+            indexBuffer
+        )
 
         GLES30.glDisableVertexAttribArray(aPos)
         GLES30.glDisableVertexAttribArray(aColor)
@@ -302,9 +320,9 @@ private fun drawMesh(state: MeshState, time: Float) {
     private fun drawFullScreenQuad(aPos: Int, aTexCoord: Int) {
         val quadData = floatArrayOf(
             -1f, -1f, 0f, 0f,
-             1f, -1f, 1f, 0f,
-            -1f,  1f, 0f, 1f,
-             1f,  1f, 1f, 1f
+            1f, -1f, 1f, 0f,
+            -1f, 1f, 0f, 1f,
+            1f, 1f, 1f, 1f
         )
         val buffer = ByteBuffer.allocateDirect(quadData.size * 4)
             .order(ByteOrder.nativeOrder())
@@ -340,14 +358,27 @@ private fun drawMesh(state: MeshState, time: Float) {
         fboTexture = texIds[0]
 
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, fboTexture)
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA, width, height, 0,
-            GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, null)
+        GLES30.glTexImage2D(
+            GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA, width, height, 0,
+            GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, null
+        )
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
 
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fbo)
-        GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0,
-            GLES30.GL_TEXTURE_2D, fboTexture, 0)
+        GLES30.glFramebufferTexture2D(
+            GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0,
+            GLES30.GL_TEXTURE_2D, fboTexture, 0
+        )
+
+        // 【核心日志】：检查天玑 GPU 是否承认你创建的离屏 FBO
+        val fboStatus = GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER)
+        if (fboStatus != GLES30.GL_FRAMEBUFFER_COMPLETE) {
+            Timber.tag(TAG)
+                .e("FBO 创建失败，状态码为: $fboStatus (可能因为尺寸 $width x $height 导致 Mali 硬件拒绝)")
+        } else {
+            Timber.tag(TAG).d("FBO 成功创建并绑定完成: $width x $height")
+        }
 
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
@@ -377,6 +408,10 @@ private fun drawMesh(state: MeshState, time: Float) {
     private fun createProgram(vertexSource: String, fragmentSource: String): Int {
         val vertexShader = loadShader(GLES30.GL_VERTEX_SHADER, vertexSource)
         val fragmentShader = loadShader(GLES30.GL_FRAGMENT_SHADER, fragmentSource)
+        if (vertexShader == 0 || fragmentShader == 0) {
+            Timber.tag(TAG).e("着色器组件编译失败，取消程序创建")
+            return 0
+        }
 
         val program = GLES30.glCreateProgram()
         GLES30.glAttachShader(program, vertexShader)
@@ -386,7 +421,8 @@ private fun drawMesh(state: MeshState, time: Float) {
         val linkStatus = IntArray(1)
         GLES30.glGetProgramiv(program, GLES30.GL_LINK_STATUS, linkStatus, 0)
         if (linkStatus[0] == 0) {
-            Log.e(TAG, "Error linking program: ${GLES30.glGetProgramInfoLog(program)}")
+            // 关键捕获：链接错误信息（如果网格属性和着色器in/out没对上，Mali会死在这里）
+            Timber.tag(TAG).e("程序链接失败: ${GLES30.glGetProgramInfoLog(program)}")
             GLES30.glDeleteProgram(program)
             return 0
         }
@@ -400,20 +436,19 @@ private fun drawMesh(state: MeshState, time: Float) {
         val shader = GLES30.glCreateShader(type)
         GLES30.glShaderSource(shader, source)
         GLES30.glCompileShader(shader)
-        val log = GLES30.glGetProgramInfoLog(shader)
-        Timber.tag(TAG).d(log)
 
         val compileStatus = IntArray(1)
         GLES30.glGetShaderiv(shader, GLES30.GL_COMPILE_STATUS, compileStatus, 0)
         if (compileStatus[0] == 0) {
-            Log.e(TAG, "Error compiling shader: ${GLES30.glGetShaderInfoLog(shader)}")
+            // 关键捕获：修正 API 后的 Shader 编译期日志
+            val shaderTypeStr = if (type == GLES30.GL_VERTEX_SHADER) "顶点" else "片元"
+            Timber.tag(TAG).e("$shaderTypeStr 着色器编译失败: ${GLES30.glGetShaderInfoLog(shader)}")
             GLES30.glDeleteShader(shader)
             return 0
         }
         return shader
     }
 }
-
 class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
 
     private val renderer = MeshGradientRenderer()
