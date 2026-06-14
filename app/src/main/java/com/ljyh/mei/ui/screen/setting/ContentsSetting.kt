@@ -10,12 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cookie
 import androidx.compose.material.icons.rounded.TipsAndUpdates
-import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,12 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.ljyh.mei.constants.AiTriggerMode
 import com.ljyh.mei.constants.CookieKey
-import com.ljyh.mei.constants.AiTriggerModeKey
-import com.ljyh.mei.constants.AiBaseUrlKey
-import com.ljyh.mei.constants.AiApiKeyKey
-import com.ljyh.mei.constants.AiModelKey
 import com.ljyh.mei.constants.QqTimeout
 import com.ljyh.mei.constants.QqTimeoutKey
 import com.ljyh.mei.data.network.Resource
@@ -131,32 +122,6 @@ fun ContentsSetting(
                 }
             )
 
-            PreferenceGroupTitle(
-                title = "AI 歌词"
-            )
-
-            val (aiMode, onAiModeChange) = rememberPreference(
-                AiTriggerModeKey,
-                defaultValue = AiTriggerMode.Off.name
-            )
-            val currentMode = try { AiTriggerMode.valueOf(aiMode) } catch (_: Exception) { AiTriggerMode.Off }
-
-            ListPreference(
-                title = { Text("触发模式") },
-                description = null,
-                icon = { Icon(Icons.Rounded.AutoAwesome, "AI 触发模式") },
-                selectedValue = currentMode,
-                values = AiTriggerMode.entries.toList(),
-                valueText = { mode ->
-                    when (mode) {
-                        AiTriggerMode.Off -> "关闭"
-                        AiTriggerMode.OnMissing -> "缺译时"
-                        AiTriggerMode.Always -> "始终"
-                    }
-                },
-                onValueSelected = { onAiModeChange(it.name) }
-            )
-
             val (qqTimeout, onQqTimeoutChange) = rememberPreference(
                 QqTimeoutKey,
                 defaultValue = QqTimeout.Sec8.name
@@ -171,39 +136,6 @@ fun ContentsSetting(
                 values = QqTimeout.entries.toList(),
                 valueText = { it.label },
                 onValueSelected = { onQqTimeoutChange(it.name) }
-            )
-
-            val (aiBaseUrl, onAiBaseUrlChange) = rememberPreference(
-                AiBaseUrlKey,
-                defaultValue = ""
-            )
-            EditTextPreference(
-                title = { Text("API 地址") },
-                icon = { Icon(Icons.Rounded.Link, "API 地址") },
-                value = aiBaseUrl,
-                onValueChange = onAiBaseUrlChange
-            )
-
-            val (aiApiKey, onAiApiKeyChange) = rememberPreference(
-                AiApiKeyKey,
-                defaultValue = ""
-            )
-            EditTextPreference(
-                title = { Text("API Key") },
-                icon = { Icon(Icons.Rounded.Key, "API Key") },
-                value = aiApiKey,
-                onValueChange = onAiApiKeyChange
-            )
-
-            val (aiModel, onAiModelChange) = rememberPreference(
-                AiModelKey,
-                defaultValue = ""
-            )
-            EditTextPreference(
-                title = { Text("模型") },
-                icon = { Icon(Icons.Rounded.Memory, "模型") },
-                value = aiModel,
-                onValueChange = onAiModelChange
             )
         }
     }

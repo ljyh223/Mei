@@ -29,6 +29,5 @@ enum class LyricSource {
     NetEaseCloudMusic,
     QQMusic,
     AM,
-    AIEnhanced,
     Loading
 }

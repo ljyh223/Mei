@@ -36,7 +36,7 @@ import com.ljyh.mei.di.dao.SongDao
         PlaybackHistory::class, AlbumEntity::class, ArtistEntity::class, AlbumArtistCrossRef::class,
         CachedLyric::class, DownloadTask::class, PlaylistSongCrossRef::class
     ],
-    version = 14
+    version = 15
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -61,7 +61,6 @@ abstract class AppDatabase : RoomDatabase() {
                         isPureMusic INTEGER NOT NULL DEFAULT 0,
                         sourceName TEXT NOT NULL DEFAULT 'Empty',
                         parserType TEXT NOT NULL DEFAULT 'LRC',
-                        aiProcessed INTEGER NOT NULL DEFAULT 0,
                         updatedAt INTEGER NOT NULL DEFAULT 0
                     )
                 """.trimIndent())
@@ -140,6 +139,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE cached_lyric DROP COLUMN aiProcessed")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -149,7 +154,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "app_database"
-                ).addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                ).addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
                     .build()
                     .also { INSTANCE = it }
             }

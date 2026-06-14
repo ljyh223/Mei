@@ -67,19 +67,9 @@ val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
 val PlaylistTrackTableHeaderKey = booleanPreferencesKey("playlistTrackTableHeader")
 val TabletAnimationStyleKey = stringPreferencesKey("tabletAnimationStyle")
 
-val AiTriggerModeKey = stringPreferencesKey("ai_trigger_mode")
-val AiBaseUrlKey = stringPreferencesKey("ai_base_url")
-val AiApiKeyKey = stringPreferencesKey("ai_api_key")
-val AiModelKey = stringPreferencesKey("ai_model")
 val DownloadPathKey = stringPreferencesKey("downloadPath")
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 val QqTimeoutKey = stringPreferencesKey("qq_timeout")
-
-enum class AiTriggerMode {
-    Off,
-    OnMissing,
-    Always
-}
 
 enum class QqTimeout(val seconds: Int, val label: String) {
     Sec3(3, "3秒"),

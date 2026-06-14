@@ -12,6 +12,5 @@ data class CachedLyric(
     val isPureMusic: Boolean,
     val sourceName: String,
     val parserType: String,
-    val aiProcessed: Boolean,
     val updatedAt: Long
 )
