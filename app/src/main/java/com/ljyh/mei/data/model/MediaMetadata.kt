@@ -177,6 +177,7 @@ fun com.ljyh.mei.data.model.weapi.Data.toMediaMetadata() = MediaMetadata(
             .setArtworkUri(al.picUrl.toUri())
             .setExtras(Bundle().apply {
                 putLong("duration", this@toMediaItem.dt.toLong())
+                putStringArrayList("artist_list", ArrayList(ar.map { it.name ?: "" }))
             })
             .build()
     )

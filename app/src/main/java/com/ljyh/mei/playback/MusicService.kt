@@ -94,6 +94,7 @@ import java.util.Locale
 import java.util.Locale.getDefault
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 
 @UnstableApi
@@ -222,7 +223,7 @@ class MusicService : MediaLibraryService(),
                         historyJob?.cancel()
                         if (mediaItem != null) {
                             historyJob = scope.launch {
-                                delay(5000L)
+                                delay(5000L.milliseconds)
                                 try {
                                     recordHistory(mediaItem)
                                 } catch (e: Exception) {
@@ -364,12 +365,13 @@ class MusicService : MediaLibraryService(),
 
     private suspend fun recordHistory(mediaItem: MediaItem) {
         val metadata = mediaItem.mediaMetadata
+        val artistList = metadata.extras?.getStringArrayList("artist_list") ?: listOf("未知歌手")
         val song = Song(
             id = mediaItem.mediaId,
             title = metadata.title?.toString() ?: "未知标题",
-            artist = metadata.artist?.toString() ?: "未知歌手",
+            artist = artistList,
             album = metadata.albumTitle?.toString() ?: "未知专辑",
-            cover = metadata.artworkUri?.toString() ?: "", // 这里需要处理图片路径
+            cover = metadata.artworkUri?.toString() ?: "",
             duration = metadata.durationMs ?: 0,
         )
         historyRepository.addToHistory(song)
