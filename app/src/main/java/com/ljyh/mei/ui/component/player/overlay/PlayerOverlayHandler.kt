@@ -135,8 +135,10 @@ class PlayerOverlayHandler(
                 android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
             }
             MoreAction.DOWNLOAD -> {
-                dismiss()
-                android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
+                mediaMetadata?.let {
+                    dismiss()
+                    stateContainer.playerViewModel.downloadSong(it, context)
+                }
             }
             MoreAction.DELETE -> {
                 mediaMetadata?.let {
