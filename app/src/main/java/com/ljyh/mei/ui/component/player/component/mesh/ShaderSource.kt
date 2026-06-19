@@ -19,8 +19,7 @@ void main() {
     v_color = a_color;
     v_uv = a_uv;
     vec2 pos = a_pos;
-    
-    // 【核心修复】：防止 u_aspect 在突变或未初始化时为 0，导致除以 0 产生 NaN 从而使 Mali GPU 丢弃整个网格几何体
+    // 核心安全保护：防止早期未初始化完成时 aspect 为 0 导致除以 0 产生 NaN 丢弃几何体
     float safeAspect = max(0.001, u_aspect);
     if (safeAspect > 1.0) {
         pos.y *= safeAspect;
@@ -60,9 +59,8 @@ void main() {
 
     float dither = gradientNoise(gl_FragCoord.xy) / 255.0 - 0.5 / 255.0;
 
-    // 【核心修复】：将原本偏斜的 vec2(0.2) 修正为标准的对称中心 vec2(0.5)
-    // 彻底解决由于旋转轴心偏移导致坐标飞出边界、在 vivo/Mali 驱动上采样到全透明空白（0,0,0,0）引发的黑屏
-    vec2 centered = v_uv - vec2(0.5);
+    // 【原项目 Apple Music 灵魂算法绝对保留】：利用 -0.2 和 +0.5 制造不对称的高级液体拉伸感
+    vec2 centered = v_uv - vec2(0.2);
     vec2 rotated = rot(centered, timeVolume * 2.0);
     vec2 finalUV = rotated * max(0.001, 1.0 - volumeEffect) + vec2(0.5);
 
