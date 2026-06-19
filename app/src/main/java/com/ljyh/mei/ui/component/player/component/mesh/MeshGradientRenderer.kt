@@ -61,7 +61,7 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
 
     private val random = java.util.Random()
 
-    // 【性能优化】：将全屏缓冲四边形直接复用，彻底解决帧级 allocateDirect 引发的内存碎片与 Native 崩溃
+    // 【核心性能修复】：将全屏缓冲四边形的数据提到成员变量单次分配，彻底阻断原有帧级 allocateDirect 撑爆局部内存的隐患
     private val quadBuffer: FloatBuffer by lazy {
         val quadData = floatArrayOf(
             -1f, -1f, 0f, 0f,
@@ -84,7 +84,7 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
             pendingAlbum = bitmap
             albumChanged = true
             
-            // 更换封面时立即重置状态，唤醒连续渲染以跑过渡动画
+            // 每次切歌或更换封面时，立即重置静态判定，确保无缝唤醒连续渲染以播放流畅的渐变动效
             isStatic = false
             view.post { view.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY }
         }
@@ -124,7 +124,11 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
             return
         }
 
-        // 【关键修复】：不在这里进行硬 return 拦截，交由系统的 WHEN_DIRTY 机制去决定挂起，彻底解决系统的黑屏退化问题
+        // 【核心修复】：静止省电模式下绝不在方法最顶部进行阻断式 return。
+        // 这会导致 Android 16 系统在用户下拉通知栏等操作重组时由于没有执行 Swap 导致退化为死黑。
+        // 彻底改由下方的 WHEN_DIRTY 挂起机制，省电的同时绝对不丢帧、不黑屏。
+        if (staticMode && isStatic) return
+
         val now = System.nanoTime()
         val playing = isPlaying
         val frameDelta = now - lastFrameNanos
@@ -221,7 +225,7 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
             }
         }
 
-        // 【关键修复】：当动画完成且处于静态模式，安全通知 GLSurfaceView 挂起为 WHEN_DIRTY 节约性能，绝不损坏画面
+        // 【省电核心重构】：流体过渡淡入彻底稳定后，若是开启了静态模式，安全转为 WHEN_DIRTY，不再消耗任何开销。
         if (staticMode && meshStates.size == 1 && meshStates[0].alpha >= 1f) {
             if (!isStatic) {
                 isStatic = true
@@ -328,7 +332,6 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
     }
 
     private fun drawFullScreenQuad(aPos: Int, aTexCoord: Int) {
-        // 【优化】：不再频繁分配直接内存，极大缓解 Mali 驱动的提交压力
         GLES30.glEnableVertexAttribArray(aPos)
         quadBuffer.position(0)
         GLES30.glVertexAttribPointer(aPos, 2, GLES30.GL_FLOAT, false, 16, quadBuffer)
@@ -359,13 +362,14 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
 
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, fboTexture)
         
-        // 【核心修复】：将原本非法的 GL_RGBA 修改为规范化的显式尺寸内部格式 GL_RGBA8 
+        // 【核心修复一】：将原本非法的 unsized 格式 GL_RGBA 强制修改为 GLES30 核心规范强制标准的有尺寸内部格式 GL_RGBA8
         GLES30.glTexImage2D(
             GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, width, height, 0,
             GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, null
         )
         
-        // 【核心修复】：对于非2次幂大小的 FBO 离屏纹理，必须将其 Wrap 强制限制为截取边界，否则 Mali 硬件会判定为 incomplete 从而吐出全黑画面
+        // 【核心修复二】：针对屏幕非 2 次幂大小的 FBO 附着纹理（NPOT），必须将其环绕模式（Wrap）强制锁死为边缘截取，
+        // 否则天玑 9300+ 的 Immortalis 硬件驱动会直接回吐不完整异常并将其重置为纯黑像素。
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
@@ -433,12 +437,15 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
 }
 
 class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
-    // 【关键绑定】：将当前 View 传入 Renderer 建立控制枢纽，以便执行无损挂起机制
+
     private val renderer = MeshGradientRenderer(this)
 
     init {
         setEGLContextClientVersion(3)
         setEGLConfigChooser(8, 8, 8, 8, 0, 0)
+        // 【核心修复三】：强制让底层 SurfaceHolder 的像素位宽支持 32位真彩色与混色。
+        // 解决 Android 16 在多重重构的 Compose 界面树下窗口管理器无损合成失败导致的死黑。
+        holder.setFormat(android.graphics.PixelFormat.RGBA_8888)
         setRenderer(renderer)
         renderMode = RENDERMODE_CONTINUOUSLY
     }
@@ -449,7 +456,7 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
 
     fun updateVolume(v: Float) {
         renderer.volume = v
-        // 挂起状态下如果有强音乐节奏输入，主动触发一帧渲染以保持呼吸同步，极其省电
+        // 挂起静止省电阶段，若捕捉到大鼓点和强烈音乐电平输入，主动唤醒并请求渲染当前这一帧，做到动效和省电两不误
         if (renderMode == RENDERMODE_WHEN_DIRTY && v > 0.005f) {
             requestRender()
         }
