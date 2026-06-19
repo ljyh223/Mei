@@ -41,7 +41,6 @@ fun FluidBackground(
     val (volumeScale) = rememberPreference(MeshLowFreqVolumeKey, defaultValue = 0.1f)
     val (subdivision) = rememberPreference(MeshSubdivisionKey, defaultValue = 50)
 
-    // 将图片加载逻辑独立出来，只负责把 Bitmap 提取出来
     val albumBitmap by produceState<Bitmap?>(null, imageUrl) {
         if (imageUrl.isNullOrEmpty()) {
             value = null
@@ -63,8 +62,8 @@ fun FluidBackground(
 
     val shouldAnimate = !meshPlaying || isPlaying
 
-    // 【关键修复】：记住上一次成功送入 View 的图片URL，防止高频低音信号引起的重组导致无限触发 view.setAlbum 从而撑爆显存
-    var lastSubmittedUrl by remember { mutableStateOf<String?>(null) }
+    // 【关键修复】：利用引用相等性纪录最后一次提交的 Bitmap，彻底拦截由 bass 节奏高频重组引起的 view.setAlbum 卡死 Bug
+    var lastBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     AndroidView(
         factory = { ctx ->
@@ -78,16 +77,22 @@ fun FluidBackground(
             }
         },
         update = { view ->
-            // 【关键修复】：只有在图片真正的 URL 改变且 Bitmap 加载好时，才允许重新在底层生成网格图层
-            if (imageUrl != lastSubmittedUrl && albumBitmap != null) {
+            // 只有当新封面加载完成且和旧封面不一致时，才提交给 OpenGL 生成全新过渡层
+            if (albumBitmap != null && albumBitmap !== lastBitmap) {
                 view.setAlbum(albumBitmap!!)
-                lastSubmittedUrl = imageUrl
+                lastBitmap = albumBitmap
             }
 
             view.updateVolume(bass * volumeScale)
             view.setFlowSpeed(flowSpeed)
             view.setRenderScale(renderScale)
             view.setSubdivision(subdivision)
+            view.setStaticMode(staticMode)
+            view.setPlaying(shouldAnimate)
+        },
+        modifier = modifier.fillMaxSize()
+    )
+}            view.setSubdivision(subdivision)
             view.setStaticMode(staticMode)
             view.setPlaying(shouldAnimate)
         },
