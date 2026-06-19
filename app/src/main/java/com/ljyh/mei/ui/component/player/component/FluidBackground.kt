@@ -92,10 +92,4 @@ fun FluidBackground(
         },
         modifier = modifier.fillMaxSize()
     )
-}            view.setSubdivision(subdivision)
-            view.setStaticMode(staticMode)
-            view.setPlaying(shouldAnimate)
-        },
-        modifier = modifier.fillMaxSize()
-    )
 }
