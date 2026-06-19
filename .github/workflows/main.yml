@@ -20,21 +20,30 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-        # 手动触发时检出默认分支，而不是指定的标签
+      # 1. 升级至 v4 检出代码
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.ref }}
 
-      - uses: actions/setup-java@v3
+      # 2. 升级至 v4 配置高版本 Java 环境
+      - uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 21
+          distribution: 'temurin'
+          java-version: '21'
 
-      - uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: current
-          arguments: assembleRelease
+      # 3. 采用官方最新的 Gradle 配置与缓存托管组件（替代原过时组件）
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
+      # 4. 安全防护：确保 Linux 环境下 Gradle 脚本具备完整执行权限
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # 5. 核心修复：始终调用项目内部的 Wrapper 编译，确保与 AGP 版本完美贴合
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      # 6. 签署 Android APK 签名
       - uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
@@ -58,7 +67,6 @@ jobs:
       - name: Read Release Notes
         id: release_notes
         run: |
-          # 优先使用手动输入的发布说明，其次使用文件，最后使用默认值
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.release_notes }}" ]; then
             body="${{ github.event.inputs.release_notes }}"
           elif [ -f .github/release_notes.md ]; then
@@ -92,5 +100,4 @@ jobs:
           tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.ref_name }}
           generateReleaseNotes: true
           body: ${{ steps.release_notes.outputs.BODY }}
-          # 手动触发时，如果标签已存在则跳过创建
           skipIfReleaseExists: true
