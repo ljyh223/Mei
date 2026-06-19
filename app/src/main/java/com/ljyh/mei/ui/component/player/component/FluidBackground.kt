@@ -24,7 +24,6 @@ import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-
 @Composable
 fun FluidBackground(
     imageUrl: String?,
@@ -42,8 +41,7 @@ fun FluidBackground(
     val (volumeScale) = rememberPreference(MeshLowFreqVolumeKey, defaultValue = 0.1f)
     val (subdivision) = rememberPreference(MeshSubdivisionKey, defaultValue = 50)
 
-    // 1. 将图片加载逻辑独立出来，只负责把 Bitmap 提取出来
-    // 使用 produceState 是处理这种“异步数据转同步状态”的最佳实践
+    // 将图片加载逻辑独立出来，只负责把 Bitmap 提取出来
     val albumBitmap by produceState<Bitmap?>(null, imageUrl) {
         if (imageUrl.isNullOrEmpty()) {
             value = null
@@ -63,15 +61,14 @@ fun FluidBackground(
         }
     }
 
-    // 2. 组装当前需要传递给 View 的所有状态
     val shouldAnimate = !meshPlaying || isPlaying
 
-    // 3. 去掉过于严格的版本限制 (只要设备存在就能初始化，低端机 GLES 3.0 兼容性极好)
-    // 如果你想绝对保险，可以写 >= Build.VERSION_CODES.LOLLIPOP (21)
+    // 【关键修复】：记住上一次成功送入 View 的图片URL，防止高频低音信号引起的重组导致无限触发 view.setAlbum 从而撑爆显存
+    var lastSubmittedUrl by remember { mutableStateOf<String?>(null) }
+
     AndroidView(
         factory = { ctx ->
             MeshBackgroundView(ctx).apply {
-                // 初始化时的默认值
                 setFlowSpeed(flowSpeed)
                 setRenderScale(renderScale)
                 setSubdivision(subdivision)
@@ -81,8 +78,10 @@ fun FluidBackground(
             }
         },
         update = { view ->
-            albumBitmap?.let { bmp ->
-                view.setAlbum(bmp)
+            // 【关键修复】：只有在图片真正的 URL 改变且 Bitmap 加载好时，才允许重新在底层生成网格图层
+            if (imageUrl != lastSubmittedUrl && albumBitmap != null) {
+                view.setAlbum(albumBitmap!!)
+                lastSubmittedUrl = imageUrl
             }
 
             view.updateVolume(bass * volumeScale)
