@@ -24,6 +24,7 @@ import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+
 @Composable
 fun FluidBackground(
     imageUrl: String?,
@@ -62,7 +63,9 @@ fun FluidBackground(
 
     val shouldAnimate = !meshPlaying || isPlaying
 
-    // 【关键修复】：利用引用相等性纪录最后一次提交的 Bitmap，彻底拦截由 bass 节奏高频重组引起的 view.setAlbum 卡死 Bug
+    // 【核心高频解耦】：利用引用相等性（!==）纪录最后一次真正送入 OpenGL 的内存切片。
+    // 只有在用户切歌或者图片确实发生变动时，才允许往 GL 线程发起 setAlbum 传输。
+    // 这将高频更新的音量（update 块）与纹理上传彻底切断解耦，彻底避免 GPU 负荷爆炸死黑。
     var lastBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     AndroidView(
@@ -77,12 +80,12 @@ fun FluidBackground(
             }
         },
         update = { view ->
-            // 只有当新封面加载完成且和旧封面不一致时，才提交给 OpenGL 生成全新过渡层
             if (albumBitmap != null && albumBitmap !== lastBitmap) {
                 view.setAlbum(albumBitmap!!)
                 lastBitmap = albumBitmap
             }
 
+            // 音量控制高频直通更新，完全不影响动态乐感跳动
             view.updateVolume(bass * volumeScale)
             view.setFlowSpeed(flowSpeed)
             view.setRenderScale(renderScale)
