@@ -19,7 +19,9 @@ void main() {
     v_color = a_color;
     v_uv = a_uv;
     vec2 pos = a_pos;
-    // 核心安全保护：防止早期未初始化完成时 aspect 为 0 导致除以 0 产生 NaN 丢弃几何体
+    
+    // 【底线安全防护】：防止界面刚加载出来的极短瞬间 aspect 为 0 导致除以 0 产生 NaN。
+    // 这可以让 Immortalis GPU 绝不丢弃基础几何网格，且对画面样式没有任何一丁点改变。
     float safeAspect = max(0.001, u_aspect);
     if (safeAspect > 1.0) {
         pos.y *= safeAspect;
@@ -59,7 +61,8 @@ void main() {
 
     float dither = gradientNoise(gl_FragCoord.xy) / 255.0 - 0.5 / 255.0;
 
-    // 【原项目 Apple Music 灵魂算法绝对保留】：利用 -0.2 和 +0.5 制造不对称的高级液体拉伸感
+    // 【原项目 Apple Music 炫彩流体灵魂算法完全保留！】
+    // 利用 -vec2(0.2) 制造高级非对称液体拉伸漩涡，加回 +vec2(0.5) 实现平移平铺
     vec2 centered = v_uv - vec2(0.2);
     vec2 rotated = rot(centered, timeVolume * 2.0);
     vec2 finalUV = rotated * max(0.001, 1.0 - volumeEffect) + vec2(0.5);
