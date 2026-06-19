@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.component
 
-import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -11,7 +10,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import coil3.Bitmap
+import android.graphics.Bitmap
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshLowFreqVolumeKey
 import com.ljyh.mei.constants.MeshPlayingKey
@@ -23,7 +22,6 @@ import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
 
 @Composable
 fun FluidBackground(
@@ -56,16 +54,17 @@ fun FluidBackground(
                 .build()
             val result = loader.execute(request)
             if (result is SuccessResult) {
-                value = result.image.toBitmap()
+                // 【终极核武修复 1】：彻底抹杀 Android 16 偷偷返回 Hardware Bitmap 的可能。
+                // 强行拷贝一份纯软件 ARGB_8888 内存图，这是唯一能让天玑 GPU 安全读取出像素而不是纯黑的方案！
+                val rawBmp = result.image.toBitmap()
+                value = rawBmp.copy(Bitmap.Config.ARGB_8888, false)
             }
         }
     }
 
     val shouldAnimate = !meshPlaying || isPlaying
 
-    // 【核心高频解耦】：利用引用相等性（!==）纪录最后一次真正送入 OpenGL 的内存切片。
-    // 只有在用户切歌或者图片确实发生变动时，才允许往 GL 线程发起 setAlbum 传输。
-    // 这将高频更新的音量（update 块）与纹理上传彻底切断解耦，彻底避免 GPU 负荷爆炸死黑。
+    // 高频解耦，防止 UI 卡死
     var lastBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     AndroidView(
@@ -85,7 +84,6 @@ fun FluidBackground(
                 lastBitmap = albumBitmap
             }
 
-            // 音量控制高频直通更新，完全不影响动态乐感跳动
             view.updateVolume(bass * volumeScale)
             view.setFlowSpeed(flowSpeed)
             view.setRenderScale(renderScale)
