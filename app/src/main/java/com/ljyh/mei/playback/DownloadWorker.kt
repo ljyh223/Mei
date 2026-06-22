@@ -33,6 +33,7 @@ import okio.source
 import timber.log.Timber
 import java.io.File
 import java.util.concurrent.TimeUnit
+import androidx.core.net.toUri
 
 class DownloadWorker(
     context: Context,
@@ -119,7 +120,7 @@ class DownloadWorker(
                 val isValid = if (existingSong.path.startsWith("content://")) {
                     try {
                         applicationContext.contentResolver.openInputStream(
-                            Uri.parse(existingSong.path)
+                            existingSong.path.toUri()
                         )?.close()
                         true
                     } catch (_: Exception) { false }
@@ -127,6 +128,24 @@ class DownloadWorker(
                     File(existingSong.path).exists()
                 }
                 if (isValid) {
+                    // tag 完整性检查（仅本地文件）
+                    if (!existingSong.path.startsWith("content://")) {
+                        val tagStatus = SongMate.checkTags(existingSong.path)
+                        if (tagStatus != null && (!tagStatus.isBasicComplete || !tagStatus.hasLyric)) {
+                            try {
+                                val lyric = if (!tagStatus.hasLyric) {
+                                    com.ljyh.mei.utils.LyricFetcher.fetchBestLyric(songId)
+                                } else null
+                                SongMate.writeTags(
+                                    task.songTitle, task.songArtist, task.songAlbum,
+                                    task.songCover, existingSong.path, lyric
+                                )
+                                Timber.tag("DownloadWorker").d("Re-wrote tags for ${task.songTitle} (missing: ${if (!tagStatus.hasTitle) "title " else ""}${if (!tagStatus.hasArtist) "artist " else ""}${if (!tagStatus.hasAlbum) "album " else ""}${if (!tagStatus.hasCover) "cover " else ""}${if (!tagStatus.hasLyric) "lyric " else ""})")
+                            } catch (e: Exception) {
+                                Timber.e(e, "Tag repair failed for ${task.songTitle}")
+                            }
+                        }
+                    }
                     updateTask(db, songId, DownloadStatus.COMPLETED, 100)
                     completedCount++
                     showNotification("正在下载 ($completedCount/$totalCount)", completedCount * 100 / totalCount)
@@ -156,9 +175,10 @@ class DownloadWorker(
                 }
                 if (success && tempFile.exists()) {
                     try {
+                        val lyric = com.ljyh.mei.utils.LyricFetcher.fetchBestLyric(songId)
                         SongMate.writeTags(
                             task.songTitle, task.songArtist, task.songAlbum,
-                            task.songCover, tempFile.absolutePath
+                            task.songCover, tempFile.absolutePath, lyric
                         )
                     } catch (e: Exception) {
                         Timber.e(e, "writeTags failed for ${task.songTitle}")

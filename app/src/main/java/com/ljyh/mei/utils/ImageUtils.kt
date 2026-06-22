@@ -18,6 +18,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
+import androidx.core.graphics.createBitmap
 
 fun String.smallImage(): String {
     if (this.startsWith("/")) return this
@@ -66,7 +67,7 @@ object ImageUtils {
         try {
             val result = httpClient.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
-                    val bytes = response.body?.bytes() ?: return@withContext null
+                    val bytes = response.body.bytes()
                     if (bytes[1].toInt() == 80) {
                         pngToJpg(bytes)
                     } else {
@@ -91,7 +92,7 @@ object ImageUtils {
             if (bitmap != null) {
                 // 创建一个空白的JPEG格式的Bitmap
                 val jpegBitmap =
-                    Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.RGB_565)
+                    createBitmap(bitmap.width, bitmap.height, Bitmap.Config.RGB_565)
 
                 // 将PNG内容绘制到JPEG Bitmap上
                 val canvas = Canvas(jpegBitmap)
