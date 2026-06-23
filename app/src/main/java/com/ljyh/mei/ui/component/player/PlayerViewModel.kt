@@ -6,6 +6,9 @@ import androidx.datastore.dataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.AppContext
+import com.ljyh.mei.constants.DownloadPathKey
+import com.ljyh.mei.constants.DownloadQualityKey
+import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
@@ -202,6 +205,55 @@ class PlayerViewModel @Inject constructor(
             val result = repository.getSongDetail(id)
             Timber.tag("songDetail").d("getSongDetail: $result")
             _songDetail.value = result
+        }
+    }
+
+    fun downloadSong(metadata: MediaMetadata, context: android.content.Context) {
+        viewModelScope.launch {
+            val quality = try {
+                val saved = AppContext.instance.dataStore[DownloadQualityKey]
+                if (saved != null) com.ljyh.mei.constants.DownloadQuality.valueOf(saved).toMusicQuality()
+                else MusicQuality.EXHIGH
+            } catch (_: Exception) {
+                MusicQuality.EXHIGH
+            }
+
+            val result = playlistRepository.getSongUrlV1(
+                ids = listOf(metadata.id.toString()),
+                quality = quality
+            )
+
+            if (result is Resource.Success) {
+                val songData = result.data.data.firstOrNull()
+                val url = songData?.url
+                if (url != null) {
+                    val downloadPath = AppContext.instance.dataStore[DownloadPathKey]
+                        ?: com.ljyh.mei.utils.DownloadManager.getDefaultDownloadPath()
+
+                    com.ljyh.mei.utils.DownloadManager.enqueue(
+                        context = context,
+                        songs = listOf(
+                            com.ljyh.mei.playback.SongDownloadInfo(
+                                songId = metadata.id.toString(),
+                                url = url,
+                                songTitle = metadata.title,
+                                songArtist = metadata.artists.map { it.name },
+                                songAlbum = metadata.album.title,
+                                songCover = metadata.coverUrl,
+                                duration = metadata.duration,
+                                fileType = songData.encodeType
+                            )
+                        ),
+                        playlistName = "单曲下载",
+                        downloadPath = downloadPath
+                    )
+                    android.widget.Toast.makeText(context, "已添加到下载队列", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "无法获取歌曲链接", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                android.widget.Toast.makeText(context, "获取链接失败", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

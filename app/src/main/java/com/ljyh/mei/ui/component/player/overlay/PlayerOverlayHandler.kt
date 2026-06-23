@@ -1,11 +1,17 @@
 package com.ljyh.mei.ui.component.player.overlay
 
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.annotation.OptIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.ljyh.mei.data.model.MediaMetadata
@@ -135,8 +141,11 @@ class PlayerOverlayHandler(
                 android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
             }
             MoreAction.DOWNLOAD -> {
-                dismiss()
-                android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
+                mediaMetadata?.let {
+                    dismiss()
+                    requestNotificationPermission()
+                    stateContainer.playerViewModel.downloadSong(it, context)
+                }
             }
             MoreAction.DELETE -> {
                 mediaMetadata?.let {
@@ -183,6 +192,22 @@ class PlayerOverlayHandler(
      */
     fun createPlaylist(name: String, privacy: Boolean) {
         stateContainer.playerViewModel.createPlaylist(name, privacy)
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!hasPermission) {
+                val activity = context as? Activity ?: return
+                ActivityCompat.requestPermissions(
+                    activity,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
     }
 }
 
