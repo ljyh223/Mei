@@ -1,8 +1,8 @@
 @file:Suppress("UnstableApiUsage")
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+//    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 
@@ -15,11 +15,11 @@ plugins {
 
 android {
     namespace = "com.ljyh.mei"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "com.ljyh.mei"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.53.1"
 
@@ -136,6 +136,7 @@ dependencies {
     implementation(libs.logging.interceptor)
     // implementation(kotlin("reflect"))
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.21")
+    ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.20")
 
 
     // 列表拖拽
