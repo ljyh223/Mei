@@ -1,112 +1,114 @@
 package com.ljyh.mei.data.model.weapi
+
 import com.google.gson.annotations.SerializedName
+
 data class Comment(
     @SerializedName("code")
     val code: Int,
     @SerializedName("data")
-    val `data`: Data1,
+    val `data`: Data1?,
     @SerializedName("message")
-    val message: String
+    val message: String?
 )
 
 data class Data1(
     @SerializedName("bottomAction")
-    val bottomAction: Any,
+    val bottomAction: Any?,
     @SerializedName("comments")
-    val comments: List<CommentX>,
+    val comments: List<CommentX>?,
     @SerializedName("commentsTitle")
-    val commentsTitle: String,
+    val commentsTitle: String?,
     @SerializedName("currentComment")
-    val currentComment: Any,
+    val currentComment: Any?,
     @SerializedName("currentCommentTitle")
-    val currentCommentTitle: String,
+    val currentCommentTitle: String?,
     @SerializedName("cursor")
-    val cursor: String,
+    val cursor: String?,
     @SerializedName("expandCount")
     val expandCount: Int,
     @SerializedName("hasMore")
     val hasMore: Boolean,
     @SerializedName("likeAnimation")
-    val likeAnimation: LikeAnimation,
+    val likeAnimation: LikeAnimation?,
     @SerializedName("newReplyExpGroupName")
-    val newReplyExpGroupName: String,
+    val newReplyExpGroupName: String?,
     @SerializedName("sortType")
     val sortType: Int,
     @SerializedName("sortTypeList")
-    val sortTypeList: List<SortType>,
+    val sortTypeList: List<SortType>?,
     @SerializedName("style")
-    val style: String,
+    val style: String?,
     @SerializedName("totalCount")
     val totalCount: Int
 )
 
 data class CommentX(
     @SerializedName("aiCommentLabel")
-    val aiCommentLabel: Any,
+    val aiCommentLabel: Any?,
     @SerializedName("airborneAction")
-    val airborneAction: Any,
+    val airborneAction: Any?,
     @SerializedName("args")
-    val args: Any,
+    val args: Any?,
     @SerializedName("beReplied")
-    val beReplied: Any,
+    val beReplied: Any?,
     @SerializedName("bottomTags")
-    val bottomTags: List<Any>,
+    val bottomTags: List<Any>?,
     @SerializedName("commentId")
     val commentId: Long,
     @SerializedName("commentLocationType")
     val commentLocationType: Int,
     @SerializedName("commentVideoVO")
-    val commentVideoVO: CommentVideoVO,
+    val commentVideoVO: CommentVideoVO?,
     @SerializedName("content")
-    val content: String,
+    val content: String?,
     @SerializedName("contentPicExt")
-    val contentPicExt: Any,
+    val contentPicExt: Any?,
     @SerializedName("contentPicNosKey")
-    val contentPicNosKey: Any,
+    val contentPicNosKey: Any?,
     @SerializedName("contentPicUrl")
-    val contentPicUrl: Any,
+    val contentPicUrl: Any?,
     @SerializedName("contentResource")
-    val contentResource: Any,
+    val contentResource: Any?,
     @SerializedName("decoration")
-    val decoration: Decoration,
+    val decoration: Decoration?,
     @SerializedName("expressionUrl")
-    val expressionUrl: Any,
+    val expressionUrl: Any?,
     @SerializedName("extInfo")
-    val extInfo: ExtInfo,
+    val extInfo: ExtInfo?,
     @SerializedName("favorited")
     val favorited: Boolean,
     @SerializedName("grade")
-    val grade: Any,
+    val grade: Any?,
     @SerializedName("hideSerialComments")
-    val hideSerialComments: Any,
+    val hideSerialComments: Any?,
     @SerializedName("hideSerialTips")
-    val hideSerialTips: Any,
+    val hideSerialTips: Any?,
     @SerializedName("highlight")
     val highlight: Boolean,
     @SerializedName("ipLocation")
-    val ipLocation: IpLocation,
+    val ipLocation: IpLocation?,
     @SerializedName("likeAnimationMap")
-    val likeAnimationMap: LikeAnimationMap,
+    val likeAnimationMap: LikeAnimationMap?,
     @SerializedName("liked")
     val liked: Boolean,
     @SerializedName("likedCount")
     val likedCount: Int,
     @SerializedName("medal")
-    val medal: Any,
+    val medal: Any?,
     @SerializedName("musicianSayAirborne")
-    val musicianSayAirborne: Any,
+    val musicianSayAirborne: Any?,
     @SerializedName("needDisplayTime")
     val needDisplayTime: Boolean,
     @SerializedName("outShowComments")
-    val outShowComments: List<Any>,
+    val outShowComments: List<Any>?,
     @SerializedName("owner")
     val owner: Boolean,
     @SerializedName("parentCommentId")
     val parentCommentId: Int,
     @SerializedName("pendantData")
-    val pendantData: PendantData,
+    val pendantData: PendantData?,
     @SerializedName("pickInfo")
-    val pickInfo: Any,
+    val pickInfo: Any?,
     @SerializedName("privacy")
     val privacy: Int,
     @SerializedName("repliedMark")
@@ -114,54 +116,54 @@ data class CommentX(
     @SerializedName("replyCount")
     val replyCount: Int,
     @SerializedName("resourceSpecialType")
-    val resourceSpecialType: Any,
+    val resourceSpecialType: Any?,
     @SerializedName("reward")
-    val reward: Any,
+    val reward: Any?,
     @SerializedName("richContent")
-    val richContent: String,
+    val richContent: String?,
     @SerializedName("showFloorComment")
-    val showFloorComment: ShowFloorComment,
+    val showFloorComment: ShowFloorComment?,
     @SerializedName("source")
-    val source: Any,
+    val source: Any?,
     @SerializedName("status")
     val status: Int,
     @SerializedName("tag")
-    val tag: Tag,
+    val tag: Tag?,
     @SerializedName("tail")
-    val tail: Any,
+    val tail: Any?,
     @SerializedName("threadId")
-    val threadId: String,
+    val threadId: String?,
     @SerializedName("time")
     val time: Long,
     @SerializedName("timeStr")
-    val timeStr: String,
+    val timeStr: String?,
     @SerializedName("topicList")
-    val topicList: Any,
+    val topicList: Any?,
     @SerializedName("track")
-    val track: String,
+    val track: String?,
     @SerializedName("user")
-    val user: User,
+    val user: User?,
     @SerializedName("userBizLevels")
-    val userBizLevels: Any,
+    val userBizLevels: Any?,
     @SerializedName("userNameplates")
-    val userNameplates: Any,
+    val userNameplates: Any?,
     @SerializedName("userTop")
     val userTop: Boolean,
     @SerializedName("voiceDurationMillSecond")
     val voiceDurationMillSecond: Int,
     @SerializedName("voiceExt")
-    val voiceExt: Any,
+    val voiceExt: Any?,
     @SerializedName("voiceNosKey")
-    val voiceNosKey: Any,
+    val voiceNosKey: Any?,
     @SerializedName("voiceWhaleId")
-    val voiceWhaleId: Any,
+    val voiceWhaleId: Any?,
     @SerializedName("wordMatchList")
-    val wordMatchList: Any
+    val wordMatchList: Any?
 )
 
 data class LikeAnimation(
     @SerializedName("animationConfigMap")
-    val animationConfigMap: AnimationConfigMap,
+    val animationConfigMap: AnimationConfigMap?,
     @SerializedName("version")
     val version: Long
 )
@@ -170,20 +172,20 @@ data class SortType(
     @SerializedName("sortType")
     val sortType: Int,
     @SerializedName("sortTypeName")
-    val sortTypeName: String,
+    val sortTypeName: String?,
     @SerializedName("target")
-    val target: String
+    val target: String?
 )
 
 data class CommentVideoVO(
     @SerializedName("allowCreation")
     val allowCreation: Boolean,
     @SerializedName("creationOrpheusUrl")
-    val creationOrpheusUrl: Any,
+    val creationOrpheusUrl: Any?,
     @SerializedName("forbidCreationText")
-    val forbidCreationText: String,
+    val forbidCreationText: String?,
     @SerializedName("playOrpheusUrl")
-    val playOrpheusUrl: Any,
+    val playOrpheusUrl: Any?,
     @SerializedName("showCreationEntrance")
     val showCreationEntrance: Boolean,
     @SerializedName("videoCount")
@@ -199,14 +201,14 @@ data class ExtInfo(
     @SerializedName("forwardEvent")
     val forwardEvent: Int,
     @SerializedName("source")
-    val source: Source
+    val source: Source?
 )
 
 data class IpLocation(
     @SerializedName("ip")
-    val ip: Any,
+    val ip: Any?,
     @SerializedName("location")
-    val location: String,
+    val location: String?,
     @SerializedName("userId")
     val userId: Long
 )
@@ -217,33 +219,33 @@ data class PendantData(
     @SerializedName("id")
     val id: Int,
     @SerializedName("imageUrl")
-    val imageUrl: String
+    val imageUrl: String?
 )
 
 data class ShowFloorComment(
     @SerializedName("comments")
-    val comments: Any,
+    val comments: Any?,
     @SerializedName("replyCount")
     val replyCount: Int,
     @SerializedName("showReplyCount")
     val showReplyCount: Boolean,
     @SerializedName("target")
-    val target: Any,
+    val target: Any?,
     @SerializedName("topCommentIds")
-    val topCommentIds: Any
+    val topCommentIds: Any?
 )
 
 data class Tag(
     @SerializedName("contentDatas")
-    val contentDatas: List<Any>,
+    val contentDatas: List<Any>?,
     @SerializedName("contentPicDatas")
-    val contentPicDatas: List<Any>,
+    val contentPicDatas: List<Any>?,
     @SerializedName("datas")
-    val datas: List<Any>,
+    val datas: List<Any>?,
     @SerializedName("extDatas")
-    val extDatas: List<Any>,
+    val extDatas: List<Any>?,
     @SerializedName("relatedCommentIds")
-    val relatedCommentIds: Any
+    val relatedCommentIds: Any?
 )
 
 data class User(
@@ -252,35 +254,35 @@ data class User(
     @SerializedName("authStatus")
     val authStatus: Int,
     @SerializedName("avatarDetail")
-    val avatarDetail: AvatarDetail,
+    val avatarDetail: AvatarDetail?,
     @SerializedName("avatarUrl")
-    val avatarUrl: String,
+    val avatarUrl: String?,
     @SerializedName("commonIdentity")
-    val commonIdentity: Any,
+    val commonIdentity: Any?,
     @SerializedName("encryptUserId")
-    val encryptUserId: String,
+    val encryptUserId: String?,
     @SerializedName("expertTags")
-    val expertTags: Any,
+    val expertTags: Any?,
     @SerializedName("experts")
-    val experts: Any,
+    val experts: Any?,
     @SerializedName("followed")
     val followed: Boolean,
     @SerializedName("isHug")
     val isHug: Boolean,
     @SerializedName("liveInfo")
-    val liveInfo: Any,
+    val liveInfo: Any?,
     @SerializedName("locationInfo")
-    val locationInfo: Any,
+    val locationInfo: Any?,
     @SerializedName("nickname")
-    val nickname: String,
+    val nickname: String?,
     @SerializedName("relationTag")
-    val relationTag: Any,
+    val relationTag: Any?,
     @SerializedName("remarkName")
-    val remarkName: Any,
+    val remarkName: Any?,
     @SerializedName("socialUserId")
-    val socialUserId: Any,
+    val socialUserId: Any?,
     @SerializedName("target")
-    val target: Any,
+    val target: Any?,
     @SerializedName("userId")
     val userId: Long,
     @SerializedName("userType")
@@ -293,43 +295,41 @@ data class User(
 
 data class Source(
     @SerializedName("iconUrl")
-    val iconUrl: Any,
+    val iconUrl: Any?,
     @SerializedName("id")
-    val id: Any,
+    val id: Any?,
     @SerializedName("keys")
-    val keys: Any,
+    val keys: Any?,
     @SerializedName("orpheus")
-    val orpheus: Any,
+    val orpheus: Any?,
     @SerializedName("text")
-    val text: Any,
+    val text: Any?,
     @SerializedName("type")
     val type: Int
 )
 
-
-
 data class VipRights(
     @SerializedName("associator")
-    val associator: Associator,
+    val associator: Associator?,
     @SerializedName("extInfo")
-    val extInfo: Any,
+    val extInfo: Any?,
     @SerializedName("memberLogo")
-    val memberLogo: Any,
+    val memberLogo: Any?,
     @SerializedName("musicPackage")
-    val musicPackage: MusicPackage,
+    val musicPackage: MusicPackage?,
     @SerializedName("redVipAnnualCount")
     val redVipAnnualCount: Int,
     @SerializedName("redVipLevel")
     val redVipLevel: Int,
     @SerializedName("redplus")
-    val redplus: Redplus,
+    val redplus: Redplus?,
     @SerializedName("relationType")
     val relationType: Int
 )
 
 data class Associator(
     @SerializedName("iconUrl")
-    val iconUrl: String,
+    val iconUrl: String?,
     @SerializedName("rights")
     val rights: Boolean,
     @SerializedName("vipCode")
@@ -338,7 +338,7 @@ data class Associator(
 
 data class MusicPackage(
     @SerializedName("iconUrl")
-    val iconUrl: String,
+    val iconUrl: String?,
     @SerializedName("rights")
     val rights: Boolean,
     @SerializedName("vipCode")
@@ -347,7 +347,7 @@ data class MusicPackage(
 
 data class Redplus(
     @SerializedName("iconUrl")
-    val iconUrl: String,
+    val iconUrl: String?,
     @SerializedName("rights")
     val rights: Boolean,
     @SerializedName("vipCode")
@@ -356,14 +356,13 @@ data class Redplus(
 
 data class AnimationConfigMap(
     @SerializedName("COMMENT_AREA")
-    val cOMMENTAREA: List<Any>,
+    val cOMMENTAREA: List<Any>?,
     @SerializedName("EVENT_FEED")
-    val eVENTFEED: List<Any>,
+    val eVENTFEED: List<Any>?,
     @SerializedName("INPUT")
-    val iNPUT: List<Any>,
+    val iNPUT: List<Any>?,
     @SerializedName("MOMENT")
-    val mOMENT: List<Any>
+    val mOMENT: List<Any>?
 )
 
-
-
+class AvatarDetail // 如果这里有内容，同样需要将里面的对象也加上?
