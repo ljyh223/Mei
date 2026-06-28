@@ -19,13 +19,10 @@ void main() {
     v_color = a_color;
     v_uv = a_uv;
     vec2 pos = a_pos;
-    
-    // 【底线保护】：绝不让 aspect 产生 NaN （除以 0），彻底避免画面几何体消失
-    float safeAspect = max(0.001, u_aspect);
-    if (safeAspect > 1.0) {
-        pos.y *= safeAspect;
+    if (u_aspect > 1.0) {
+        pos.y *= u_aspect;
     } else {
-        pos.x /= safeAspect;
+        pos.x /= u_aspect;
     }
     gl_Position = vec4(pos, 0.0, 1.0);
 }
@@ -60,7 +57,6 @@ void main() {
 
     float dither = gradientNoise(gl_FragCoord.xy) / 255.0 - 0.5 / 255.0;
 
-    // 【你的 Apple Music 炫彩流体原版灵魂算法，一字未改】
     vec2 centered = v_uv - vec2(0.2);
     vec2 rotated = rot(centered, timeVolume * 2.0);
     vec2 finalUV = rotated * max(0.001, 1.0 - volumeEffect) + vec2(0.5);
