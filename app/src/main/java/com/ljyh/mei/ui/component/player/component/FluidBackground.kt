@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.component
 
-import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -11,7 +10,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import coil3.Bitmap
+import android.graphics.Bitmap
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshLowFreqVolumeKey
 import com.ljyh.mei.constants.MeshPlayingKey
@@ -23,7 +22,6 @@ import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
 
 @Composable
 fun FluidBackground(
@@ -42,8 +40,6 @@ fun FluidBackground(
     val (volumeScale) = rememberPreference(MeshLowFreqVolumeKey, defaultValue = 0.1f)
     val (subdivision) = rememberPreference(MeshSubdivisionKey, defaultValue = 50)
 
-    // 1. 将图片加载逻辑独立出来，只负责把 Bitmap 提取出来
-    // 使用 produceState 是处理这种“异步数据转同步状态”的最佳实践
     val albumBitmap by produceState<Bitmap?>(null, imageUrl) {
         if (imageUrl.isNullOrEmpty()) {
             value = null
@@ -58,20 +54,22 @@ fun FluidBackground(
                 .build()
             val result = loader.execute(request)
             if (result is SuccessResult) {
-                value = result.image.toBitmap()
+                // 【终极核武修复 1】：彻底抹杀 Android 16 偷偷返回 Hardware Bitmap 的可能。
+                // 强行拷贝一份纯软件 ARGB_8888 内存图，这是唯一能让天玑 GPU 安全读取出像素而不是纯黑的方案！
+                val rawBmp = result.image.toBitmap()
+                value = rawBmp.copy(Bitmap.Config.ARGB_8888, false)
             }
         }
     }
 
-    // 2. 组装当前需要传递给 View 的所有状态
     val shouldAnimate = !meshPlaying || isPlaying
 
-    // 3. 去掉过于严格的版本限制 (只要设备存在就能初始化，低端机 GLES 3.0 兼容性极好)
-    // 如果你想绝对保险，可以写 >= Build.VERSION_CODES.LOLLIPOP (21)
+    // 高频解耦，防止 UI 卡死
+    var lastBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
     AndroidView(
         factory = { ctx ->
             MeshBackgroundView(ctx).apply {
-                // 初始化时的默认值
                 setFlowSpeed(flowSpeed)
                 setRenderScale(renderScale)
                 setSubdivision(subdivision)
@@ -81,8 +79,9 @@ fun FluidBackground(
             }
         },
         update = { view ->
-            albumBitmap?.let { bmp ->
-                view.setAlbum(bmp)
+            if (albumBitmap != null && albumBitmap !== lastBitmap) {
+                view.setAlbum(albumBitmap!!)
+                lastBitmap = albumBitmap
             }
 
             view.updateVolume(bass * volumeScale)
