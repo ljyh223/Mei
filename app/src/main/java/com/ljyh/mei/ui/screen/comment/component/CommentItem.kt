@@ -84,9 +84,10 @@ fun CommentItem(
                         color = MaterialTheme.colorScheme.outline
                     )
 
-                    if (comment.ipLocation.location.isNotEmpty()) {
+                    // 【修复点1】：安全调用判断，如果 ipLocation 为空或 location 为空则不显示
+                    if (!comment.ipLocation?.location.isNullOrEmpty()) {
                         Text(
-                            text = "  IP: ${comment.ipLocation.location}",
+                            text = "  IP: ${comment.ipLocation?.location}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -110,7 +111,8 @@ fun CommentItem(
                     )
                 }
 
-                val floorCount = comment.showFloorComment.replyCount
+                // 【修复点2】：安全获取楼中楼回复数量，如果为空则默认为 0
+                val floorCount = comment.showFloorComment?.replyCount ?: 0
                 if (floorCount > 0) {
                     Spacer(modifier = Modifier.height(6.dp))
                     // 3. 展开楼中楼按钮：降级到 labelSmall，并且稍微加粗使其显眼但字号不突兀
