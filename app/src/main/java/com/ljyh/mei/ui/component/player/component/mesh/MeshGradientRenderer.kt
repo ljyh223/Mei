@@ -99,12 +99,17 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-        viewWidth = width
-        viewHeight = height
-        rebuildFbo()
+        if (viewWidth != width || viewHeight != height) {
+            viewWidth = width
+            viewHeight = height
+            rebuildFbo()
+        }
     }
 
     fun rebuildFbo() {
+        // 【核心修复 1】：绝不允许在视图宽高还未初始化时（0尺寸）去强行生成非法 FBO
+        if (viewWidth <= 0 || viewHeight <= 0) return 
+        
         scaledWidth = maxOf(1, (viewWidth * renderScale).toInt())
         scaledHeight = maxOf(1, (viewHeight * renderScale).toInt())
         createFbo(scaledWidth, scaledHeight)
@@ -354,8 +359,9 @@ class MeshGradientRenderer(private val view: GLSurfaceView) : GLSurfaceView.Rend
 
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, fboTexture)
         
+        // 遵守 GLES30 规范，使用带有尺寸的内部格式 GL_RGBA8，避免部分芯片由于非标准的 GL_RGBA 导致不完整返回 0
         GLES30.glTexImage2D(
-            GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA, width, height, 0,
+            GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, width, height, 0,
             GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, null
         )
         
@@ -450,16 +456,24 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
     }
 
     fun setFlowSpeed(speed: Float) {
-        renderer.flowSpeed = speed
+        if (renderer.flowSpeed != speed) {
+            renderer.flowSpeed = speed
+        }
     }
 
     fun setRenderScale(scale: Float) {
-        renderer.renderScale = scale
-        queueEvent { renderer.rebuildFbo() }
+        // 【核心修复 2】：这是救命的一行代码！只有当缩放比例真的发生改变时，才允许毁掉重做！
+        // 彻底解决之前音乐震动 1 次就摧毁并重建 1 次底层画布导致内存暴掉、状态码归 0 的灾难！
+        if (renderer.renderScale != scale) {
+            renderer.renderScale = scale
+            queueEvent { renderer.rebuildFbo() }
+        }
     }
 
     fun setSubdivision(level: Int) {
-        renderer.subdivision = level
+        if (renderer.subdivision != level) {
+            renderer.subdivision = level
+        }
     }
 
     fun setStaticMode(enable: Boolean) {
