@@ -20,8 +20,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
@@ -113,7 +115,8 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.playback.MusicService
 import com.ljyh.mei.playback.PlayerConnection
-import com.ljyh.mei.ui.component.FloatingCapsuleBar
+import com.ljyh.mei.ui.component.FloatingCapsuleMiniPlayer
+import com.ljyh.mei.ui.component.FloatingCapsuleNavigationBar
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
@@ -409,9 +412,12 @@ class MainActivity : ComponentActivity() {
                     ) {
                         var bottom = bottomInset
                         if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
-                            if (shouldShowNavigationBar) bottom += FloatingCapsuleBottomMargin
-                            if (shouldShowNavigationBar) bottom += FloatingCapsuleNavHeight
-                            if (!playerBottomSheetState.isDismissed && shouldShowNavigationBar) bottom += FloatingCapsuleMiniPlayerHeight
+                            if (shouldShowNavigationBar) {
+                                bottom += FloatingCapsuleBottomMargin + FloatingCapsuleNavHeight
+                            }
+                            if (!playerBottomSheetState.isDismissed) {
+                                bottom += FloatingCapsuleBottomMargin + FloatingCapsuleMiniPlayerHeight
+                            }
                         } else {
                             if (shouldShowNavigationBar) bottom += NavigationBarHeight
                             if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
@@ -659,45 +665,59 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = bottomInset + FloatingCapsuleBottomMargin)
-                            ) {
-                                FloatingCapsuleBar(
-                                    showMiniPlayer = hasMedia && !playerBottomSheetState.isDismissed,
-                                    shouldShow = shouldShowNavigationBar,
-                                    playerProgress = playerProgress,
-                                    selectedRoute = navBackStackEntry?.destination?.route,
-                                    onTabSelect = { screen ->
-                                        if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                        } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        }
-                                    },
-                                    onMiniPlayerClick = { playerBottomSheetState.expandSoft() },
-                                    onPlayPause = {
-                                        pc?.let { p ->
-                                            if (playbackStateVal == Player.STATE_ENDED) {
-                                                p.player.seekTo(0, 0)
-                                                p.player.playWhenReady = true
-                                            } else {
-                                                p.player.togglePlayPause()
-                                            }
-                                        }
-                                    },
-                                    onNext = { pc?.seekToNext() },
-                                    isPlaying = isPlaying,
-                                    canSkipNext = canSkipNext,
-                                    songTitle = mediaMetadata?.title,
-                                    songArtist = mediaMetadata?.artists?.joinToString { it.name },
-                                    songCoverUrl = mediaMetadata?.coverUrl,
-                                )
+                            val showNav = shouldShowNavigationBar
+                            val showMini = hasMedia && !playerBottomSheetState.isDismissed
+                            val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
+
+                            if (showNav || showMini) {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = capsuleBottom),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (showMini) {
+                                        FloatingCapsuleMiniPlayer(
+                                            shouldShow = true,
+                                            progress = playerProgress,
+                                            isPlaying = isPlaying,
+                                            canSkipNext = canSkipNext,
+                                            title = mediaMetadata?.title,
+                                            artist = mediaMetadata?.artists?.joinToString { it.name },
+                                            coverUrl = mediaMetadata?.coverUrl,
+                                            onClick = { playerBottomSheetState.expandSoft() },
+                                            onPlayPause = {
+                                                pc?.let { p ->
+                                                    if (playbackStateVal == Player.STATE_ENDED) {
+                                                        p.player.seekTo(0, 0)
+                                                        p.player.playWhenReady = true
+                                                    } else {
+                                                        p.player.togglePlayPause()
+                                                    }
+                                                }
+                                            },
+                                            onNext = { pc?.seekToNext() },
+                                        )
+                                    }
+
+                                    if (showNav) {
+                                        FloatingCapsuleNavigationBar(
+                                            shouldShow = true,
+                                            selectedRoute = navBackStackEntry?.destination?.route,
+                                            onTabSelect = { screen ->
+                                                if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
+                                                    navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                                } else {
+                                                    navController.navigate(screen.route) {
+                                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
                             }
                         } else {
                             NavigationBar(
