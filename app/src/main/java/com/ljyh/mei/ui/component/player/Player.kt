@@ -33,6 +33,7 @@ fun BottomSheetPlayer(
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
+    hideCollapsedMiniPlayer: Boolean = false,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
@@ -63,14 +64,16 @@ fun BottomSheetPlayer(
                     state = state,
                     modifier = modifier,
                     stateContainer = stateContainer,
-                    overlayHandler = overlayHandler
+                    overlayHandler = overlayHandler,
+                    hideCollapsedMiniPlayer = hideCollapsedMiniPlayer
                 )
             }else{
                 AppleMusicPlayer(
                     state = state,
                     modifier = modifier,
                     stateContainer = stateContainer,
-                    overlayHandler = overlayHandler
+                    overlayHandler = overlayHandler,
+                    hideCollapsedMiniPlayer = hideCollapsedMiniPlayer
                 )
             }
 
@@ -80,7 +83,8 @@ fun BottomSheetPlayer(
                 state = state,
                 modifier = modifier,
                 stateContainer = stateContainer,
-                overlayHandler = overlayHandler
+                overlayHandler = overlayHandler,
+                hideCollapsedMiniPlayer = hideCollapsedMiniPlayer
             )
         }
     }

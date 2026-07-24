@@ -73,7 +73,7 @@ import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
-import com.ljyh.mei.ui.component.player.component.FullScreenImageViewer
+import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.LinearScale
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Speed
@@ -45,6 +46,8 @@ import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.LyricTextSize
+import com.ljyh.mei.constants.NavigationBarStyle
+import com.ljyh.mei.constants.NavigationBarStyleKey
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
@@ -159,6 +162,11 @@ fun AppearanceSettings(
         MeshSubdivisionKey, defaultValue = 50
     )
 
+    val (navigationBarStyle, onNavigationBarStyleChange) = rememberEnumPreference(
+        key = NavigationBarStyleKey,
+        defaultValue = NavigationBarStyle.Classic
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -192,6 +200,14 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.Palette, null) },
                 checked = dynamicTheme,
                 onCheckedChange = onDynamicThemeChange
+            )
+            PreferenceGroupTitle(title = "NAVIGATION")
+            EnumListPreference(
+                title = { Text("导航栏样式") },
+                icon = { Icon(Icons.Rounded.Menu, null) },
+                selectedValue = navigationBarStyle,
+                onValueSelected = onNavigationBarStyleChange,
+                valueText = { it.label }
             )
             PreferenceGroupTitle(
                 title = "PLAYLIST"
