@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,9 +27,11 @@ import com.ljyh.mei.constants.RecommendCardHeightTablet
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.constants.RecommendCardWidthTablet
 import com.ljyh.mei.ui.component.shimmer.ShimmerHost
-import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
-import com.ljyh.mei.ui.component.utils.DeviceInfo
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+
+private val shimmerColor @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+private val cardShape = RoundedCornerShape(8.dp)
 
 @Composable
 fun HomeShimmer() {
@@ -37,11 +39,15 @@ fun HomeShimmer() {
     val recommendCardWidth = if (device.isTablet) RecommendCardWidthTablet else RecommendCardWidth
     val recommendCardHeight = if (device.isTablet) RecommendCardHeightTablet else RecommendCardHeight
     val playlistCardSize = if (device.isTablet) PlaylistCardSizeTablet else PlaylistCardSize
+    val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
 
     ShimmerHost {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+            contentPadding = PaddingValues(
+                top = systemBarsPadding.calculateTopPadding() + 16.dp,
+                bottom = systemBarsPadding.calculateBottomPadding() + 16.dp
+            )
         ) {
             item {
                 RecommendRowShimmer(
@@ -69,10 +75,7 @@ private fun RecommendRowShimmer(
     count: Int = 3
 ) {
     Column {
-        TextPlaceholder(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            height = 20.dp
-        )
+        TitleShimmer()
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
@@ -90,20 +93,20 @@ private fun RecommendCardShimmer(
     cardHeight: androidx.compose.ui.unit.Dp
 ) {
     Column(
-        modifier = Modifier.width(cardWidth)
+        modifier = Modifier
+            .width(cardWidth)
+            .clip(cardShape)
     ) {
         Box(
             modifier = Modifier
                 .size(cardWidth, cardHeight)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.onSurface)
+                .background(shimmerColor)
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(36.dp)
-                .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
-                .background(MaterialTheme.colorScheme.onSurface)
+                .background(shimmerColor)
         )
     }
 }
@@ -114,10 +117,7 @@ private fun PlaylistBlockShimmer(
     count: Int = 4
 ) {
     Column {
-        TextPlaceholder(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            height = 20.dp
-        )
+        TitleShimmer()
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
@@ -133,22 +133,42 @@ private fun PlaylistBlockShimmer(
 private fun PlaylistCardShimmer(
     cardSize: androidx.compose.ui.unit.Dp
 ) {
-    Column(modifier = Modifier.width(cardSize)) {
+    Column(
+        modifier = Modifier
+            .width(cardSize)
+            .clip(cardShape)
+    ) {
         Box(
             modifier = Modifier
                 .size(cardSize)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.onSurface)
+                .background(shimmerColor)
         )
         Spacer(Modifier.height(8.dp))
-        TextPlaceholder(
-            modifier = Modifier.fillMaxWidth(),
-            height = 14.dp
-        )
-        Spacer(Modifier.height(4.dp))
-        TextPlaceholder(
-            modifier = Modifier.fillMaxWidth(0.6f),
-            height = 14.dp
-        )
+        Column(modifier = Modifier.padding(horizontal = 2.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(14.dp)
+                    .background(shimmerColor)
+            )
+            Spacer(Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+                    .height(14.dp)
+                    .background(shimmerColor)
+            )
+        }
     }
+}
+
+@Composable
+private fun TitleShimmer() {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .width(80.dp)
+            .height(20.dp)
+            .background(shimmerColor)
+    )
 }

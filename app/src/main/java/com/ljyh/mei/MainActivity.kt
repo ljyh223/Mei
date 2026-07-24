@@ -99,12 +99,15 @@ import com.ljyh.mei.constants.FirstLaunchKey
 import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import com.ljyh.mei.constants.NavigationBarHeight
+import com.ljyh.mei.constants.NavigationBarStyle
+import com.ljyh.mei.constants.NavigationBarStyleKey
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.playback.MusicService
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.component.FloatingCapsuleBar
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
@@ -128,6 +131,7 @@ import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.log.FileLoggingTree
 import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
+import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -183,6 +187,7 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
+            val navigationBarStyle by rememberEnumPreference(NavigationBarStyleKey, NavigationBarStyle.Classic)
             var playerConnection by remember { mutableStateOf<PlayerConnection?>(null) }
 
             var isMeasured by remember { mutableStateOf(false) }
@@ -336,9 +341,13 @@ class MainActivity : ComponentActivity() {
                                 navBackStackEntry?.destination?.route?.startsWith("search_result/") == true
                     }
 
-                    val collapsedBound = remember(shouldShowNavigationBar) {
+                    val collapsedBound = remember(shouldShowNavigationBar, navigationBarStyle) {
                         derivedStateOf {
-                            bottomInset + (if (shouldShowNavigationBar) NavigationBarHeight else 0.dp) + MiniPlayerHeight
+                            if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
+                                bottomInset + MiniPlayerHeight
+                            } else {
+                                bottomInset + (if (shouldShowNavigationBar) NavigationBarHeight else 0.dp) + MiniPlayerHeight
+                            }
                         }
                     }
 
@@ -371,9 +380,6 @@ class MainActivity : ComponentActivity() {
                         active = newActive
                         if (!newActive) {
                             focusManager.clearFocus()
-                            if (navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
-                                onQueryChange(TextFieldValue())
-                            }
                         }
                     }
 
@@ -390,11 +396,16 @@ class MainActivity : ComponentActivity() {
                     val playerAwareWindowInsets = remember(
                         bottomInset,
                         shouldShowNavigationBar,
-                        playerBottomSheetState.isDismissed
+                        playerBottomSheetState.isDismissed,
+                        navigationBarStyle
                     ) {
                         var bottom = bottomInset
-                        if (shouldShowNavigationBar) bottom += NavigationBarHeight
-                        if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                        if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
+                            if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                        } else {
+                            if (shouldShowNavigationBar) bottom += NavigationBarHeight
+                            if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                        }
                         windowsInsets
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                             .add(WindowInsets(top = AppBarHeight, bottom = bottom))
@@ -436,6 +447,9 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(navBackStackEntry) {
                         searchBarScrollBehavior.state.resetHeightOffset()
                         topAppBarScrollBehavior.state.resetHeightOffset()
+                        if (navBackStackEntry?.destination?.route in topLevelScreens && !active) {
+                            onQueryChange(TextFieldValue())
+                        }
                     }
                     LaunchedEffect(active) {
                         if (active) {
@@ -590,6 +604,7 @@ class MainActivity : ComponentActivity() {
                                     query = query.text,
                                     onQueryChange = onQueryChange,
                                     onSearch = { query, type ->
+                                        onActiveChange(false)
                                         Screen.SearchResult.navigate(navController){
                                             addPath(query)
                                             addPath(type.toString())
