@@ -112,10 +112,11 @@ fun CommonSongListScreen(
                             exit = fadeOut()
                         ) {
                             Text(
-                                text = uiData.title,
+                                text = uiData.title.let { title ->
+                                    if (title.length > 6) title.take(6) + "…" else title
+                                },
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                // 确保标题文字在深色背景下可见，或者跟随主题
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -176,6 +177,7 @@ fun CommonSongListScreen(
                                 pagingItems = pagingItems,
                                 staticTracks = uiData.tracks,
                                 isTablet = true,
+                                lazyListState = lazyListState,
                                 onTrackClick = onTrackClick,
                                 onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
                                 onTrackDownload = onTrackDownload
@@ -186,6 +188,7 @@ fun CommonSongListScreen(
                             pagingItems = pagingItems,
                             staticTracks = uiData.tracks,
                             isTablet = false,
+                            lazyListState = lazyListState,
                             // 关键：把 Header 作为参数传进去
                             headerContent = {
                                 PlaylistHeader(

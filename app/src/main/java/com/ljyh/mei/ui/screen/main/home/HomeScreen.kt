@@ -157,7 +157,7 @@ fun HomeScreen(
                 }
 
                 Resource.Loading -> {
-                    // 这里可以加 Loading Skeleton
+                    HomeShimmer()
                 }
             }
         }
