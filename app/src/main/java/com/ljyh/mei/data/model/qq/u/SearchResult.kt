@@ -3,19 +3,19 @@ import com.google.gson.annotations.SerializedName
 
 data class SearchResult(
     @SerializedName("code")
-    val code: Int,
+    val code: Long,
     @SerializedName("ts")
     val ts: Long,
     @SerializedName("start_ts")
     val startTs: Long,
     @SerializedName("traceid")
     val traceid: String,
-    @SerializedName("req_0")
-    val req0: Req0
+    @SerializedName("request")
+    val request: Request
 ) {
-    data class Req0(
+    data class Request(
         @SerializedName("code")
-        val code: Int,
+        val code: Long,
         @SerializedName("data")
         val `data`: Data
     ) {
@@ -23,113 +23,327 @@ data class SearchResult(
             @SerializedName("body")
             val body: Body,
             @SerializedName("code")
-            val code: Int,
+            val code: Long,
             @SerializedName("feedbackURL")
             val feedbackURL: String,
             @SerializedName("meta")
             val meta: Meta,
             @SerializedName("ver")
-            val ver: Int
+            val ver: Long
         ) {
             data class Body(
-                @SerializedName("album")
-                val album: Album,
+                @SerializedName("direct_group")
+                val directGroup: DirectGroup,
                 @SerializedName("gedantip")
                 val gedantip: Gedantip,
-                @SerializedName("mv")
-                val mv: Mv,
+                @SerializedName("head")
+                val head: String,
+                @SerializedName("item_album")
+                val itemAlbum: List<Any?>,
+                @SerializedName("item_audio")
+                val itemAudio: List<Any?>,
+                @SerializedName("item_mv")
+                val itemMv: List<Any?>,
+                @SerializedName("item_song")
+                val itemSong: List<ItemSong>,
+                @SerializedName("item_songlist")
+                val itemSonglist: List<Any?>,
+                @SerializedName("multi_extern_info")
+                val multiExternInfo: MultiExternInfo,
                 @SerializedName("qc")
-                val qc: List<Any>,
+                val qc: List<Any?>,
+                @SerializedName("showMore")
+                val showMore: Long,
+                @SerializedName("showMoreText")
+                val showMoreText: String,
+                @SerializedName("showMoreUrl")
+                val showMoreUrl: String,
                 @SerializedName("singer")
-                val singer: Singer,
-                @SerializedName("song")
-                val song: Song,
-                @SerializedName("songlist")
-                val songlist: Songlist,
-                @SerializedName("user")
-                val user: User,
-                @SerializedName("zhida")
-                val zhida: Zhida
+                val singer: List<Any?>,
+                @SerializedName("subtab_infos")
+                val subtabInfos: List<Any?>
             ) {
-                data class Album(
-                    @SerializedName("list")
-                    val list: List<Any>
-                )
+                data class DirectGroup(
+                    @SerializedName("extra_info")
+                    val extraInfo: ExtraInfo,
+                    @SerializedName("lateral_list")
+                    val lateralList: List<Any?>,
+                    @SerializedName("region")
+                    val region: String,
+                    @SerializedName("show_pattern")
+                    val showPattern: Long,
+                    @SerializedName("title")
+                    val title: String,
+                    @SerializedName("vertical_list")
+                    val verticalList: List<Any?>
+                ) {
+                    data class ExtraInfo(
+                        @SerializedName("content")
+                        val content: String,
+                        @SerializedName("search_ext")
+                        val searchExt: String,
+                        @SerializedName("tjreport")
+                        val tjreport: String
+                    )
+                }
 
                 data class Gedantip(
                     @SerializedName("tab")
-                    val tab: Int,
+                    val tab: Long,
                     @SerializedName("tip")
                     val tip: String
                 )
 
-                data class Mv(
-                    @SerializedName("list")
-                    val list: List<Any>
-                )
-
-                data class Singer(
-                    @SerializedName("list")
-                    val list: List<Any>
-                )
-
-                data class Song(
-                    @SerializedName("list")
-                    val list: List<S>
+                data class ItemSong(
+                    @SerializedName("act")
+                    val act: Long,
+                    @SerializedName("action")
+                    val action: Action,
+                    @SerializedName("album")
+                    val album: Album,
+                    @SerializedName("author")
+                    val author: String,
+                    @SerializedName("bpm")
+                    val bpm: Long,
+                    @SerializedName("content")
+                    val content: String,
+                    @SerializedName("custom_data")
+                    val customData: String,
+                    @SerializedName("data_type")
+                    val dataType: Long,
+                    @SerializedName("desc")
+                    val desc: String,
+                    @SerializedName("docid")
+                    val docid: String,
+                    @SerializedName("eq")
+                    val eq: Long,
+                    @SerializedName("es")
+                    val es: String,
+                    @SerializedName("file")
+                    val `file`: File,
+                    @SerializedName("fnote")
+                    val fnote: Long,
+                    @SerializedName("genre")
+                    val genre: Long,
+                    @SerializedName("grp")
+                    val grp: List<Grp>,
+                    @SerializedName("hotness_desc")
+                    val hotnessDesc: String,
+                    @SerializedName("href3")
+                    val href3: String,
+                    @SerializedName("id")
+                    val id: Long,
+                    @SerializedName("index_album")
+                    val indexAlbum: Long,
+                    @SerializedName("index_cd")
+                    val indexCd: Long,
+                    @SerializedName("interval")
+                    val interval: Long,
+                    @SerializedName("isonly")
+                    val isonly: Long,
+                    @SerializedName("ksong")
+                    val ksong: Ksong,
+                    @SerializedName("label")
+                    val label: String,
+                    @SerializedName("language")
+                    val language: Long,
+                    @SerializedName("lyric")
+                    val lyric: String,
+                    @SerializedName("mid")
+                    val mid: String,
+                    @SerializedName("mv")
+                    val mv: Mv,
+                    @SerializedName("name")
+                    val name: String,
+                    @SerializedName("newStatus")
+                    val newStatus: Long,
+                    @SerializedName("ov")
+                    val ov: Long,
+                    @SerializedName("pay")
+                    val pay: Pay,
+                    @SerializedName("protect")
+                    val protect: Long,
+                    @SerializedName("sa")
+                    val sa: Long,
+                    @SerializedName("search_title")
+                    val searchTitle: String,
+                    @SerializedName("singer")
+                    val singer: List<Singer>,
+                    @SerializedName("status")
+                    val status: Long,
+                    @SerializedName("subtitle")
+                    val subtitle: String,
+                    @SerializedName("tag")
+                    val tag: Long,
+                    @SerializedName("tid")
+                    val tid: Long,
+                    @SerializedName("time_public")
+                    val timePublic: String,
+                    @SerializedName("title")
+                    val title: String,
+                    @SerializedName("title_extra")
+                    val titleExtra: String,
+                    @SerializedName("title_main")
+                    val titleMain: String,
+                    @SerializedName("type")
+                    val type: Long,
+                    @SerializedName("url")
+                    val url: String,
+                    @SerializedName("vec_hotness")
+                    val vecHotness: List<Any?>,
+                    @SerializedName("version")
+                    val version: Long,
+                    @SerializedName("volume")
+                    val volume: Volume,
+                    @SerializedName("vs")
+                    val vs: List<String>
                 ) {
-                    data class S(
+                    data class Action(
+                        @SerializedName("alert")
+                        val alert: Long,
+                        @SerializedName("icon2")
+                        val icon2: Long,
+                        @SerializedName("icons")
+                        val icons: Long,
+                        @SerializedName("msgdown")
+                        val msgdown: Long,
+                        @SerializedName("msgfav")
+                        val msgfav: Long,
+                        @SerializedName("msgid")
+                        val msgid: Long,
+                        @SerializedName("msgpay")
+                        val msgpay: Long,
+                        @SerializedName("msgshare")
+                        val msgshare: Long,
+                        @SerializedName("switch")
+                        val switch: Long,
+                        @SerializedName("switch2")
+                        val switch2: Long
+                    )
+
+                    data class Album(
+                        @SerializedName("id")
+                        val id: Long,
+                        @SerializedName("mid")
+                        val mid: String,
+                        @SerializedName("name")
+                        val name: String,
+                        @SerializedName("pmid")
+                        val pmid: String,
+                        @SerializedName("subtitle")
+                        val subtitle: String,
+                        @SerializedName("time_public")
+                        val timePublic: String,
+                        @SerializedName("title")
+                        val title: String
+                    )
+
+                    data class File(
+                        @SerializedName("b_30s")
+                        val b30s: Long,
+                        @SerializedName("e_30s")
+                        val e30s: Long,
+                        @SerializedName("hires_bitdepth")
+                        val hiresBitdepth: Long,
+                        @SerializedName("hires_sample")
+                        val hiresSample: Long,
+                        @SerializedName("media_mid")
+                        val mediaMid: String,
+                        @SerializedName("size_128mp3")
+                        val size128mp3: Long,
+                        @SerializedName("size_192aac")
+                        val size192aac: Long,
+                        @SerializedName("size_192ogg")
+                        val size192ogg: Long,
+                        @SerializedName("size_24aac")
+                        val size24aac: Long,
+                        @SerializedName("size_320mp3")
+                        val size320mp3: Long,
+                        @SerializedName("size_360ra")
+                        val size360ra: List<Any?>,
+                        @SerializedName("size_48aac")
+                        val size48aac: Long,
+                        @SerializedName("size_96aac")
+                        val size96aac: Long,
+                        @SerializedName("size_96ogg")
+                        val size96ogg: Long,
+                        @SerializedName("size_ape")
+                        val sizeApe: Long,
+                        @SerializedName("size_dolby")
+                        val sizeDolby: Long,
+                        @SerializedName("size_dts")
+                        val sizeDts: Long,
+                        @SerializedName("size_flac")
+                        val sizeFlac: Long,
+                        @SerializedName("size_hires")
+                        val sizeHires: Long,
+                        @SerializedName("size_new")
+                        val sizeNew: List<Long>,
+                        @SerializedName("size_try")
+                        val sizeTry: Long,
+                        @SerializedName("try_begin")
+                        val tryBegin: Long,
+                        @SerializedName("try_end")
+                        val tryEnd: Long,
+                        @SerializedName("url")
+                        val url: String
+                    )
+
+                    data class Grp(
                         @SerializedName("act")
-                        val act: Int,
+                        val act: Long,
                         @SerializedName("action")
                         val action: Action,
                         @SerializedName("album")
                         val album: Album,
+                        @SerializedName("author")
+                        val author: String,
                         @SerializedName("bpm")
-                        val bpm: Int,
+                        val bpm: Long,
                         @SerializedName("content")
                         val content: String,
+                        @SerializedName("custom_data")
+                        val customData: String,
+                        @SerializedName("data_type")
+                        val dataType: Long,
                         @SerializedName("desc")
                         val desc: String,
-                        @SerializedName("desc_hilight")
-                        val descHilight: String,
                         @SerializedName("docid")
                         val docid: String,
                         @SerializedName("eq")
-                        val eq: Int,
+                        val eq: Long,
                         @SerializedName("es")
                         val es: String,
                         @SerializedName("file")
                         val `file`: File,
                         @SerializedName("fnote")
-                        val fnote: Int,
+                        val fnote: Long,
                         @SerializedName("genre")
-                        val genre: Int,
+                        val genre: Long,
                         @SerializedName("grp")
-                        val grp: List<Grp>,
-                        @SerializedName("hotness")
-                        val hotness: Hotness,
+                        val grp: List<Any?>,
+                        @SerializedName("hotness_desc")
+                        val hotnessDesc: String,
                         @SerializedName("href3")
                         val href3: String,
                         @SerializedName("id")
                         val id: Long,
                         @SerializedName("index_album")
-                        val indexAlbum: Int,
+                        val indexAlbum: Long,
                         @SerializedName("index_cd")
-                        val indexCd: Int,
+                        val indexCd: Long,
                         @SerializedName("interval")
                         val interval: Long,
                         @SerializedName("isonly")
-                        val isonly: Int,
+                        val isonly: Long,
                         @SerializedName("ksong")
                         val ksong: Ksong,
                         @SerializedName("label")
                         val label: String,
                         @SerializedName("language")
-                        val language: Int,
+                        val language: Long,
                         @SerializedName("lyric")
                         val lyric: String,
-                        @SerializedName("lyric_hilight")
-                        val lyricHilight: String,
                         @SerializedName("mid")
                         val mid: String,
                         @SerializedName("mv")
@@ -137,41 +351,43 @@ data class SearchResult(
                         @SerializedName("name")
                         val name: String,
                         @SerializedName("newStatus")
-                        val newStatus: Int,
+                        val newStatus: Long,
                         @SerializedName("ov")
-                        val ov: Int,
+                        val ov: Long,
                         @SerializedName("pay")
                         val pay: Pay,
                         @SerializedName("protect")
-                        val protect: Int,
+                        val protect: Long,
                         @SerializedName("sa")
-                        val sa: Int,
+                        val sa: Long,
+                        @SerializedName("search_title")
+                        val searchTitle: String,
                         @SerializedName("singer")
                         val singer: List<Singer>,
                         @SerializedName("status")
-                        val status: Int,
+                        val status: Long,
                         @SerializedName("subtitle")
                         val subtitle: String,
                         @SerializedName("tag")
-                        val tag: Int,
+                        val tag: Long,
                         @SerializedName("tid")
-                        val tid: Int,
+                        val tid: Long,
                         @SerializedName("time_public")
                         val timePublic: String,
                         @SerializedName("title")
                         val title: String,
-                        @SerializedName("title_hilight")
-                        val titleHilight: String,
+                        @SerializedName("title_extra")
+                        val titleExtra: String,
+                        @SerializedName("title_main")
+                        val titleMain: String,
                         @SerializedName("type")
-                        val type: Int,
+                        val type: Long,
                         @SerializedName("url")
                         val url: String,
+                        @SerializedName("vec_hotness")
+                        val vecHotness: List<Any?>,
                         @SerializedName("version")
-                        val version: Int,
-                        @SerializedName("vf")
-                        val vf: List<Double>,
-                        @SerializedName("vi")
-                        val vi: List<Int>,
+                        val version: Long,
                         @SerializedName("volume")
                         val volume: Volume,
                         @SerializedName("vs")
@@ -179,30 +395,30 @@ data class SearchResult(
                     ) {
                         data class Action(
                             @SerializedName("alert")
-                            val alert: Int,
+                            val alert: Long,
                             @SerializedName("icon2")
                             val icon2: Long,
                             @SerializedName("icons")
-                            val icons: Int,
+                            val icons: Long,
                             @SerializedName("msgdown")
-                            val msgdown: Int,
+                            val msgdown: Long,
                             @SerializedName("msgfav")
-                            val msgfav: Int,
+                            val msgfav: Long,
                             @SerializedName("msgid")
-                            val msgid: Int,
+                            val msgid: Long,
                             @SerializedName("msgpay")
-                            val msgpay: Int,
+                            val msgpay: Long,
                             @SerializedName("msgshare")
-                            val msgshare: Int,
+                            val msgshare: Long,
                             @SerializedName("switch")
-                            val switch: Int,
+                            val switch: Long,
                             @SerializedName("switch2")
-                            val switch2: Any
+                            val switch2: Long
                         )
 
                         data class Album(
                             @SerializedName("id")
-                            val id: Int,
+                            val id: Long,
                             @SerializedName("mid")
                             val mid: String,
                             @SerializedName("name")
@@ -219,342 +435,65 @@ data class SearchResult(
 
                         data class File(
                             @SerializedName("b_30s")
-                            val b30s: Int,
+                            val b30s: Long,
                             @SerializedName("e_30s")
-                            val e30s: Int,
+                            val e30s: Long,
                             @SerializedName("hires_bitdepth")
-                            val hiresBitdepth: Int,
+                            val hiresBitdepth: Long,
                             @SerializedName("hires_sample")
-                            val hiresSample: Int,
+                            val hiresSample: Long,
                             @SerializedName("media_mid")
                             val mediaMid: String,
                             @SerializedName("size_128mp3")
-                            val size128mp3: Int,
+                            val size128mp3: Long,
                             @SerializedName("size_192aac")
-                            val size192aac: Int,
+                            val size192aac: Long,
                             @SerializedName("size_192ogg")
-                            val size192ogg: Int,
+                            val size192ogg: Long,
                             @SerializedName("size_24aac")
-                            val size24aac: Int,
+                            val size24aac: Long,
                             @SerializedName("size_320mp3")
-                            val size320mp3: Int,
+                            val size320mp3: Long,
                             @SerializedName("size_360ra")
-                            val size360ra: List<Any>,
+                            val size360ra: List<Any?>,
                             @SerializedName("size_48aac")
-                            val size48aac: Int,
+                            val size48aac: Long,
                             @SerializedName("size_96aac")
-                            val size96aac: Int,
+                            val size96aac: Long,
                             @SerializedName("size_96ogg")
-                            val size96ogg: Int,
+                            val size96ogg: Long,
                             @SerializedName("size_ape")
-                            val sizeApe: Int,
+                            val sizeApe: Long,
                             @SerializedName("size_dolby")
-                            val sizeDolby: Int,
+                            val sizeDolby: Long,
                             @SerializedName("size_dts")
-                            val sizeDts: Int,
+                            val sizeDts: Long,
                             @SerializedName("size_flac")
-                            val sizeFlac: Int,
+                            val sizeFlac: Long,
                             @SerializedName("size_hires")
-                            val sizeHires: Int,
+                            val sizeHires: Long,
                             @SerializedName("size_new")
-                            val sizeNew: List<Int>,
+                            val sizeNew: List<Long>,
                             @SerializedName("size_try")
-                            val sizeTry: Int,
+                            val sizeTry: Long,
                             @SerializedName("try_begin")
-                            val tryBegin: Int,
+                            val tryBegin: Long,
                             @SerializedName("try_end")
-                            val tryEnd: Int,
+                            val tryEnd: Long,
                             @SerializedName("url")
                             val url: String
                         )
 
-                        data class Grp(
-                            @SerializedName("act")
-                            val act: Int,
-                            @SerializedName("action")
-                            val action: Action,
-                            @SerializedName("album")
-                            val album: Album,
-                            @SerializedName("bpm")
-                            val bpm: Int,
-                            @SerializedName("content")
-                            val content: String,
-                            @SerializedName("desc")
-                            val desc: String,
-                            @SerializedName("desc_hilight")
-                            val descHilight: String,
-                            @SerializedName("docid")
-                            val docid: String,
-                            @SerializedName("eq")
-                            val eq: Int,
-                            @SerializedName("es")
-                            val es: String,
-                            @SerializedName("file")
-                            val `file`: File,
-                            @SerializedName("fnote")
-                            val fnote: Int,
-                            @SerializedName("genre")
-                            val genre: Int,
-                            @SerializedName("grp")
-                            val grp: List<Any>,
-                            @SerializedName("hotness")
-                            val hotness: Hotness,
-                            @SerializedName("href3")
-                            val href3: String,
-                            @SerializedName("id")
-                            val id: Int,
-                            @SerializedName("index_album")
-                            val indexAlbum: Int,
-                            @SerializedName("index_cd")
-                            val indexCd: Int,
-                            @SerializedName("interval")
-                            val interval: Int,
-                            @SerializedName("isonly")
-                            val isonly: Int,
-                            @SerializedName("ksong")
-                            val ksong: Ksong,
-                            @SerializedName("label")
-                            val label: String,
-                            @SerializedName("language")
-                            val language: Int,
-                            @SerializedName("lyric")
-                            val lyric: String,
-                            @SerializedName("lyric_hilight")
-                            val lyricHilight: String,
-                            @SerializedName("mid")
-                            val mid: String,
-                            @SerializedName("mv")
-                            val mv: Mv,
-                            @SerializedName("name")
-                            val name: String,
-                            @SerializedName("newStatus")
-                            val newStatus: Int,
-                            @SerializedName("ov")
-                            val ov: Int,
-                            @SerializedName("pay")
-                            val pay: Pay,
-                            @SerializedName("protect")
-                            val protect: Int,
-                            @SerializedName("sa")
-                            val sa: Int,
-                            @SerializedName("singer")
-                            val singer: List<Singer>,
-                            @SerializedName("status")
-                            val status: Int,
-                            @SerializedName("subtitle")
-                            val subtitle: String,
-                            @SerializedName("tag")
-                            val tag: Int,
-                            @SerializedName("tid")
-                            val tid: Int,
-                            @SerializedName("time_public")
-                            val timePublic: String,
-                            @SerializedName("title")
-                            val title: String,
-                            @SerializedName("title_hilight")
-                            val titleHilight: String,
-                            @SerializedName("type")
-                            val type: Int,
-                            @SerializedName("url")
-                            val url: String,
-                            @SerializedName("version")
-                            val version: Int,
-                            @SerializedName("vf")
-                            val vf: List<Double>,
-                            @SerializedName("vi")
-                            val vi: List<Int>,
-                            @SerializedName("volume")
-                            val volume: Volume,
-                            @SerializedName("vs")
-                            val vs: List<String>
-                        ) {
-                            data class Action(
-                                @SerializedName("alert")
-                                val alert: Int,
-                                @SerializedName("icon2")
-                                val icon2: Long,
-                                @SerializedName("icons")
-                                val icons: Int,
-                                @SerializedName("msgdown")
-                                val msgdown: Int,
-                                @SerializedName("msgfav")
-                                val msgfav: Int,
-                                @SerializedName("msgid")
-                                val msgid: Int,
-                                @SerializedName("msgpay")
-                                val msgpay: Int,
-                                @SerializedName("msgshare")
-                                val msgshare: Int,
-                                @SerializedName("switch")
-                                val switch: Int,
-                                @SerializedName("switch2")
-                                val switch2: Int
-                            )
-
-                            data class Album(
-                                @SerializedName("id")
-                                val id: Int,
-                                @SerializedName("mid")
-                                val mid: String,
-                                @SerializedName("name")
-                                val name: String,
-                                @SerializedName("pmid")
-                                val pmid: String,
-                                @SerializedName("subtitle")
-                                val subtitle: String,
-                                @SerializedName("time_public")
-                                val timePublic: String,
-                                @SerializedName("title")
-                                val title: String
-                            )
-
-                            data class File(
-                                @SerializedName("b_30s")
-                                val b30s: Int,
-                                @SerializedName("e_30s")
-                                val e30s: Int,
-                                @SerializedName("hires_bitdepth")
-                                val hiresBitdepth: Int,
-                                @SerializedName("hires_sample")
-                                val hiresSample: Int,
-                                @SerializedName("media_mid")
-                                val mediaMid: String,
-                                @SerializedName("size_128mp3")
-                                val size128mp3: Int,
-                                @SerializedName("size_192aac")
-                                val size192aac: Int,
-                                @SerializedName("size_192ogg")
-                                val size192ogg: Int,
-                                @SerializedName("size_24aac")
-                                val size24aac: Int,
-                                @SerializedName("size_320mp3")
-                                val size320mp3: Int,
-                                @SerializedName("size_360ra")
-                                val size360ra: List<Any>,
-                                @SerializedName("size_48aac")
-                                val size48aac: Int,
-                                @SerializedName("size_96aac")
-                                val size96aac: Int,
-                                @SerializedName("size_96ogg")
-                                val size96ogg: Int,
-                                @SerializedName("size_ape")
-                                val sizeApe: Int,
-                                @SerializedName("size_dolby")
-                                val sizeDolby: Int,
-                                @SerializedName("size_dts")
-                                val sizeDts: Int,
-                                @SerializedName("size_flac")
-                                val sizeFlac: Int,
-                                @SerializedName("size_hires")
-                                val sizeHires: Int,
-                                @SerializedName("size_new")
-                                val sizeNew: List<Int>,
-                                @SerializedName("size_try")
-                                val sizeTry: Int,
-                                @SerializedName("try_begin")
-                                val tryBegin: Int,
-                                @SerializedName("try_end")
-                                val tryEnd: Int,
-                                @SerializedName("url")
-                                val url: String
-                            )
-
-                            data class Hotness(
-                                @SerializedName("desc")
-                                val desc: String,
-                                @SerializedName("icon_url")
-                                val iconUrl: String,
-                                @SerializedName("jump_type")
-                                val jumpType: Int,
-                                @SerializedName("jump_url")
-                                val jumpUrl: String
-                            )
-
-                            data class Ksong(
-                                @SerializedName("id")
-                                val id: Int,
-                                @SerializedName("mid")
-                                val mid: String
-                            )
-
-                            data class Mv(
-                                @SerializedName("id")
-                                val id: Int,
-                                @SerializedName("name")
-                                val name: String,
-                                @SerializedName("title")
-                                val title: String,
-                                @SerializedName("vid")
-                                val vid: String,
-                                @SerializedName("vt")
-                                val vt: Int
-                            )
-
-                            data class Pay(
-                                @SerializedName("pay_down")
-                                val payDown: Int,
-                                @SerializedName("pay_month")
-                                val payMonth: Int,
-                                @SerializedName("pay_play")
-                                val payPlay: Int,
-                                @SerializedName("pay_status")
-                                val payStatus: Int,
-                                @SerializedName("price_album")
-                                val priceAlbum: Int,
-                                @SerializedName("price_track")
-                                val priceTrack: Int,
-                                @SerializedName("time_free")
-                                val timeFree: Int
-                            )
-
-                            data class Singer(
-                                @SerializedName("id")
-                                val id: Int,
-                                @SerializedName("mid")
-                                val mid: String,
-                                @SerializedName("name")
-                                val name: String,
-                                @SerializedName("pmid")
-                                val pmid: String,
-                                @SerializedName("title")
-                                val title: String,
-                                @SerializedName("type")
-                                val type: Int,
-                                @SerializedName("uin")
-                                val uin: Long
-                            )
-
-                            data class Volume(
-                                @SerializedName("gain")
-                                val gain: Double,
-                                @SerializedName("lra")
-                                val lra: Double,
-                                @SerializedName("peak")
-                                val peak: Double
-                            )
-                        }
-
-                        data class Hotness(
-                            @SerializedName("desc")
-                            val desc: String,
-                            @SerializedName("icon_url")
-                            val iconUrl: String,
-                            @SerializedName("jump_type")
-                            val jumpType: Int,
-                            @SerializedName("jump_url")
-                            val jumpUrl: String
-                        )
-
                         data class Ksong(
                             @SerializedName("id")
-                            val id: Int,
+                            val id: Long,
                             @SerializedName("mid")
                             val mid: String
                         )
 
                         data class Mv(
                             @SerializedName("id")
-                            val id: Int,
+                            val id: Long,
                             @SerializedName("name")
                             val name: String,
                             @SerializedName("title")
@@ -562,29 +501,29 @@ data class SearchResult(
                             @SerializedName("vid")
                             val vid: String,
                             @SerializedName("vt")
-                            val vt: Int
+                            val vt: Long
                         )
 
                         data class Pay(
                             @SerializedName("pay_down")
-                            val payDown: Int,
+                            val payDown: Long,
                             @SerializedName("pay_month")
-                            val payMonth: Int,
+                            val payMonth: Long,
                             @SerializedName("pay_play")
-                            val payPlay: Int,
+                            val payPlay: Long,
                             @SerializedName("pay_status")
-                            val payStatus: Int,
+                            val payStatus: Long,
                             @SerializedName("price_album")
-                            val priceAlbum: Int,
+                            val priceAlbum: Long,
                             @SerializedName("price_track")
-                            val priceTrack: Int,
+                            val priceTrack: Long,
                             @SerializedName("time_free")
-                            val timeFree: Int
+                            val timeFree: Long
                         )
 
                         data class Singer(
                             @SerializedName("id")
-                            val id: Int,
+                            val id: Long,
                             @SerializedName("mid")
                             val mid: String,
                             @SerializedName("name")
@@ -594,7 +533,7 @@ data class SearchResult(
                             @SerializedName("title")
                             val title: String,
                             @SerializedName("type")
-                            val type: Int,
+                            val type: Long,
                             @SerializedName("uin")
                             val uin: Long
                         )
@@ -608,155 +547,122 @@ data class SearchResult(
                             val peak: Double
                         )
                     }
-                }
 
-                data class Songlist(
-                    @SerializedName("list")
-                    val list: List<Any>
-                )
-
-                data class User(
-                    @SerializedName("list")
-                    val list: List<Any>
-                )
-
-                data class Zhida(
-                    @SerializedName("list")
-                    val list: List<Z>
-                ) {
-                    data class Z(
-                        @SerializedName("album_list")
-                        val albumList: AlbumList,
-                        @SerializedName("custom_info")
-                        val customInfo: CustomInfo,
-                        @SerializedName("desciption")
-                        val desciption: String,
-                        @SerializedName("docid")
-                        val docid: String,
+                    data class Ksong(
                         @SerializedName("id")
-                        val id: String,
-                        @SerializedName("jumpurl")
-                        val jumpurl: String,
+                        val id: Long,
                         @SerializedName("mid")
-                        val mid: String,
-                        @SerializedName("pic")
-                        val pic: String,
-                        @SerializedName("publish_date")
-                        val publishDate: String,
+                        val mid: String
+                    )
+
+                    data class Mv(
+                        @SerializedName("id")
+                        val id: Long,
+                        @SerializedName("name")
+                        val name: String,
                         @SerializedName("title")
                         val title: String,
-                        @SerializedName("track_list")
-                        val trackList: TrackList,
-                        @SerializedName("type")
-                        val type: Int,
                         @SerializedName("vid")
                         val vid: String,
-                        @SerializedName("video_type")
-                        val videoType: Int
-                    ) {
-                        data class AlbumList(
-                            @SerializedName("items")
-                            val items: List<Item>
-                        ) {
-                            data class Item(
-                                @SerializedName("id")
-                                val id: Int,
-                                @SerializedName("mid")
-                                val mid: String,
-                                @SerializedName("name")
-                                val name: String
-                            )
-                        }
+                        @SerializedName("vt")
+                        val vt: Long
+                    )
 
-                        data class CustomInfo(
-                            @SerializedName("album_num")
-                            val albumNum: String,
-                            @SerializedName("extra_desc")
-                            val extraDesc: String,
-                            @SerializedName("from")
-                            val from: String,
-                            @SerializedName("grade")
-                            val grade: String,
-                            @SerializedName("icon_type")
-                            val iconType: String,
-                            @SerializedName("icon_type2")
-                            val iconType2: String,
-                            @SerializedName("icon_type2_schema")
-                            val iconType2Schema: String,
-                            @SerializedName("is_follow")
-                            val isFollow: String,
-                            @SerializedName("mid")
-                            val mid: String,
-                            @SerializedName("mv_num")
-                            val mvNum: String,
-                            @SerializedName("one_line_desc")
-                            val oneLineDesc: String,
-                            @SerializedName("parent_ids")
-                            val parentIds: String,
-                            @SerializedName("play_list")
-                            val playList: String,
-                            @SerializedName("pos")
-                            val pos: String,
-                            @SerializedName("search_history")
-                            val searchHistory: String,
-                            @SerializedName("song_num")
-                            val songNum: String,
-                            @SerializedName("tab_id")
-                            val tabId: String
-                        )
+                    data class Pay(
+                        @SerializedName("pay_down")
+                        val payDown: Long,
+                        @SerializedName("pay_month")
+                        val payMonth: Long,
+                        @SerializedName("pay_play")
+                        val payPlay: Long,
+                        @SerializedName("pay_status")
+                        val payStatus: Long,
+                        @SerializedName("price_album")
+                        val priceAlbum: Long,
+                        @SerializedName("price_track")
+                        val priceTrack: Long,
+                        @SerializedName("time_free")
+                        val timeFree: Long
+                    )
 
-                        data class TrackList(
-                            @SerializedName("items")
-                            val items: List<Item>
-                        ) {
-                            data class Item(
-                                @SerializedName("id")
-                                val id: Int,
-                                @SerializedName("mid")
-                                val mid: String,
-                                @SerializedName("name")
-                                val name: String
-                            )
-                        }
-                    }
+                    data class Singer(
+                        @SerializedName("id")
+                        val id: Long,
+                        @SerializedName("mid")
+                        val mid: String,
+                        @SerializedName("name")
+                        val name: String,
+                        @SerializedName("pmid")
+                        val pmid: String,
+                        @SerializedName("title")
+                        val title: String,
+                        @SerializedName("type")
+                        val type: Long,
+                        @SerializedName("uin")
+                        val uin: Long
+                    )
+
+                    data class Volume(
+                        @SerializedName("gain")
+                        val gain: Double,
+                        @SerializedName("lra")
+                        val lra: Double,
+                        @SerializedName("peak")
+                        val peak: Double
+                    )
                 }
+
+                data class MultiExternInfo(
+                    @SerializedName("is_show")
+                    val isShow: Long,
+                    @SerializedName("restype")
+                    val restype: String,
+                    @SerializedName("selectors")
+                    val selectors: List<Any?>,
+                    @SerializedName("show_num")
+                    val showNum: Long,
+                    @SerializedName("show_rows")
+                    val showRows: Long,
+                    @SerializedName("style")
+                    val style: Long
+                )
             }
 
             data class Meta(
                 @SerializedName("cid")
                 val cid: String,
                 @SerializedName("curpage")
-                val curpage: Int,
+                val curpage: Long,
                 @SerializedName("dir")
                 val dir: String,
                 @SerializedName("display_order")
-                val displayOrder: List<Any>,
+                val displayOrder: List<Any?>,
                 @SerializedName("ein")
-                val ein: Int,
+                val ein: Long,
                 @SerializedName("estimate_sum")
-                val estimateSum: Int,
+                val estimateSum: Long,
                 @SerializedName("expid")
                 val expid: String,
                 @SerializedName("feedbackPlaceId")
                 val feedbackPlaceId: String,
                 @SerializedName("is_filter")
-                val isFilter: Int,
+                val isFilter: Long,
                 @SerializedName("next_page_start")
-                val nextPageStart: NextPageStart,
+                val nextPageStart: Map<String, Any>,
                 @SerializedName("nextpage")
-                val nextpage: Int,
+                val nextpage: Long,
                 @SerializedName("perpage")
-                val perpage: Int,
+                val perpage: Long,
                 @SerializedName("query")
                 val query: String,
                 @SerializedName("report_info")
                 val reportInfo: ReportInfo,
                 @SerializedName("result_trustworthy")
-                val resultTrustworthy: Int,
+                val resultTrustworthy: Long,
                 @SerializedName("ret")
-                val ret: Int,
+                val ret: Long,
                 @SerializedName("safetyType")
-                val safetyType: Int,
+                val safetyType: Long,
                 @SerializedName("safetyUrl")
                 val safetyUrl: String,
                 @SerializedName("searchid")
@@ -764,28 +670,22 @@ data class SearchResult(
                 @SerializedName("sid")
                 val sid: String,
                 @SerializedName("sin")
-                val sin: Int,
+                val sin: Long,
                 @SerializedName("step_rela_syntax_tree")
-                val stepRelaSyntaxTree: StepRelaSyntaxTree,
+                val stepRelaSyntaxTree: Map<String, Any>,
                 @SerializedName("sum")
-                val sum: Int,
+                val sum: Long,
                 @SerializedName("tab_list")
-                val tabList: List<Any>,
+                val tabList: List<Any?>,
                 @SerializedName("uid")
                 val uid: String,
                 @SerializedName("v")
-                val v: Int
+                val v: Long
             ) {
-                class NextPageStart
-
                 data class ReportInfo(
                     @SerializedName("items")
-                    val items: Items
-                ) {
-                    class Items
-                }
-
-                class StepRelaSyntaxTree
+                    val items: Map<String, Any>
+                )
             }
         }
     }

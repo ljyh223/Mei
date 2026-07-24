@@ -9,7 +9,6 @@ import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.qq.u.GetLyricData
 import com.ljyh.mei.data.model.qq.u.GetSearchData
-import com.ljyh.mei.data.model.qq.u.GetSearchData.Comm1
 import com.ljyh.mei.data.model.qq.u.LyricResult
 import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.weapi.Like
@@ -40,7 +39,7 @@ class PlayerRepository(
             safeApiCall {
                 qqMusicUApiService.search(
                     GetSearchData(
-                        comm = Comm1(),
+                        comm = GetSearchData.Comm(),
                         req = GetSearchData.Req(param = GetSearchData.Req.Param(query = keyword))
                     )
                 )

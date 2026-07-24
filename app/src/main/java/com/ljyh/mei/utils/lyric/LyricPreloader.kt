@@ -144,7 +144,7 @@ class LyricPreloader @Inject constructor(
      */
     private suspend fun searchSilent(
         metadata: MediaMetadata
-    ): SearchResult.Req0.Data.Body.Song.S? {
+    ): SearchResult.Request.Data.Body.ItemSong? {
         val currentDurationSec = metadata.duration / 1000
         val artistName = metadata.artists.firstOrNull()?.name ?: ""
         val title = metadata.title
@@ -174,10 +174,10 @@ class LyricPreloader @Inject constructor(
     private suspend fun trySearchSilent(
         keyword: String,
         targetDurationSec: Long
-    ): SearchResult.Req0.Data.Body.Song.S? {
+    ): SearchResult.Request.Data.Body.ItemSong? {
         val result = repository.searchNew(keyword)
         if (result !is Resource.Success) return null
-        val songs = result.data.req0.data.body.song.list
+        val songs = result.data.request.data.body.itemSong
         return songs.take(5).firstOrNull { song ->
             abs(targetDurationSec - song.interval) <= 5
         }

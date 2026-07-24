@@ -129,7 +129,7 @@ class PlayerViewModel @Inject constructor(
         lyricManager.searchQQSong(keyword)
     }
 
-    fun selectQQSong(song: SearchResult.Req0.Data.Body.Song.S) {
+    fun selectQQSong(song: SearchResult.Request.Data.Body.ItemSong) {
         lyricManager.selectQQSongForLyric(mediaMetadata ?: return, song)
     }
 

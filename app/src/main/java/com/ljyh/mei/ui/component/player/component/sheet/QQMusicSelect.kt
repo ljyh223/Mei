@@ -87,7 +87,7 @@ fun QQMusicSelectSheet(
                 }
 
                 is Resource.Success -> {
-                    val songs = result.data.req0.data.body.song.list
+                    val songs = result.data.request.data.body.itemSong
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -151,7 +151,7 @@ private fun CurrentReferenceHeader(title: String, artist: String, duration: Long
 
 @Composable
 private fun OptimizedSongItem(
-    song: SearchResult.Req0.Data.Body.Song.S,
+    song: SearchResult.Request.Data.Body.ItemSong,
     targetDuration: Long,
     targetTitle: String,
     onClick: () -> Unit

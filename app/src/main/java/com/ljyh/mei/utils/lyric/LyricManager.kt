@@ -223,7 +223,7 @@ class LyricManager @Inject constructor(
      *
      * @return 匹配到的 QQ 歌曲，未匹配到返回 null
      */
-    private suspend fun searchAndMatchBest(metadata: MediaMetadata): SearchResult.Req0.Data.Body.Song.S? {
+    private suspend fun searchAndMatchBest(metadata: MediaMetadata): SearchResult.Request.Data.Body.ItemSong? {
         val currentDurationSec = metadata.duration / 1000
         val artistName = metadata.artists.firstOrNull()?.name ?: ""
         val title = metadata.title
@@ -290,11 +290,11 @@ class LyricManager @Inject constructor(
     private suspend fun trySearchMatch(
         keyword: String,
         targetDurationSec: Long
-    ): SearchResult.Req0.Data.Body.Song.S? {
+    ): SearchResult.Request.Data.Body.ItemSong? {
         val result = repository.searchNew(keyword)
         trySearchLastResult = result
         if (result !is Resource.Success) return null
-        val songs = result.data.req0.data.body.song.list
+        val songs = result.data.request.data.body.itemSong
         return songs.take(5).firstOrNull { song ->
             abs(targetDurationSec - song.interval) <= 5
         }
@@ -576,7 +576,7 @@ class LyricManager @Inject constructor(
      *
      * 插入 QQSong 映射到 Room，然后拉取歌词。
      */
-    fun selectQQSongForLyric(metadata: MediaMetadata, song: SearchResult.Req0.Data.Body.Song.S) {
+    fun selectQQSongForLyric(metadata: MediaMetadata, song: SearchResult.Request.Data.Body.ItemSong) {
         scope.launch {
             val qqSong = QQSong(
                 id = metadata.id.toString(),
