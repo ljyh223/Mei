@@ -79,6 +79,7 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             _playlistDetail.value = Resource.Loading
             _playlistDetail.value = repository.getPlaylistDetail(id)
+            localPlaylistRepository.touchPlaylist(id, System.currentTimeMillis())
         }
     }
 
@@ -139,6 +140,7 @@ class PlaylistViewModel @Inject constructor(
                 when (val result = userRepository.getUserPlaylist(userId, 100)) {
                     is Resource.Success -> {
                         val playlistsToInsert = result.data.playlist.map {
+                            val existing = localPlaylistRepository.getPlaylist(it.id.toString())
                             Playlist(
                                 id = it.id.toString(),
                                 title = it.name,
@@ -146,7 +148,10 @@ class PlaylistViewModel @Inject constructor(
                                 author = it.creator.userId.toString(),
                                 authorName = it.creator.nickname,
                                 authorAvatar = it.creator.avatarUrl,
-                                count = it.trackCount
+                                count = it.trackCount,
+                                playCount = it.playCount,
+                                lastPlayTime = existing?.lastPlayTime ?: 0L,
+                                localPlayCount = existing?.localPlayCount ?: 0
                             )
                         }
                         localPlaylistRepository.insertPlaylists(playlistsToInsert)

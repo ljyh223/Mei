@@ -26,4 +26,7 @@ interface PlaylistDao {
 
     @Query("DELETE FROM playlist where id=:id")
     suspend fun deletePlaylistById(id: String)
+
+    @Query("UPDATE playlist SET lastPlayTime = :timestamp, localPlayCount = localPlayCount + 1 WHERE id = :id")
+    suspend fun touchPlaylist(id: String, timestamp: Long)
 }

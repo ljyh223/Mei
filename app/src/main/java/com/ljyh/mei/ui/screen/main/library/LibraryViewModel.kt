@@ -72,7 +72,10 @@ class LibraryViewModel @Inject constructor(
             _networkPlaylistsState.value = Resource.Loading
             when (val networkResult = repository.getUserPlaylist(uid, limit)) {
                 is Resource.Success -> {
+                    val existingPlaylists = localPlaylistRepository.getPlaylistByAuthor(uid) 
+                    val existingMap = existingPlaylists.associateBy { it.id }
                     val playlistsToInsert = networkResult.data.playlist.map {
+                        val existing = existingMap[it.id.toString()]
                         Playlist(
                             id = it.id.toString(),
                             title = it.name,
@@ -80,7 +83,10 @@ class LibraryViewModel @Inject constructor(
                             author = it.creator.userId.toString(),
                             authorName = it.creator.nickname,
                             authorAvatar = it.creator.avatarUrl,
-                            count = it.trackCount
+                            count = it.trackCount,
+                            playCount = it.playCount,
+                            lastPlayTime = existing?.lastPlayTime ?: 0L,
+                            localPlayCount = existing?.localPlayCount ?: 0
                         )
                     }
                     localPlaylistRepository.insertPlaylists(playlistsToInsert)

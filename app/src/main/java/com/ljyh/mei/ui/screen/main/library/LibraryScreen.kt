@@ -24,6 +24,7 @@ import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
+import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
@@ -61,7 +62,14 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
 
     val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
         if (userId.isEmpty()) Pair(emptyList(), emptyList())
-        else localPlaylists.partition { it.author == userId }
+        else {
+            val (created, collected) = localPlaylists.partition { it.author == userId }
+            val now = System.currentTimeMillis()
+            Pair(
+                created.sortedByDescending { it.sortScore(created.maxOf { p -> p.localPlayCount }, created.maxOf { p -> p.playCount }, now) },
+                collected.sortedByDescending { it.sortScore(collected.maxOf { p -> p.localPlayCount }, collected.maxOf { p -> p.playCount }, now) }
+            )
+        }
     }
 
     // --- 数据同步逻辑 ---
