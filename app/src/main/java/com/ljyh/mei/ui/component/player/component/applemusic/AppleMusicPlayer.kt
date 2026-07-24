@@ -21,6 +21,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -71,6 +73,7 @@ import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
+import com.ljyh.mei.ui.component.player.component.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
@@ -93,6 +96,7 @@ fun AppleMusicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
+    hideCollapsedMiniPlayer: Boolean = false,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -101,6 +105,7 @@ fun AppleMusicPlayer(
 
     // --- Apple Music 特定状态 ---
     var showLyrics by remember { mutableStateOf(false) }
+    var showFullImage by remember { mutableStateOf(false) }
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
@@ -219,10 +224,12 @@ fun AppleMusicPlayer(
                 }
             },
             collapsedContent = {
-                MiniPlayer(
-                    position = sliderPosition.toLong(),
-                    duration = duration,
-                )
+                if (!hideCollapsedMiniPlayer) {
+                    MiniPlayer(
+                        position = sliderPosition.toLong(),
+                        duration = duration,
+                    )
+                }
             }
         ) {
             val coverUrl = mediaMetadata?.coverUrl
@@ -442,13 +449,20 @@ fun AppleMusicPlayer(
                     width = with(density) { finalSize.toDp() },
                     height = with(density) { finalSize.toDp() }
                 )
-                .clickable {
-                    if (!state.isExpanded) {
-                        state.expandSoft()
-                    } else {
-                        showLyrics = !showLyrics
+                .combinedClickable(
+                    onClick = {
+                        if (!state.isExpanded) {
+                            state.expandSoft()
+                        } else {
+                            showLyrics = !showLyrics
+                        }
+                    },
+                    onLongClick = {
+                        if (state.isExpanded) {
+                            showFullImage = true
+                        }
                     }
-                }
+                )
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) { currentMetadata ->
             if (currentMetadata != null) {
@@ -466,6 +480,13 @@ fun AppleMusicPlayer(
             } else {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
             }
+        }
+
+        if (showFullImage && mediaMetadata?.coverUrl != null) {
+            FullScreenImageViewer(
+                imageUrl = mediaMetadata!!.coverUrl,
+                onDismiss = { showFullImage = false }
+            )
         }
     }
 }
