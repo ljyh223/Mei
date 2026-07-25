@@ -672,9 +672,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            val showNav = shouldShowNavigationBarCapsule && !playerBottomSheetState.isExpanded
+                            val showNav = shouldShowNavigationBarCapsule
                             val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
-                            val playerExpandProgress = playerBottomSheetState.progress.coerceIn(0f, 1f)
                             val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
 
                             Column(
@@ -686,7 +685,6 @@ class MainActivity : ComponentActivity() {
                                 FloatingCapsuleMiniPlayer(
                                     shouldShow = showMini,
                                     progress = playerProgress,
-                                    hideProgress = playerExpandProgress,
                                     isPlaying = isPlaying,
                                     canSkipNext = canSkipNext,
                                     title = mediaMetadata?.title,
@@ -708,7 +706,6 @@ class MainActivity : ComponentActivity() {
 
                                 FloatingCapsuleNavigationBar(
                                     shouldShow = showNav,
-                                    hideProgress = playerExpandProgress,
                                     selectedRoute = navBackStackEntry?.destination?.route,
                                     onTabSelect = { screen ->
                                         if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {

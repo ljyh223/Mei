@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -52,7 +51,6 @@ private val CapsuleCornerRadius = 24.dp
 @Composable
 fun FloatingCapsuleNavigationBar(
     shouldShow: Boolean,
-    hideProgress: Float = 0f,
     selectedRoute: String?,
     onTabSelect: (Index) -> Unit,
     modifier: Modifier = Modifier,
@@ -63,17 +61,15 @@ fun FloatingCapsuleNavigationBar(
         label = "navCapsule"
     )
 
-    if (visibleHeight <= 0.dp && hideProgress >= 1f) return
+    if (visibleHeight <= 0.dp) return
 
     val hideOffset = FloatingCapsuleNavHeight - visibleHeight
-    val expandSlide = (FloatingCapsuleNavHeight + 8.dp) * hideProgress
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = CapsuleHorizontalPadding)
-            .offset { IntOffset(0, (hideOffset + expandSlide).roundToPx()) }
-            .graphicsLayer { alpha = (1f - hideProgress).coerceIn(0f, 1f) },
+            .offset { IntOffset(0, hideOffset.roundToPx()) },
         shape = RoundedCornerShape(CapsuleCornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
         tonalElevation = 2.dp,
@@ -124,7 +120,6 @@ fun FloatingCapsuleNavigationBar(
 @Composable
 fun FloatingCapsuleMiniPlayer(
     shouldShow: Boolean,
-    hideProgress: Float = 0f,
     progress: Float,
     isPlaying: Boolean,
     canSkipNext: Boolean,
@@ -142,17 +137,15 @@ fun FloatingCapsuleMiniPlayer(
         label = "miniPlayerCapsule"
     )
 
-    if (visibleHeight <= 0.dp && hideProgress >= 1f) return
+    if (visibleHeight <= 0.dp) return
 
     val hideOffset = FloatingCapsuleMiniPlayerHeight - visibleHeight
-    val expandSlide = (FloatingCapsuleMiniPlayerHeight + 8.dp) * hideProgress
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = CapsuleHorizontalPadding)
-            .offset { IntOffset(0, (hideOffset + expandSlide).roundToPx()) }
-            .graphicsLayer { alpha = (1f - hideProgress).coerceIn(0f, 1f) },
+            .offset { IntOffset(0, hideOffset.roundToPx()) },
         shape = RoundedCornerShape(CapsuleCornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
         tonalElevation = 2.dp,
