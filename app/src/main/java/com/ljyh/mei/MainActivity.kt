@@ -666,52 +666,58 @@ class MainActivity : ComponentActivity() {
                             }
 
                             val showNav = shouldShowNavigationBar
-                            val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
+                            val showMini = hasMedia && !playerBottomSheetState.isDismissed
                             val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
 
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = capsuleBottom),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FloatingCapsuleMiniPlayer(
-                                    shouldShow = showMini,
-                                    progress = playerProgress,
-                                    isPlaying = isPlaying,
-                                    canSkipNext = canSkipNext,
-                                    title = mediaMetadata?.title,
-                                    artist = mediaMetadata?.artists?.joinToString { it.name },
-                                    coverUrl = mediaMetadata?.coverUrl,
-                                    onClick = { playerBottomSheetState.expandSoft() },
-                                    onPlayPause = {
-                                        pc?.let { p ->
-                                            if (playbackStateVal == Player.STATE_ENDED) {
-                                                p.player.seekTo(0, 0)
-                                                p.player.playWhenReady = true
-                                            } else {
-                                                p.player.togglePlayPause()
-                                            }
-                                        }
-                                    },
-                                    onNext = { pc?.seekToNext() },
-                                )
+                            if (showNav || showMini) {
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = capsuleBottom),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (showMini) {
+                                        FloatingCapsuleMiniPlayer(
+                                            shouldShow = true,
+                                            progress = playerProgress,
+                                            isPlaying = isPlaying,
+                                            canSkipNext = canSkipNext,
+                                            title = mediaMetadata?.title,
+                                            artist = mediaMetadata?.artists?.joinToString { it.name },
+                                            coverUrl = mediaMetadata?.coverUrl,
+                                            onClick = { playerBottomSheetState.expandSoft() },
+                                            onPlayPause = {
+                                                pc?.let { p ->
+                                                    if (playbackStateVal == Player.STATE_ENDED) {
+                                                        p.player.seekTo(0, 0)
+                                                        p.player.playWhenReady = true
+                                                    } else {
+                                                        p.player.togglePlayPause()
+                                                    }
+                                                }
+                                            },
+                                            onNext = { pc?.seekToNext() },
+                                        )
+                                    }
 
-                                FloatingCapsuleNavigationBar(
-                                    shouldShow = showNav,
-                                    selectedRoute = navBackStackEntry?.destination?.route,
-                                    onTabSelect = { screen ->
-                                        if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                        } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        }
-                                    },
-                                )
+                                    if (showNav) {
+                                        FloatingCapsuleNavigationBar(
+                                            shouldShow = true,
+                                            selectedRoute = navBackStackEntry?.destination?.route,
+                                            onTabSelect = { screen ->
+                                                if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
+                                                    navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                                } else {
+                                                    navController.navigate(screen.route) {
+                                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
                             }
                         } else {
                             NavigationBar(
