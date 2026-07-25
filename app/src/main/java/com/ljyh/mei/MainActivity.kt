@@ -344,12 +344,6 @@ class MainActivity : ComponentActivity() {
                                 navigationBarVisible
                     }
 
-                    val shouldShowNavigationBarCapsule = remember(navBackStackEntry, active) {
-                        (navBackStackEntry?.destination?.route == null ||
-                                navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) &&
-                                !active
-                    }
-
 
 
                     val searchBarFocusRequester = remember { FocusRequester() }
@@ -413,13 +407,12 @@ class MainActivity : ComponentActivity() {
                     val playerAwareWindowInsets = remember(
                         bottomInset,
                         shouldShowNavigationBar,
-                        shouldShowNavigationBarCapsule,
                         playerBottomSheetState.isDismissed,
                         navigationBarStyle
                     ) {
                         var bottom = bottomInset
                         if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
-                            if (shouldShowNavigationBarCapsule) {
+                            if (shouldShowNavigationBar) {
                                 bottom += FloatingCapsuleBottomMargin + FloatingCapsuleNavHeight
                             }
                             if (!playerBottomSheetState.isDismissed) {
@@ -672,7 +665,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
-                            val showNav = shouldShowNavigationBarCapsule
+                            val showNav = shouldShowNavigationBar
                             val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
                             val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
 
