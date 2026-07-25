@@ -119,8 +119,6 @@ import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -577,21 +575,6 @@ class MainActivity : ComponentActivity() {
                         val mediaMetadata = mediaMetadataState?.value
                         val playbackStateVal = playbackStateState?.value ?: Player.STATE_IDLE
                         val hasMedia = pc?.player?.currentMediaItem != null
-                        var playerProgress by remember { mutableStateOf(0f) }
-
-                        LaunchedEffect(pc, isPlaying) {
-                            val p = pc?.player ?: return@LaunchedEffect
-                            if (isPlaying) {
-                                while (isActive) {
-                                    val dur = p.duration.coerceAtLeast(1L)
-                                    playerProgress = p.currentPosition.toFloat() / dur
-                                    delay(200L)
-                                }
-                            } else {
-                                val dur = p.duration.coerceAtLeast(1L)
-                                playerProgress = p.currentPosition.toFloat() / dur
-                            }
-                        }
 
                         val showNav = shouldShowNavigationBar && !playerBottomSheetState.isExpanded
                         val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
@@ -600,7 +583,6 @@ class MainActivity : ComponentActivity() {
 
                         FloatingCapsuleMiniPlayer(
                             shouldShow = showMini,
-                            progress = playerProgress,
                             hideProgress = playerExpandProgress,
                             isPlaying = isPlaying,
                             canSkipNext = canSkipNext,
