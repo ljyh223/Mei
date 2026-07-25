@@ -17,11 +17,10 @@ val PlaylistCardSpacing = 20.dp
 val PlaylistCardSize = 120.dp
 val PlaylistCardSizeTablet = 170.dp
 
-val NavigationBarHeight = 80.dp
-val MiniPlayerHeight = 64.dp
 val FloatingCapsuleBottomMargin = 12.dp
 val FloatingCapsuleNavHeight = 56.dp
 val FloatingCapsuleMiniPlayerHeight = 52.dp
+val FloatingCapsuleHorizontalPadding = 16.dp
 val QueuePeekHeight = 64.dp
 val AppBarHeight = 64.dp
 
@@ -41,6 +40,7 @@ val CommonImageRadius = 8.dp
 val ThumbnailCornerRadius = 6.dp
 
 val NavigationBarAnimationSpec = spring<Dp>(stiffness = Spring.StiffnessMediumLow)
+val NavigationBarAnimationFloatSpec = spring<Float>(stiffness = Spring.StiffnessMediumLow)
 
 const val UserAgent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"
 const val AndroidUserAgent = "Mozilla/5.0 (Linux; Android 10; Mi A3 Build/QQ3A.200705.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/143.0.7499.34 Mobile Safari/537.36 NeteaseMusic/9.4.32.251222163637"

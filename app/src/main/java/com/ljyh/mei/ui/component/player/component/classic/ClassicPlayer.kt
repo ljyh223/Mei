@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
@@ -36,7 +35,6 @@ fun ClassicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
-    hideCollapsedMiniPlayer: Boolean = false,
 ) {
 
     val device = rememberDeviceInfo()
@@ -78,12 +76,6 @@ fun ClassicPlayer(
             }
         },
         collapsedContent = {
-            if (!hideCollapsedMiniPlayer) {
-                MiniPlayer(
-                    position = sliderPosition.toLong(),
-                    duration = duration,
-                )
-            }
         }
     ) {
 

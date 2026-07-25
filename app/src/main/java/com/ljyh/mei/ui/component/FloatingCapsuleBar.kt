@@ -1,6 +1,6 @@
 package com.ljyh.mei.ui.component
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -38,16 +39,17 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.ljyh.mei.constants.FloatingCapsuleHorizontalPadding
 import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
 import com.ljyh.mei.constants.FloatingCapsuleNavHeight
-import com.ljyh.mei.constants.NavigationBarAnimationSpec
+import com.ljyh.mei.constants.NavigationBarAnimationFloatSpec
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.utils.smallImage
 import kotlin.math.roundToInt
 
-private val CapsuleHorizontalPadding = 16.dp
 private val CapsuleCornerRadius = 24.dp
+private val CapsuleExtraSlide = 16.dp
 
 @Composable
 fun FloatingCapsuleNavigationBar(
@@ -57,23 +59,25 @@ fun FloatingCapsuleNavigationBar(
     onTabSelect: (Index) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val visibleHeight by animateDpAsState(
-        targetValue = if (shouldShow) FloatingCapsuleNavHeight else 0.dp,
-        animationSpec = NavigationBarAnimationSpec,
+    val visibleProgress by animateFloatAsState(
+        targetValue = if (shouldShow) 1f else 0f,
+        animationSpec = NavigationBarAnimationFloatSpec,
         label = "navCapsule"
     )
 
-    if (visibleHeight <= 0.dp && hideProgress >= 1f) return
+    if (visibleProgress <= 0f && hideProgress >= 1f) return
 
-    val hideOffset = FloatingCapsuleNavHeight - visibleHeight
-    val expandSlide = (FloatingCapsuleNavHeight + 8.dp) * hideProgress
+    val slideOffset = (FloatingCapsuleNavHeight + CapsuleExtraSlide) * (1f - visibleProgress) +
+            (FloatingCapsuleNavHeight + 8.dp) * hideProgress
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = CapsuleHorizontalPadding)
-            .offset { IntOffset(0, (hideOffset + expandSlide).roundToPx()) }
-            .graphicsLayer { alpha = (1f - hideProgress).coerceIn(0f, 1f) },
+            .padding(horizontal = FloatingCapsuleHorizontalPadding)
+            .offset { IntOffset(0, slideOffset.roundToPx()) }
+            .graphicsLayer {
+                alpha = ((1f - hideProgress) * visibleProgress).coerceIn(0f, 1f)
+            },
         shape = RoundedCornerShape(CapsuleCornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
         tonalElevation = 2.dp,
@@ -136,23 +140,26 @@ fun FloatingCapsuleMiniPlayer(
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val visibleHeight by animateDpAsState(
-        targetValue = if (shouldShow) FloatingCapsuleMiniPlayerHeight else 0.dp,
-        animationSpec = NavigationBarAnimationSpec,
+    val visibleProgress by animateFloatAsState(
+        targetValue = if (shouldShow) 1f else 0f,
+        animationSpec = NavigationBarAnimationFloatSpec,
         label = "miniPlayerCapsule"
     )
 
-    if (visibleHeight <= 0.dp && hideProgress >= 1f) return
+    if (visibleProgress <= 0f && hideProgress >= 1f) return
 
-    val hideOffset = FloatingCapsuleMiniPlayerHeight - visibleHeight
-    val expandSlide = (FloatingCapsuleMiniPlayerHeight + 8.dp) * hideProgress
+    val slideOffset = (FloatingCapsuleMiniPlayerHeight + CapsuleExtraSlide) * (1f - visibleProgress) +
+            (FloatingCapsuleMiniPlayerHeight + 8.dp) * hideProgress
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = CapsuleHorizontalPadding)
-            .offset { IntOffset(0, (hideOffset + expandSlide).roundToPx()) }
-            .graphicsLayer { alpha = (1f - hideProgress).coerceIn(0f, 1f) },
+            .padding(horizontal = FloatingCapsuleHorizontalPadding)
+            .offset { IntOffset(0, slideOffset.roundToPx()) }
+            .graphicsLayer {
+                val hideAlpha = if (hideProgress < 0.5f) 1f else ((1f - hideProgress) * 2f).coerceIn(0f, 1f)
+                alpha = (hideAlpha * visibleProgress).coerceIn(0f, 1f)
+            },
         shape = RoundedCornerShape(CapsuleCornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
         tonalElevation = 2.dp,

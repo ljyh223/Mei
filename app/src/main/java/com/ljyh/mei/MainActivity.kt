@@ -7,28 +7,23 @@ import android.content.ServiceConnection
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
@@ -42,11 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -54,7 +45,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -62,22 +52,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
-import androidx.compose.ui.util.fastForEach
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -103,11 +85,6 @@ import com.ljyh.mei.constants.FirstLaunchKey
 import com.ljyh.mei.constants.FloatingCapsuleBottomMargin
 import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
 import com.ljyh.mei.constants.FloatingCapsuleNavHeight
-import com.ljyh.mei.constants.MiniPlayerHeight
-import com.ljyh.mei.constants.NavigationBarAnimationSpec
-import com.ljyh.mei.constants.NavigationBarHeight
-import com.ljyh.mei.constants.NavigationBarStyle
-import com.ljyh.mei.constants.NavigationBarStyleKey
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.extensions.togglePlayPause
@@ -128,7 +105,6 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.local.LocalUserData
-import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
@@ -140,14 +116,12 @@ import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.log.FileLoggingTree
 import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
-import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import timber.log.Timber
@@ -198,7 +172,6 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
-            val navigationBarStyle by rememberEnumPreference(NavigationBarStyleKey, NavigationBarStyle.Classic)
             var playerConnection by remember { mutableStateOf<PlayerConnection?>(null) }
 
             var isMeasured by remember { mutableStateOf(false) }
@@ -282,32 +255,6 @@ class MainActivity : ComponentActivity() {
                 }
 
             }
-            var navigationBarVisible by remember { mutableStateOf(true) }
-            val nestedScrollConnection = remember {
-                object : NestedScrollConnection {
-
-                    override fun onPreScroll(
-                        available: Offset,
-                        source: NestedScrollSource
-                    ): Offset {
-
-                        if (available.y < -10f) {
-                            // 向下滑
-                            navigationBarVisible = false
-                        }
-
-                        if (available.y > 10f) {
-                            // 向上滑
-                            navigationBarVisible = true
-                        }
-
-                        return Offset.Zero
-                    }
-                }
-            }
-
-
-
             MusicTheme(
                 seedColor = targetThemeColor,
                 isDark = isSystemInDarkTheme()
@@ -316,7 +263,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surface)
-                        .nestedScroll(nestedScrollConnection)
                         .onSizeChanged {
                             isMeasured = true
                         }
@@ -337,14 +283,7 @@ class MainActivity : ComponentActivity() {
                     val navigationItems = remember { Screen.MainScreens }
 
 
-                    val shouldShowNavigationBar = remember(navBackStackEntry, active, navigationBarVisible) {
-                        (navBackStackEntry?.destination?.route == null ||
-                                navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) &&
-                                !active &&
-                                navigationBarVisible
-                    }
-
-                    val shouldShowNavigationBarCapsule = remember(navBackStackEntry, active) {
+                    val shouldShowNavigationBar = remember(navBackStackEntry, active) {
                         (navBackStackEntry?.destination?.route == null ||
                                 navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) &&
                                 !active
@@ -358,13 +297,9 @@ class MainActivity : ComponentActivity() {
                                 navBackStackEntry?.destination?.route?.startsWith("search_result/") == true
                     }
 
-                    val collapsedBound = remember(shouldShowNavigationBar, navigationBarStyle) {
+                    val collapsedBound = remember(bottomInset) {
                         derivedStateOf {
-                            if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
-                                bottomInset
-                            } else {
-                                bottomInset + (if (shouldShowNavigationBar) NavigationBarHeight else 0.dp) + MiniPlayerHeight
-                            }
+                            bottomInset + FloatingCapsuleBottomMargin + FloatingCapsuleMiniPlayerHeight
                         }
                     }
 
@@ -372,11 +307,6 @@ class MainActivity : ComponentActivity() {
                         dismissedBound = 0.dp,
                         collapsedBound = collapsedBound.value,
                         expandedBound = maxHeight,
-                    )
-                    val navigationBarHeight by animateDpAsState(
-                        targetValue = if (shouldShowNavigationBar) NavigationBarHeight else 0.dp,
-                        animationSpec = NavigationBarAnimationSpec,
-                        label = ""
                     )
                     val searchBarScrollBehavior = appBarScrollBehavior(
                         canScroll = {
@@ -413,21 +343,14 @@ class MainActivity : ComponentActivity() {
                     val playerAwareWindowInsets = remember(
                         bottomInset,
                         shouldShowNavigationBar,
-                        shouldShowNavigationBarCapsule,
-                        playerBottomSheetState.isDismissed,
-                        navigationBarStyle
+                        playerBottomSheetState.isDismissed
                     ) {
                         var bottom = bottomInset
-                        if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
-                            if (shouldShowNavigationBarCapsule) {
-                                bottom += FloatingCapsuleBottomMargin + FloatingCapsuleNavHeight
-                            }
-                            if (!playerBottomSheetState.isDismissed) {
-                                bottom += FloatingCapsuleBottomMargin + FloatingCapsuleMiniPlayerHeight
-                            }
-                        } else {
-                            if (shouldShowNavigationBar) bottom += NavigationBarHeight
-                            if (!playerBottomSheetState.isDismissed) bottom += MiniPlayerHeight
+                        if (shouldShowNavigationBar) {
+                            bottom += FloatingCapsuleBottomMargin + FloatingCapsuleNavHeight
+                        }
+                        if (!playerBottomSheetState.isDismissed) {
+                            bottom += FloatingCapsuleBottomMargin + FloatingCapsuleMiniPlayerHeight
                         }
                         windowsInsets
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
@@ -642,150 +565,84 @@ class MainActivity : ComponentActivity() {
                         }
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
-                            hideCollapsedMiniPlayer = navigationBarStyle == NavigationBarStyle.FloatingCapsule,
                         )
 
-                        if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
-                            val pc = playerConnection
-                            val isPlayingState = pc?.isPlaying?.collectAsState()
-                            val canSkipNextState = pc?.canSkipNext?.collectAsState()
-                            val mediaMetadataState = pc?.mediaMetadata?.collectAsState()
-                            val playbackStateState = pc?.playbackState?.collectAsState()
-                            val isPlaying = isPlayingState?.value ?: false
-                            val canSkipNext = canSkipNextState?.value ?: false
-                            val mediaMetadata = mediaMetadataState?.value
-                            val playbackStateVal = playbackStateState?.value ?: Player.STATE_IDLE
-                            val hasMedia = pc?.player?.currentMediaItem != null
-                            var playerProgress by remember { mutableStateOf(0f) }
+                        val pc = playerConnection
+                        val isPlayingState = pc?.isPlaying?.collectAsState()
+                        val canSkipNextState = pc?.canSkipNext?.collectAsState()
+                        val mediaMetadataState = pc?.mediaMetadata?.collectAsState()
+                        val playbackStateState = pc?.playbackState?.collectAsState()
+                        val isPlaying = isPlayingState?.value ?: false
+                        val canSkipNext = canSkipNextState?.value ?: false
+                        val mediaMetadata = mediaMetadataState?.value
+                        val playbackStateVal = playbackStateState?.value ?: Player.STATE_IDLE
+                        val hasMedia = pc?.player?.currentMediaItem != null
+                        var playerProgress by remember { mutableStateOf(0f) }
 
-                            LaunchedEffect(pc, isPlaying) {
-                                val p = pc?.player ?: return@LaunchedEffect
-                                if (isPlaying) {
-                                    while (isActive) {
-                                        val dur = p.duration.coerceAtLeast(1L)
-                                        playerProgress = p.currentPosition.toFloat() / dur
-                                        delay(200L)
-                                    }
-                                } else {
+                        LaunchedEffect(pc, isPlaying) {
+                            val p = pc?.player ?: return@LaunchedEffect
+                            if (isPlaying) {
+                                while (isActive) {
                                     val dur = p.duration.coerceAtLeast(1L)
                                     playerProgress = p.currentPosition.toFloat() / dur
+                                    delay(200L)
                                 }
-                            }
-
-                            val showNav = shouldShowNavigationBarCapsule && !playerBottomSheetState.isExpanded
-                            val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
-                            val playerExpandProgress = playerBottomSheetState.progress.coerceIn(0f, 1f)
-                            val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
-
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = capsuleBottom),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FloatingCapsuleMiniPlayer(
-                                    shouldShow = showMini,
-                                    progress = playerProgress,
-                                    hideProgress = playerExpandProgress,
-                                    isPlaying = isPlaying,
-                                    canSkipNext = canSkipNext,
-                                    title = mediaMetadata?.title,
-                                    artist = mediaMetadata?.artists?.joinToString { it.name },
-                                    coverUrl = mediaMetadata?.coverUrl,
-                                    onClick = { playerBottomSheetState.expandSoft() },
-                                    onPlayPause = {
-                                        pc?.let { p ->
-                                            if (playbackStateVal == Player.STATE_ENDED) {
-                                                p.player.seekTo(0, 0)
-                                                p.player.playWhenReady = true
-                                            } else {
-                                                p.player.togglePlayPause()
-                                            }
-                                        }
-                                    },
-                                    onNext = { pc?.seekToNext() },
-                                )
-
-                                FloatingCapsuleNavigationBar(
-                                    shouldShow = showNav,
-                                    hideProgress = playerExpandProgress,
-                                    selectedRoute = navBackStackEntry?.destination?.route,
-                                    onTabSelect = { screen ->
-                                        if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                        } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                        }
-                                    },
-                                )
-                            }
-                        } else {
-                            NavigationBar(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .offset {
-                                        if (navigationBarHeight == 0.dp) {
-                                            IntOffset(
-                                                x = 0,
-                                                y = (bottomInset + NavigationBarHeight).roundToPx()
-                                            )
-                                        } else {
-                                            val slideOffset =
-                                                (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(
-                                                    0f,
-                                                    1f
-                                                )
-                                            val hideOffset =
-                                                (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
-                                            IntOffset(
-                                                x = 0,
-                                                y = (slideOffset + hideOffset).roundToPx()
-                                            )
-                                        }
-                                    }
-                            ) {
-                                Index.entries.fastForEach { screen ->
-
-                                    NavigationBarItem(
-                                        selected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true,
-
-                                        icon = {
-                                            Icon(
-                                                imageVector = screen.icon,
-                                                contentDescription = null
-                                            )
-                                        },
-                                        label = {
-                                            Text(
-                                                text = screen.label,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        },
-                                        onClick = {
-                                            if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                                    "scrollToTop",
-                                                    true
-                                                )
-                                            } else {
-                                                navController.navigate(screen.route) {
-                                                    popUpTo(navController.graph.startDestinationId) {
-                                                        saveState = true
-                                                    }
-                                                    launchSingleTop = true
-                                                    restoreState = true
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
+                            } else {
+                                val dur = p.duration.coerceAtLeast(1L)
+                                playerProgress = p.currentPosition.toFloat() / dur
                             }
                         }
+
+                        val showNav = shouldShowNavigationBar && !playerBottomSheetState.isExpanded
+                        val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
+                        val playerExpandProgress = playerBottomSheetState.progress.coerceIn(0f, 1f)
+                        val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
+
+                        FloatingCapsuleMiniPlayer(
+                            shouldShow = showMini,
+                            progress = playerProgress,
+                            hideProgress = playerExpandProgress,
+                            isPlaying = isPlaying,
+                            canSkipNext = canSkipNext,
+                            title = mediaMetadata?.title,
+                            artist = mediaMetadata?.artists?.joinToString { it.name },
+                            coverUrl = mediaMetadata?.coverUrl,
+                            onClick = { playerBottomSheetState.expandSoft() },
+                            onPlayPause = {
+                                pc?.let { p ->
+                                    if (playbackStateVal == Player.STATE_ENDED) {
+                                        p.player.seekTo(0, 0)
+                                        p.player.playWhenReady = true
+                                    } else {
+                                        p.player.togglePlayPause()
+                                    }
+                                }
+                            },
+                            onNext = { pc?.seekToNext() },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = if (showNav) capsuleBottom + FloatingCapsuleNavHeight + 8.dp else capsuleBottom),
+                        )
+
+                        FloatingCapsuleNavigationBar(
+                            shouldShow = showNav,
+                            hideProgress = playerExpandProgress,
+                            selectedRoute = navBackStackEntry?.destination?.route,
+                            onTabSelect = { screen ->
+                                if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
+                                    navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                } else {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = capsuleBottom),
+                        )
                     }
                 }
 

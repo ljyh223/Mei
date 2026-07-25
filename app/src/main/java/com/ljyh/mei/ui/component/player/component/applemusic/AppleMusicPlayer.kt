@@ -68,9 +68,9 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.size.Precision
 import coil3.size.Size
+import com.ljyh.mei.constants.FloatingCapsuleHorizontalPadding
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
-import com.ljyh.mei.ui.component.player.MiniPlayer
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
@@ -96,7 +96,6 @@ fun AppleMusicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
-    hideCollapsedMiniPlayer: Boolean = false,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -157,12 +156,12 @@ fun AppleMusicPlayer(
 
         // --- 1. 定义关键尺寸参数 ---
 
-        // A. Mini Player (Bottom)
-        val miniSize = with(density) { 48.dp.toPx() }
-        val miniStart = with(density) { 12.dp.toPx() }
+        // A. Mini Player (Bottom) — 对齐 FloatingCapsuleMiniPlayer 布局
+        val miniSize = with(density) { 36.dp.toPx() }
+        val miniStart = with(density) { (FloatingCapsuleHorizontalPadding + 12.dp).toPx() }
         val miniRadius = with(density) { ThumbnailCornerRadius.toPx() }
         val collapsedBoundPx = with(density) { state.collapsedBound.toPx() }
-        val miniAbsTop = maxHeightPx - collapsedBoundPx + with(density) { 6.dp.toPx() }
+        val miniAbsTop = maxHeightPx - collapsedBoundPx + with(density) { 8.dp.toPx() }
 
         // B. Normal Expanded
         val topSafeArea = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
@@ -224,12 +223,6 @@ fun AppleMusicPlayer(
                 }
             },
             collapsedContent = {
-                if (!hideCollapsedMiniPlayer) {
-                    MiniPlayer(
-                        position = sliderPosition.toLong(),
-                        duration = duration,
-                    )
-                }
             }
         ) {
             val coverUrl = mediaMetadata?.coverUrl
@@ -444,6 +437,7 @@ fun AppleMusicPlayer(
                     shadowElevation = mShadowElevation.toPx()
                     shape = RoundedCornerShape(finalRadius)
                     clip = true
+                    alpha = sheetProgress.coerceIn(0f, 1f)
                 }
                 .size(
                     width = with(density) { finalSize.toDp() },
