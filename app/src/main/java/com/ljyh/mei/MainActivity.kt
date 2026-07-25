@@ -581,6 +581,12 @@ class MainActivity : ComponentActivity() {
                                 p.getMediaItemAt(nextIndex)
                             } else null
                         }
+                        val prevMediaItem = pc?.player?.let { p ->
+                            val prevIndex = p.previousMediaItemIndex
+                            if (prevIndex != C.INDEX_UNSET && prevIndex >= 0) {
+                                p.getMediaItemAt(prevIndex)
+                            } else null
+                        }
 
                         val showNav = shouldShowNavigationBar && !playerBottomSheetState.isExpanded
                         val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
@@ -598,6 +604,9 @@ class MainActivity : ComponentActivity() {
                             nextTitle = nextMediaItem?.mediaMetadata?.title?.toString(),
                             nextArtist = nextMediaItem?.mediaMetadata?.artist?.toString(),
                             nextCoverUrl = nextMediaItem?.mediaMetadata?.artworkUri?.toString(),
+                            prevTitle = prevMediaItem?.mediaMetadata?.title?.toString(),
+                            prevArtist = prevMediaItem?.mediaMetadata?.artist?.toString(),
+                            prevCoverUrl = prevMediaItem?.mediaMetadata?.artworkUri?.toString(),
                             onClick = { playerBottomSheetState.expandSoft() },
                             onPlayPause = {
                                 pc?.let { p ->

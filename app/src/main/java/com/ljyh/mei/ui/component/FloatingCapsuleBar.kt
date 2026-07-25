@@ -148,6 +148,9 @@ fun FloatingCapsuleMiniPlayer(
     nextTitle: String?,
     nextArtist: String?,
     nextCoverUrl: String?,
+    prevTitle: String?,
+    prevArtist: String?,
+    prevCoverUrl: String?,
     onClick: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
@@ -200,7 +203,7 @@ fun FloatingCapsuleMiniPlayer(
                         onHorizontalDrag = { _, dragAmount ->
                             scope.launch {
                                 offsetX.snapTo(
-                                    (offsetX.value + dragAmount).coerceIn(-contentWidthPx, 0f)
+                                    (offsetX.value + dragAmount).coerceIn(-contentWidthPx, contentWidthPx)
                                 )
                             }
                         },
@@ -210,6 +213,10 @@ fun FloatingCapsuleMiniPlayer(
                                 if (current <= -swipeThresholdPx) {
                                     offsetX.animateTo(-contentWidthPx, spring(stiffness = Spring.StiffnessMedium))
                                     onNext()
+                                    offsetX.snapTo(0f)
+                                } else if (current >= swipeThresholdPx) {
+                                    offsetX.animateTo(contentWidthPx, spring(stiffness = Spring.StiffnessMedium))
+                                    onPrevious()
                                     offsetX.snapTo(0f)
                                 } else {
                                     offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
@@ -238,7 +245,7 @@ fun FloatingCapsuleMiniPlayer(
                         coverUrl = currentInfo.third,
                         modifier = Modifier.graphicsLayer {
                             translationX = offsetX.value
-                            alpha = (1f + offsetX.value / contentWidthPx).coerceIn(0f, 1f)
+                            alpha = (1f - kotlin.math.abs(offsetX.value) / contentWidthPx).coerceIn(0f, 1f)
                         }
                     )
 
@@ -250,6 +257,18 @@ fun FloatingCapsuleMiniPlayer(
                             modifier = Modifier.graphicsLayer {
                                 translationX = offsetX.value + contentWidthPx
                                 alpha = (-offsetX.value / contentWidthPx).coerceIn(0f, 1f)
+                            }
+                        )
+                    }
+
+                    if (offsetX.value > 0f) {
+                        MiniPlayerSongContent(
+                            title = prevTitle ?: "",
+                            artist = prevArtist ?: "",
+                            coverUrl = prevCoverUrl,
+                            modifier = Modifier.graphicsLayer {
+                                translationX = offsetX.value - contentWidthPx
+                                alpha = (offsetX.value / contentWidthPx).coerceIn(0f, 1f)
                             }
                         )
                     }
