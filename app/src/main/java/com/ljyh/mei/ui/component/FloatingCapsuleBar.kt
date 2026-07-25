@@ -182,7 +182,7 @@ fun FloatingCapsuleMiniPlayer(
             .padding(horizontal = FloatingCapsuleHorizontalPadding)
             .offset { IntOffset(0, slideOffset.roundToPx()) }
             .graphicsLayer {
-                val hideAlpha = if (hideProgress < 0.5f) 1f else ((1f - hideProgress) * 2f).coerceIn(0f, 1f)
+                val hideAlpha = if (hideProgress < 0.3f) 1f else ((1f - hideProgress) / 0.7f).coerceIn(0f, 1f)
                 alpha = (hideAlpha * visibleProgress).coerceIn(0f, 1f)
             },
         shape = RoundedCornerShape(CapsuleCornerRadius),

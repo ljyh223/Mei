@@ -437,7 +437,6 @@ fun AppleMusicPlayer(
                     shadowElevation = mShadowElevation.toPx()
                     shape = RoundedCornerShape(finalRadius)
                     clip = true
-                    alpha = sheetProgress.coerceIn(0f, 1f)
                 }
                 .size(
                     width = with(density) { finalSize.toDp() },
