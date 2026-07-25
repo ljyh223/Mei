@@ -50,14 +50,24 @@ object SongMate {
         filePath: String,
         lyric: String? = null
     ) {
+        val coverBytes = if (coverUrl.isNotBlank()) downloadImageBytes(coverUrl) else null
+        writeTagsWithCoverBytes(title, artist, album, coverBytes, filePath, lyric)
+    }
+
+    suspend fun writeTagsWithCoverBytes(
+        title: String,
+        artist: String,
+        album: String,
+        coverBytes: ByteArray?,
+        filePath: String,
+        lyric: String? = null
+    ) {
         try {
             val file = File(filePath)
             val audioFile = AudioFileIO.read(file)
             var tag = audioFile.tagOrCreateAndSetDefault
             val isFlac = tag is FlacTag
 
-            // MP3 默认 ID3v2.3 只支持 ISO-8859-1，日文等非 ASCII 字符会写入失败
-            // 替换为 ID3v2.4（UTF-8），保留已有 artwork
             if (!isFlac && tag !is ID3v24Tag) {
                 val oldArtwork = if (tag is AbstractID3v2Tag) {
                     tag.firstArtwork
@@ -81,27 +91,24 @@ object SongMate {
                 }
             }
 
-            if (coverUrl.isNotBlank()) {
+            if (coverBytes != null) {
                 try {
-                    val imageBytes = downloadImageBytes(coverUrl)
-                    if (imageBytes != null) {
-                        tag.deleteArtworkField()
-                        if (isFlac) {
-                            tag.setField(
-                                (tag as FlacTag).createArtworkField(
-                                    imageBytes, 6,
-                                    ImageFormats.MIME_TYPE_JPEG, "Image",
-                                    1400, 1400, 24, 0
-                                )
+                    tag.deleteArtworkField()
+                    if (isFlac) {
+                        tag.setField(
+                            (tag as FlacTag).createArtworkField(
+                                coverBytes, 6,
+                                ImageFormats.MIME_TYPE_JPEG, "Image",
+                                1400, 1400, 24, 0
                             )
-                        } else {
-                            val artwork = ArtworkFactory.getNew()
-                            artwork.mimeType = "image/jpeg"
-                            artwork.binaryData = imageBytes
-                            artwork.pictureType = 6
-                            artwork.description = "Cover"
-                            tag.setField(artwork)
-                        }
+                        )
+                    } else {
+                        val artwork = ArtworkFactory.getNew()
+                        artwork.mimeType = "image/jpeg"
+                        artwork.binaryData = coverBytes
+                        artwork.pictureType = 6
+                        artwork.description = "Cover"
+                        tag.setField(artwork)
                     }
                 } catch (e: Exception) {
                     Timber.tag("SongMate").w(e, "Failed to write cover for $title, skipping")
