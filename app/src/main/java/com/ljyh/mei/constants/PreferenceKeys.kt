@@ -66,7 +66,6 @@ val PlayerStyleKey = stringPreferencesKey("playerStyle")
 val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
 val PlaylistTrackTableHeaderKey = booleanPreferencesKey("playlistTrackTableHeader")
 val TabletAnimationStyleKey = stringPreferencesKey("tabletAnimationStyle")
-val NavigationBarStyleKey = stringPreferencesKey("navigationBarStyle")
 
 val DownloadPathKey = stringPreferencesKey("downloadPath")
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
@@ -152,9 +151,4 @@ enum class TabletAnimationStyle(val label: String) {
     CROSSFADE("渐变"),
     ZOOM("缩放"),
     FLIP_3D("3D翻转")
-}
-
-enum class NavigationBarStyle(val label: String) {
-    Classic("经典"),
-    FloatingCapsule("悬浮胶囊")
 }

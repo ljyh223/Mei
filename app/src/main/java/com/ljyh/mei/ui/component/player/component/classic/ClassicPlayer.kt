@@ -36,7 +36,6 @@ fun ClassicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
-    hideCollapsedMiniPlayer: Boolean = false,
 ) {
 
     val device = rememberDeviceInfo()
@@ -78,12 +77,10 @@ fun ClassicPlayer(
             }
         },
         collapsedContent = {
-            if (!hideCollapsedMiniPlayer) {
-                MiniPlayer(
-                    position = sliderPosition.toLong(),
-                    duration = duration,
-                )
-            }
+            MiniPlayer(
+                position = sliderPosition.toLong(),
+                duration = duration,
+            )
         }
     ) {
 

@@ -45,14 +45,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -105,7 +103,6 @@ import com.ljyh.mei.constants.NavigationBarStyle
 import com.ljyh.mei.constants.NavigationBarStyleKey
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.UserData
-import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.playback.MusicService
@@ -138,8 +135,6 @@ import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Interceptor
@@ -624,131 +619,67 @@ class MainActivity : ComponentActivity() {
                         }
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
-                            hideCollapsedMiniPlayer = navigationBarStyle == NavigationBarStyle.FloatingCapsule,
                         )
 
-                        if (navigationBarStyle == NavigationBarStyle.FloatingCapsule) {
-                            val pc = playerConnection
-                            val isPlayingState = pc?.isPlaying?.collectAsState()
-                            val canSkipNextState = pc?.canSkipNext?.collectAsState()
-                            val mediaMetadataState = pc?.mediaMetadata?.collectAsState()
-                            val playbackStateState = pc?.playbackState?.collectAsState()
-                            val isPlaying = isPlayingState?.value ?: false
-                            val canSkipNext = canSkipNextState?.value ?: false
-                            val mediaMetadata = mediaMetadataState?.value
-                            val playbackStateVal = playbackStateState?.value ?: Player.STATE_IDLE
-                            val hasMedia = pc?.player?.currentMediaItem != null
-                            var playerProgress by remember { mutableStateOf(0f) }
-
-                            LaunchedEffect(pc, isPlaying) {
-                                val p = pc?.player ?: return@LaunchedEffect
-                                if (isPlaying) {
-                                    while (isActive) {
-                                        val dur = p.duration.coerceAtLeast(1L)
-                                        playerProgress = p.currentPosition.toFloat() / dur
-                                        delay(200L)
+                        NavigationBar(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .offset {
+                                    if (navigationBarHeight == 0.dp) {
+                                        IntOffset(
+                                            x = 0,
+                                            y = (bottomInset + NavigationBarHeight).roundToPx()
+                                        )
+                                    } else {
+                                        val slideOffset =
+                                            (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(
+                                                0f,
+                                                1f
+                                            )
+                                        val hideOffset =
+                                            (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
+                                        IntOffset(
+                                            x = 0,
+                                            y = (slideOffset + hideOffset).roundToPx()
+                                        )
                                     }
-                                } else {
-                                    val dur = p.duration.coerceAtLeast(1L)
-                                    playerProgress = p.currentPosition.toFloat() / dur
                                 }
-                            }
+                        ) {
+                            Index.entries.fastForEach { screen ->
 
-                            FloatingCapsuleBar(
-                                showMiniPlayer = hasMedia && !playerBottomSheetState.isDismissed,
-                                shouldShow = shouldShowNavigationBar,
-                                bottomInset = bottomInset,
-                                playerProgress = playerProgress,
-                                selectedRoute = navBackStackEntry?.destination?.route,
-                                onTabSelect = { screen ->
-                                    if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                        navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                    } else {
-                                        navController.navigate(screen.route) {
-                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                },
-                                onMiniPlayerClick = { playerBottomSheetState.expandSoft() },
-                                onPlayPause = {
-                                    val p = pc ?: return@FloatingCapsuleBar
-                                    if (playbackStateVal == Player.STATE_ENDED) {
-                                        p.player.seekTo(0, 0)
-                                        p.player.playWhenReady = true
-                                    } else {
-                                        p.player.togglePlayPause()
-                                    }
-                                },
-                                onNext = { pc?.seekToNext() },
-                                isPlaying = isPlaying,
-                                canSkipNext = canSkipNext,
-                                songTitle = mediaMetadata?.title,
-                                songArtist = mediaMetadata?.artists?.joinToString { it.name },
-                                songCoverUrl = mediaMetadata?.coverUrl,
-                            )
-                        } else {
-                            NavigationBar(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .offset {
-                                        if (navigationBarHeight == 0.dp) {
-                                            IntOffset(
-                                                x = 0,
-                                                y = (bottomInset + NavigationBarHeight).roundToPx()
+                                NavigationBarItem(
+                                    selected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true,
+
+                                    icon = {
+                                        Icon(
+                                            imageVector = screen.icon,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = screen.label,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
+                                    onClick = {
+                                        if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
+                                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                "scrollToTop",
+                                                true
                                             )
                                         } else {
-                                            val slideOffset =
-                                                (bottomInset + NavigationBarHeight) * playerBottomSheetState.progress.coerceIn(
-                                                    0f,
-                                                    1f
-                                                )
-                                            val hideOffset =
-                                                (bottomInset + NavigationBarHeight) * (1 - navigationBarHeight / NavigationBarHeight)
-                                            IntOffset(
-                                                x = 0,
-                                                y = (slideOffset + hideOffset).roundToPx()
-                                            )
-                                        }
-                                    }
-                            ) {
-                                Index.entries.fastForEach { screen ->
-
-                                    NavigationBarItem(
-                                        selected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true,
-
-                                        icon = {
-                                            Icon(
-                                                imageVector = screen.icon,
-                                                contentDescription = null
-                                            )
-                                        },
-                                        label = {
-                                            Text(
-                                                text = screen.label,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        },
-                                        onClick = {
-                                            if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                                    "scrollToTop",
-                                                    true
-                                                )
-                                            } else {
-                                                navController.navigate(screen.route) {
-                                                    popUpTo(navController.graph.startDestinationId) {
-                                                        saveState = true
-                                                    }
-                                                    launchSingleTop = true
-                                                    restoreState = true
+                                            navController.navigate(screen.route) {
+                                                popUpTo(navController.graph.startDestinationId) {
+                                                    saveState = true
                                                 }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
                                         }
-                                    )
-                                }
+                                    }
+                                )
                             }
                         }
                     }
