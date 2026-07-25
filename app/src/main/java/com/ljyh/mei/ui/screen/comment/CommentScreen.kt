@@ -1,5 +1,8 @@
 package com.ljyh.mei.ui.screen.comment
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,8 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,7 +36,6 @@ import com.ljyh.mei.ui.screen.comment.component.CommentItem
 import com.ljyh.mei.ui.screen.comment.component.CommentTopBar
 import androidx.compose.foundation.layout.asPaddingValues
 import timber.log.Timber
-import java.util.Timer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +48,7 @@ fun CommentScreen(
     val total by viewModel.total.collectAsState()
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
     val floorComments by viewModel.floorComments.collectAsState()
+    val expandedFloorCount by viewModel.expandedFloorCount.collectAsState()
 
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
 
@@ -49,6 +57,7 @@ fun CommentScreen(
     }
 
     val insets = LocalPlayerAwareWindowInsets.current
+    val showCollapseFab = expandedCommentId != null && expandedFloorCount > 10 && floorComments is com.ljyh.mei.data.network.Resource.Success
 
     Scaffold(
         topBar = {
@@ -58,6 +67,29 @@ fun CommentScreen(
                 onSortTypeChange = { viewModel.setSortType(it) },
                 onBack = { navController.popBackStack() }
             )
+        },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = showCollapseFab,
+                enter = scaleIn(),
+                exit = scaleOut()
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        expandedCommentId?.let { viewModel.toggleFloorComments(it, expandedFloorCount) }
+                    },
+                    modifier = Modifier.padding(bottom = insets.asPaddingValues().calculateBottomPadding()),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = CircleShape
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "收起回复",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         when (val refreshState = pagingItems.loadState.refresh) {

@@ -65,12 +65,17 @@ class CommentViewModel @Inject constructor(
     private val _expandedCommentId = MutableStateFlow<Long?>(null)
     val expandedCommentId: StateFlow<Long?> = _expandedCommentId
 
+    private val _expandedFloorCount = MutableStateFlow(0)
+    val expandedFloorCount: StateFlow<Int> = _expandedFloorCount
+
     fun toggleFloorComments(commentId: Long, floorCount: Int) {
         if (_expandedCommentId.value == commentId) {
             _expandedCommentId.value = null
+            _expandedFloorCount.value = 0
             return
         }
         _expandedCommentId.value = commentId
+        _expandedFloorCount.value = floorCount
         loadFloorComments(commentId, floorCount)
     }
 
