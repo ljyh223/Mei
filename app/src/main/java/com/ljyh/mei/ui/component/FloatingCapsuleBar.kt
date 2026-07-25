@@ -1,16 +1,9 @@
 package com.ljyh.mei.ui.component
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -37,12 +30,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -155,6 +145,9 @@ fun FloatingCapsuleMiniPlayer(
     title: String?,
     artist: String?,
     coverUrl: String?,
+    nextTitle: String?,
+    nextArtist: String?,
+    nextCoverUrl: String?,
     onClick: () -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
@@ -175,19 +168,10 @@ fun FloatingCapsuleMiniPlayer(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val swipeThresholdPx = with(density) { 80.dp.toPx() }
+    val contentWidthPx = with(density) { 360.dp.toPx() }
 
     val offsetX = remember { Animatable(0f) }
-    var swipeDirection by remember { mutableStateOf(0) }
-
-    val songInfo = remember(title, artist, coverUrl) {
-        Triple(title ?: "", artist ?: "", coverUrl)
-    }
-
-    LaunchedEffect(songInfo) {
-        if (offsetX.value != 0f) {
-            offsetX.snapTo(0f)
-        }
-    }
+    val currentInfo = remember(title, artist, coverUrl) { Triple(title ?: "", artist ?: "", coverUrl) }
 
     Surface(
         modifier = modifier
@@ -214,116 +198,131 @@ fun FloatingCapsuleMiniPlayer(
                             scope.launch { offsetX.stop() }
                         },
                         onHorizontalDrag = { _, dragAmount ->
-                            swipeDirection = if (dragAmount < 0) -1 else 1
                             scope.launch {
-                                offsetX.snapTo(offsetX.value + dragAmount)
+                                offsetX.snapTo(
+                                    (offsetX.value + dragAmount).coerceIn(-contentWidthPx, 0f)
+                                )
                             }
                         },
                         onDragEnd = {
                             val current = offsetX.value
-                            if (current <= -swipeThresholdPx) {
-                                swipeDirection = -1
-                                onNext()
-                                scope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMedium)) }
-                            } else if (current >= swipeThresholdPx) {
-                                swipeDirection = 1
-                                onPrevious()
-                                scope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMedium)) }
-                            } else {
-                                scope.launch { offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMedium)) }
+                            scope.launch {
+                                if (current <= -swipeThresholdPx) {
+                                    offsetX.animateTo(-contentWidthPx, spring(stiffness = Spring.StiffnessMedium))
+                                    onNext()
+                                    offsetX.snapTo(0f)
+                                } else {
+                                    offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
+                                }
                             }
                         }
                     )
                 }
         ) {
-            AnimatedContent(
-                targetState = songInfo,
-                transitionSpec = {
-                    val direction = if (swipeDirection < 0) -1 else 1
-                    if (swipeDirection != 0) {
-                        val exit = slideOutHorizontally(tween(250)) { w -> w * direction } + fadeOut(tween(150))
-                        val enter = slideInHorizontally(tween(250)) { w -> -w * direction } + fadeIn(tween(150))
-                        enter togetherWith exit
-                    } else {
-                        fadeIn(tween(200)) togetherWith fadeOut(tween(200))
-                    }
-                },
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(FloatingCapsuleMiniPlayerHeight)
-                    .graphicsLayer {
-                        translationX = offsetX.value
-                    },
-                label = "songTransition"
-            ) { (currentTitle, currentArtist, currentCover) ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(FloatingCapsuleMiniPlayerHeight)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onClick
-                        )
-                        .padding(horizontal = 12.dp)
-                ) {
-                    currentCover?.let {
-                        AsyncImage(
-                            model = it.smallImage(),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                    }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick
+                    )
+                    .padding(horizontal = 12.dp)
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    MiniPlayerSongContent(
+                        title = currentInfo.first,
+                        artist = currentInfo.second,
+                        coverUrl = currentInfo.third,
+                        modifier = Modifier.graphicsLayer {
+                            translationX = offsetX.value
+                            alpha = (1f + offsetX.value / contentWidthPx).coerceIn(0f, 1f)
+                        }
+                    )
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = currentTitle,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.basicMarquee()
-                        )
-                        Text(
-                            text = currentArtist,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onPlayPause,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onNext,
-                        enabled = canSkipNext,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.SkipNext,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
+                    if (offsetX.value < 0f) {
+                        MiniPlayerSongContent(
+                            title = nextTitle ?: "",
+                            artist = nextArtist ?: "",
+                            coverUrl = nextCoverUrl,
+                            modifier = Modifier.graphicsLayer {
+                                translationX = offsetX.value + contentWidthPx
+                                alpha = (-offsetX.value / contentWidthPx).coerceIn(0f, 1f)
+                            }
                         )
                     }
                 }
+
+                IconButton(
+                    onClick = onPlayPause,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                IconButton(
+                    onClick = onNext,
+                    enabled = canSkipNext,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipNext,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun MiniPlayerSongContent(
+    title: String,
+    artist: String,
+    coverUrl: String?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        coverUrl?.let {
+            AsyncImage(
+                model = it.smallImage(),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.basicMarquee()
+            )
+            Text(
+                text = artist,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

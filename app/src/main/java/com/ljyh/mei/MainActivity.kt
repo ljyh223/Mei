@@ -575,6 +575,12 @@ class MainActivity : ComponentActivity() {
                         val mediaMetadata = mediaMetadataState?.value
                         val playbackStateVal = playbackStateState?.value ?: Player.STATE_IDLE
                         val hasMedia = pc?.player?.currentMediaItem != null
+                        val nextMediaItem = pc?.player?.let { p ->
+                            val nextIndex = p.nextMediaItemIndex
+                            if (nextIndex != C.INDEX_UNSET && nextIndex < p.mediaItemCount) {
+                                p.getMediaItemAt(nextIndex)
+                            } else null
+                        }
 
                         val showNav = shouldShowNavigationBar && !playerBottomSheetState.isExpanded
                         val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
@@ -589,6 +595,9 @@ class MainActivity : ComponentActivity() {
                             title = mediaMetadata?.title,
                             artist = mediaMetadata?.artists?.joinToString { it.name },
                             coverUrl = mediaMetadata?.coverUrl,
+                            nextTitle = nextMediaItem?.mediaMetadata?.title?.toString(),
+                            nextArtist = nextMediaItem?.mediaMetadata?.artist?.toString(),
+                            nextCoverUrl = nextMediaItem?.mediaMetadata?.artworkUri?.toString(),
                             onClick = { playerBottomSheetState.expandSoft() },
                             onPlayPause = {
                                 pc?.let { p ->
