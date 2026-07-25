@@ -46,8 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
-import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
-import com.ljyh.mei.constants.FloatingCapsuleNavHeight
+import com.ljyh.mei.constants.MiniPlayerHeight
 import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.extensions.togglePlayPause
@@ -57,13 +56,17 @@ import com.ljyh.mei.utils.smallImage
 import kotlin.math.roundToInt
 
 private val FloatingCapsuleHorizontalPadding = 24.dp
+private val FloatingCapsuleBottomPadding = 12.dp
 private val FloatingCapsuleCornerRadius = 28.dp
+private val FloatingCapsuleMiniPlayerHeight = 52.dp
+private val FloatingCapsuleNavHeight = 56.dp
 private val FloatingCapsuleTotalHeight = FloatingCapsuleNavHeight + FloatingCapsuleMiniPlayerHeight
 
 @Composable
 fun FloatingCapsuleBar(
     showMiniPlayer: Boolean,
     shouldShow: Boolean,
+    bottomInset: Dp,
     playerProgress: Float,
     selectedRoute: String?,
     onTabSelect: (Index) -> Unit,
@@ -77,16 +80,18 @@ fun FloatingCapsuleBar(
     songCoverUrl: String?,
     modifier: Modifier = Modifier,
 ) {
-    val targetHeight = if (showMiniPlayer) FloatingCapsuleTotalHeight else FloatingCapsuleNavHeight
     val visibleHeight by animateDpAsState(
-        targetValue = if (shouldShow) targetHeight else 0.dp,
+        targetValue = if (shouldShow) {
+            if (showMiniPlayer) FloatingCapsuleTotalHeight else FloatingCapsuleNavHeight
+        } else 0.dp,
         animationSpec = NavigationBarAnimationSpec,
         label = "floatingCapsuleHeight"
     )
 
     if (visibleHeight <= 0.dp) return
 
-    val hideOffset = targetHeight - visibleHeight
+    val totalOffset = bottomInset + FloatingCapsuleBottomPadding + FloatingCapsuleTotalHeight
+    val hideOffset = totalOffset * (1f - visibleHeight / (if (showMiniPlayer) FloatingCapsuleTotalHeight else FloatingCapsuleNavHeight))
 
     Box(
         modifier = modifier
