@@ -601,6 +601,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onNext = { pc?.seekToNext() },
+                            onPrevious = { pc?.seekToPrevious() },
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = if (showNav) capsuleBottom + FloatingCapsuleNavHeight + 8.dp else capsuleBottom),
