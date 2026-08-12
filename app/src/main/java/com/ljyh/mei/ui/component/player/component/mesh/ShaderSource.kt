@@ -2,9 +2,9 @@ package com.ljyh.mei.ui.component.player.component.mesh
 
 object ShaderSource {
 
-    const val MESH_VERTEX_SHADER = """
-#version 300 es
+    const val MESH_VERTEX_SHADER = """#version 300 es
 precision highp float;
+precision highp int;
 
 in vec2 a_pos;
 in vec3 a_color;
@@ -28,9 +28,9 @@ void main() {
 }
 """
 
-    const val MESH_FRAGMENT_SHADER = """
-#version 300 es
+    const val MESH_FRAGMENT_SHADER = """#version 300 es
 precision highp float;
+precision highp int;
 
 in vec3 v_color;
 in vec2 v_uv;
@@ -77,9 +77,9 @@ void main() {
 }
 """
 
-    const val QUAD_VERTEX_SHADER = """
-#version 300 es
+    const val QUAD_VERTEX_SHADER = """#version 300 es
 precision highp float;
+precision highp int;
 
 in vec2 a_pos;
 in vec2 a_texCoord;
@@ -92,9 +92,9 @@ void main() {
 }
 """
 
-    const val QUAD_FRAGMENT_SHADER = """
-#version 300 es
+    const val QUAD_FRAGMENT_SHADER = """#version 300 es
 precision highp float;
+precision highp int;
 
 in vec2 v_texCoord;
 
