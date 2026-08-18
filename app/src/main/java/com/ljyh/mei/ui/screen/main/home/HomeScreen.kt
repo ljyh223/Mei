@@ -30,6 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -84,6 +86,7 @@ import kotlin.math.ceil
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: HomeViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel(),
 ) {
@@ -115,7 +118,11 @@ fun HomeScreen(
 
     val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+    ) {
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.homePageResourceShow(true) },

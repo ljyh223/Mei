@@ -17,10 +17,10 @@ val PlaylistCardSpacing = 20.dp
 val PlaylistCardSize = 120.dp
 val PlaylistCardSizeTablet = 170.dp
 
-val FloatingCapsuleBottomMargin = 12.dp
+val FloatingCapsuleBottomMargin = 8.dp
 val FloatingCapsuleNavHeight = 56.dp
 val FloatingCapsuleMiniPlayerHeight = 52.dp
-val FloatingCapsuleHorizontalPadding = 16.dp
+val FloatingCapsuleHorizontalPadding = 12.dp
 val QueuePeekHeight = 64.dp
 val AppBarHeight = 64.dp
 

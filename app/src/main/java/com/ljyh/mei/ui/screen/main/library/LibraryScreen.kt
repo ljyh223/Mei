@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -37,7 +39,10 @@ import com.ljyh.mei.ui.screen.main.library.component.PhotoPickerSheet
 import com.ljyh.mei.utils.rememberPreference
 
 @Composable
-fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
+fun LibraryScreen(
+    scrollBehavior: TopAppBarScrollBehavior,
+    viewModel: LibraryViewModel = hiltViewModel(),
+) {
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
     val account by viewModel.account.collectAsState()
@@ -113,7 +118,11 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
             viewModel.syncUserPlaylists(userId, subPlaylistCount)
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+    ) {
 
         // 1. 通用背景
         if (userId.isNotEmpty() && userPhoto.isNotEmpty()) {

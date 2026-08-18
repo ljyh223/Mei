@@ -47,15 +47,15 @@ fun NavGraphBuilder.navigationBuilder(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     composable(Screen.Home.route) {
-        HomeScreen()
+        HomeScreen(scrollBehavior = scrollBehavior)
     }
 
     composable(Screen.Library.route) {
-        LibraryScreen()
+        LibraryScreen(scrollBehavior = scrollBehavior)
     }
 
     composable(Screen.FindMusic.route) {
-        FindMusicScreen()
+        FindMusicScreen(scrollBehavior = scrollBehavior)
     }
 
     composable(Screen.Test.route) {

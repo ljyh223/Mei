@@ -62,7 +62,6 @@ private val CapsuleExtraSlide = 16.dp
 @Composable
 fun FloatingCapsuleNavigationBar(
     shouldShow: Boolean,
-    hideProgress: Float = 0f,
     selectedRoute: String?,
     onTabSelect: (Index) -> Unit,
     modifier: Modifier = Modifier,
@@ -73,10 +72,9 @@ fun FloatingCapsuleNavigationBar(
         label = "navCapsule"
     )
 
-    if (visibleProgress <= 0f && hideProgress >= 1f) return
+    if (visibleProgress <= 0f) return
 
-    val slideOffset = (FloatingCapsuleNavHeight + CapsuleExtraSlide) * (1f - visibleProgress) +
-            (FloatingCapsuleNavHeight + 8.dp) * hideProgress
+    val slideOffset = (FloatingCapsuleNavHeight + CapsuleExtraSlide) * (1f - visibleProgress)
 
     Surface(
         modifier = modifier
@@ -84,7 +82,7 @@ fun FloatingCapsuleNavigationBar(
             .padding(horizontal = FloatingCapsuleHorizontalPadding)
             .offset { IntOffset(0, slideOffset.roundToPx()) }
             .graphicsLayer {
-                alpha = ((1f - hideProgress) * visibleProgress).coerceIn(0f, 1f)
+                alpha = visibleProgress.coerceIn(0f, 1f)
             },
         shape = RoundedCornerShape(CapsuleCornerRadius),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
@@ -132,6 +130,64 @@ fun FloatingCapsuleNavigationBar(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun FloatingCapsulePlayerBarContent(
+    title: String?,
+    artist: String?,
+    coverUrl: String?,
+    isPlaying: Boolean,
+    canSkipNext: Boolean,
+    onClick: () -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(FloatingCapsuleMiniPlayerHeight)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 12.dp)
+    ) {
+        MiniPlayerSongContent(
+            title = title.orEmpty(),
+            artist = artist.orEmpty(),
+            coverUrl = coverUrl,
+            modifier = Modifier.weight(1f),
+        )
+
+        IconButton(
+            onClick = onPlayPause,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        IconButton(
+            onClick = onNext,
+            enabled = canSkipNext,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.SkipNext,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

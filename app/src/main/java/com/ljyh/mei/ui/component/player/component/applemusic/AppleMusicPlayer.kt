@@ -20,7 +20,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -52,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -69,8 +69,10 @@ import coil3.request.crossfade
 import coil3.size.Precision
 import coil3.size.Size
 import com.ljyh.mei.constants.FloatingCapsuleHorizontalPadding
+import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
+import com.ljyh.mei.ui.component.FloatingCapsulePlayerBarContent
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
@@ -80,6 +82,7 @@ import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheet
+import com.ljyh.mei.ui.component.sheet.BottomSheetMorphSpec
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.lerp
@@ -210,6 +213,16 @@ fun AppleMusicPlayer(
             state = state,
             modifier = Modifier.fillMaxSize(),
             backgroundColor = backgroundColor,
+            morphSpec = BottomSheetMorphSpec(
+                collapsedHorizontalMargin = FloatingCapsuleHorizontalPadding,
+                collapsedCornerRadius = 24.dp,
+                expandedHorizontalMargin = 0.dp,
+                expandedCornerRadius = 0.dp,
+                collapsedHeight = FloatingCapsuleMiniPlayerHeight,
+                collapsedBottomMargin = 8.dp,
+                expandedBottomMargin = 0.dp,
+            ),
+            sharedTransitionKey = "player-container",
             onDismiss = {
                 stateContainer.playerConnection.player.stop()
                 stateContainer.playerConnection.player.clearMediaItems()
@@ -223,6 +236,24 @@ fun AppleMusicPlayer(
                 }
             },
             collapsedContent = {
+                FloatingCapsulePlayerBarContent(
+                    title = mediaMetadata?.title,
+                    artist = mediaMetadata?.artists?.joinToString { it.name },
+                    coverUrl = mediaMetadata?.coverUrl,
+                    isPlaying = isPlaying,
+                    canSkipNext = stateContainer.canSkipNext.value,
+                    onClick = state::expandSoft,
+                    onPlayPause = {
+                        val player = stateContainer.playerConnection.player
+                        if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
+                            player.seekTo(0, 0)
+                            player.playWhenReady = true
+                        } else {
+                            if (isPlaying) player.pause() else player.play()
+                        }
+                    },
+                    onNext = stateContainer.playerConnection::seekToNext,
+                )
             }
         ) {
             val coverUrl = mediaMetadata?.coverUrl

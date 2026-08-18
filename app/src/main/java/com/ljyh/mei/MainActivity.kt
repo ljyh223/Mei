@@ -92,7 +92,6 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.playback.MusicService
 import com.ljyh.mei.playback.PlayerConnection
-import com.ljyh.mei.ui.component.FloatingCapsuleMiniPlayer
 import com.ljyh.mei.ui.component.FloatingCapsuleNavigationBar
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
@@ -282,12 +281,10 @@ class MainActivity : ComponentActivity() {
 
 
                     val shouldShowNavigationBar = remember(navBackStackEntry, active) {
-                        (navBackStackEntry?.destination?.route == null ||
-                                navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) &&
-                                !active
+                        !active && navigationItems.fastAny {
+                            it.route == navBackStackEntry?.destination?.route
+                        }
                     }
-
-
 
                     val searchBarFocusRequester = remember { FocusRequester() }
                     val shouldShowSearchBar = remember(active, navBackStackEntry) {
@@ -295,9 +292,15 @@ class MainActivity : ComponentActivity() {
                                 navBackStackEntry?.destination?.route?.startsWith("search_result/") == true
                     }
 
-                    val collapsedBound = remember(bottomInset) {
+                    val collapsedBound = remember(bottomInset, shouldShowNavigationBar) {
                         derivedStateOf {
-                            bottomInset + FloatingCapsuleBottomMargin + FloatingCapsuleMiniPlayerHeight
+                            bottomInset +
+                                    FloatingCapsuleMiniPlayerHeight +
+                                    if (shouldShowNavigationBar) {
+                                        FloatingCapsuleNavHeight + 8.dp
+                                    } else {
+                                        0.dp
+                                    }
                         }
                     }
 
@@ -448,7 +451,10 @@ class MainActivity : ComponentActivity() {
                                 NavigationTab.Library -> Screen.Library
                             }.route,
                         ) {
-                            navigationBuilder(navController, topAppBarScrollBehavior)
+                            navigationBuilder(
+                                navController = navController,
+                                scrollBehavior = topAppBarScrollBehavior,
+                            )
                         }
 
                         AnimatedVisibility(
@@ -561,73 +567,10 @@ class MainActivity : ComponentActivity() {
 
                             }
                         }
-                        BottomSheetPlayer(
-                            state = playerBottomSheetState,
-                        )
-
-                        val pc = playerConnection
-                        val isPlayingState = pc?.isPlaying?.collectAsState()
-                        val canSkipNextState = pc?.canSkipNext?.collectAsState()
-                        val mediaMetadataState = pc?.mediaMetadata?.collectAsState()
-                        val playbackStateState = pc?.playbackState?.collectAsState()
-                        val isPlaying = isPlayingState?.value ?: false
-                        val canSkipNext = canSkipNextState?.value ?: false
-                        val mediaMetadata = mediaMetadataState?.value
-                        val playbackStateVal = playbackStateState?.value ?: Player.STATE_IDLE
-                        val hasMedia = pc?.player?.currentMediaItem != null
-                        val nextMediaItem = pc?.player?.let { p ->
-                            val nextIndex = p.nextMediaItemIndex
-                            if (nextIndex != C.INDEX_UNSET && nextIndex < p.mediaItemCount) {
-                                p.getMediaItemAt(nextIndex)
-                            } else null
-                        }
-                        val prevMediaItem = pc?.player?.let { p ->
-                            val prevIndex = p.previousMediaItemIndex
-                            if (prevIndex != C.INDEX_UNSET && prevIndex >= 0) {
-                                p.getMediaItemAt(prevIndex)
-                            } else null
-                        }
-
-                        val showNav = shouldShowNavigationBar && !playerBottomSheetState.isExpanded
-                        val showMini = hasMedia && !playerBottomSheetState.isDismissed && !playerBottomSheetState.isExpanded
-                        val playerExpandProgress = playerBottomSheetState.progress.coerceIn(0f, 1f)
                         val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
 
-                        FloatingCapsuleMiniPlayer(
-                            shouldShow = showMini,
-                            hideProgress = playerExpandProgress,
-                            isPlaying = isPlaying,
-                            canSkipNext = canSkipNext,
-                            title = mediaMetadata?.title,
-                            artist = mediaMetadata?.artists?.joinToString { it.name },
-                            coverUrl = mediaMetadata?.coverUrl,
-                            nextTitle = nextMediaItem?.mediaMetadata?.title?.toString(),
-                            nextArtist = nextMediaItem?.mediaMetadata?.artist?.toString(),
-                            nextCoverUrl = nextMediaItem?.mediaMetadata?.artworkUri?.toString(),
-                            prevTitle = prevMediaItem?.mediaMetadata?.title?.toString(),
-                            prevArtist = prevMediaItem?.mediaMetadata?.artist?.toString(),
-                            prevCoverUrl = prevMediaItem?.mediaMetadata?.artworkUri?.toString(),
-                            onClick = { playerBottomSheetState.expandSoft() },
-                            onPlayPause = {
-                                pc?.let { p ->
-                                    if (playbackStateVal == Player.STATE_ENDED) {
-                                        p.player.seekTo(0, 0)
-                                        p.player.playWhenReady = true
-                                    } else {
-                                        p.player.togglePlayPause()
-                                    }
-                                }
-                            },
-                            onNext = { pc?.seekToNext() },
-                            onPrevious = { pc?.seekToPrevious() },
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = if (showNav) capsuleBottom + FloatingCapsuleNavHeight + 8.dp else capsuleBottom),
-                        )
-
                         FloatingCapsuleNavigationBar(
-                            shouldShow = showNav,
-                            hideProgress = playerExpandProgress,
+                            shouldShow = shouldShowNavigationBar,
                             selectedRoute = navBackStackEntry?.destination?.route,
                             onTabSelect = { screen ->
                                 if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
@@ -643,6 +586,10 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = capsuleBottom),
+                        )
+
+                        BottomSheetPlayer(
+                            state = playerBottomSheetState,
                         )
                     }
                 }
