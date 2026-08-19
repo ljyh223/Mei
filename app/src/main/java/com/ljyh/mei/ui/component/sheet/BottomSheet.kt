@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -88,12 +89,7 @@ fun BottomSheet(
     collapsedContent: @Composable BoxScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val rawProgress = state.progress
-    val progress = rawProgress.coerceIn(0f, 1f)
-
-    val horizontalMargin = if (morphSpec != null) {
-        lerp(morphSpec.collapsedHorizontalMargin, morphSpec.expandedHorizontalMargin, progress)
-    } else 0.dp
+    val progress = state.progress
 
     val cornerRadius = if (morphSpec != null) {
         lerp(morphSpec.collapsedCornerRadius, morphSpec.expandedCornerRadius, progress)
@@ -109,16 +105,7 @@ fun BottomSheet(
         lerp(morphSpec.collapsedBottomMargin, morphSpec.expandedBottomMargin, progress)
     } else 0.dp
 
-    // Below the collapsed anchor, the sheet is moving toward dismissed. Fade the
-    // floating margin out as well; otherwise the margin leaves a draggable strip
-    // peeking above the bottom edge when the sheet is fully dismissed.
-    val dismissedToCollapsedProgress = if (state.collapsedBound > state.dismissedBound) {
-        ((state.value - state.dismissedBound) / (state.collapsedBound - state.dismissedBound))
-            .coerceIn(0f, 1f)
-    } else {
-        1f
-    }
-    val effectiveBottomMargin = bottomMargin * dismissedToCollapsedProgress
+    val effectiveBottomMargin = bottomMargin * state.revealProgress
 
     val sheetShape = if (morphSpec != null) {
         RoundedCornerShape(cornerRadius)
@@ -131,10 +118,14 @@ fun BottomSheet(
     } else 1f
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val collapsedWidth = morphSpec?.collapsedMaxWidth
-            ?.let { maxWidth.coerceAtMost(it) }
-            ?: (maxWidth - horizontalMargin * 2).coerceAtLeast(0.dp)
-        val containerWidth = if (morphSpec != null) lerp(collapsedWidth, maxWidth, progress) else maxWidth
+        val collapsedWidth = morphSpec?.let {
+            val availableWidth = (maxWidth - it.collapsedHorizontalMargin * 2).coerceAtLeast(0.dp)
+            it.collapsedMaxWidth?.let(availableWidth::coerceAtMost) ?: availableWidth
+        } ?: maxWidth
+        val expandedWidth = morphSpec?.let {
+            (maxWidth - it.expandedHorizontalMargin * 2).coerceAtLeast(0.dp)
+        } ?: maxWidth
+        val containerWidth = lerp(collapsedWidth, expandedWidth, progress)
         val containerModifier = if (morphSpec != null) {
             Modifier
                 .align(Alignment.TopCenter)
@@ -321,8 +312,12 @@ class BottomSheetState(
     val isTargetExpanded: Boolean
         get() = targetAnchor == expandedAnchor
 
+    val revealProgress by derivedStateOf {
+        normalizedProgress(animatable.value, dismissedBound, collapsedBound)
+    }
+
     val progress by derivedStateOf {
-        1f - (animatable.upperBound!! - animatable.value) / (animatable.upperBound!! - collapsedBound)
+        normalizedProgress(animatable.value, collapsedBound, expandedBound)
     }
 
     fun collapse(animationSpec: AnimationSpec<Dp>) {
@@ -480,19 +475,8 @@ fun rememberBottomSheetState(
     }
 
 
-    return remember(dismissedBound, expandedBound, collapsedBound, coroutineScope) {
-        val initialValue = when (previousAnchor) {
-            expandedAnchor -> expandedBound
-            collapsedAnchor -> collapsedBound
-            dismissedAnchor -> dismissedBound
-            else -> error("Unknown BottomSheet anchor")
-        }
-
+    val state = remember(dismissedBound, expandedBound, collapsedBound, coroutineScope) {
         animatable.updateBounds(dismissedBound.coerceAtMost(expandedBound), expandedBound)
-        coroutineScope.launch {
-            animatable.animateTo(initialValue, NavigationBarAnimationSpec)
-        }
-
         BottomSheetState(
             draggableState = DraggableState { delta ->
                 coroutineScope.launch {
@@ -506,6 +490,18 @@ fun rememberBottomSheetState(
             initialAnchor = previousAnchor
         )
     }
+
+    LaunchedEffect(state) {
+        val target = when (previousAnchor) {
+            expandedAnchor -> expandedBound
+            collapsedAnchor -> collapsedBound
+            dismissedAnchor -> dismissedBound
+            else -> error("Unknown BottomSheet anchor")
+        }
+        animatable.animateTo(target, NavigationBarAnimationSpec)
+    }
+
+    return state
 }
 // 在你的文件顶部或一个合适的位置定义这个枚举
 enum class HorizontalSwipeDirection {
@@ -514,4 +510,9 @@ enum class HorizontalSwipeDirection {
 
 private fun lerp(start: Dp, stop: Dp, fraction: Float): Dp {
     return Dp((1 - fraction) * start.value + fraction * stop.value)
+}
+
+internal fun normalizedProgress(value: Dp, start: Dp, end: Dp): Float {
+    if (end <= start) return if (value >= end) 1f else 0f
+    return ((value - start) / (end - start)).coerceIn(0f, 1f)
 }

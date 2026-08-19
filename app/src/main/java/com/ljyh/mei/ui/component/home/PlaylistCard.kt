@@ -45,8 +45,8 @@ fun PlaylistCard(
     subTitle: List<String>? = null,
     extInfo: String? = null,
     imageSize: Boolean = true,
-    cardSize: Dp? = PlaylistCardSize,
-    modifier: Modifier = Modifier,
+    cardSize: Dp = PlaylistCardSize,
+    modifier: Modifier = Modifier.width(cardSize),
     onClick: () -> Unit
 ) {
     // 常用阴影样式，提取出来复用
@@ -58,12 +58,13 @@ fun PlaylistCard(
 
     Column(
         modifier = modifier
-            .then(if (cardSize != null) Modifier.width(cardSize) else Modifier.fillMaxWidth())
             .clip(RoundedCornerShape(8.dp)) // 整个组件裁切，防止水波纹溢出
             .clickable { onClick() }
     ) {
         Box(
-            modifier = if (cardSize != null) Modifier.size(cardSize) else Modifier.fillMaxWidth().aspectRatio(1f)
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
         ) {
             AsyncImage(
                 model = if (imageSize) coverImg.largeImage() else coverImg,

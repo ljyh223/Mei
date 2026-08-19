@@ -43,28 +43,4 @@ data class UserVipInfo(
         @SerializedName("isSignIapDeduct") val isSignIapDeduct: Boolean = false,
     )
 
-    private fun Benefit?.isActive(now: Long): Boolean =
-        this != null && vipLevel > 0 && expireTime > now
-
-    val label: String?
-        get() {
-            val now = System.currentTimeMillis()
-            return when {
-                data?.redplus.isActive(now) -> "SVIP"
-                data?.associator.isActive(now) -> "VIP"
-                data?.musicPackage.isActive(now) -> "音乐包"
-                else -> null
-            }
-        }
-
-    val iconUrl: String?
-        get() {
-            val now = System.currentTimeMillis()
-            return when {
-                data?.redplus.isActive(now) -> data?.redplus?.iconUrl
-                data?.associator.isActive(now) -> data?.associator?.iconUrl ?: data?.redVipLevelIcon
-                data?.musicPackage.isActive(now) -> data?.musicPackage?.iconUrl
-                else -> null
-            }
-        }
 }

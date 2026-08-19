@@ -40,41 +40,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.model.Album
+import com.ljyh.mei.ui.screen.main.library.LibraryProfileUi
+import com.ljyh.mei.ui.screen.main.library.LibrarySection
+import com.ljyh.mei.ui.screen.main.library.LibraryTabletEvent
+import com.ljyh.mei.ui.screen.main.library.LibraryTabletUiState
 
 @Composable
 fun LibraryTabletLayout(
-    userNickname: String,
-    userAvatarUrl: String,
-    signature: String,
-    membershipLabel: String?,
-    membershipIconUrl: String?,
-    follows: Int,
-    followers: Int,
-    level: Int,
-    listenSongs: Int,
-    createdCount: Int,
-    collectedCount: Int,
-    albumCount: Int,
-    selectedTabIndex: Int,
-    onTabSelect: (Int) -> Unit,
-    onAvatarClick: () -> Unit,
-    onHistoryClick: () -> Unit,
-    onLocalClick: () -> Unit,
-    onDownloadClick: () -> Unit,
-    onPlaylistClick: (String) -> Unit,
-    onAlbumClick: (String) -> Unit,
-    createdPlaylists: List<Playlist>,
-    collectedPlaylists: List<Playlist>,
-    albums: List<Album>,
+    state: LibraryTabletUiState,
+    onEvent: (LibraryTabletEvent) -> Unit,
 ) {
-    val displayItems = when (selectedTabIndex) {
-        0 -> createdPlaylists.map { LibraryAsset(it.id, it.title, it.cover) }
-        1 -> collectedPlaylists.map { LibraryAsset(it.id, it.title, it.cover) }
-        else -> albums.map { LibraryAsset(it.id.toString(), it.title, it.cover) }
+    val displayItems = when (state.section) {
+        LibrarySection.Created -> state.createdPlaylists.map { LibraryAsset(it.id, it.title, it.cover) }
+        LibrarySection.Collected -> state.collectedPlaylists.map { LibraryAsset(it.id, it.title, it.cover) }
+        LibrarySection.Albums -> state.albums.map { LibraryAsset(it.id.toString(), it.title, it.cover) }
     }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 144.dp), modifier = Modifier.fillMaxSize(),
@@ -88,22 +69,26 @@ fun LibraryTabletLayout(
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             LibraryProfileOverview(
-                userNickname, userAvatarUrl, signature, membershipLabel, membershipIconUrl,
-                follows, followers, level, listenSongs,
-                onAvatarClick, onHistoryClick, onLocalClick, onDownloadClick,
+                profile = state.profile,
+                onEvent = onEvent,
             )
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
-            LibrarySectionHeader(selectedTabIndex, onTabSelect, createdCount, collectedCount, albumCount)
+            LibrarySectionHeader(state, onEvent)
         }
-        if (displayItems.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { LibraryTabletEmptyState(selectedTabIndex) }
+        if (displayItems.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { LibraryTabletEmptyState(state.section) }
         else items(displayItems, key = { it.id }) { item ->
             PlaylistCard(
                 id = item.id,
                 title = item.title,
                 coverImg = item.cover,
-                cardSize = null,
-                onClick = { if (selectedTabIndex == 2) onAlbumClick(item.id) else onPlaylistClick(item.id) },
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    onEvent(
+                        if (state.section == LibrarySection.Albums) LibraryTabletEvent.OpenAlbum(item.id)
+                        else LibraryTabletEvent.OpenPlaylist(item.id)
+                    )
+                },
             )
         }
     }
@@ -111,9 +96,8 @@ fun LibraryTabletLayout(
 
 @Composable
 private fun LibraryProfileOverview(
-    userNickname: String, userAvatarUrl: String, signature: String, membershipLabel: String?, membershipIconUrl: String?,
-    follows: Int, followers: Int, level: Int, listenSongs: Int,
-    onAvatarClick: () -> Unit, onHistoryClick: () -> Unit, onLocalClick: () -> Unit, onDownloadClick: () -> Unit,
+    profile: LibraryProfileUi,
+    onEvent: (LibraryTabletEvent) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Row(
@@ -122,34 +106,34 @@ private fun LibraryProfileOverview(
             horizontalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             AsyncImage(
-                model = userAvatarUrl,
+                model = profile.avatarUrl,
                 contentDescription = "更换头像背景",
                 modifier = Modifier
                     .size(156.dp)
                     .clip(RoundedCornerShape(32.dp))
-                    .clickable(onClick = onAvatarClick),
+                    .clickable { onEvent(LibraryTabletEvent.ChangeProfilePhoto) },
             )
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(userNickname.ifBlank { "Music Lover" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    if (!membershipIconUrl.isNullOrBlank()) {
+                    Text(profile.nickname.ifBlank { "Music Lover" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    if (!profile.membershipIconUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = membershipIconUrl,
-                            contentDescription = membershipLabel,
+                            model = profile.membershipIconUrl,
+                            contentDescription = profile.membershipLabel,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
                                 .width(72.dp)
                                 .height(26.dp),
                         )
-                    } else if (membershipLabel != null) {
+                    } else if (profile.membershipLabel != null) {
                         Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
-                            Text(membershipLabel, Modifier.padding(horizontal = 9.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium,
+                            Text(profile.membershipLabel, Modifier.padding(horizontal = 9.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
                 Text(
-                    signature.ifBlank { "还没有填写个人签名" },
+                    profile.signature.ifBlank { "还没有填写个人签名" },
                     Modifier.padding(top = 5.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -157,15 +141,15 @@ private fun LibraryProfileOverview(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(Modifier.padding(top = 15.dp), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                    Text("$follows 关注", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Text("$followers 粉丝", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Text("Lv.$level 等级", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Text("$listenSongs 首听歌", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("${profile.follows ?: "—"} 关注", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("${profile.followers ?: "—"} 粉丝", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Lv.${profile.level ?: "—"} 等级", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("${profile.listenSongs ?: "—"} 首听歌", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 }
                 Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    LibraryQuickAction(Icons.Rounded.History, "最近", onHistoryClick, Modifier.weight(1f))
-                    LibraryQuickAction(Icons.Rounded.Folder, "本地", onLocalClick, Modifier.weight(1f))
-                    LibraryQuickAction(Icons.Rounded.Download, "下载", onDownloadClick, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.History, "最近", { onEvent(LibraryTabletEvent.OpenHistory) }, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.Folder, "本地", { onEvent(LibraryTabletEvent.OpenLocalMusic) }, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.Download, "下载", { onEvent(LibraryTabletEvent.OpenDownloads) }, Modifier.weight(1f))
                     LibraryQuickAction(Icons.Rounded.Cloud, "云盘", {}, Modifier.weight(1f), enabled = false)
                 }
             }
@@ -183,7 +167,7 @@ private fun LibraryQuickAction(icon: ImageVector, label: String, onClick: () -> 
 }
 
 @Composable
-private fun LibrarySectionHeader(selectedTabIndex: Int, onTabSelect: (Int) -> Unit, createdCount: Int, collectedCount: Int, albumCount: Int) {
+private fun LibrarySectionHeader(state: LibraryTabletUiState, onEvent: (LibraryTabletEvent) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "我的音乐",
@@ -192,17 +176,26 @@ private fun LibrarySectionHeader(selectedTabIndex: Int, onTabSelect: (Int) -> Un
             fontWeight = FontWeight.Bold,
         )
         Spacer(Modifier.width(24.dp))
-        listOf("创建" to createdCount, "收藏" to collectedCount, "专辑" to albumCount).forEachIndexed { index, (title, count) ->
-            Text("$title $count", Modifier.clip(RoundedCornerShape(14.dp)).clickable { onTabSelect(index) }.padding(horizontal = 12.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.titleSmall, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                color = if (selectedTabIndex == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+        listOf(
+            Triple(LibrarySection.Created, "创建", state.createdCount),
+            Triple(LibrarySection.Collected, "收藏", state.collectedCount),
+            Triple(LibrarySection.Albums, "专辑", state.albumCount),
+        ).forEach { (section, title, count) ->
+            val selected = state.section == section
+            Text("$title $count", Modifier.clip(RoundedCornerShape(14.dp)).clickable { onEvent(LibraryTabletEvent.SelectSection(section)) }.padding(horizontal = 12.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.titleSmall, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 private data class LibraryAsset(val id: String, val title: String, val cover: String)
 
-@Composable private fun LibraryTabletEmptyState(selectedTabIndex: Int) {
-    val label = when (selectedTabIndex) { 0 -> "暂无创建歌单"; 1 -> "暂无收藏歌单"; else -> "暂无收藏专辑" }
+@Composable private fun LibraryTabletEmptyState(section: LibrarySection) {
+    val label = when (section) {
+        LibrarySection.Created -> "暂无创建歌单"
+        LibrarySection.Collected -> "暂无收藏歌单"
+        LibrarySection.Albums -> "暂无收藏专辑"
+    }
     Box(Modifier.fillMaxWidth().padding(vertical = 72.dp), contentAlignment = Alignment.Center) { Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant) }
 }

@@ -53,21 +53,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastAny
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -92,12 +87,14 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.playback.MusicService
 import com.ljyh.mei.playback.PlayerConnection
-import com.ljyh.mei.ui.component.FloatingCapsuleNavigationBar
+import com.ljyh.mei.ui.component.AdaptiveMainNavigation
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
-import com.ljyh.mei.ui.component.TabletNavigationRail
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
+import com.ljyh.mei.ui.component.isMainDestination
+import com.ljyh.mei.ui.component.selectMainDestination
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
+import com.ljyh.mei.ui.component.player.SyncPlayerSheetVisibility
 import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.component.utils.appBarScrollBehavior
 import com.ljyh.mei.ui.component.utils.resetHeightOffset
@@ -174,7 +171,6 @@ class MainActivity : ComponentActivity() {
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
             var playerConnection by remember { mutableStateOf<PlayerConnection?>(null) }
 
-            var isMeasured by remember { mutableStateOf(false) }
             DisposableEffect(Unit) {
                 val intent = Intent(context, MusicService::class.java)
 
@@ -263,9 +259,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surface)
-                        .onSizeChanged {
-                            isMeasured = true
-                        }
                 ) {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
@@ -282,24 +275,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val navigationItems = remember { Screen.MainScreens }
-
-                    val shouldShowTabletSidebar = remember(
-                        navBackStackEntry,
-                        active,
-                        useTabletSidebar,
-                    ) {
-                        useTabletSidebar && !active && navigationItems.fastAny {
-                            it.route == navBackStackEntry?.destination?.route
-                        }
-                    }
-
-
-                    val shouldShowNavigationBar = remember(navBackStackEntry, active, useTabletSidebar) {
-                        !useTabletSidebar && !active && navigationItems.fastAny {
-                            it.route == navBackStackEntry?.destination?.route
-                        }
-                    }
+                    val isMainDestination = navBackStackEntry?.destination?.route.isMainDestination()
+                    val shouldShowMainNavigation = !active && isMainDestination
+                    val shouldShowTabletSidebar = shouldShowMainNavigation && useTabletSidebar
+                    val shouldShowNavigationBar = shouldShowMainNavigation && !useTabletSidebar
 
                     val searchBarFocusRequester = remember { FocusRequester() }
                     val shouldShowSearchBar = remember(active, navBackStackEntry) {
@@ -400,12 +379,6 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                    LaunchedEffect(isMeasured, playerConnection) {
-                        if (isMeasured && playerConnection?.player?.currentMediaItem != null) {
-                            playerBottomSheetState.collapseSoft()
-                        }
-                    }
-
                     LaunchedEffect(navBackStackEntry) {
                         searchBarScrollBehavior.state.resetHeightOffset()
                         topAppBarScrollBehavior.state.resetHeightOffset()
@@ -420,50 +393,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(playerConnection, playerBottomSheetState) {
-                        val player = playerConnection?.player ?: return@LaunchedEffect
-                        if (player.currentMediaItem == null) {
-                            if (!playerBottomSheetState.isDismissed) {
-                                playerBottomSheetState.dismiss()
-                            }
-                        } else {
-                            if (playerBottomSheetState.isDismissed) {
-                                playerBottomSheetState.collapseSoft()
-                            }
-                        }
-                    }
-
-
-                    DisposableEffect(playerConnection, playerBottomSheetState) {
-                        val player =
-                            playerConnection?.player ?: return@DisposableEffect onDispose { }
-                        fun syncPlayerSheetVisibility() {
-                            if (player.currentMediaItem == null) {
-                                if (!playerBottomSheetState.isDismissed) {
-                                    playerBottomSheetState.dismiss()
-                                }
-                            } else if (playerBottomSheetState.isDismissed) {
-                                playerBottomSheetState.collapseSoft()
-                            }
-                        }
-                        val listener = object : Player.Listener {
-                            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                                syncPlayerSheetVisibility()
-                            }
-
-                            override fun onTimelineChanged(
-                                timeline: androidx.media3.common.Timeline,
-                                reason: Int,
-                            ) {
-                                syncPlayerSheetVisibility()
-                            }
-                        }
-                        player.addListener(listener)
-                        syncPlayerSheetVisibility()
-                        onDispose {
-                            player.removeListener(listener)
-                        }
-                    }
+                    SyncPlayerSheetVisibility(playerConnection, playerBottomSheetState)
                     CompositionLocalProvider(
                         LocalDatabase provides database,
                         LocalNavController provides navController,
@@ -489,24 +419,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        if (shouldShowTabletSidebar) {
-                            TabletNavigationRail(
-                                selectedRoute = navBackStackEntry?.destination?.route,
-                                onTabSelect = { screen ->
-                                    if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                        navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                    } else {
-                                        navController.navigate(screen.route) {
-                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.align(Alignment.CenterStart),
-                            )
-                        }
-
                         AnimatedVisibility(
                             visible = shouldShowSearchBar,
                             enter = fadeIn(),
@@ -527,7 +439,7 @@ class MainActivity : ComponentActivity() {
                                         onClick = {
                                             when {
                                                 active -> onActiveChange(false)
-                                                !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } -> {
+                                                !isMainDestination -> {
                                                     navController.navigateUp()
                                                 }
 
@@ -537,7 +449,7 @@ class MainActivity : ComponentActivity() {
                                         onLongClick = {
                                             when {
                                                 active -> {}
-                                                !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } -> {
+                                                !isMainDestination -> {
                                                     navController.backToMain()
                                                 }
                                                 else -> {}
@@ -545,7 +457,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     ) {
                                         Icon(
-                                            imageVector = if (active || !navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route }) {
+                                            imageVector = if (active || !isMainDestination) {
                                                 Icons.AutoMirrored.Rounded.ArrowBack
                                             } else {
                                                 Icons.Rounded.Search
@@ -621,21 +533,12 @@ class MainActivity : ComponentActivity() {
                         }
                         val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
 
-                        FloatingCapsuleNavigationBar(
-                            shouldShow = shouldShowNavigationBar,
+                        if (shouldShowMainNavigation) AdaptiveMainNavigation(
+                            useSidebar = useTabletSidebar,
                             selectedRoute = navBackStackEntry?.destination?.route,
-                            onTabSelect = { screen ->
-                                if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                } else {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            },
-                            modifier = Modifier
+                            onTabSelect = navController::selectMainDestination,
+                            sidebarModifier = Modifier.align(Alignment.CenterStart),
+                            bottomBarModifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = capsuleBottom),
                         )

@@ -11,13 +11,13 @@ import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.data.model.weapi.UserSubcount
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.repository.AlbumsRepository
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -40,6 +40,36 @@ class LibraryViewModel @Inject constructor(
     private val _userVipInfo = MutableStateFlow<Resource<UserVipInfo>>(Resource.Loading)
     val userVipInfo: StateFlow<Resource<UserVipInfo>> = _userVipInfo
 
+    val profileUi: StateFlow<LibraryProfileUi?> = combine(
+        account,
+        userDetail,
+        userVipInfo,
+    ) { accountResource, detailResource, vipResource ->
+        val profile = (accountResource as? Resource.Success)?.data?.profile
+            ?: return@combine null
+        val detail = (detailResource as? Resource.Success)?.data
+        val membership = (vipResource as? Resource.Success)
+            ?.data
+            ?.toMembershipUi(System.currentTimeMillis())
+
+        LibraryProfileUi(
+            userId = profile.userId.toString(),
+            nickname = profile.nickname,
+            avatarUrl = profile.avatarUrl,
+            signature = profile.signature,
+            membershipLabel = membership?.label,
+            membershipIconUrl = membership?.iconUrl,
+            follows = detail?.profile?.follows,
+            followers = detail?.profile?.followeds,
+            level = detail?.level,
+            listenSongs = detail?.listenSongs,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = null,
+    )
+
     private val _photoAlbum=MutableStateFlow<Resource<AlbumPhoto>>(Resource.Loading)
     val photoAlbum:StateFlow<Resource<AlbumPhoto>> = _photoAlbum
 
@@ -48,9 +78,6 @@ class LibraryViewModel @Inject constructor(
 
     private val _albumList = MutableStateFlow<Resource<UserAlbumList>>(Resource.Loading)
     val albumList: StateFlow<Resource<UserAlbumList>> = _albumList
-
-    private val _userSubcount = MutableStateFlow<Resource<UserSubcount>>(Resource.Loading)
-    val userSubcount: StateFlow<Resource<UserSubcount>> = _userSubcount
 
     val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
@@ -64,6 +91,14 @@ class LibraryViewModel @Inject constructor(
             _account.value = Resource.Loading
             _account.value = repository.getUserAccount()
         }
+    }
+
+    fun loadLibrary(uid: String) {
+        syncUserPlaylists(uid)
+        getPhotoAlbum(uid)
+        getAlbumList()
+        getUserDetail(uid)
+        getUserVipInfo(uid)
     }
 
     fun getUserDetail(uid: String) {
@@ -126,13 +161,6 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             _albumList.value= Resource.Loading
             _albumList.value=repository.getAlbumList()
-        }
-    }
-
-    fun getUserSubcount(){
-        viewModelScope.launch {
-            _userSubcount.value= Resource.Loading
-            _userSubcount.value= repository.getUsrSubcount()
         }
     }
 

@@ -43,12 +43,10 @@ fun LibraryScreen(
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
     val account by viewModel.account.collectAsState()
-    val userDetail by viewModel.userDetail.collectAsState()
-    val userVipInfo by viewModel.userVipInfo.collectAsState()
+    val profileUi by viewModel.profileUi.collectAsState()
     val photoAlbum by viewModel.photoAlbum.collectAsState()
     val localPlaylists by viewModel.localPlaylists.collectAsState()
     val albumList by viewModel.albumList.collectAsState()
-    val userSubcount by viewModel.userSubcount.collectAsState()
 
     // Preferences
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
@@ -60,15 +58,10 @@ fun LibraryScreen(
     // State
     var showPhotoPicker by remember { mutableStateOf(false) }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    var subPlaylistCount by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("创建歌单", "收藏歌单", "收藏专辑")
     val accountProfile = (account as? Resource.Success)?.data?.profile
-    val detail = (userDetail as? Resource.Success)?.data
-    val membershipLabel = (userVipInfo as? Resource.Success)?.data?.label
-    val membershipIconUrl = (userVipInfo as? Resource.Success)?.data?.iconUrl
-    val subcount = (userSubcount as? Resource.Success)?.data
     val profileSignature = accountProfile?.signature.orEmpty()
-    val subscribedPlaylistCount = subcount?.subPlaylistCount ?: 0
+    val albums = (albumList as? Resource.Success)?.data?.data?.map { it.toAlbum() }.orEmpty()
 
     val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
         if (userId.isEmpty()) Pair(emptyList(), emptyList())
@@ -76,8 +69,8 @@ fun LibraryScreen(
             val (created, collected) = localPlaylists.partition { it.author == userId }
             val now = System.currentTimeMillis()
             Pair(
-                created.sortedByDescending { it.sortScore(created.maxOf { p -> p.localPlayCount }, created.maxOf { p -> p.playCount }, now) },
-                collected.sortedByDescending { it.sortScore(collected.maxOf { p -> p.localPlayCount }, collected.maxOf { p -> p.playCount }, now) }
+                created.sortedForLibrary(now),
+                collected.sortedForLibrary(now),
             )
         }
     }
@@ -85,12 +78,7 @@ fun LibraryScreen(
     // --- 数据同步逻辑 ---
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            viewModel.syncUserPlaylists(userId)
-            viewModel.getPhotoAlbum(userId)
-            viewModel.getAlbumList()
-            viewModel.getUserSubcount()
-            viewModel.getUserDetail(userId)
-            viewModel.getUserVipInfo(userId)
+            viewModel.loadLibrary(userId)
         }
     }
 
@@ -101,8 +89,8 @@ fun LibraryScreen(
             }
         }
     }
-    LaunchedEffect(cookie, account) {
-        if (cookie.isNotEmpty() && account !is Resource.Success) viewModel.getUserAccount()
+    LaunchedEffect(cookie) {
+        if (cookie.isNotEmpty()) viewModel.getUserAccount()
     }
     LaunchedEffect(account) {
         (account as? Resource.Success)
@@ -112,17 +100,6 @@ fun LibraryScreen(
                 setUserNickname(profile.nickname)
                 setUserAvatarUrl(profile.avatarUrl)
             }
-    }
-
-    LaunchedEffect(userSubcount) {
-        if (userSubcount is Resource.Success) {
-
-        }
-    }
-
-    LaunchedEffect(subPlaylistCount) {
-        if (userId.isNotEmpty() && localPlaylists.size != subPlaylistCount && subPlaylistCount != 0)
-            viewModel.syncUserPlaylists(userId, subPlaylistCount)
     }
 
     Box(
@@ -138,37 +115,34 @@ fun LibraryScreen(
         if (userId.isNotEmpty()) {
             if (device.isTablet && device.isLandscape) {
                 // 平板布局
-                LibraryTabletLayout(
-                    userNickname = userNickname,
-                    userAvatarUrl = userAvatarUrl,
-                    signature = profileSignature,
-                    membershipLabel = membershipLabel,
-                    membershipIconUrl = membershipIconUrl,
-                    follows = detail?.profile?.follows ?: 0,
-                    followers = detail?.profile?.followeds ?: 0,
-                    level = detail?.level ?: 0,
-                    listenSongs = detail?.listenSongs ?: 0,
-                    createdCount = createdPlaylists.size,
-                    collectedCount = maxOf(collectedPlaylists.size, subscribedPlaylistCount),
-                    albumCount = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.size else 0,
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelect = {selectedTabIndex = it},
-                    onAvatarClick = {
-                        viewModel.getPhotoAlbum(userId)
-                        showPhotoPicker = true
-                    },
-                    onHistoryClick = { Screen.History.navigate(navController) },
-                    onLocalClick = { Screen.LocalMusic.navigate(navController) },
-                    onDownloadClick = { Screen.DownloadManage.navigate(navController) },
+                val tabletState = LibraryTabletUiState(
+                    profile = profileUi ?: LibraryProfileUi(
+                        userId = userId,
+                        nickname = userNickname,
+                        avatarUrl = userAvatarUrl,
+                        signature = profileSignature,
+                    ),
+                    section = LibrarySection.entries[selectedTabIndex],
                     createdPlaylists = createdPlaylists,
                     collectedPlaylists = collectedPlaylists,
-                    albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
-                    onAlbumClick = { id->
-                        Screen.Album.navigate(navController) { addPath(id) }
+                    albums = albums,
+                )
+                LibraryTabletLayout(
+                    state = tabletState,
+                    onEvent = { event ->
+                        when (event) {
+                            is LibraryTabletEvent.SelectSection -> selectedTabIndex = event.section.ordinal
+                            is LibraryTabletEvent.OpenPlaylist -> Screen.PlayList.navigate(navController) { addPath(event.id) }
+                            is LibraryTabletEvent.OpenAlbum -> Screen.Album.navigate(navController) { addPath(event.id) }
+                            LibraryTabletEvent.ChangeProfilePhoto -> {
+                                viewModel.getPhotoAlbum(userId)
+                                showPhotoPicker = true
+                            }
+                            LibraryTabletEvent.OpenHistory -> Screen.History.navigate(navController)
+                            LibraryTabletEvent.OpenLocalMusic -> Screen.LocalMusic.navigate(navController)
+                            LibraryTabletEvent.OpenDownloads -> Screen.DownloadManage.navigate(navController)
+                        }
                     },
-                    onPlaylistClick = { id->
-                        Screen.PlayList.navigate(navController) { addPath(id) }
-                    }
                 )
             } else {
                 // 手机布局 (保持你原来的代码逻辑)
@@ -181,7 +155,7 @@ fun LibraryScreen(
                     tabTitles = tabTitles,
                     createdPlaylists = createdPlaylists,
                     collectedPlaylists = collectedPlaylists,
-                    albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
+                    albums = albums,
                     onAvatarClick = {
                         viewModel.getPhotoAlbum(userId)
                         showPhotoPicker = true
@@ -220,5 +194,13 @@ fun EmptyLoginState(navController: NavController) {
         ) {
             Text("去填写 Cookie 以同步数据")
         }
+    }
+}
+
+private fun List<Playlist>.sortedForLibrary(now: Long): List<Playlist> {
+    val maxLocalPlayCount = maxOfOrNull { it.localPlayCount } ?: 0
+    val maxPlayCount = maxOfOrNull { it.playCount } ?: 0L
+    return sortedByDescending {
+        it.sortScore(maxLocalPlayCount, maxPlayCount, now)
     }
 }
