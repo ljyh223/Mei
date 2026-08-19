@@ -12,6 +12,7 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.ljyh.mei.playback.DownloadWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -54,7 +55,7 @@ class CoilImageLoader {
 }
 
 object ImageUtils {
-    private val httpClient = OkHttpClient.Builder()
+    private val httpClient = DownloadWorker.getDownloadClient().newBuilder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()

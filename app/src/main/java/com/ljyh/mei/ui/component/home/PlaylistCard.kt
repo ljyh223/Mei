@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,6 +46,7 @@ fun PlaylistCard(
     extInfo: String? = null,
     imageSize: Boolean = true,
     cardSize: Dp = PlaylistCardSize,
+    modifier: Modifier = Modifier.width(cardSize),
     onClick: () -> Unit
 ) {
     // 常用阴影样式，提取出来复用
@@ -55,13 +57,14 @@ fun PlaylistCard(
     )
 
     Column(
-        modifier = Modifier
-            .width(cardSize)
+        modifier = modifier
             .clip(RoundedCornerShape(8.dp)) // 整个组件裁切，防止水波纹溢出
             .clickable { onClick() }
     ) {
         Box(
-            modifier = Modifier.size(cardSize)
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
         ) {
             AsyncImage(
                 model = if (imageSize) coverImg.largeImage() else coverImg,

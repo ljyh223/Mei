@@ -3,18 +3,13 @@ package com.ljyh.mei.ui.component.player
 import android.os.Build
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
-import com.ljyh.mei.constants.PlayerStyle
-import com.ljyh.mei.constants.PlayerStyleKey
 import com.ljyh.mei.ui.component.player.component.applemusic.AppleMusicPlayer
 import com.ljyh.mei.ui.component.player.component.classic.ClassicPlayer
 import com.ljyh.mei.ui.component.player.overlay.CommonOverlayHandler
-import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.overlay.rememberOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.player.state.rememberPlayerStateContainer
@@ -22,7 +17,6 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 
 @OptIn(UnstableApi::class)
@@ -38,9 +32,6 @@ fun BottomSheetPlayer(
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
 
-    // 获取播放器样式
-    val playerStyle by rememberEnumPreference(PlayerStyleKey, defaultValue = PlayerStyle.AppleMusic)
-
     // 创建公共状态容器
     val stateContainer = rememberPlayerStateContainer(
         playerViewModel = playerViewModel,
@@ -54,35 +45,20 @@ fun BottomSheetPlayer(
         navController = navController
     )
 
-    // 单入口、双实现 - 根据样式渲染不同的播放器
-    when (playerStyle) {
-        PlayerStyle.AppleMusic -> {
-            // 横屏模式下直接进入经典模式
-            if( device.isLandscape){
-                ClassicPlayer(
-                    state = state,
-                    modifier = modifier,
-                    stateContainer = stateContainer,
-                    overlayHandler = overlayHandler
-                )
-            }else{
-                AppleMusicPlayer(
-                    state = state,
-                    modifier = modifier,
-                    stateContainer = stateContainer,
-                    overlayHandler = overlayHandler
-                )
-            }
-
-        }
-        PlayerStyle.Classic -> {
-            ClassicPlayer(
-                state = state,
-                modifier = modifier,
-                stateContainer = stateContainer,
-                overlayHandler = overlayHandler
-            )
-        }
+    if (device.isTablet) {
+        ClassicPlayer(
+            state = state,
+            modifier = modifier,
+            stateContainer = stateContainer,
+            overlayHandler = overlayHandler,
+        )
+    } else {
+        AppleMusicPlayer(
+            state = state,
+            modifier = modifier,
+            stateContainer = stateContainer,
+            overlayHandler = overlayHandler,
+        )
     }
 
     // 公共的弹窗处理层

@@ -411,15 +411,15 @@ data class AlbumDetail(
                 @SerializedName("resourceId")
                 val resourceId: Int,
                 @SerializedName("resourceOwnerId")
-                val resourceOwnerId: Int,
+                val resourceOwnerId: Long,
                 @SerializedName("resourceTitle")
                 val resourceTitle: String
             ) {
                 data class ResourceInfo(
                     @SerializedName("id")
-                    val id: Int,
+                    val id: Long,
                     @SerializedName("userId")
-                    val userId: Int,
+                    val userId: Long,
                     @SerializedName("name")
                     val name: String,
                     @SerializedName("imgUrl")

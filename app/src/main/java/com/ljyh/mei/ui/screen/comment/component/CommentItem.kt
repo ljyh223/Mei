@@ -60,7 +60,6 @@ fun CommentItem(
             Spacer(modifier = Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                // 1. 用户名：使用 labelMedium 并加粗，使其更具辨识度
                 Text(
                     text = comment.user.nickname,
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -69,7 +68,6 @@ fun CommentItem(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // 2. 评论主内容：改用 bodyMedium (14sp 左右)，默认的 bodyLarge 放在列表里太笨重了
                 Text(
                     text = comment.content,
                     style = MaterialTheme.typography.bodyMedium,
@@ -98,7 +96,7 @@ fun CommentItem(
                     Icon(
                         imageVector = Icons.Default.ThumbUp,
                         contentDescription = null,
-                        modifier = Modifier.size(12.dp), // 点赞图标稍微缩小一点点，配合 labelSmall
+                        modifier = Modifier.size(12.dp),
                         tint = if (comment.liked) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.outline
                     )
@@ -111,10 +109,9 @@ fun CommentItem(
                     )
                 }
 
-                val floorCount = comment.showFloorComment?.replyCount?: 0
+                val floorCount = comment.showFloorComment?.replyCount ?: 0
                 if (floorCount > 0) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    // 3. 展开楼中楼按钮：降级到 labelSmall，并且稍微加粗使其显眼但字号不突兀
                     Text(
                         text = if (isExpanded) "收起回复" else "展开 $floorCount 条回复",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
@@ -136,7 +133,7 @@ fun CommentItem(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 62.dp, end = 16.dp, bottom = 4.dp) // 增加底部边距，防止视觉贴边
+                    .padding(start = 62.dp, end = 16.dp, bottom = 4.dp)
                     .background(
                         MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f),
                         RoundedCornerShape(8.dp)
@@ -153,7 +150,6 @@ fun CommentItem(
                         )
                     }
                     is Resource.Success -> {
-                        // 4. 楼中楼列表包装
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
                             floorComments.data.forEach { floor ->
                                 FloorCommentItem(comment = floor)
@@ -161,7 +157,7 @@ fun CommentItem(
                         }
                     }
                     is Resource.Error -> {
-                        Timber.d("子评论加载失败"+floorComments.message)
+                        Timber.d("子评论加载失败" + floorComments.message)
                         Text(
                             text = "加载失败",
                             style = MaterialTheme.typography.labelSmall,

@@ -40,16 +40,12 @@ import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
 import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
-import com.ljyh.mei.constants.CoverStyle
-import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
-import com.ljyh.mei.constants.PlayerStyle
-import com.ljyh.mei.constants.PlayerStyleKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
@@ -78,12 +74,6 @@ fun AppearanceSettings(
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
-    )
-
-
-    val (coverStyle, onCoverStyleChange) = rememberEnumPreference(
-        CoverStyleKey,
-        defaultValue = CoverStyle.Square
     )
 
 
@@ -124,11 +114,6 @@ fun AppearanceSettings(
     val (tabletAnimStyle, onTabletAnimStyleChange) = rememberEnumPreference(
         key = TabletAnimationStyleKey,
         defaultValue = TabletAnimationStyle.FLIP_3D
-    )
-
-    val (playerStyle, onPlayerStyleChange) = rememberEnumPreference(
-        key = PlayerStyleKey,
-        defaultValue = PlayerStyle.AppleMusic
     )
 
     val (playlistStyle, onPlaylistStyleChange) = rememberEnumPreference(
@@ -223,39 +208,12 @@ fun AppearanceSettings(
                 title = "PLAYER"
             )
 
-            EnumListPreference(
-                title = { Text("播放器样式") },
-                icon = { Icon(Icons.Rounded.MusicVideo, null) },
-                selectedValue = playerStyle,
-                onValueSelected = onPlayerStyleChange,
-                valueText = {
-                    when (it) {
-                        PlayerStyle.AppleMusic -> "Apple Music"
-                        PlayerStyle.Classic -> "经典"
-                    }
-                }
-            )
-
             // 原图封面
             SwitchPreference(
                 title = { Text("使用原图加载封面") },
                 icon = { Icon(Icons.Rounded.Image, null) },
                 checked = originalCover,
                 onCheckedChange = onOriginalCover
-            )
-
-            EnumListPreference(
-                title = { Text("歌曲封面样式") },
-                icon = { Icon(Icons.Rounded.Image, null) },
-                selectedValue = coverStyle,
-                onValueSelected = onCoverStyleChange,
-                isEnabled = playerStyle == PlayerStyle.Classic,
-                valueText = {
-                    when (it) {
-                        CoverStyle.Circle -> "圆形"
-                        CoverStyle.Square -> "方形"
-                    }
-                }
             )
             EnumListPreference(
                 title = { Text("进度条样式") },

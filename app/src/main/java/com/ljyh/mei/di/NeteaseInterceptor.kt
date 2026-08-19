@@ -77,8 +77,9 @@ class NeteaseInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
         val url = originalRequest.url.toString()
-        val cryptoMode = determineCryptoMethod(url)
+        val cryptoMode = originalRequest.header(CRYPTO_MODE_HEADER) ?: determineCryptoMethod(url)
         val builder = originalRequest.newBuilder()
+            .removeHeader(CRYPTO_MODE_HEADER)
 
         val config = if (cryptoMode == "eapi") EAPI_CONFIG else ANDROID_CONFIG
 
@@ -262,5 +263,9 @@ class NeteaseInterceptor : Interceptor {
             url.contains("/eapi/") -> "eapi"
             else -> "api"
         }
+    }
+
+    private companion object {
+        const val CRYPTO_MODE_HEADER = "X-Netease-Crypto"
     }
 }

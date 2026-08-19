@@ -1,34 +1,31 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
-import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.model.toAlbum
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.main.library.component.ImmersiveBackground
 import com.ljyh.mei.ui.screen.main.library.component.LibraryMobileLayout
@@ -37,14 +34,15 @@ import com.ljyh.mei.ui.screen.main.library.component.PhotoPickerSheet
 import com.ljyh.mei.utils.rememberPreference
 
 @Composable
-fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
+fun LibraryScreen(
+    scrollBehavior: TopAppBarScrollBehavior,
+    viewModel: LibraryViewModel = hiltViewModel(),
+) {
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
-    val account by viewModel.account.collectAsState()
-    val photoAlbum by viewModel.photoAlbum.collectAsState()
-    val localPlaylists by viewModel.localPlaylists.collectAsState()
-    val albumList by viewModel.albumList.collectAsState()
-    val userSubcount by viewModel.userSubcount.collectAsState()
+    val account by viewModel.account.collectAsStateWithLifecycle()
+    val libraryUiState by viewModel.libraryUiState.collectAsStateWithLifecycle()
+    val photoAlbum by viewModel.photoAlbum.collectAsStateWithLifecycle()
 
     // Preferences
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
@@ -55,30 +53,20 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
 
     // State
     var showPhotoPicker by remember { mutableStateOf(false) }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    var subPlaylistCount by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("创建歌单", "收藏歌单", "收藏专辑")
-    val listState = rememberLazyListState()
-
-    val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
-        if (userId.isEmpty()) Pair(emptyList(), emptyList())
-        else {
-            val (created, collected) = localPlaylists.partition { it.author == userId }
-            val now = System.currentTimeMillis()
-            Pair(
-                created.sortedByDescending { it.sortScore(created.maxOf { p -> p.localPlayCount }, created.maxOf { p -> p.playCount }, now) },
-                collected.sortedByDescending { it.sortScore(collected.maxOf { p -> p.localPlayCount }, collected.maxOf { p -> p.playCount }, now) }
-            )
-        }
-    }
+    val accountProfile = (account as? Resource.Success)?.data?.profile
+    val profileSignature = accountProfile?.signature.orEmpty()
+    val profileSeed = LibraryProfileUi(
+        userId = userId,
+        nickname = userNickname,
+        avatarUrl = userAvatarUrl,
+        signature = profileSignature,
+    )
 
     // --- 数据同步逻辑 ---
-    LaunchedEffect(userId) {
+    LaunchedEffect(profileSeed) {
         if (userId.isNotEmpty()) {
-            viewModel.syncUserPlaylists(userId)
-            viewModel.getPhotoAlbum(userId)
-            viewModel.getAlbumList()
-            viewModel.getUserSubcount()
+            viewModel.loadLibrary(profileSeed)
         }
     }
 
@@ -89,8 +77,8 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
             }
         }
     }
-    LaunchedEffect(cookie, account) {
-        if (cookie.isNotEmpty() && account !is Resource.Success) viewModel.getUserAccount()
+    LaunchedEffect(cookie) {
+        if (cookie.isNotEmpty()) viewModel.getUserAccount()
     }
     LaunchedEffect(account) {
         (account as? Resource.Success)
@@ -102,82 +90,106 @@ fun LibraryScreen(viewModel: LibraryViewModel = hiltViewModel()) {
             }
     }
 
-    LaunchedEffect(userSubcount) {
-        if (userSubcount is Resource.Success) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+    ) {
 
-        }
-    }
-
-    LaunchedEffect(subPlaylistCount) {
-        if (userId.isNotEmpty() && localPlaylists.size != subPlaylistCount && subPlaylistCount != 0)
-            viewModel.syncUserPlaylists(userId, subPlaylistCount)
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // 1. 通用背景
-        if (userId.isNotEmpty() && userPhoto.isNotEmpty()) {
+        if ((!device.isTablet || !device.isLandscape) && userId.isNotEmpty() && userPhoto.isNotEmpty()) {
             ImmersiveBackground(userPhoto)
         }
 
-        if (userId.isNotEmpty()) {
-            if (device.isTablet && device.isLandscape) {
-                // 平板布局
-                LibraryTabletLayout(
-                    userNickname = userNickname,
-                    userAvatarUrl = userAvatarUrl,
-                    userPhoto = userPhoto,
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelect = {selectedTabIndex = it},
-                    onAvatarClick = {
-                        viewModel.getPhotoAlbum(userId)
-                        showPhotoPicker = true
-                    },
-                    createdPlaylists = createdPlaylists,
-                    collectedPlaylists = collectedPlaylists,
-                    albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
-                    onAlbumClick = { id->
-                        Screen.Album.navigate(navController) { addPath(id) }
-                    },
-                    onPlaylistClick = { id->
-                        Screen.PlayList.navigate(navController) { addPath(id) }
-                    }
-                )
-            } else {
-                // 手机布局 (保持你原来的代码逻辑)
-                LibraryMobileLayout(
-                    userNickname = userNickname,
-                    userAvatarUrl = userAvatarUrl,
-                    userPhoto = userPhoto,
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelect = {selectedTabIndex = it},
-                    tabTitles = tabTitles,
-                    createdPlaylists = createdPlaylists,
-                    collectedPlaylists = collectedPlaylists,
-                    albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
-                    onAvatarClick = {
-                        viewModel.getPhotoAlbum(userId)
-                        showPhotoPicker = true
-                    },
-                    onPlaylistClick = { id->
-                        Screen.PlayList.navigate(navController) { addPath(id) }
-                    },
-                    onAlbumClick = { id->
-                        Screen.Album.navigate(navController) { addPath(id) }
-                    }
-                )
-            }
+        when {
+            cookie.isNotEmpty() && libraryUiState is LibraryUiState.Error -> LibraryErrorState(
+                message = (libraryUiState as LibraryUiState.Error).message,
+                onRetry = { viewModel.getUserAccount() },
+            )
+            cookie.isNotEmpty() && userId.isEmpty() -> LibraryLoadingState()
+            userId.isEmpty() -> EmptyLoginState(navController)
+            libraryUiState is LibraryUiState.Loading -> LibraryLoadingState()
+            libraryUiState is LibraryUiState.Error -> LibraryErrorState(
+                message = (libraryUiState as LibraryUiState.Error).message,
+                onRetry = {
+                    viewModel.getUserAccount()
+                    viewModel.loadLibrary(profileSeed)
+                },
+            )
+            libraryUiState is LibraryUiState.Content -> {
+                val contentState = (libraryUiState as LibraryUiState.Content).data
+                if (device.isTablet && device.isLandscape) {
+                    LibraryTabletLayout(
+                        state = contentState,
+                        onEvent = { event ->
+                            when (event) {
+                                is LibraryEvent.SelectSection -> viewModel.selectSection(event.section)
+                                is LibraryEvent.OpenPlaylist -> Screen.PlayList.navigate(navController) {
+                                    addPath(event.id)
+                                }
+                                is LibraryEvent.OpenAlbum -> Screen.Album.navigate(navController) {
+                                    addPath(event.id)
+                                }
+                                LibraryEvent.ChangeProfilePhoto -> {
+                                    viewModel.refreshPhotoAlbum(userId)
+                                    showPhotoPicker = true
+                                }
+                                LibraryEvent.OpenHistory -> Screen.History.navigate(navController)
+                                LibraryEvent.OpenLocalMusic -> Screen.LocalMusic.navigate(navController)
+                                LibraryEvent.OpenDownloads -> Screen.DownloadManage.navigate(navController)
+                            }
+                        },
+                    )
+                } else {
+                    LibraryMobileLayout(
+                        userNickname = userNickname,
+                        userAvatarUrl = userAvatarUrl,
+                        userPhoto = userPhoto,
+                        selectedTabIndex = contentState.section.ordinal,
+                        onTabSelect = { viewModel.selectSection(LibrarySection.entries[it]) },
+                        tabTitles = tabTitles,
+                        createdPlaylists = contentState.createdPlaylists,
+                        collectedPlaylists = contentState.collectedPlaylists,
+                        albums = contentState.albums,
+                        onAvatarClick = {
+                            viewModel.refreshPhotoAlbum(userId)
+                            showPhotoPicker = true
+                        },
+                        onPlaylistClick = { id ->
+                            Screen.PlayList.navigate(navController) { addPath(id) }
+                        },
+                        onAlbumClick = { id ->
+                            Screen.Album.navigate(navController) { addPath(id) }
+                        },
+                    )
+                }
 
-            if (showPhotoPicker) {
-                PhotoPickerSheet(
-                    photoAlbum = photoAlbum,
-                    onSelect = { setUserPhoto(it); showPhotoPicker = false },
-                    onDismiss = { showPhotoPicker = false }
-                )
+                if (showPhotoPicker) {
+                    PhotoPickerSheet(
+                        photoAlbum = photoAlbum,
+                        onSelect = {
+                            setUserPhoto(it)
+                            showPhotoPicker = false
+                        },
+                        onDismiss = { showPhotoPicker = false },
+                    )
+                }
             }
-        } else {
-            // 未登录逻辑
-            EmptyLoginState(navController)
+        }
+    }
+}
+
+@Composable
+private fun LibraryLoadingState() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun LibraryErrorState(message: String, onRetry: () -> Unit) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Button(onClick = onRetry) {
+            Text("加载失败：$message，点击重试")
         }
     }
 }

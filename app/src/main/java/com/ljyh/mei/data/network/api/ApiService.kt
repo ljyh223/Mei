@@ -7,6 +7,7 @@ import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.SongUrl
 import com.ljyh.mei.data.model.Tracks
 import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserDetail
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.api.ArtistAlbum
@@ -67,6 +68,12 @@ interface ApiService {
     * */
     @POST("/api/nuser/account/get")
     suspend fun getAccountDetail(): UserAccount
+
+    @POST("/api/v1/user/detail/{id}")
+    suspend fun getUserDetail(
+        @Path("id") id: String,
+        @Body body: Map<String, String> = emptyMap(),
+    ): UserDetail
 
     /*
     * 获取歌词
