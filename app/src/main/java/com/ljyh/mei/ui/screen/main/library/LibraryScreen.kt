@@ -1,9 +1,7 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -18,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ljyh.mei.constants.CookieKey
@@ -63,7 +60,15 @@ fun LibraryScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var subPlaylistCount by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("创建歌单", "收藏歌单", "收藏专辑")
-    val listState = rememberLazyListState()
+    val profileSignature = (account as? Resource.Success)
+        ?.data
+        ?.profile
+        ?.signature
+        .orEmpty()
+    val subscribedPlaylistCount = (userSubcount as? Resource.Success)
+        ?.data
+        ?.subPlaylistCount
+        ?: 0
 
     val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
         if (userId.isEmpty()) Pair(emptyList(), emptyList())
@@ -124,8 +129,7 @@ fun LibraryScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) {
 
-        // 1. 通用背景
-        if (userId.isNotEmpty() && userPhoto.isNotEmpty()) {
+        if ((!device.isTablet || !device.isLandscape) && userId.isNotEmpty() && userPhoto.isNotEmpty()) {
             ImmersiveBackground(userPhoto)
         }
 
@@ -135,13 +139,19 @@ fun LibraryScreen(
                 LibraryTabletLayout(
                     userNickname = userNickname,
                     userAvatarUrl = userAvatarUrl,
-                    userPhoto = userPhoto,
+                    signature = profileSignature,
+                    createdCount = createdPlaylists.size,
+                    collectedCount = maxOf(collectedPlaylists.size, subscribedPlaylistCount),
+                    albumCount = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.size else 0,
                     selectedTabIndex = selectedTabIndex,
                     onTabSelect = {selectedTabIndex = it},
                     onAvatarClick = {
                         viewModel.getPhotoAlbum(userId)
                         showPhotoPicker = true
                     },
+                    onHistoryClick = { Screen.History.navigate(navController) },
+                    onLocalClick = { Screen.LocalMusic.navigate(navController) },
+                    onDownloadClick = { Screen.DownloadManage.navigate(navController) },
                     createdPlaylists = createdPlaylists,
                     collectedPlaylists = collectedPlaylists,
                     albums = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.map { it.toAlbum() } else emptyList(),
