@@ -2,6 +2,8 @@ package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserDetail
+import com.ljyh.mei.data.model.UserVipInfo
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.api.GetAlbumList
@@ -22,6 +24,14 @@ class UserRepository(private val apiService: ApiService,private val eApiService:
         return withContext(Dispatchers.IO) {
             safeApiCall { apiService.getAccountDetail() }
         }
+    }
+
+    suspend fun getUserDetail(uid: String): Resource<UserDetail> = withContext(Dispatchers.IO) {
+        safeApiCall { apiService.getUserDetail(uid) }
+    }
+
+    suspend fun getUserVipInfo(uid: String): Resource<UserVipInfo> = withContext(Dispatchers.IO) {
+        safeApiCall { weApiService.getUserVipInfo(mapOf("userId" to uid)) }
     }
 
     suspend fun getUserPlaylist(uid: String, limit: Int): Resource<UserPlaylist> {

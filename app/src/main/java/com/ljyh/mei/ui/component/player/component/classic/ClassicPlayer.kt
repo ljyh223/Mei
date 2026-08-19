@@ -97,6 +97,7 @@ fun ClassicPlayer(
         },
         morphSpec = BottomSheetMorphSpec(
             collapsedHorizontalMargin = FloatingCapsuleHorizontalPadding,
+            collapsedMaxWidth = if (device.isTablet && device.isLandscape) 560.dp else null,
             collapsedCornerRadius = 24.dp,
             expandedHorizontalMargin = 0.dp,
             expandedCornerRadius = 0.dp,

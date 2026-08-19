@@ -65,6 +65,7 @@ import kotlinx.coroutines.launch
 
 data class BottomSheetMorphSpec(
     val collapsedHorizontalMargin: Dp = 12.dp,
+    val collapsedMaxWidth: Dp? = null,
     val collapsedCornerRadius: Dp = 24.dp,
     val expandedHorizontalMargin: Dp = 0.dp,
     val expandedCornerRadius: Dp = 0.dp,
@@ -108,6 +109,17 @@ fun BottomSheet(
         lerp(morphSpec.collapsedBottomMargin, morphSpec.expandedBottomMargin, progress)
     } else 0.dp
 
+    // Below the collapsed anchor, the sheet is moving toward dismissed. Fade the
+    // floating margin out as well; otherwise the margin leaves a draggable strip
+    // peeking above the bottom edge when the sheet is fully dismissed.
+    val dismissedToCollapsedProgress = if (state.collapsedBound > state.dismissedBound) {
+        ((state.value - state.dismissedBound) / (state.collapsedBound - state.dismissedBound))
+            .coerceIn(0f, 1f)
+    } else {
+        1f
+    }
+    val effectiveBottomMargin = bottomMargin * dismissedToCollapsedProgress
+
     val sheetShape = if (morphSpec != null) {
         RoundedCornerShape(cornerRadius)
     } else {
@@ -119,11 +131,14 @@ fun BottomSheet(
     } else 1f
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val floatingWidth = (maxWidth - horizontalMargin * 2).coerceAtLeast(0.dp)
+        val collapsedWidth = morphSpec?.collapsedMaxWidth
+            ?.let { maxWidth.coerceAtMost(it) }
+            ?: (maxWidth - horizontalMargin * 2).coerceAtLeast(0.dp)
+        val containerWidth = if (morphSpec != null) lerp(collapsedWidth, maxWidth, progress) else maxWidth
         val containerModifier = if (morphSpec != null) {
             Modifier
                 .align(Alignment.TopCenter)
-                .width(floatingWidth)
+                .width(containerWidth)
                 .height(containerHeight!!)
         } else {
             Modifier.fillMaxSize()
@@ -133,7 +148,7 @@ fun BottomSheet(
             modifier = containerModifier
                 .offset {
                     val y = (state.expandedBound - state.value)
-                        .roundToPx() - bottomMargin.roundToPx()
+                        .roundToPx() - effectiveBottomMargin.roundToPx()
                     IntOffset(x = 0, y = y.coerceAtLeast(0))
                 }
                 .pointerInput(onHorizontalSwipe) {

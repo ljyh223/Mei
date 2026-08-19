@@ -8,6 +8,7 @@ import com.ljyh.mei.data.model.weapi.HighQualityPlaylist
 import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
 import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.mei.data.model.weapi.UserSubcount
+import com.ljyh.mei.data.model.UserVipInfo
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -19,6 +20,9 @@ interface WeApiService {
 
     @POST("/weapi/subcount")
     suspend fun getUserSubcount(@Body body: Map<String,String> = mapOf()) : UserSubcount
+
+    @POST("/weapi/music-vip-membership/front/vip/info")
+    suspend fun getUserVipInfo(@Body body: Map<String, String>): UserVipInfo
 
     @POST("/api/playlist/highquality/list")
     suspend fun getHighQualityPlaylist(@Body body: HighQualityPlaylist): HighQualityPlaylistResult

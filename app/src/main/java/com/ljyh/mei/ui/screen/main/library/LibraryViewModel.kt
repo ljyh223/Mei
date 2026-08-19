@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.AlbumPhoto
 import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserDetail
+import com.ljyh.mei.data.model.UserVipInfo
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
 import com.ljyh.mei.data.model.room.AlbumEntity
@@ -32,6 +34,12 @@ class LibraryViewModel @Inject constructor(
     private val _account = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
     val account: StateFlow<Resource<UserAccount>> = _account
 
+    private val _userDetail = MutableStateFlow<Resource<UserDetail>>(Resource.Loading)
+    val userDetail: StateFlow<Resource<UserDetail>> = _userDetail
+
+    private val _userVipInfo = MutableStateFlow<Resource<UserVipInfo>>(Resource.Loading)
+    val userVipInfo: StateFlow<Resource<UserVipInfo>> = _userVipInfo
+
     private val _photoAlbum=MutableStateFlow<Resource<AlbumPhoto>>(Resource.Loading)
     val photoAlbum:StateFlow<Resource<AlbumPhoto>> = _photoAlbum
 
@@ -55,6 +63,20 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             _account.value = Resource.Loading
             _account.value = repository.getUserAccount()
+        }
+    }
+
+    fun getUserDetail(uid: String) {
+        viewModelScope.launch {
+            _userDetail.value = Resource.Loading
+            _userDetail.value = repository.getUserDetail(uid)
+        }
+    }
+
+    fun getUserVipInfo(uid: String) {
+        viewModelScope.launch {
+            _userVipInfo.value = Resource.Loading
+            _userVipInfo.value = repository.getUserVipInfo(uid)
         }
     }
 

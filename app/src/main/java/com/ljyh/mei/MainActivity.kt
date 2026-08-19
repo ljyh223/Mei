@@ -95,10 +95,13 @@ import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.component.FloatingCapsuleNavigationBar
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
+import com.ljyh.mei.ui.component.TabletNavigationRail
+import com.ljyh.mei.ui.component.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
 import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.component.utils.appBarScrollBehavior
 import com.ljyh.mei.ui.component.utils.resetHeightOffset
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalDatabase
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -266,6 +269,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
+                    val device = rememberDeviceInfo()
+                    val useTabletSidebar = device.isTablet && device.isLandscape
                     val windowsInsets = WindowInsets.systemBars
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
@@ -279,9 +284,19 @@ class MainActivity : ComponentActivity() {
 
                     val navigationItems = remember { Screen.MainScreens }
 
+                    val shouldShowTabletSidebar = remember(
+                        navBackStackEntry,
+                        active,
+                        useTabletSidebar,
+                    ) {
+                        useTabletSidebar && !active && navigationItems.fastAny {
+                            it.route == navBackStackEntry?.destination?.route
+                        }
+                    }
 
-                    val shouldShowNavigationBar = remember(navBackStackEntry, active) {
-                        !active && navigationItems.fastAny {
+
+                    val shouldShowNavigationBar = remember(navBackStackEntry, active, useTabletSidebar) {
+                        !useTabletSidebar && !active && navigationItems.fastAny {
                             it.route == navBackStackEntry?.destination?.route
                         }
                     }
@@ -405,7 +420,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(playerConnection) {
+                    LaunchedEffect(playerConnection, playerBottomSheetState) {
                         val player = playerConnection?.player ?: return@LaunchedEffect
                         if (player.currentMediaItem == null) {
                             if (!playerBottomSheetState.isDismissed) {
@@ -422,14 +437,29 @@ class MainActivity : ComponentActivity() {
                     DisposableEffect(playerConnection, playerBottomSheetState) {
                         val player =
                             playerConnection?.player ?: return@DisposableEffect onDispose { }
+                        fun syncPlayerSheetVisibility() {
+                            if (player.currentMediaItem == null) {
+                                if (!playerBottomSheetState.isDismissed) {
+                                    playerBottomSheetState.dismiss()
+                                }
+                            } else if (playerBottomSheetState.isDismissed) {
+                                playerBottomSheetState.collapseSoft()
+                            }
+                        }
                         val listener = object : Player.Listener {
                             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED && mediaItem != null && playerBottomSheetState.isDismissed) {
-                                    playerBottomSheetState.collapseSoft()
-                                }
+                                syncPlayerSheetVisibility()
+                            }
+
+                            override fun onTimelineChanged(
+                                timeline: androidx.media3.common.Timeline,
+                                reason: Int,
+                            ) {
+                                syncPlayerSheetVisibility()
                             }
                         }
                         player.addListener(listener)
+                        syncPlayerSheetVisibility()
                         onDispose {
                             player.removeListener(listener)
                         }
@@ -443,7 +473,9 @@ class MainActivity : ComponentActivity() {
                     ) {
 
                         NavHost(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(start = if (shouldShowTabletSidebar) TabletNavigationRailWidth else 0.dp),
                             navController = navController,
                             startDestination = when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                 NavigationTab.HOME -> Screen.Home
@@ -454,6 +486,24 @@ class MainActivity : ComponentActivity() {
                             navigationBuilder(
                                 navController = navController,
                                 scrollBehavior = topAppBarScrollBehavior,
+                            )
+                        }
+
+                        if (shouldShowTabletSidebar) {
+                            TabletNavigationRail(
+                                selectedRoute = navBackStackEntry?.destination?.route,
+                                onTabSelect = { screen ->
+                                    if (navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true) {
+                                        navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
+                                    } else {
+                                        navController.navigate(screen.route) {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.align(Alignment.CenterStart),
                             )
                         }
 
@@ -547,7 +597,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 focusRequester = searchBarFocusRequester,
-                                modifier = Modifier.align(Alignment.TopCenter),
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(start = if (shouldShowTabletSidebar) TabletNavigationRailWidth else 0.dp),
                             ) {
 
                                 SearchScreen(

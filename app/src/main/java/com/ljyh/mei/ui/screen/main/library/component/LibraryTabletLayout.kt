@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.Album
 
@@ -50,6 +50,12 @@ fun LibraryTabletLayout(
     userNickname: String,
     userAvatarUrl: String,
     signature: String,
+    membershipLabel: String?,
+    membershipIconUrl: String?,
+    follows: Int,
+    followers: Int,
+    level: Int,
+    listenSongs: Int,
     createdCount: Int,
     collectedCount: Int,
     albumCount: Int,
@@ -66,9 +72,9 @@ fun LibraryTabletLayout(
     albums: List<Album>,
 ) {
     val displayItems = when (selectedTabIndex) {
-        0 -> createdPlaylists.map { LibraryAsset(it.id, it.title, it.cover, "${it.count} 首 · ${it.authorName}") }
-        1 -> collectedPlaylists.map { LibraryAsset(it.id, it.title, it.cover, "${it.count} 首 · ${it.authorName}") }
-        else -> albums.map { LibraryAsset(it.id.toString(), it.title, it.cover, it.artist.joinToString { artist -> artist.name }) }
+        0 -> createdPlaylists.map { LibraryAsset(it.id, it.title, it.cover) }
+        1 -> collectedPlaylists.map { LibraryAsset(it.id, it.title, it.cover) }
+        else -> albums.map { LibraryAsset(it.id.toString(), it.title, it.cover) }
     }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 144.dp), modifier = Modifier.fillMaxSize(),
@@ -81,52 +87,90 @@ fun LibraryTabletLayout(
         horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            LibraryProfileOverview(userNickname, userAvatarUrl, signature, createdCount, collectedCount, albumCount, onAvatarClick, onHistoryClick, onLocalClick, onDownloadClick)
+            LibraryProfileOverview(
+                userNickname, userAvatarUrl, signature, membershipLabel, membershipIconUrl,
+                follows, followers, level, listenSongs,
+                onAvatarClick, onHistoryClick, onLocalClick, onDownloadClick,
+            )
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             LibrarySectionHeader(selectedTabIndex, onTabSelect, createdCount, collectedCount, albumCount)
         }
         if (displayItems.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { LibraryTabletEmptyState(selectedTabIndex) }
         else items(displayItems, key = { it.id }) { item ->
-            LibraryAssetCard(item) { if (selectedTabIndex == 2) onAlbumClick(item.id) else onPlaylistClick(item.id) }
+            PlaylistCard(
+                id = item.id,
+                title = item.title,
+                coverImg = item.cover,
+                cardSize = null,
+                onClick = { if (selectedTabIndex == 2) onAlbumClick(item.id) else onPlaylistClick(item.id) },
+            )
         }
     }
 }
 
 @Composable
 private fun LibraryProfileOverview(
-    userNickname: String, userAvatarUrl: String, signature: String, createdCount: Int, collectedCount: Int,
-    albumCount: Int, onAvatarClick: () -> Unit, onHistoryClick: () -> Unit, onLocalClick: () -> Unit, onDownloadClick: () -> Unit,
+    userNickname: String, userAvatarUrl: String, signature: String, membershipLabel: String?, membershipIconUrl: String?,
+    follows: Int, followers: Int, level: Int, listenSongs: Int,
+    onAvatarClick: () -> Unit, onHistoryClick: () -> Unit, onLocalClick: () -> Unit, onDownloadClick: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-        Column(Modifier.padding(24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(model = userAvatarUrl, contentDescription = "更换头像背景", contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(92.dp).clip(RoundedCornerShape(24.dp)).clickable(onClick = onAvatarClick))
-                Spacer(Modifier.width(20.dp))
-                Column(Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(28.dp),
+        ) {
+            AsyncImage(
+                model = userAvatarUrl,
+                contentDescription = "更换头像背景",
+                modifier = Modifier
+                    .size(156.dp)
+                    .clip(RoundedCornerShape(32.dp))
+                    .clickable(onClick = onAvatarClick),
+            )
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(userNickname.ifBlank { "Music Lover" }, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    if (signature.isNotBlank()) Text(signature, Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        ProfileStat(createdCount, "创建歌单"); ProfileStat(collectedCount, "收藏歌单"); ProfileStat(albumCount, "专辑")
+                    if (!membershipIconUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = membershipIconUrl,
+                            contentDescription = membershipLabel,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .width(72.dp)
+                                .height(26.dp),
+                        )
+                    } else if (membershipLabel != null) {
+                        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
+                            Text(membershipLabel, Modifier.padding(horizontal = 9.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
-            }
-            Spacer(Modifier.height(22.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                LibraryQuickAction(Icons.Rounded.History, "最近", onHistoryClick, Modifier.weight(1f))
-                LibraryQuickAction(Icons.Rounded.Folder, "本地", onLocalClick, Modifier.weight(1f))
-                LibraryQuickAction(Icons.Rounded.Download, "下载", onDownloadClick, Modifier.weight(1f))
-                LibraryQuickAction(Icons.Rounded.Cloud, "云盘", {}, Modifier.weight(1f), enabled = false)
+                Text(
+                    signature.ifBlank { "还没有填写个人签名" },
+                    Modifier.padding(top = 5.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(Modifier.padding(top = 15.dp), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                    Text("$follows 关注", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("$followers 粉丝", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Lv.$level 等级", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Text("$listenSongs 首听歌", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                }
+                Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LibraryQuickAction(Icons.Rounded.History, "最近", onHistoryClick, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.Folder, "本地", onLocalClick, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.Download, "下载", onDownloadClick, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.Cloud, "云盘", {}, Modifier.weight(1f), enabled = false)
+                }
             }
         }
     }
-}
-
-@Composable private fun ProfileStat(value: Int, label: String) = Column {
-    Text(value.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-    Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -141,7 +185,13 @@ private fun LibraryQuickAction(icon: ImageVector, label: String, onClick: () -> 
 @Composable
 private fun LibrarySectionHeader(selectedTabIndex: Int, onTabSelect: (Int) -> Unit, createdCount: Int, collectedCount: Int, albumCount: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("我的音乐", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Spacer(Modifier.width(24.dp))
+        Text(
+            text = "我的音乐",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.width(24.dp))
         listOf("创建" to createdCount, "收藏" to collectedCount, "专辑" to albumCount).forEachIndexed { index, (title, count) ->
             Text("$title $count", Modifier.clip(RoundedCornerShape(14.dp)).clickable { onTabSelect(index) }.padding(horizontal = 12.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.titleSmall, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
@@ -150,13 +200,7 @@ private fun LibrarySectionHeader(selectedTabIndex: Int, onTabSelect: (Int) -> Un
     }
 }
 
-private data class LibraryAsset(val id: String, val title: String, val cover: String, val subtitle: String)
-
-@Composable private fun LibraryAssetCard(item: LibraryAsset, onClick: () -> Unit) = Column(Modifier.clickable(onClick = onClick)) {
-    AsyncImage(item.cover, item.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp)))
-    Text(item.title, Modifier.padding(top = 9.dp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    Text(item.subtitle, Modifier.padding(top = 2.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-}
+private data class LibraryAsset(val id: String, val title: String, val cover: String)
 
 @Composable private fun LibraryTabletEmptyState(selectedTabIndex: Int) {
     val label = when (selectedTabIndex) { 0 -> "暂无创建歌单"; 1 -> "暂无收藏歌单"; else -> "暂无收藏专辑" }

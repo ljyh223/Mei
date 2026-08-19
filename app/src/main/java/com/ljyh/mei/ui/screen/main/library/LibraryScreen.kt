@@ -43,6 +43,8 @@ fun LibraryScreen(
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
     val account by viewModel.account.collectAsState()
+    val userDetail by viewModel.userDetail.collectAsState()
+    val userVipInfo by viewModel.userVipInfo.collectAsState()
     val photoAlbum by viewModel.photoAlbum.collectAsState()
     val localPlaylists by viewModel.localPlaylists.collectAsState()
     val albumList by viewModel.albumList.collectAsState()
@@ -60,15 +62,13 @@ fun LibraryScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var subPlaylistCount by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("创建歌单", "收藏歌单", "收藏专辑")
-    val profileSignature = (account as? Resource.Success)
-        ?.data
-        ?.profile
-        ?.signature
-        .orEmpty()
-    val subscribedPlaylistCount = (userSubcount as? Resource.Success)
-        ?.data
-        ?.subPlaylistCount
-        ?: 0
+    val accountProfile = (account as? Resource.Success)?.data?.profile
+    val detail = (userDetail as? Resource.Success)?.data
+    val membershipLabel = (userVipInfo as? Resource.Success)?.data?.label
+    val membershipIconUrl = (userVipInfo as? Resource.Success)?.data?.iconUrl
+    val subcount = (userSubcount as? Resource.Success)?.data
+    val profileSignature = accountProfile?.signature.orEmpty()
+    val subscribedPlaylistCount = subcount?.subPlaylistCount ?: 0
 
     val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
         if (userId.isEmpty()) Pair(emptyList(), emptyList())
@@ -89,6 +89,8 @@ fun LibraryScreen(
             viewModel.getPhotoAlbum(userId)
             viewModel.getAlbumList()
             viewModel.getUserSubcount()
+            viewModel.getUserDetail(userId)
+            viewModel.getUserVipInfo(userId)
         }
     }
 
@@ -140,6 +142,12 @@ fun LibraryScreen(
                     userNickname = userNickname,
                     userAvatarUrl = userAvatarUrl,
                     signature = profileSignature,
+                    membershipLabel = membershipLabel,
+                    membershipIconUrl = membershipIconUrl,
+                    follows = detail?.profile?.follows ?: 0,
+                    followers = detail?.profile?.followeds ?: 0,
+                    level = detail?.level ?: 0,
+                    listenSongs = detail?.listenSongs ?: 0,
                     createdCount = createdPlaylists.size,
                     collectedCount = maxOf(collectedPlaylists.size, subscribedPlaylistCount),
                     albumCount = if (albumList is Resource.Success) (albumList as Resource.Success).data.data.size else 0,
