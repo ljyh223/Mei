@@ -7,13 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -22,17 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -44,11 +30,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
@@ -75,8 +59,6 @@ import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.component.AdaptiveMainNavigation
-import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.selectMainDestination
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
@@ -90,6 +72,7 @@ import com.ljyh.mei.ui.component.utils.rememberPlayerThemeColor
 import com.ljyh.mei.ui.app.resolveMainShellState
 import com.ljyh.mei.ui.app.collapsedPlayerBound
 import com.ljyh.mei.ui.app.playerAwareBottomInset
+import com.ljyh.mei.ui.app.AppSearchOverlay
 import com.ljyh.mei.ui.local.LocalDatabase
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -98,7 +81,6 @@ import com.ljyh.mei.ui.local.LocalUserData
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
-import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.log.CrashHandler
 import com.ljyh.mei.utils.dataStore
@@ -242,16 +224,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val onSearch: (String) -> Unit = {
-                        if (it.isNotEmpty()) {
-                            onActiveChange(false)
-                            Screen.SearchResult.navigate(navController){
-                                addPath(query.text)
-                                addPath("1") // 默认所搜单曲
-                            }
-                        }
-                    }
-
                     val playerAwareWindowInsets = remember(
                         bottomInset,
                         shellState.showBottomNavigation,
@@ -334,118 +306,27 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        AnimatedVisibility(
-                            visible = shellState.showSearchBar,
-                            enter = fadeIn(),
-                            exit = fadeOut(),
-                        ) {
-                            SearchBar(
-                                query = query,
-                                onQueryChange = onQueryChange,
-                                onSearch = onSearch,
-                                active = active,
-                                onActiveChange = onActiveChange,
-                                scrollBehavior = searchBarScrollBehavior,
-                                placeholder = {
-                                    Text("搜索")
-                                },
-                                leadingIcon = {
-                                    IconButton(
-                                        onClick = {
-                                            when {
-                                                active -> onActiveChange(false)
-                                                !shellState.isMainDestination -> {
-                                                    navController.navigateUp()
-                                                }
-
-                                                else -> onActiveChange(true)
-                                            }
-                                        },
-                                        onLongClick = {
-                                            when {
-                                                active -> {}
-                                                !shellState.isMainDestination -> {
-                                                    navController.backToMain()
-                                                }
-                                                else -> {}
-                                            }
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = if (active || !shellState.isMainDestination) {
-                                                Icons.AutoMirrored.Rounded.ArrowBack
-                                            } else {
-                                                Icons.Rounded.Search
-                                            },
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            contentDescription = null
-                                        )
+                        AppSearchOverlay(
+                            shellState = shellState,
+                            query = query,
+                            onQueryChange = onQueryChange,
+                            onActiveChange = onActiveChange,
+                            onSubmit = { searchQuery, type ->
+                                if (searchQuery.isNotEmpty()) {
+                                    onActiveChange(false)
+                                    Screen.SearchResult.navigate(navController) {
+                                        addPath(searchQuery)
+                                        addPath(type.toString())
                                     }
-                                },
-                                trailingIcon = {
-                                    if (active) {
-                                        if (query.text.isNotEmpty()) {
-                                            IconButton(
-                                                onClick = { onQueryChange(TextFieldValue("")) }
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.Close,
-                                                    contentDescription = null
-                                                )
-                                            }
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                onSearch(query.text)
-                                            }
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(
-                                                    R.drawable.cloud
-                                                ),
-                                                contentDescription = "neteasecloud"
-                                            )
-                                        }
-                                    } else if (navBackStackEntry?.destination?.route in topLevelScreens) {
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier
-                                                .clip(CircleShape)
-                                                .padding(end = 4.dp)
-                                                .clickable {
-                                                    navController.navigate(Screen.Setting.route)
-                                                }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Settings,
-                                                contentDescription = null
-                                            )
-                                        }
-                                    }
-                                },
-                                focusRequester = searchBarFocusRequester,
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(start = if (shellState.showTabletSidebar) TabletNavigationRailWidth else 0.dp),
-                            ) {
-
-                                SearchScreen(
-                                    query = query.text,
-                                    onQueryChange = onQueryChange,
-                                    onSearch = { query, type ->
-                                        onActiveChange(false)
-                                        Screen.SearchResult.navigate(navController){
-                                            addPath(query)
-                                            addPath(type.toString())
-                                        }
-                                    },
-                                    onDismiss = {
-                                        onActiveChange(false)
-                                    }
-                                )
-
-                            }
-                        }
+                                }
+                            },
+                            onNavigateUp = { navController.navigateUp() },
+                            onBackToMain = { navController.backToMain() },
+                            onOpenSettings = { navController.navigate(Screen.Setting.route) },
+                            isTopLevelRoute = navBackStackEntry?.destination?.route in topLevelScreens,
+                            scrollBehavior = searchBarScrollBehavior,
+                            focusRequester = searchBarFocusRequester,
+                        )
                         val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
 
                         if (shellState.showMainNavigation) AdaptiveMainNavigation(

@@ -91,46 +91,28 @@ fun BottomSheet(
 ) {
     val progress = state.progress
 
-    val cornerRadius = if (morphSpec != null) {
-        lerp(morphSpec.collapsedCornerRadius, morphSpec.expandedCornerRadius, progress)
-    } else {
-        if (!state.isExpanded) 16.dp else 0.dp
-    }
-
-    val containerHeight = morphSpec?.let {
-        lerp(it.collapsedHeight, state.expandedBound, progress)
-    }
-
-    val bottomMargin = if (morphSpec != null) {
-        lerp(morphSpec.collapsedBottomMargin, morphSpec.expandedBottomMargin, progress)
-    } else 0.dp
-
-    val effectiveBottomMargin = bottomMargin * state.revealProgress
-
-    val sheetShape = if (morphSpec != null) {
-        RoundedCornerShape(cornerRadius)
-    } else {
-        RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius)
-    }
-
-    val morphBgAlpha = if (morphSpec != null) {
-        1f - (progress * 4).coerceAtMost(1f)
-    } else 1f
-
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val collapsedWidth = morphSpec?.let {
-            val availableWidth = (maxWidth - it.collapsedHorizontalMargin * 2).coerceAtLeast(0.dp)
-            it.collapsedMaxWidth?.let(availableWidth::coerceAtMost) ?: availableWidth
-        } ?: maxWidth
-        val expandedWidth = morphSpec?.let {
-            (maxWidth - it.expandedHorizontalMargin * 2).coerceAtLeast(0.dp)
-        } ?: maxWidth
-        val containerWidth = lerp(collapsedWidth, expandedWidth, progress)
-        val containerModifier = if (morphSpec != null) {
+        val morphLayout = morphSpec?.let {
+            resolveMorphLayout(
+                maxWidth = maxWidth,
+                expandedHeight = state.expandedBound,
+                spec = it,
+                progress = progress,
+                revealProgress = state.revealProgress,
+            )
+        }
+        val cornerRadius = morphLayout?.cornerRadius
+            ?: if (!state.isExpanded) 16.dp else 0.dp
+        val sheetShape = if (morphLayout != null) {
+            RoundedCornerShape(cornerRadius)
+        } else {
+            RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius)
+        }
+        val containerModifier = if (morphLayout != null) {
             Modifier
                 .align(Alignment.TopCenter)
-                .width(containerWidth)
-                .height(containerHeight!!)
+                .width(morphLayout.width)
+                .height(morphLayout.height)
         } else {
             Modifier.fillMaxSize()
         }
@@ -139,7 +121,7 @@ fun BottomSheet(
             modifier = containerModifier
                 .offset {
                     val y = (state.expandedBound - state.value)
-                        .roundToPx() - effectiveBottomMargin.roundToPx()
+                        .roundToPx() - (morphLayout?.effectiveBottomMargin ?: 0.dp).roundToPx()
                     IntOffset(x = 0, y = y.coerceAtLeast(0))
                 }
                 .pointerInput(onHorizontalSwipe) {
@@ -178,16 +160,16 @@ fun BottomSheet(
                         onDragEnd = {
                             val velocity = -velocityTracker.calculateVelocity().y
                             velocityTracker.resetTracking()
-                            state.performFling(velocity, null)
+                            state.performFling(velocity, onDismiss)
                         }
                     )
                 }
                 .shadow(elevation = 8.dp, shape = sheetShape)
                 .clip(sheetShape)
                 .background(
-                    if (morphSpec != null) {
+                    if (morphLayout != null) {
                         backgroundColor.copy(
-                            alpha = backgroundColor.alpha * morphBgAlpha.coerceIn(0f, 1f)
+                            alpha = backgroundColor.alpha * morphLayout.backgroundAlpha
                         )
                     } else {
                         backgroundColor.copy(
@@ -369,35 +351,22 @@ class BottomSheetState(
     }
 
     fun performFling(velocity: Float, onDismiss: (() -> Unit)?) {
-        if (velocity > 250) {
-            expand()
-        } else if (velocity < -250) {
-            if (value < collapsedBound && onDismiss != null) {
+        when (
+            resolveFlingTarget(
+                value = value,
+                velocity = velocity,
+                dismissedBound = dismissedBound,
+                collapsedBound = collapsedBound,
+                expandedBound = expandedBound,
+                canDismiss = onDismiss != null,
+            )
+        ) {
+            BottomSheetTarget.Dismissed -> {
                 dismiss()
-                onDismiss.invoke()
-            } else {
-                collapse()
+                onDismiss?.invoke()
             }
-        } else {
-            val l0 = dismissedBound
-            val l1 = (collapsedBound - dismissedBound) / 2
-            val l2 = (expandedBound - collapsedBound) / 2
-            val l3 = expandedBound
-
-            when (value) {
-                in l0..l1 -> {
-                    if (onDismiss != null) {
-                        dismiss()
-                        onDismiss.invoke()
-                    } else {
-                        collapse()
-                    }
-                }
-
-                in l1..l2 -> collapse()
-                in l2..l3 -> expand()
-                else -> Unit
-            }
+            BottomSheetTarget.Collapsed -> collapse()
+            BottomSheetTarget.Expanded -> expand()
         }
     }
 
@@ -506,10 +475,6 @@ fun rememberBottomSheetState(
 // 在你的文件顶部或一个合适的位置定义这个枚举
 enum class HorizontalSwipeDirection {
     Left, Right
-}
-
-private fun lerp(start: Dp, stop: Dp, fraction: Float): Dp {
-    return Dp((1 - fraction) * start.value + fraction * stop.value)
 }
 
 internal fun normalizedProgress(value: Dp, start: Dp, end: Dp): Float {
