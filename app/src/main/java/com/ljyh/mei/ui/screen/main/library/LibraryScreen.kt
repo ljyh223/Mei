@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -23,11 +22,9 @@ import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
-import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.model.toAlbum
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.main.library.component.ImmersiveBackground
 import com.ljyh.mei.ui.screen.main.library.component.LibraryMobileLayout
@@ -43,10 +40,8 @@ fun LibraryScreen(
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
     val account by viewModel.account.collectAsState()
-    val profileUi by viewModel.profileUi.collectAsState()
+    val libraryUiState by viewModel.libraryUiState.collectAsState()
     val photoAlbum by viewModel.photoAlbum.collectAsState()
-    val localPlaylists by viewModel.localPlaylists.collectAsState()
-    val albumList by viewModel.albumList.collectAsState()
 
     // Preferences
     val (userId, setUserId) = rememberPreference(UserIdKey, "")
@@ -57,23 +52,21 @@ fun LibraryScreen(
 
     // State
     var showPhotoPicker by remember { mutableStateOf(false) }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabTitles = listOf("创建歌单", "收藏歌单", "收藏专辑")
     val accountProfile = (account as? Resource.Success)?.data?.profile
     val profileSignature = accountProfile?.signature.orEmpty()
-    val albums = (albumList as? Resource.Success)?.data?.data?.map { it.toAlbum() }.orEmpty()
-
-    val (createdPlaylists, collectedPlaylists) = remember(localPlaylists, userId) {
-        if (userId.isEmpty()) Pair(emptyList(), emptyList())
-        else {
-            val (created, collected) = localPlaylists.partition { it.author == userId }
-            val now = System.currentTimeMillis()
-            Pair(
-                created.sortedForLibrary(now),
-                collected.sortedForLibrary(now),
-            )
-        }
-    }
+    val contentState = libraryUiState ?: LibraryTabletUiState(
+        profile = LibraryProfileUi(
+            userId = userId,
+            nickname = userNickname,
+            avatarUrl = userAvatarUrl,
+            signature = profileSignature,
+        ),
+        section = LibrarySection.Created,
+        createdPlaylists = emptyList(),
+        collectedPlaylists = emptyList(),
+        albums = emptyList(),
+    )
 
     // --- 数据同步逻辑 ---
     LaunchedEffect(userId) {
@@ -115,27 +108,15 @@ fun LibraryScreen(
         if (userId.isNotEmpty()) {
             if (device.isTablet && device.isLandscape) {
                 // 平板布局
-                val tabletState = LibraryTabletUiState(
-                    profile = profileUi ?: LibraryProfileUi(
-                        userId = userId,
-                        nickname = userNickname,
-                        avatarUrl = userAvatarUrl,
-                        signature = profileSignature,
-                    ),
-                    section = LibrarySection.entries[selectedTabIndex],
-                    createdPlaylists = createdPlaylists,
-                    collectedPlaylists = collectedPlaylists,
-                    albums = albums,
-                )
                 LibraryTabletLayout(
-                    state = tabletState,
+                    state = contentState,
                     onEvent = { event ->
                         when (event) {
-                            is LibraryTabletEvent.SelectSection -> selectedTabIndex = event.section.ordinal
+                            is LibraryTabletEvent.SelectSection -> viewModel.selectSection(event.section)
                             is LibraryTabletEvent.OpenPlaylist -> Screen.PlayList.navigate(navController) { addPath(event.id) }
                             is LibraryTabletEvent.OpenAlbum -> Screen.Album.navigate(navController) { addPath(event.id) }
                             LibraryTabletEvent.ChangeProfilePhoto -> {
-                                viewModel.getPhotoAlbum(userId)
+                                viewModel.refreshPhotoAlbum(userId)
                                 showPhotoPicker = true
                             }
                             LibraryTabletEvent.OpenHistory -> Screen.History.navigate(navController)
@@ -150,14 +131,14 @@ fun LibraryScreen(
                     userNickname = userNickname,
                     userAvatarUrl = userAvatarUrl,
                     userPhoto = userPhoto,
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelect = {selectedTabIndex = it},
+                    selectedTabIndex = contentState.section.ordinal,
+                    onTabSelect = { viewModel.selectSection(LibrarySection.entries[it]) },
                     tabTitles = tabTitles,
-                    createdPlaylists = createdPlaylists,
-                    collectedPlaylists = collectedPlaylists,
-                    albums = albums,
+                    createdPlaylists = contentState.createdPlaylists,
+                    collectedPlaylists = contentState.collectedPlaylists,
+                    albums = contentState.albums,
                     onAvatarClick = {
-                        viewModel.getPhotoAlbum(userId)
+                        viewModel.refreshPhotoAlbum(userId)
                         showPhotoPicker = true
                     },
                     onPlaylistClick = { id->
@@ -194,13 +175,5 @@ fun EmptyLoginState(navController: NavController) {
         ) {
             Text("去填写 Cookie 以同步数据")
         }
-    }
-}
-
-private fun List<Playlist>.sortedForLibrary(now: Long): List<Playlist> {
-    val maxLocalPlayCount = maxOfOrNull { it.localPlayCount } ?: 0
-    val maxPlayCount = maxOfOrNull { it.playCount } ?: 0L
-    return sortedByDescending {
-        it.sortScore(maxLocalPlayCount, maxPlayCount, now)
     }
 }

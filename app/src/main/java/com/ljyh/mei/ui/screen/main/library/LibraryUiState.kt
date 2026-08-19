@@ -63,3 +63,28 @@ sealed interface LibraryTabletEvent {
     data object OpenLocalMusic : LibraryTabletEvent
     data object OpenDownloads : LibraryTabletEvent
 }
+
+internal fun buildLibraryUiState(
+    profile: LibraryProfileUi,
+    section: LibrarySection,
+    playlists: List<Playlist>,
+    albums: List<Album>,
+    now: Long,
+): LibraryTabletUiState {
+    val (created, collected) = playlists.partition { it.author == profile.userId }
+    return LibraryTabletUiState(
+        profile = profile,
+        section = section,
+        createdPlaylists = created.sortedForLibrary(now),
+        collectedPlaylists = collected.sortedForLibrary(now),
+        albums = albums,
+    )
+}
+
+internal fun List<Playlist>.sortedForLibrary(now: Long): List<Playlist> {
+    val maxLocalPlayCount = maxOfOrNull { it.localPlayCount } ?: 0
+    val maxPlayCount = maxOfOrNull { it.playCount } ?: 0L
+    return sortedByDescending {
+        it.sortScore(maxLocalPlayCount, maxPlayCount, now)
+    }
+}

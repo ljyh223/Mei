@@ -1,12 +1,7 @@
 package com.ljyh.mei
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
 import android.os.Build
 import android.os.Bundle
-import android.os.IBinder
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -40,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -52,16 +46,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -78,27 +69,27 @@ import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.FirstLaunchKey
 import com.ljyh.mei.constants.FloatingCapsuleBottomMargin
-import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
-import com.ljyh.mei.constants.FloatingCapsuleNavHeight
 import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
-import com.ljyh.mei.playback.MusicService
-import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.component.AdaptiveMainNavigation
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
-import com.ljyh.mei.ui.component.isMainDestination
 import com.ljyh.mei.ui.component.selectMainDestination
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
 import com.ljyh.mei.ui.component.player.SyncPlayerSheetVisibility
+import com.ljyh.mei.ui.component.player.rememberPlayerConnection
 import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.component.utils.appBarScrollBehavior
 import com.ljyh.mei.ui.component.utils.resetHeightOffset
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.component.utils.rememberPlayerThemeColor
+import com.ljyh.mei.ui.app.resolveMainShellState
+import com.ljyh.mei.ui.app.collapsedPlayerBound
+import com.ljyh.mei.ui.app.playerAwareBottomInset
 import com.ljyh.mei.ui.local.LocalDatabase
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -110,14 +101,12 @@ import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.log.CrashHandler
-import com.ljyh.mei.utils.cache.preloadImage
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.log.FileLoggingTree
 import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import com.ljyh.mei.utils.rememberPreference
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -163,48 +152,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val context = this@MainActivity
-            val lifecycleOwner = LocalLifecycleOwner.current
             val navController = rememberNavController()
             var active by rememberSaveable {
                 mutableStateOf(false)
             }
             val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
-            var playerConnection by remember { mutableStateOf<PlayerConnection?>(null) }
-
-            DisposableEffect(Unit) {
-                val intent = Intent(context, MusicService::class.java)
-
-                val connection = object : ServiceConnection {
-                    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                        Timber.tag("MainActivity").d("Service Connected") // 添加日志
-                        if (service is MusicService.MusicBinder) {
-                            // 更新 State，触发 Recomposition
-                            playerConnection = PlayerConnection(
-                                context,
-                                service,
-                                database,
-                                lifecycleOwner.lifecycleScope
-                            )
-                        }
-                    }
-
-                    override fun onServiceDisconnected(name: ComponentName?) {
-                        Timber.tag("MainActivity").d("Service Disconnected")
-                        playerConnection?.dispose() // 假设你有 dispose 方法清理资源
-                        playerConnection = null
-                    }
-                }
-
-                // 启动并绑定服务
-                context.startService(intent)
-                context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-
-                onDispose {
-                    // Compose 销毁时解绑
-                    context.unbindService(connection)
-                    playerConnection = null
-                }
-            }
+            val playerConnection = rememberPlayerConnection(context, database)
             setSingletonImageLoaderFactory {
                 ImageLoader.Builder(this)
                     .components {
@@ -220,37 +173,12 @@ class MainActivity : ComponentActivity() {
                     }
                     .build()
             }
-            var targetThemeColor by remember { mutableStateOf(Color.Black) }
-
-            LaunchedEffect(playerConnection) {
-                Timber.tag("MainActivity").d("playerConnection: $playerConnection")
-                val playerConnection = playerConnection ?: return@LaunchedEffect
-                val player = playerConnection.service.player
-                playerConnection.service.currentMediaMetadata.collect { song->
-                    if (dynamicTheme && song != null) {
-                        val context = this@MainActivity
-                        launch {
-                            Timber.tag("MainActivity").d("获取当前歌曲颜色: $song")
-                            val color = colorRepository.getColorOrExtract(context, song.coverUrl)
-                            targetThemeColor = color
-                        }
-                        Timber.tag("MainActivity").d("获取歌曲颜色: $targetThemeColor")
-
-                        val nextIndex = player.nextMediaItemIndex
-                        if (nextIndex != C.INDEX_UNSET) {
-                            val nextUrl = player.getMediaItemAt(nextIndex).mediaMetadata.artworkUri?.toString()
-                            if (!nextUrl.isNullOrEmpty()) {
-                                Timber.tag("MainActivity").d("获取下一首歌曲颜色: $nextUrl")
-                                launch(Dispatchers.IO) {
-                                    colorRepository.getColorOrExtract(context, nextUrl)
-                                    preloadImage(context, nextUrl)
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
+            val targetThemeColor = rememberPlayerThemeColor(
+                context = context,
+                playerConnection = playerConnection,
+                dynamicTheme = dynamicTheme,
+                colorRepository = colorRepository,
+            )
             MusicTheme(
                 seedColor = targetThemeColor,
                 isDark = isSystemInDarkTheme()
@@ -275,32 +203,21 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val isMainDestination = navBackStackEntry?.destination?.route.isMainDestination()
-                    val shouldShowMainNavigation = !active && isMainDestination
-                    val shouldShowTabletSidebar = shouldShowMainNavigation && useTabletSidebar
-                    val shouldShowNavigationBar = shouldShowMainNavigation && !useTabletSidebar
+                    val shellState = resolveMainShellState(
+                        route = navBackStackEntry?.destination?.route,
+                        isSearchActive = active,
+                        useTabletSidebar = useTabletSidebar,
+                    )
 
                     val searchBarFocusRequester = remember { FocusRequester() }
-                    val shouldShowSearchBar = remember(active, navBackStackEntry) {
-                        active || navBackStackEntry?.destination?.route == Screen.Home.route ||
-                                navBackStackEntry?.destination?.route?.startsWith("search_result/") == true
-                    }
-
-                    val collapsedBound = remember(bottomInset, shouldShowNavigationBar) {
-                        derivedStateOf {
-                            bottomInset +
-                                    FloatingCapsuleMiniPlayerHeight +
-                                    if (shouldShowNavigationBar) {
-                                        FloatingCapsuleNavHeight + 8.dp
-                                    } else {
-                                        0.dp
-                                    }
-                        }
-                    }
+                    val collapsedBound = collapsedPlayerBound(
+                        systemBottomInset = bottomInset,
+                        showBottomNavigation = shellState.showBottomNavigation,
+                    )
 
                     val playerBottomSheetState = rememberBottomSheetState(
                         dismissedBound = 0.dp,
-                        collapsedBound = collapsedBound.value,
+                        collapsedBound = collapsedBound,
                         expandedBound = maxHeight,
                     )
                     val searchBarScrollBehavior = appBarScrollBehavior(
@@ -337,16 +254,14 @@ class MainActivity : ComponentActivity() {
 
                     val playerAwareWindowInsets = remember(
                         bottomInset,
-                        shouldShowNavigationBar,
+                        shellState.showBottomNavigation,
                         playerBottomSheetState.isDismissed
                     ) {
-                        var bottom = bottomInset
-                        if (shouldShowNavigationBar) {
-                            bottom += FloatingCapsuleBottomMargin + FloatingCapsuleNavHeight
-                        }
-                        if (!playerBottomSheetState.isDismissed) {
-                            bottom += FloatingCapsuleBottomMargin + FloatingCapsuleMiniPlayerHeight
-                        }
+                        val bottom = playerAwareBottomInset(
+                            systemBottomInset = bottomInset,
+                            showBottomNavigation = shellState.showBottomNavigation,
+                            showMiniPlayer = !playerBottomSheetState.isDismissed,
+                        )
                         windowsInsets
                             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                             .add(WindowInsets(top = AppBarHeight, bottom = bottom))
@@ -405,7 +320,7 @@ class MainActivity : ComponentActivity() {
                         NavHost(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(start = if (shouldShowTabletSidebar) TabletNavigationRailWidth else 0.dp),
+                                .padding(start = if (shellState.showTabletSidebar) TabletNavigationRailWidth else 0.dp),
                             navController = navController,
                             startDestination = when (tabOpenedFromShortcut ?: defaultOpenTab) {
                                 NavigationTab.HOME -> Screen.Home
@@ -420,7 +335,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         AnimatedVisibility(
-                            visible = shouldShowSearchBar,
+                            visible = shellState.showSearchBar,
                             enter = fadeIn(),
                             exit = fadeOut(),
                         ) {
@@ -439,7 +354,7 @@ class MainActivity : ComponentActivity() {
                                         onClick = {
                                             when {
                                                 active -> onActiveChange(false)
-                                                !isMainDestination -> {
+                                                !shellState.isMainDestination -> {
                                                     navController.navigateUp()
                                                 }
 
@@ -449,7 +364,7 @@ class MainActivity : ComponentActivity() {
                                         onLongClick = {
                                             when {
                                                 active -> {}
-                                                !isMainDestination -> {
+                                                !shellState.isMainDestination -> {
                                                     navController.backToMain()
                                                 }
                                                 else -> {}
@@ -457,7 +372,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     ) {
                                         Icon(
-                                            imageVector = if (active || !isMainDestination) {
+                                            imageVector = if (active || !shellState.isMainDestination) {
                                                 Icons.AutoMirrored.Rounded.ArrowBack
                                             } else {
                                                 Icons.Rounded.Search
@@ -511,7 +426,7 @@ class MainActivity : ComponentActivity() {
                                 focusRequester = searchBarFocusRequester,
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
-                                    .padding(start = if (shouldShowTabletSidebar) TabletNavigationRailWidth else 0.dp),
+                                    .padding(start = if (shellState.showTabletSidebar) TabletNavigationRailWidth else 0.dp),
                             ) {
 
                                 SearchScreen(
@@ -533,7 +448,7 @@ class MainActivity : ComponentActivity() {
                         }
                         val capsuleBottom = bottomInset + FloatingCapsuleBottomMargin
 
-                        if (shouldShowMainNavigation) AdaptiveMainNavigation(
+                        if (shellState.showMainNavigation) AdaptiveMainNavigation(
                             useSidebar = useTabletSidebar,
                             selectedRoute = navBackStackEntry?.destination?.route,
                             onTabSelect = navController::selectMainDestination,
