@@ -11,7 +11,6 @@ import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
-import com.ljyh.mei.ui.model.toAlbum
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
@@ -35,24 +34,29 @@ class LibraryViewModel @Inject constructor(
     private val _userDetail = MutableStateFlow<Resource<UserDetail>>(Resource.Loading)
 
     private val _userVipInfo = MutableStateFlow<Resource<UserVipInfo>>(Resource.Loading)
+    private val fallbackProfile = MutableStateFlow<LibraryProfileUi?>(null)
 
     private val profileUi: StateFlow<LibraryProfileUi?> = combine(
+        fallbackProfile,
         account,
         _userDetail,
         _userVipInfo,
-    ) { accountResource, detailResource, vipResource ->
-        val profile = (accountResource as? Resource.Success)?.data?.profile
-            ?: return@combine null
+    ) { fallback, accountResource, detailResource, vipResource ->
+        val networkProfile = (accountResource as? Resource.Success)?.data?.profile
+        val profile = networkProfile?.let {
+            LibraryProfileUi(
+                userId = it.userId.toString(),
+                nickname = it.nickname,
+                avatarUrl = it.avatarUrl,
+                signature = it.signature,
+            )
+        } ?: fallback ?: return@combine null
         val detail = (detailResource as? Resource.Success)?.data
         val membership = (vipResource as? Resource.Success)
             ?.data
             ?.toMembershipUi(System.currentTimeMillis())
 
-        LibraryProfileUi(
-            userId = profile.userId.toString(),
-            nickname = profile.nickname,
-            avatarUrl = profile.avatarUrl,
-            signature = profile.signature,
+        profile.copy(
             membershipLabel = membership?.label,
             membershipIconUrl = membership?.iconUrl,
             follows = detail?.profile?.follows,
@@ -79,29 +83,25 @@ class LibraryViewModel @Inject constructor(
         )
     private val selectedSection = MutableStateFlow(LibrarySection.Created)
 
-    val libraryUiState: StateFlow<LibraryTabletUiState?> = combine(
+    val libraryUiState: StateFlow<LibraryUiState> = combine(
+        account,
         profileUi,
         localPlaylists,
         _albumList,
         selectedSection,
-    ) { profile, playlists, albumResource, section ->
-        profile ?: return@combine null
-        val albums = (albumResource as? Resource.Success)
-            ?.data
-            ?.data
-            ?.map { it.toAlbum() }
-            .orEmpty()
-        buildLibraryUiState(
+    ) { accountResource, profile, playlists, albumResource, section ->
+        resolveLibraryUiState(
+            accountResource = accountResource,
             profile = profile,
-            section = section,
             playlists = playlists,
-            albums = albums,
+            albumResource = albumResource,
+            section = section,
             now = System.currentTimeMillis(),
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),
-        initialValue = null,
+        initialValue = LibraryUiState.Loading,
     )
 
     private var loadedUid: String? = null
@@ -115,7 +115,9 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    fun loadLibrary(uid: String) {
+    fun loadLibrary(profile: LibraryProfileUi) {
+        fallbackProfile.value = profile
+        val uid = profile.userId
         if (uid.isBlank() || (loadedUid == uid && libraryLoadJob?.isActive == true)) return
         loadedUid = uid
         libraryLoadJob?.cancel()

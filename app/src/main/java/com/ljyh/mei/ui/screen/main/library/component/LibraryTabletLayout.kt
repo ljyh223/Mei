@@ -44,13 +44,13 @@ import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.main.library.LibraryProfileUi
 import com.ljyh.mei.ui.screen.main.library.LibrarySection
-import com.ljyh.mei.ui.screen.main.library.LibraryTabletEvent
-import com.ljyh.mei.ui.screen.main.library.LibraryTabletUiState
+import com.ljyh.mei.ui.screen.main.library.LibraryEvent
+import com.ljyh.mei.ui.screen.main.library.LibraryContentUiState
 
 @Composable
 fun LibraryTabletLayout(
-    state: LibraryTabletUiState,
-    onEvent: (LibraryTabletEvent) -> Unit,
+    state: LibraryContentUiState,
+    onEvent: (LibraryEvent) -> Unit,
 ) {
     val displayItems = when (state.section) {
         LibrarySection.Created -> state.createdPlaylists.map { LibraryAsset(it.id, it.title, it.cover) }
@@ -85,8 +85,8 @@ fun LibraryTabletLayout(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     onEvent(
-                        if (state.section == LibrarySection.Albums) LibraryTabletEvent.OpenAlbum(item.id)
-                        else LibraryTabletEvent.OpenPlaylist(item.id)
+                        if (state.section == LibrarySection.Albums) LibraryEvent.OpenAlbum(item.id)
+                        else LibraryEvent.OpenPlaylist(item.id)
                     )
                 },
             )
@@ -97,7 +97,7 @@ fun LibraryTabletLayout(
 @Composable
 private fun LibraryProfileOverview(
     profile: LibraryProfileUi,
-    onEvent: (LibraryTabletEvent) -> Unit,
+    onEvent: (LibraryEvent) -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Row(
@@ -111,7 +111,7 @@ private fun LibraryProfileOverview(
                 modifier = Modifier
                     .size(156.dp)
                     .clip(RoundedCornerShape(32.dp))
-                    .clickable { onEvent(LibraryTabletEvent.ChangeProfilePhoto) },
+                    .clickable { onEvent(LibraryEvent.ChangeProfilePhoto) },
             )
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -147,9 +147,9 @@ private fun LibraryProfileOverview(
                     Text("${profile.listenSongs ?: "—"} 首听歌", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 }
                 Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    LibraryQuickAction(Icons.Rounded.History, "最近", { onEvent(LibraryTabletEvent.OpenHistory) }, Modifier.weight(1f))
-                    LibraryQuickAction(Icons.Rounded.Folder, "本地", { onEvent(LibraryTabletEvent.OpenLocalMusic) }, Modifier.weight(1f))
-                    LibraryQuickAction(Icons.Rounded.Download, "下载", { onEvent(LibraryTabletEvent.OpenDownloads) }, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.History, "最近", { onEvent(LibraryEvent.OpenHistory) }, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.Folder, "本地", { onEvent(LibraryEvent.OpenLocalMusic) }, Modifier.weight(1f))
+                    LibraryQuickAction(Icons.Rounded.Download, "下载", { onEvent(LibraryEvent.OpenDownloads) }, Modifier.weight(1f))
                     LibraryQuickAction(Icons.Rounded.Cloud, "云盘", {}, Modifier.weight(1f), enabled = false)
                 }
             }
@@ -167,7 +167,7 @@ private fun LibraryQuickAction(icon: ImageVector, label: String, onClick: () -> 
 }
 
 @Composable
-private fun LibrarySectionHeader(state: LibraryTabletUiState, onEvent: (LibraryTabletEvent) -> Unit) {
+private fun LibrarySectionHeader(state: LibraryContentUiState, onEvent: (LibraryEvent) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "我的音乐",
@@ -182,7 +182,7 @@ private fun LibrarySectionHeader(state: LibraryTabletUiState, onEvent: (LibraryT
             Triple(LibrarySection.Albums, "专辑", state.albumCount),
         ).forEach { (section, title, count) ->
             val selected = state.section == section
-            Text("$title $count", Modifier.clip(RoundedCornerShape(14.dp)).clickable { onEvent(LibraryTabletEvent.SelectSection(section)) }.padding(horizontal = 12.dp, vertical = 8.dp),
+            Text("$title $count", Modifier.clip(RoundedCornerShape(14.dp)).clickable { onEvent(LibraryEvent.SelectSection(section)) }.padding(horizontal = 12.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.titleSmall, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
         }

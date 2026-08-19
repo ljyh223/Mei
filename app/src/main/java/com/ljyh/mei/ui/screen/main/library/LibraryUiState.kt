@@ -1,9 +1,13 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.runtime.Immutable
+import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserVipInfo
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.model.Album
+import com.ljyh.mei.ui.model.toAlbum
 
 @Immutable
 data class LibraryProfileUi(
@@ -42,7 +46,7 @@ internal fun UserVipInfo.toMembershipUi(now: Long): MembershipUi? {
 enum class LibrarySection { Created, Collected, Albums }
 
 @Immutable
-data class LibraryTabletUiState(
+data class LibraryContentUiState(
     val profile: LibraryProfileUi,
     val section: LibrarySection,
     val createdPlaylists: List<Playlist>,
@@ -54,14 +58,23 @@ data class LibraryTabletUiState(
     val albumCount: Int get() = albums.size
 }
 
-sealed interface LibraryTabletEvent {
-    data class SelectSection(val section: LibrarySection) : LibraryTabletEvent
-    data class OpenPlaylist(val id: String) : LibraryTabletEvent
-    data class OpenAlbum(val id: String) : LibraryTabletEvent
-    data object ChangeProfilePhoto : LibraryTabletEvent
-    data object OpenHistory : LibraryTabletEvent
-    data object OpenLocalMusic : LibraryTabletEvent
-    data object OpenDownloads : LibraryTabletEvent
+sealed interface LibraryUiState {
+    data object Loading : LibraryUiState
+    data class Content(
+        val data: LibraryContentUiState,
+        val warning: String? = null,
+    ) : LibraryUiState
+    data class Error(val message: String) : LibraryUiState
+}
+
+sealed interface LibraryEvent {
+    data class SelectSection(val section: LibrarySection) : LibraryEvent
+    data class OpenPlaylist(val id: String) : LibraryEvent
+    data class OpenAlbum(val id: String) : LibraryEvent
+    data object ChangeProfilePhoto : LibraryEvent
+    data object OpenHistory : LibraryEvent
+    data object OpenLocalMusic : LibraryEvent
+    data object OpenDownloads : LibraryEvent
 }
 
 internal fun buildLibraryUiState(
@@ -70,14 +83,45 @@ internal fun buildLibraryUiState(
     playlists: List<Playlist>,
     albums: List<Album>,
     now: Long,
-): LibraryTabletUiState {
+): LibraryContentUiState {
     val (created, collected) = playlists.partition { it.author == profile.userId }
-    return LibraryTabletUiState(
+    return LibraryContentUiState(
         profile = profile,
         section = section,
         createdPlaylists = created.sortedForLibrary(now),
         collectedPlaylists = collected.sortedForLibrary(now),
         albums = albums,
+    )
+}
+
+internal fun resolveLibraryUiState(
+    accountResource: Resource<UserAccount>,
+    profile: LibraryProfileUi?,
+    playlists: List<Playlist>,
+    albumResource: Resource<UserAlbumList>,
+    section: LibrarySection,
+    now: Long,
+): LibraryUiState {
+    if (profile == null) {
+        return when (accountResource) {
+            is Resource.Error -> LibraryUiState.Error(accountResource.message)
+            is Resource.Success -> LibraryUiState.Error("账户信息不可用")
+            Resource.Loading -> LibraryUiState.Loading
+        }
+    }
+    val albums = (albumResource as? Resource.Success)
+        ?.data
+        ?.data
+        ?.map { it.toAlbum() }
+        .orEmpty()
+    val warning = when {
+        accountResource is Resource.Error -> accountResource.message
+        albumResource is Resource.Error -> albumResource.message
+        else -> null
+    }
+    return LibraryUiState.Content(
+        data = buildLibraryUiState(profile, section, playlists, albums, now),
+        warning = warning,
     )
 }
 

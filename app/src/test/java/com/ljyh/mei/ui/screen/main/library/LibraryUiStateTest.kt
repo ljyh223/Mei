@@ -1,10 +1,25 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.network.Resource
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class LibraryUiStateTest {
+    @Test
+    fun accountFailureWithoutCachedProfileIsAnError() {
+        val state = resolveLibraryUiState(
+            accountResource = Resource.Error("offline"),
+            profile = null,
+            playlists = emptyList(),
+            albumResource = Resource.Loading,
+            section = LibrarySection.Created,
+            now = 1_000L,
+        )
+
+        assertEquals(LibraryUiState.Error("offline"), state)
+    }
+
     @Test
     fun contentOnlyContainsPlaylistsOwnedOrCollectedByCurrentUser() {
         val state = buildLibraryUiState(
