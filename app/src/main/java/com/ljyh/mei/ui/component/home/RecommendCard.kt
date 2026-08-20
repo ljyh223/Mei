@@ -7,41 +7,40 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.kmpalette.loader.rememberNetworkLoader
-import com.kmpalette.rememberDominantColorState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.Dp
 import com.ljyh.mei.constants.RecommendCardHeight
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.ui.screen.main.home.HomeViewModel
 import com.ljyh.mei.utils.largeImage
-import io.ktor.http.Url
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @Composable
 fun RecommendCard(
@@ -52,146 +51,105 @@ fun RecommendCard(
     cardWidth: Dp = RecommendCardWidth,
     cardHeight: Dp = RecommendCardHeight,
     viewModel: HomeViewModel,
+    onPlayClick: (() -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
-    val loader = rememberNetworkLoader()
-    val dominantColorState = rememberDominantColorState(loader)
-    val isColorLoaded = remember(cover) { mutableStateOf(false) }
-
-    // 颜色提取逻辑 (保持你原有的数据库缓存逻辑，很好)
-    LaunchedEffect(cover) {
-        if (isColorLoaded.value) return@LaunchedEffect
-        withContext(Dispatchers.IO) {
-            val cachedColor = viewModel.getColors(cover)
-            if (cachedColor != null) {
-                withContext(Dispatchers.Main) {
-                    dominantColorState.updateFrom(Url(cover)) // 这里可能需要优化，直接设置 Color 而不是 Url
-                    // 实际上 kmpalette 主要是从 Url 提色，如果有 cachedColor int 值，
-                    // 最好直接有一个 state 存储 color，而不是再次调用 loader。
-                    // 但为了保持兼容你现有逻辑，先不动 kmpalette 的核心用法。
-                    isColorLoaded.value = true
-                }
-            } else {
-                withContext(Dispatchers.Main) {
-                    val demoImageUrl = Url(cover)
-                    loader.load(demoImageUrl)
-                    dominantColorState.updateFrom(demoImageUrl)
-                }
-                if (dominantColorState.color != Color.Unspecified) {
-                    viewModel.addColor(
-                        com.ljyh.mei.data.model.room.CacheColor(
-                            url = cover,
-                            color = dominantColorState.color.toArgb()
-                        )
-                    )
-                    isColorLoaded.value = true
-                }
-            }
-        }
+    var extractedColor by remember(cover) {
+        mutableStateOf(viewModel.getCachedColor(cover) ?: Color.DarkGray)
     }
 
-    // 基础颜色，如果没有提取到，使用深灰色兜底
-    val baseColor = if (dominantColorState.color != Color.Unspecified) dominantColorState.color else Color.DarkGray
+    LaunchedEffect(cover) {
+        extractedColor = viewModel.getOrExtractColor(cover)
+    }
 
-    Column(
+    val baseColor by animateColorAsState(extractedColor, label = "recommendCardColor")
+
+    Box(
         modifier = Modifier
-            .width(cardWidth)
+            .size(width = cardWidth, height = cardHeight)
             .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
     ) {
-        // 图片区域
-        Box(
+        AsyncImage(
+            model = cover.largeImage(),
             modifier = Modifier
-                .size(cardWidth, cardHeight)
-        ) {
-            AsyncImage(
-                model = cover.largeImage(),
-                modifier = Modifier.matchParentSize(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-            )
-
-            // 顶部渐变遮罩 (增强文字可读性)
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                baseColor.copy(alpha = 0.6f),
-                                baseColor.copy(alpha = 0.1f),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = 200f // 仅覆盖顶部
-                        )
-                    )
-            )
-
-            // 顶部左上角图标+文字
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (extInfo.icon != null) {
-                    AsyncImage(
-                        model = extInfo.icon,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(Modifier.width(4.dp))
-                }
-                Text(
-                    text = extInfo.text,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            if (showPlay) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
-                    contentDescription = "Play",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .size(28.dp)
-                )
-            }
-        }
-
-        // 底部标题区域
-        Box(
-            modifier = Modifier
+                .align(Alignment.TopCenter)
                 .fillMaxWidth()
+                .height(cardHeight),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+        )
+
+        // 信息叠在封面上；底部渐变覆盖同一张图，因此没有图片与信息区的物理边界。
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(104.dp)
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            baseColor.copy(alpha = 0.9f), // 稍微透明一点，更有质感
+                            Color.Transparent,
+                            baseColor.copy(alpha = 0.86f),
                             baseColor
                         )
                     )
                 )
-                .padding(horizontal = 8.dp, vertical = 10.dp)
         ) {
-            Text(
-                text = title ?: "",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                fontSize = 13.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Medium,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title.orEmpty(),
+                        maxLines = 1,
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        extInfo.icon?.let { icon ->
+                            AsyncImage(
+                                model = icon,
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        Text(
+                            text = extInfo.text,
+                            maxLines = 1,
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.82f),
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                if (showPlay || onPlayClick != null) {
+                    IconButton(
+                        onClick = onPlayClick ?: onClick,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.PlayArrow,
+                            contentDescription = "播放",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
         }
     }
 }

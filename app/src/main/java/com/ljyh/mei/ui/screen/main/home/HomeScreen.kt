@@ -1,8 +1,6 @@
 package com.ljyh.mei.ui.screen.main.home
 
-import android.os.Build
-import android.util.Log
-import androidx.annotation.RequiresApi
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,7 +79,6 @@ import com.ljyh.mei.utils.positionComparator
 import com.ljyh.mei.utils.rememberPreference
 import timber.log.Timber
 import java.util.UUID
-import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -401,7 +398,6 @@ private fun HomeBlockItem(
             TripleLaneSlider(
                 songsArray = songsBlocks,
                 isTablet = device.isTablet,
-                screenWidthDp = device.screenWidthDp,
             ) { songs, index ->
                 val flatSongs = songs.flatMap { it.items }.map { it.resourceId to null }
                 if (playerConnection.isPlaying(flatSongs[index].first)) {
@@ -466,32 +462,34 @@ fun Title(text: String) {
 fun TripleLaneSlider(
     songsArray: List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>,
     isTablet: Boolean = false,
-    screenWidthDp: Int = 0,
     onClick: (List<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>, Int) -> Unit
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val currentMetadata by playerConnection.mediaMetadata.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
 
-    val columns = when {
-        screenWidthDp >= 900 -> 3
-        isTablet -> 2
-        else -> 1
-    }
-
-    val pagerState = rememberPagerState(pageCount = { songsArray.size })
+    // 手机上的一组（通常为 3 首）就是一页；平板将连续 3 组合并为一页，形成 3 列 × 3 行。
+    val lanesPerPage = if (isTablet) 3 else 1
+    val pagerState = rememberPagerState(
+        pageCount = { (songsArray.size + lanesPerPage - 1) / lanesPerPage }
+    )
 
     HorizontalPager(
         state = pagerState,
         contentPadding = PaddingValues(horizontal = 16.dp),
         pageSpacing = 16.dp
     ) { page ->
-        val items = songsArray[page].items
+        val firstLaneIndex = page * lanesPerPage
+        val pageLanes = songsArray.subList(
+            firstLaneIndex,
+            minOf(firstLaneIndex + lanesPerPage, songsArray.size)
+        )
 
-        if (columns == 1) {
+        if (!isTablet) {
+            val items = pageLanes.first().items
             Column(modifier = Modifier.fillMaxWidth()) {
                 items.forEachIndexed { index, song ->
-                    val globalIndex = songsArray.take(page).sumOf { it.items.size } + index
+                    val globalIndex = songsArray.take(firstLaneIndex).sumOf { it.items.size } + index
                     SongRow(
                         song = song,
                         currentMetadataId = currentMetadata?.id?.toString(),
@@ -501,18 +499,16 @@ fun TripleLaneSlider(
                 }
             }
         } else {
-            val itemsPerColumn = ceil(items.size.toFloat() / columns).toInt()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                for (col in 0 until columns) {
+                pageLanes.forEachIndexed { laneOffset, lane ->
                     Column(modifier = Modifier.weight(1f)) {
-                        val startIdx = col * itemsPerColumn
-                        val endIdx = minOf(startIdx + itemsPerColumn, items.size)
-                        for (i in startIdx until endIdx) {
-                            val song = items[i]
-                            val globalIndex = songsArray.take(page).sumOf { it.items.size } + i
+                        lane.items.forEachIndexed { itemIndex, song ->
+                            val globalIndex = songsArray
+                                .take(firstLaneIndex + laneOffset)
+                                .sumOf { it.items.size } + itemIndex
                             SongRow(
                                 song = song,
                                 currentMetadataId = currentMetadata?.id?.toString(),

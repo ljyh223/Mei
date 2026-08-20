@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
-import com.ljyh.mei.data.model.room.CacheColor
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.HomeRepository
 import com.ljyh.mei.di.repository.ColorRepository
@@ -36,15 +35,10 @@ class HomeViewModel @Inject constructor(
             _homePageResourceShow.value = repository.getHomePageResourceShow(refresh)
         }
     }
-    fun getColors(url: String): androidx.compose.ui.graphics.Color? {
-        return colorRepository.getDbColor(url)
-    }
+    /** Returns immediately when a card re-enters composition, avoiding its fallback-color flash. */
+    fun getCachedColor(url: String) = colorRepository.getFromMemory(url)
 
-    fun addColor(color: CacheColor) {
-        viewModelScope.launch {
-            colorRepository.insertColor(color)
-        }
-    }
+    suspend fun getOrExtractColor(url: String) = colorRepository.getColorOrExtract(context, url)
 
 
 
