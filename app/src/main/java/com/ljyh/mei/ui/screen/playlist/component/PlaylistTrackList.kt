@@ -134,6 +134,18 @@ fun PlaylistTrackList(
                         onMoreClick = { onMoreClick(track) }
                     )
                 }
+                if (emptyMessage != null && staticTracks.isEmpty()) {
+                    item {
+                        Text(
+                            text = emptyMessage,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }

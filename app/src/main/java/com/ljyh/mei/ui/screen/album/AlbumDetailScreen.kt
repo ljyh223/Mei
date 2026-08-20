@@ -36,6 +36,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.CommonSongListScreen
+import com.ljyh.mei.ui.screen.playlist.matchesPlaylistSearch
 import com.ljyh.mei.utils.DownloadManager
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
@@ -126,6 +127,13 @@ fun AlbumDetailScreen(
     }
 
     val scope = rememberCoroutineScope()
+    var isAlbumSearchActive by remember { mutableStateOf(false) }
+    var albumSearchQuery by remember { mutableStateOf("") }
+    val displayedUiData = remember(uiData, albumSearchQuery) {
+        if (albumSearchQuery.isBlank()) uiData else uiData.copy(
+            tracks = uiData.tracks.filter { it.matchesPlaylistSearch(albumSearchQuery) }
+        )
+    }
 
     // Download dialog state
     var showDownloadDialog by remember { mutableStateOf(false) }
@@ -241,7 +249,7 @@ fun AlbumDetailScreen(
         }
     } else {
         CommonSongListScreen(
-            uiData = uiData,
+            uiData = displayedUiData,
             pagingItems = null, // 专辑通常一次性加载，不需要 paging
             isLoading = albumDetail is Resource.Loading,
 
@@ -276,10 +284,21 @@ fun AlbumDetailScreen(
             onTrackClick = { mediaMetadata, index ->
                 playerConnection.onTrackClicked(
                     trackId = mediaMetadata.id.toString(),
-                    buildQueue = { buildListQueue(index) }
+                    buildQueue = {
+                        val originalIndex = uiData.tracks.indexOfFirst { it.id == mediaMetadata.id }
+                            .takeIf { it >= 0 } ?: index
+                        buildListQueue(originalIndex)
+                    }
                 )
             },
 
+            playlistSearchQuery = albumSearchQuery,
+            isPlaylistSearchActive = isAlbumSearchActive,
+            onPlaylistSearchQueryChange = { albumSearchQuery = it },
+            onPlaylistSearchActiveChange = { active ->
+                isAlbumSearchActive = active
+                if (!active) albumSearchQuery = ""
+            },
             onBack = { navController.popBackStack() }
         )
     }

@@ -12,7 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +39,8 @@ fun EveryDay(
     val everyDaySongs by viewModel.everyDay.collectAsState()
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    var isDailySearchActive by remember { mutableStateOf(false) }
+    var dailySearchQuery by remember { mutableStateOf("") }
 
     val isLoading = everyDaySongs is Resource.Loading
     LaunchedEffect(true) {
@@ -73,6 +77,11 @@ fun EveryDay(
             )
         }
     }
+    val displayedUiData = remember(uiData, dailySearchQuery) {
+        if (dailySearchQuery.isBlank()) uiData else uiData.copy(
+            tracks = uiData.tracks.filter { it.matchesPlaylistSearch(dailySearchQuery) }
+        )
+    }
 
     if (everyDaySongs is Resource.Error) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -80,7 +89,7 @@ fun EveryDay(
         }
     } else {
         CommonSongListScreen(
-            uiData = uiData,
+            uiData = displayedUiData,
             pagingItems = null,
             isLoading = isLoading,
             onPlayAll = {
@@ -112,7 +121,8 @@ fun EveryDay(
                                 id = "dailySongs",
                                 title = uiData.title,
                                 items = allIds,
-                                startIndex = index
+                                startIndex = uiData.tracks.indexOfFirst { it.id == mediaMetadata.id }
+                                    .takeIf { it >= 0 } ?: index
                             )
                         } else {
                             null
@@ -125,6 +135,13 @@ fun EveryDay(
             },
             onHeaderAction = {
                 Toast.makeText(context, "不能收藏每日推荐歌单", Toast.LENGTH_SHORT).show()
+            },
+            playlistSearchQuery = dailySearchQuery,
+            isPlaylistSearchActive = isDailySearchActive,
+            onPlaylistSearchQueryChange = { dailySearchQuery = it },
+            onPlaylistSearchActiveChange = { active ->
+                isDailySearchActive = active
+                if (!active) dailySearchQuery = ""
             }
         )
     }
