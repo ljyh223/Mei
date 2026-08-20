@@ -7,9 +7,9 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.room.Playlist
 
 val RecommendCardWidth = 160.dp
-val RecommendCardHeight = 160.dp
+val RecommendCardHeight = 200.dp
 val RecommendCardWidthTablet = 220.dp
-val RecommendCardHeightTablet = 220.dp
+val RecommendCardHeightTablet = 275.dp
 
 val RecommendCardSpacing = 24.dp
 val PlaylistCardSpacing = 20.dp

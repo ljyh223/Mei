@@ -92,23 +92,12 @@ private fun RecommendCardShimmer(
     cardWidth: androidx.compose.ui.unit.Dp,
     cardHeight: androidx.compose.ui.unit.Dp
 ) {
-    Column(
+    Box(
         modifier = Modifier
-            .width(cardWidth)
+            .size(cardWidth, cardHeight)
             .clip(cardShape)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(cardWidth, cardHeight)
-                .background(shimmerColor)
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp)
-                .background(shimmerColor)
-        )
-    }
+            .background(shimmerColor)
+    )
 }
 
 @Composable
