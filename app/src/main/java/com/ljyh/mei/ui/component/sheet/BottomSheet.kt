@@ -84,6 +84,7 @@ fun BottomSheet(
     morphSpec: BottomSheetMorphSpec? = null,
     sharedTransitionKey: String? = null,
     keepExpandedContentComposed: Boolean = false,
+    transparentCollapsedContainer: Boolean = false,
     collapsedContent: @Composable BoxScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -167,7 +168,9 @@ fun BottomSheet(
                 .background(
                     if (morphLayout != null) {
                         backgroundColor.copy(
-                            alpha = backgroundColor.alpha * if (keepExpandedContentComposed) {
+                            alpha = backgroundColor.alpha * if (transparentCollapsedContainer) {
+                                ((progress - 0.12f) / 0.28f).coerceIn(0f, 1f)
+                            } else if (keepExpandedContentComposed) {
                                 1f
                             } else {
                                 morphLayout.backgroundAlpha

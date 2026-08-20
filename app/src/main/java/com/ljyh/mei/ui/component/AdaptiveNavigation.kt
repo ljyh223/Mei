@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
+import com.kyant.backdrop.Backdrop
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 
@@ -34,6 +35,7 @@ fun NavHostController.selectMainDestination(destination: Index) {
 fun AdaptiveMainNavigation(
     useSidebar: Boolean,
     shouldShow: Boolean,
+    backdrop: Backdrop? = null,
     selectedRoute: String?,
     onTabSelect: (Index) -> Unit,
     sidebarModifier: Modifier = Modifier,
@@ -70,6 +72,7 @@ fun AdaptiveMainNavigation(
     } else {
         FloatingCapsuleNavigationBar(
             shouldShow = shouldShow,
+            backdrop = backdrop,
             selectedRoute = selectedRoute,
             onTabSelect = onTabSelect,
             modifier = bottomBarModifier,

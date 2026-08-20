@@ -90,6 +90,7 @@ import com.ljyh.mei.ui.component.utils.lerp
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.UnitUtils.toPx
 import kotlin.math.min
+import com.kyant.backdrop.Backdrop
 
 
 
@@ -101,6 +102,7 @@ fun AppleMusicPlayer(
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
     collapsedBottomOffset: Dp = 0.dp,
+    backdrop: Backdrop? = null,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -235,6 +237,7 @@ fun AppleMusicPlayer(
                 expandedBottomMargin = 0.dp,
             ),
             keepExpandedContentComposed = true,
+            transparentCollapsedContainer = backdrop != null,
             onDismiss = {
                 stateContainer.playerConnection.player.stop()
                 stateContainer.playerConnection.player.clearMediaItems()
@@ -266,6 +269,7 @@ fun AppleMusicPlayer(
                     },
                     onNext = stateContainer.playerConnection::seekToNext,
                     drawCover = false,
+                    backdrop = backdrop,
                 )
             }
         ) {
@@ -283,6 +287,9 @@ fun AppleMusicPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = if (backdrop == null) 1f else meshBackgroundAlpha
+                    }
                     .background(backgroundColor),
             )
             FluidBackground(

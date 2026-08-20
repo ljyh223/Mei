@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -53,6 +55,7 @@ import com.ljyh.mei.constants.NavigationBarAnimationFloatSpec
 import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.utils.smallImage
+import com.kyant.backdrop.Backdrop
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -60,11 +63,19 @@ private val CapsuleCornerRadius = 24.dp
 private val CapsuleExtraSlide = 16.dp
 
 @Composable
+private fun liquidGlassSurfaceColor(): Color = if (isSystemInDarkTheme()) {
+    Color.Black.copy(alpha = 0.46f)
+} else {
+    Color.White.copy(alpha = 0.52f)
+}
+
+@Composable
 fun FloatingCapsuleNavigationBar(
     shouldShow: Boolean,
     selectedRoute: String?,
     onTabSelect: (Index) -> Unit,
     modifier: Modifier = Modifier,
+    backdrop: Backdrop? = null,
 ) {
     val visibleProgress by animateFloatAsState(
         targetValue = if (shouldShow) 1f else 0f,
@@ -76,6 +87,8 @@ fun FloatingCapsuleNavigationBar(
 
     val slideOffset = (FloatingCapsuleNavHeight + CapsuleExtraSlide) * (1f - visibleProgress)
 
+    val shape = RoundedCornerShape(CapsuleCornerRadius)
+    val glassSurfaceColor = liquidGlassSurfaceColor()
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -83,11 +96,16 @@ fun FloatingCapsuleNavigationBar(
             .offset { IntOffset(0, slideOffset.roundToPx()) }
             .graphicsLayer {
                 alpha = visibleProgress.coerceIn(0f, 1f)
-            },
-        shape = RoundedCornerShape(CapsuleCornerRadius),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
+            }
+            .liquidGlass(backdrop, shape, glassSurfaceColor),
+        shape = shape,
+        color = if (backdrop == null) {
+            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f)
+        } else {
+            Color.Transparent
+        },
         tonalElevation = 2.dp,
-        shadowElevation = 6.dp,
+        shadowElevation = if (backdrop == null) 6.dp else 0.dp,
     ) {
         Row(
             modifier = Modifier
@@ -146,12 +164,16 @@ fun FloatingCapsulePlayerBarContent(
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
     drawCover: Boolean = true,
+    backdrop: Backdrop? = null,
 ) {
+    val shape = RoundedCornerShape(CapsuleCornerRadius)
+    val glassSurfaceColor = liquidGlassSurfaceColor()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .height(FloatingCapsuleMiniPlayerHeight)
+            .liquidGlass(backdrop, shape, glassSurfaceColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

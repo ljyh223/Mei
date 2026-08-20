@@ -32,6 +32,7 @@ val MusicQualityKey = stringPreferencesKey("musicQuality")
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
+val LiquidGlassKey = booleanPreferencesKey("liquidGlass")
 val PlayerActionKey = stringPreferencesKey("playerBottomAction")
 
 val NormalLyricTextSizeKey = stringPreferencesKey("lyricTextSize")

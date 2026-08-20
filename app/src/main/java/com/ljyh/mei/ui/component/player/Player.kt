@@ -20,6 +20,7 @@ import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.kyant.backdrop.Backdrop
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -27,6 +28,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 fun BottomSheetPlayer(
     state: BottomSheetState,
     collapsedBottomOffset: Dp = 0.dp,
+    backdrop: Backdrop? = null,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
@@ -64,6 +66,7 @@ fun BottomSheetPlayer(
             stateContainer = stateContainer,
             overlayHandler = overlayHandler,
             collapsedBottomOffset = collapsedBottomOffset,
+            backdrop = backdrop,
         )
     }
 
