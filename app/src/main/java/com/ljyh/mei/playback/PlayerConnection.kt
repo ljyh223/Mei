@@ -16,7 +16,6 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.LoopPlaybackKey
-import com.ljyh.mei.constants.PreviousPlaybackKey
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
@@ -155,14 +154,10 @@ class PlayerConnection(
     }
 
     fun seekToPrevious() {
-        if(service.dataStore[PreviousPlaybackKey] ?: true){
-            if (player.hasPreviousMediaItem()) {
-                player.seekToPreviousMediaItem()
-            } else {
-                player.seekTo(0)
-            }
-        }else{
-            player.seekToPrevious()
+        if (player.hasPreviousMediaItem()) {
+            player.seekToPreviousMediaItem()
+        } else {
+            player.seekTo(0)
         }
 
         if (!player.playWhenReady) player.playWhenReady = true

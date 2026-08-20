@@ -17,6 +17,7 @@ import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingSimpleBasePlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -51,6 +52,8 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import coil3.ImageLoader
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
@@ -256,7 +259,26 @@ class MusicService : MediaLibraryService(),
 
         audioPlayer = AudioPlayer(player)
         val singletonImageLoader = ImageLoader(this)
-        mediaSession = MediaLibrarySession.Builder(this, player, LibrarySessionCallback())
+        val sessionPlayer = object : ForwardingSimpleBasePlayer(player) {
+            override fun handleSeek(
+                mediaItemIndex: Int,
+                positionMs: Long,
+                seekCommand: Int
+            ): ListenableFuture<*> {
+                // System media controls map "previous" to seekToPrevious(), whose default
+                // behavior restarts the current item after the seek threshold.
+                if (seekCommand == Player.COMMAND_SEEK_TO_PREVIOUS) {
+                    if (player.hasPreviousMediaItem()) {
+                        player.seekToPreviousMediaItem()
+                    } else {
+                        player.seekTo(0)
+                    }
+                    return Futures.immediateVoidFuture()
+                }
+                return super.handleSeek(mediaItemIndex, positionMs, seekCommand)
+            }
+        }
+        mediaSession = MediaLibrarySession.Builder(this, sessionPlayer, LibrarySessionCallback())
             .setSessionActivity(
                 PendingIntent.getActivity(
                     this,

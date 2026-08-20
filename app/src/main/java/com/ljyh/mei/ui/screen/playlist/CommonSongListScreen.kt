@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -115,82 +117,90 @@ fun CommonSongListScreen(
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
-                            TextField(
-                                value = playlistSearchQuery,
-                                onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
-                                modifier = Modifier.fillMaxSize(),
-                                placeholder = { Text("搜索歌名、歌手或专辑") },
-                                singleLine = true,
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent
-                                )
+                val title: @Composable () -> Unit = {
+                    if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
+                        TextField(
+                            value = playlistSearchQuery,
+                            onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("搜索歌名、歌手或专辑") },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
                             )
-                        } else {
-                            AnimatedVisibility(
-                                visible = !isLoading &&
-                                    showTopBarTitle &&
-                                    !(device.isTablet && device.isLandscape),
-                                enter = fadeIn(),
-                                exit = fadeOut()
-                            ) {
-                                Text(
-                                    text = if (device.isTablet) {
-                                        uiData.title
-                                    } else {
-                                        uiData.title.take(6).let { shortTitle ->
-                                            if (shortTitle.length < uiData.title.length) "$shortTitle…" else shortTitle
-                                        }
-                                    },
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                        )
+                    } else {
+                        AnimatedVisibility(
+                            visible = !isLoading &&
+                                showTopBarTitle &&
+                                !(device.isTablet && device.isLandscape),
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Text(
+                                text = if (device.isTablet) {
+                                    uiData.title
+                                } else {
+                                    uiData.title.take(6).let { shortTitle ->
+                                        if (shortTitle.length < uiData.title.length) "$shortTitle…" else shortTitle
+                                    }
+                                },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                    },
-                    navigationIcon = {
+                    }
+                }
+                val navigationIcon: @Composable () -> Unit = {
+                    IconButton(onClick = {
+                        if (isPlaylistSearchActive) onPlaylistSearchActiveChange(false) else onBack()
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                val actions: @Composable RowScope.() -> Unit = {
+                    if (supportsPlaylistSearch) {
                         IconButton(onClick = {
-                            if (isPlaylistSearchActive) onPlaylistSearchActiveChange(false) else onBack()
+                            if (isPlaylistSearchActive) {
+                                onPlaylistSearchQueryChange("")
+                                onPlaylistSearchActiveChange(false)
+                            } else {
+                                onPlaylistSearchActiveChange(true)
+                            }
                         }) {
                             Icon(
-                                Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = "Back",
-                                // 确保图标在背景上可见，通常用 OnSurface 或者纯白
-                                tint = MaterialTheme.colorScheme.onSurface
+                                imageVector = if (isPlaylistSearchActive) Icons.Default.Close else Icons.Default.Search,
+                                contentDescription = if (isPlaylistSearchActive) "关闭歌单搜索" else "搜索歌单"
                             )
                         }
-                    },
-                    actions = {
-                        if (supportsPlaylistSearch) {
-                            IconButton(onClick = {
-                                if (isPlaylistSearchActive) {
-                                    onPlaylistSearchQueryChange("")
-                                    onPlaylistSearchActiveChange(false)
-                                } else {
-                                    onPlaylistSearchActiveChange(true)
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = if (isPlaylistSearchActive) Icons.Default.Close else Icons.Default.Search,
-                                    contentDescription = if (isPlaylistSearchActive) "关闭歌单搜索" else "搜索歌单"
-                                )
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
-                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    }
+                }
+                val colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
+
+                if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
+                    TopAppBar(title = title, navigationIcon = navigationIcon, actions = actions, colors = colors)
+                } else {
+                    CenterAlignedTopAppBar(
+                        title = title,
+                        navigationIcon = navigationIcon,
+                        actions = actions,
+                        colors = colors
+                    )
+                }
             }
         ) { paddingValues ->
             Box(
