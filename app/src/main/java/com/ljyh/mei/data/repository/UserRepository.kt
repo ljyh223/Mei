@@ -6,6 +6,8 @@ import com.ljyh.mei.data.model.UserDetail
 import com.ljyh.mei.data.model.UserVipInfo
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.ListenDataReportResponse
 import com.ljyh.mei.data.model.api.GetAlbumList
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
@@ -73,6 +75,27 @@ class UserRepository(private val apiService: ApiService,private val eApiService:
             safeApiCall {
                 weApiService.getUserSubcount()
             }
+        }
+    }
+
+    suspend fun getListenDataRealtimeReport(type: String): Resource<ListenDataRealtimeResponse> =
+        withContext(Dispatchers.IO) {
+            safeApiCall {
+                eApiService.getListenDataRealtimeReport(mapOf("type" to type))
+            }
+        }
+
+    suspend fun getListenDataReport(
+        type: String,
+        endTime: Long? = null,
+    ): Resource<ListenDataReportResponse> = withContext(Dispatchers.IO) {
+        safeApiCall {
+            eApiService.getListenDataReport(
+                buildMap {
+                    put("type", type)
+                    endTime?.let { put("endTime", it.toString()) }
+                },
+            )
         }
     }
 }

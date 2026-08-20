@@ -1,5 +1,6 @@
 package com.ljyh.mei.utils.encrypt
 
+import com.google.gson.JsonParser
 import korlibs.crypto.AES
 import korlibs.crypto.Padding
 import korlibs.crypto.md5
@@ -46,12 +47,40 @@ fun encryptWeAPI(
 fun decryptEApi(
     data: ByteArray
 ): String {
-
+    require(data.isNotEmpty() && data.size % AES_BLOCK_SIZE == 0) {
+        "Invalid EAPI ciphertext length: ${data.size}"
+    }
     return AES.decryptAesEcb(
         data = data,
         key = eapiKey.toByteArray(),
         padding = Padding.PKCS7Padding
     ).decodeToString()
+}
+
+fun decodeEApiResponse(data: ByteArray): String {
+    data.plainJsonOrNull()?.let { return it }
+    return decryptEApi(data)
+}
+
+private fun ByteArray.plainJsonOrNull(): String? {
+    var index = 0
+    if (
+        size >= UTF8_BOM.size &&
+        UTF8_BOM.indices.all { bomIndex -> this[bomIndex] == UTF8_BOM[bomIndex] }
+    ) {
+        index = UTF8_BOM.size
+    }
+    while (index < size && this[index].toInt().toChar().isWhitespace()) index++
+    if (index >= size || (this[index] != JSON_OBJECT_START && this[index] != JSON_ARRAY_START)) {
+        return null
+    }
+
+    val candidate = decodeToString(startIndex = index)
+    return runCatching {
+        JsonParser.parseString(candidate)
+            .takeIf { it.isJsonObject || it.isJsonArray }
+            ?.let { candidate }
+    }.getOrNull()
 }
 
 fun encryptEApi(
@@ -114,3 +143,8 @@ data class WeApi(
 data class EApi(
     val params: String,
 )
+
+private const val AES_BLOCK_SIZE = 16
+private val UTF8_BOM = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
+private val JSON_OBJECT_START = '{'.code.toByte()
+private val JSON_ARRAY_START = '['.code.toByte()

@@ -1,5 +1,8 @@
 package com.ljyh.mei.ui.app
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -46,6 +49,7 @@ import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.component.AdaptiveMainNavigation
+import com.ljyh.mei.ui.component.TabletNavigationAnimationDurationMillis
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
 import com.ljyh.mei.ui.component.player.SyncPlayerSheetVisibility
@@ -131,6 +135,18 @@ fun MeiApp(
                 isSearchActive = searchActive,
                 useTabletSidebar = useTabletSidebar,
             )
+            val navigationStartPadding by animateDpAsState(
+                targetValue = if (shellState.showTabletSidebar) {
+                    TabletNavigationRailWidth
+                } else {
+                    0.dp
+                },
+                animationSpec = tween(
+                    durationMillis = TabletNavigationAnimationDurationMillis,
+                    easing = FastOutSlowInEasing,
+                ),
+                label = "mainNavigationStartPadding",
+            )
             val playerBottomSheetState = rememberBottomSheetState(
                 dismissedBound = 0.dp,
                 collapsedBound = collapsedPlayerBound(
@@ -206,13 +222,7 @@ fun MeiApp(
                 NavHost(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(
-                            start = if (shellState.showTabletSidebar) {
-                                TabletNavigationRailWidth
-                            } else {
-                                0.dp
-                            },
-                        ),
+                        .padding(start = navigationStartPadding),
                     navController = navController,
                     startDestination = when (startTab) {
                         NavigationTab.Home -> Screen.Home.route
@@ -244,17 +254,16 @@ fun MeiApp(
                     focusRequester = searchBarFocusRequester,
                 )
 
-                if (shellState.showMainNavigation) {
-                    AdaptiveMainNavigation(
-                        useSidebar = useTabletSidebar,
-                        selectedRoute = route,
-                        onTabSelect = navController::selectMainDestination,
-                        sidebarModifier = Modifier.align(Alignment.CenterStart),
-                        bottomBarModifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = bottomInset + FloatingCapsuleBottomMargin),
-                    )
-                }
+                AdaptiveMainNavigation(
+                    useSidebar = useTabletSidebar,
+                    shouldShow = shellState.showMainNavigation,
+                    selectedRoute = route,
+                    onTabSelect = navController::selectMainDestination,
+                    sidebarModifier = Modifier.align(Alignment.CenterStart),
+                    bottomBarModifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = bottomInset + FloatingCapsuleBottomMargin),
+                )
                 BottomSheetPlayer(state = playerBottomSheetState)
             }
         }

@@ -7,6 +7,8 @@ import com.ljyh.mei.data.model.UserAccount
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserDetail
 import com.ljyh.mei.data.model.UserVipInfo
+import com.ljyh.mei.data.model.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.ListenDataReportResponse
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
@@ -75,6 +77,13 @@ class LibraryViewModel @Inject constructor(
 
     private val _albumList = MutableStateFlow<Resource<UserAlbumList>>(Resource.Loading)
 
+    private val _weekListenRealtime =
+        MutableStateFlow<Resource<ListenDataRealtimeResponse>>(Resource.Loading)
+    private val _monthListenRealtime =
+        MutableStateFlow<Resource<ListenDataRealtimeResponse>>(Resource.Loading)
+    private val _weekListenReport =
+        MutableStateFlow<Resource<ListenDataReportResponse>>(Resource.Loading)
+
     private val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
             scope = viewModelScope,
@@ -83,7 +92,18 @@ class LibraryViewModel @Inject constructor(
         )
     private val selectedSection = MutableStateFlow(LibrarySection.Created)
 
-    val libraryUiState: StateFlow<LibraryUiState> = combine(
+    private val listeningFootprint: StateFlow<ListeningFootprintUi> = combine(
+        _weekListenRealtime,
+        _monthListenRealtime,
+        _weekListenReport,
+        ::resolveListeningFootprint,
+    ).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000L),
+        initialValue = ListeningFootprintUi(),
+    )
+
+    private val coreLibraryUiState = combine(
         account,
         profileUi,
         localPlaylists,
@@ -98,6 +118,18 @@ class LibraryViewModel @Inject constructor(
             section = section,
             now = System.currentTimeMillis(),
         )
+    }
+
+    val libraryUiState: StateFlow<LibraryUiState> = combine(
+        coreLibraryUiState,
+        listeningFootprint,
+    ) { state, footprint ->
+        when (state) {
+            is LibraryUiState.Content -> state.copy(
+                data = state.data.copy(listeningFootprint = footprint),
+            )
+            else -> state
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),
@@ -125,12 +157,26 @@ class LibraryViewModel @Inject constructor(
         _userVipInfo.value = Resource.Loading
         _photoAlbum.value = Resource.Loading
         _albumList.value = Resource.Loading
+        _weekListenRealtime.value = Resource.Loading
+        _monthListenRealtime.value = Resource.Loading
+        _weekListenReport.value = Resource.Loading
         libraryLoadJob = viewModelScope.launch {
             coroutineScope {
                 launch { _userDetail.value = repository.getUserDetail(uid) }
                 launch { _userVipInfo.value = repository.getUserVipInfo(uid) }
                 launch { _photoAlbum.value = repository.getPhotoAlbum(uid) }
                 launch { _albumList.value = repository.getAlbumList() }
+                launch {
+                    _weekListenRealtime.value =
+                        repository.getListenDataRealtimeReport(type = "week")
+                }
+                launch {
+                    _monthListenRealtime.value =
+                        repository.getListenDataRealtimeReport(type = "month")
+                }
+                launch {
+                    _weekListenReport.value = repository.getListenDataReport(type = "week")
+                }
                 launch { syncUserPlaylists(uid) }
             }
         }

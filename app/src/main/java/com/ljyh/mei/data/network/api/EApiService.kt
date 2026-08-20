@@ -1,6 +1,8 @@
 package com.ljyh.mei.data.network.api
 
 import com.ljyh.mei.data.model.AlbumPhoto
+import com.ljyh.mei.data.model.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.ListenDataReportResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
@@ -22,4 +24,14 @@ interface EApiService {
 
     @POST("/api/playlist/unsubscribe")
     suspend fun unSubscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+
+    @POST("/eapi/content/activity/listen/data/realtime/report")
+    suspend fun getListenDataRealtimeReport(
+        @Body body: Map<String, String>,
+    ): ListenDataRealtimeResponse
+
+    @POST("/eapi/content/activity/listen/data/report")
+    suspend fun getListenDataReport(
+        @Body body: Map<String, String>,
+    ): ListenDataReportResponse
 }

@@ -39,6 +39,7 @@ fun SingleImagePickerSheet(
     images: List<String>,
     minItemSize: Dp = 96.dp,
     maxHeight: Dp = 420.dp,
+    showHeader: Boolean = true,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -55,20 +56,21 @@ fun SingleImagePickerSheet(
             .heightIn(max = maxHeight)
             .padding(top = 12.dp)
     ) {
-        // 顶部标题行
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "选择图片",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(onClick = onDismiss) {
-                Text("取消")
+        if (showHeader) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "选择图片",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = onDismiss) {
+                    Text("取消")
+                }
             }
         }
 

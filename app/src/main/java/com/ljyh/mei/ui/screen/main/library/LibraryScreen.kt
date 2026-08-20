@@ -120,6 +120,7 @@ fun LibraryScreen(
                 if (device.isTablet && device.isLandscape) {
                     LibraryTabletLayout(
                         state = contentState,
+                        backgroundUrl = userPhoto,
                         onEvent = { event ->
                             when (event) {
                                 is LibraryEvent.SelectSection -> viewModel.selectSection(event.section)

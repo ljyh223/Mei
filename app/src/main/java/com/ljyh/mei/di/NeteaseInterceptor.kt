@@ -10,7 +10,7 @@ import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.constants.checkToken
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.encrypt.createRandomKey
-import com.ljyh.mei.utils.encrypt.decryptEApi
+import com.ljyh.mei.utils.encrypt.decodeEApiResponse
 import com.ljyh.mei.utils.encrypt.encryptEApi
 import com.ljyh.mei.utils.encrypt.encryptWeAPI
 import com.ljyh.mei.utils.get
@@ -24,7 +24,6 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import timber.log.Timber
-import java.io.IOException
 import kotlin.apply
 
 class NeteaseInterceptor : Interceptor {
@@ -229,17 +228,24 @@ class NeteaseInterceptor : Interceptor {
     private fun handleResponseDecryption(response: Response, cryptoMode: String): Response {
         if (cryptoMode == "eapi" && response.isSuccessful) {
             response.body.let { body ->
+                val responseBytes = try {
+                    body.bytes()
+                } catch (e: Exception) {
+                    Timber.e(e, "Read EAPI response failed")
+                    return response
+                }
+                if (responseBytes.isEmpty()) return response
                 try {
-                    val encryptedBytes = body.bytes()
-                    if (encryptedBytes.isEmpty()) return response
-
                     Timber.tag("Decrypted Response").d("eapi")
-                    val decryptedBytes = decryptEApi(encryptedBytes)
-                    val newBody = decryptedBytes.toResponseBody(body.contentType())
+                    val decodedBody = decodeEApiResponse(responseBytes)
+                    val newBody = decodedBody.toResponseBody(body.contentType())
 
                     return response.newBuilder().body(newBody).build()
-                } catch (e: IOException) {
+                } catch (e: Exception) {
                     Timber.e(e, "Decrypt EAPI response failed")
+                    return response.newBuilder()
+                        .body(responseBytes.toResponseBody(body.contentType()))
+                        .build()
                 }
             }
         }
