@@ -133,13 +133,19 @@ fun CommonSongListScreen(
                             )
                         } else {
                             AnimatedVisibility(
-                                visible = !isLoading && showTopBarTitle,
+                                visible = !isLoading &&
+                                    showTopBarTitle &&
+                                    !(device.isTablet && device.isLandscape),
                                 enter = fadeIn(),
                                 exit = fadeOut()
                             ) {
                                 Text(
-                                    text = uiData.title.let { title ->
-                                        if (title.length > 6) title.take(6) + "…" else title
+                                    text = if (device.isTablet) {
+                                        uiData.title
+                                    } else {
+                                        uiData.title.take(6).let { shortTitle ->
+                                            if (shortTitle.length < uiData.title.length) "$shortTitle…" else shortTitle
+                                        }
                                     },
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
