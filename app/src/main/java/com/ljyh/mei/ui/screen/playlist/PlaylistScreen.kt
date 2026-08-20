@@ -64,14 +64,15 @@ fun PlaylistScreen(
     // 2. 状态收集
     val userId by rememberPreference(UserIdKey, "")
     val playlistDetail by viewModel.playlistDetail.collectAsState()
+    val removedTrackIds by viewModel.removedTrackIds.collectAsState()
     val subscriberState by viewModel.subscribePlaylist.collectAsState()
     val unSubscriberState by viewModel.unSubscribePlaylist.collectAsState()
 
     // 3. Paging 数据
     var isPlaylistSearchActive by remember { mutableStateOf(false) }
     var playlistSearchQuery by remember { mutableStateOf("") }
-    val pagingFlow = remember(id, playlistDetail, playlistSearchQuery) {
-        viewModel.searchPlaylistTracks(playlistDetail, playlistSearchQuery)
+    val pagingFlow = remember(id, playlistDetail, playlistSearchQuery, removedTrackIds) {
+        viewModel.searchPlaylistTracks(playlistDetail, playlistSearchQuery, removedTrackIds)
     }
     val lazyPagingItems = pagingFlow.collectAsLazyPagingItems()
 
@@ -134,21 +135,24 @@ fun PlaylistScreen(
     }
 
     // 5. 构建 UI 模型 (移除副作用和内部状态修改)
-    val uiData = remember(playlistDetail, userId) {
+    val uiData = remember(playlistDetail, userId, removedTrackIds) {
         if (playlistDetail is Resource.Success) {
             val data = (playlistDetail as Resource.Success).data.playlist
+            val visibleTrackCount = (data.trackCount - removedTrackIds.size).coerceAtLeast(0)
             UiPlaylist(
                 id = data.Id,
                 title = data.name,
-                count = data.trackCount,
+                count = visibleTrackCount,
                 subscriberCount = data.subscribedCount,
                 cover = data.coverImgUrl,
                 coverList = data.tracks.take(6).map { it.al.picUrl },
                 creatorName = data.creator.nickname,
                 isCreator = data.creator.userId.toString() == userId,
                 description = data.description,
-                tracks = data.tracks.map { it.toMediaMetadata() },
-                trackCount = data.trackCount,
+                tracks = data.tracks
+                    .map { it.toMediaMetadata() }
+                    .filterNot { it.id in removedTrackIds },
+                trackCount = visibleTrackCount,
                 playCount = data.playCount,
                 isSubscribed = data.subscribed // 注意：这里仅用于 UI 初始化，后续由 isSubscribed 状态变量控制
             )
@@ -162,7 +166,7 @@ fun PlaylistScreen(
     }
 
     // 6. 提取构建播放队列的逻辑 (避免重复代码)
-    fun buildListQueue(index: Int = 0): ListQueue? {
+    fun buildListQueue(startTrackId: Long? = null): ListQueue? {
         val detail = playlistDetail
         if (detail is Resource.Success) {
             val playlist = detail.data.playlist
@@ -172,7 +176,9 @@ fun PlaylistScreen(
                 it.id.toString() to it.toMediaMetadata().toMediaItem()
             }
             // 保持原始顺序
-            val allPairs = playlist.trackIds.mapNotNull { trackId ->
+            val allPairs = playlist.trackIds
+                .filterNot { it.id in removedTrackIds }
+                .mapNotNull { trackId ->
                 val tid = trackId.id.toString()
                 mediaItemsMap[tid]?.let { Pair(tid, it) }
             }
@@ -181,7 +187,10 @@ fun PlaylistScreen(
                 id = "playlist_${uiData.id}",
                 title = uiData.title,
                 items = allPairs,
-                startIndex = index
+                startIndex = startTrackId
+                    ?.let { trackId -> allPairs.indexOfFirst { it.first == trackId.toString() } }
+                    ?.takeIf { it >= 0 }
+                    ?: 0
             )
         }
         return null
@@ -251,7 +260,9 @@ fun PlaylistScreen(
         isPreparingDownload = true
 
         scope.launch {
-            val allIds = playlist.trackIds.map { it.id }
+            val allIds = playlist.trackIds
+                .map { it.id }
+                .filterNot { it in removedTrackIds }
             val knownTracks = playlist.tracks.associateBy { it.id }.toMutableMap()
 
             val missingIds = allIds.filter { it !in knownTracks }.map { it.toString() }
@@ -338,7 +349,7 @@ fun PlaylistScreen(
 
             // 播放全部
             onPlayAll = {
-                buildListQueue(0)?.let { queue ->
+                buildListQueue()?.let { queue ->
                     playerConnection.playQueue(queue)
                 }
             },
@@ -347,14 +358,7 @@ fun PlaylistScreen(
             onTrackClick = { mediaMetadata, index ->
                 playerConnection.onTrackClicked(
                     trackId = mediaMetadata.id.toString(),
-                    buildQueue = {
-                        val originalIndex = (playlistDetail as? Resource.Success)
-                            ?.data?.playlist?.trackIds
-                            ?.indexOfFirst { it.id == mediaMetadata.id }
-                            ?.takeIf { it >= 0 }
-                            ?: index
-                        buildListQueue(originalIndex)
-                    }
+                    buildQueue = { buildListQueue(mediaMetadata.id) }
                 )
             },
 

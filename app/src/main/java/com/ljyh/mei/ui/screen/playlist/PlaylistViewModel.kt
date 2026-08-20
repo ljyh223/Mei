@@ -6,6 +6,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.filter
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
@@ -33,7 +34,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -47,6 +50,9 @@ class PlaylistViewModel @Inject constructor(
     val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
     private val _playlistDetail = MutableStateFlow<Resource<PlaylistDetail>>(Resource.Loading)
     val playlistDetail: StateFlow<Resource<PlaylistDetail>> = _playlistDetail
+
+    private val _removedTrackIds = MutableStateFlow<Set<Long>>(emptySet())
+    val removedTrackIds: StateFlow<Set<Long>> = _removedTrackIds
 
     private val _manipulateTracks =
         MutableStateFlow<Resource<ManipulateTrackResult>>(Resource.Loading)
@@ -77,6 +83,7 @@ class PlaylistViewModel @Inject constructor(
 
     fun getPlaylistDetail(id: String) {
         viewModelScope.launch {
+            _removedTrackIds.value = emptySet()
             _playlistDetail.value = Resource.Loading
             _playlistDetail.value = repository.getPlaylistDetail(id)
             localPlaylistRepository.touchPlaylist(id, System.currentTimeMillis())
@@ -85,7 +92,8 @@ class PlaylistViewModel @Inject constructor(
 
     // 分页加载，不是根据歌单id加载，而是根据歌曲id加载
     fun getPlaylistTracks(
-        playlistDetailResource: Resource<PlaylistDetail>
+        playlistDetailResource: Resource<PlaylistDetail>,
+        removedTrackIds: Set<Long> = emptySet()
     ): Flow<PagingData<MediaMetadata>> {
         return when (playlistDetailResource) {
             is Resource.Success -> {
@@ -93,7 +101,13 @@ class PlaylistViewModel @Inject constructor(
 
                 // 【本人歌单】直接全量，不分页
                 if (playlist.name.endsWith("喜欢的音乐")) {
-                    flowOf(PagingData.from(playlist.tracks.map { it.toMediaMetadata() }))
+                    flowOf(
+                        PagingData.from(
+                            playlist.tracks
+                                .map { it.toMediaMetadata() }
+                                .filterNot { it.id in removedTrackIds }
+                        )
+                    )
                 } else {
                     Pager(
                         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
@@ -104,7 +118,9 @@ class PlaylistViewModel @Inject constructor(
                                 ids = playlist.trackIds.map { it.id.toString() }
                             )
                         }
-                    ).flow
+                    ).flow.map { pagingData ->
+                        pagingData.filter { track -> track.id !in removedTrackIds }
+                    }
                 }
             }
             else -> flowOf(PagingData.empty())
@@ -118,10 +134,11 @@ class PlaylistViewModel @Inject constructor(
      */
     fun searchPlaylistTracks(
         playlistDetailResource: Resource<PlaylistDetail>,
-        query: String
+        query: String,
+        removedTrackIds: Set<Long> = emptySet()
     ): Flow<PagingData<MediaMetadata>> {
         if (playlistDetailResource !is Resource.Success || query.isBlank()) {
-            return getPlaylistTracks(playlistDetailResource)
+            return getPlaylistTracks(playlistDetailResource, removedTrackIds)
         }
 
         val playlist = playlistDetailResource.data.playlist
@@ -140,6 +157,7 @@ class PlaylistViewModel @Inject constructor(
             val matchingTracks = playlist.trackIds
                 .mapNotNull { tracksById[it.id] }
                 .map { it.toMediaMetadata() }
+                .filterNot { it.id in removedTrackIds }
                 .filter { it.matchesPlaylistSearch(query) }
             emit(PagingData.from(matchingTracks))
         }.cachedIn(viewModelScope)
@@ -152,20 +170,45 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
-    fun addSongToPlaylist(pid: String, trackIds: String) {
+    fun addSongToPlaylist(
+        pid: String,
+        trackIds: String,
+        previousTrackCount: Int,
+        onComplete: (PlaylistTrackAddOutcome) -> Unit = {}
+    ) {
         viewModelScope.launch {
             _manipulateTracks.value = Resource.Loading
-            _manipulateTracks.value = repository.manipulateTrack("add", pid, trackIds)
-
+            val result = repository.manipulateTrack("add", pid, trackIds)
+            _manipulateTracks.value = result
+            val outcome = result.toPlaylistTrackAddOutcome(previousTrackCount)
+            Timber.tag("PlaylistAdd").d(
+                "pid=%s trackIds=%s previousCount=%d result=%s outcome=%s",
+                pid,
+                trackIds,
+                previousTrackCount,
+                result,
+                outcome
+            )
+            onComplete(outcome)
         }
     }
 
 
-    fun deleteSongFromPlaylist(pid: String, trackIds: String) {
+    fun deleteSongFromPlaylist(
+        pid: String,
+        trackIds: String,
+        onComplete: (Boolean) -> Unit = {}
+    ) {
         viewModelScope.launch {
             _manipulateTracks.value = Resource.Loading
-            _manipulateTracks.value = repository.manipulateTrack("del", pid, trackIds)
+            val result = repository.manipulateTrack("del", pid, trackIds)
+            _manipulateTracks.value = result
+            onComplete(result is Resource.Success && result.data.code == 200)
         }
+    }
+
+    fun markTrackRemoved(trackId: Long) {
+        _removedTrackIds.value = _removedTrackIds.value + trackId
     }
     fun getAllMePlaylist(){
         viewModelScope.launch {
@@ -260,6 +303,27 @@ class PlaylistViewModel @Inject constructor(
 
 
 }
+
+enum class PlaylistTrackAddOutcome {
+    Added,
+    AlreadyExists,
+    Failed
+}
+
+internal fun Resource<ManipulateTrackResult>.toPlaylistTrackAddOutcome(
+    previousTrackCount: Int
+): PlaylistTrackAddOutcome =
+    when (this) {
+        is Resource.Success -> when {
+            data.code == 502 && data.message == "歌单内歌曲重复" ->
+                PlaylistTrackAddOutcome.AlreadyExists
+            data.code != 200 -> PlaylistTrackAddOutcome.Failed
+            data.count > previousTrackCount -> PlaylistTrackAddOutcome.Added
+            data.count == previousTrackCount -> PlaylistTrackAddOutcome.AlreadyExists
+            else -> PlaylistTrackAddOutcome.Failed
+        }
+        else -> PlaylistTrackAddOutcome.Failed
+    }
 
 internal fun MediaMetadata.matchesPlaylistSearch(query: String): Boolean {
     val keyword = query.trim()

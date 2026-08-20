@@ -10,6 +10,7 @@ import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.TrackActionMenu
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
 import com.ljyh.mei.utils.setClipboard
 
 
@@ -38,9 +39,16 @@ fun PlaylistActionOverlay(
                 onSelectPlaylist = { selectedPlaylist ->
                     viewModel.addSongToPlaylist(
                         pid = selectedPlaylist.id,
-                        trackIds = overlay.mediaId.toString()
-                    )
-                    Toast.makeText(context, "已添加到 ${selectedPlaylist.title}", Toast.LENGTH_SHORT).show()
+                        trackIds = overlay.mediaId.toString(),
+                        previousTrackCount = selectedPlaylist.count
+                    ) { outcome ->
+                        val message = when (outcome) {
+                            PlaylistTrackAddOutcome.Added -> "已添加到 ${selectedPlaylist.title}"
+                            PlaylistTrackAddOutcome.AlreadyExists -> "歌曲已在 ${selectedPlaylist.title} 中"
+                            PlaylistTrackAddOutcome.Failed -> "添加到歌单失败"
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    }
                     onDismiss()
                 }
             )
@@ -60,8 +68,14 @@ fun PlaylistActionOverlay(
                     viewModel.deleteSongFromPlaylist(
                         playlistId.toString(),
                         overlay.track.id.toString()
-                    )
-                    Toast.makeText(context, "已从歌单删除", Toast.LENGTH_SHORT).show()
+                    ) { deleted ->
+                        if (deleted) {
+                            viewModel.markTrackRemoved(overlay.track.id)
+                            Toast.makeText(context, "已从歌单删除", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "从歌单删除失败", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                     onDismiss()
                 },
                 onCopyId = {

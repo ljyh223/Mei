@@ -16,6 +16,7 @@ data class ManipulateTrack(
 
 data class ManipulateTrackResult(
     val code:Int,
+    val message: String? = null,
     val cloudCount:Int,
     val count:Int,
     val trackIds:String

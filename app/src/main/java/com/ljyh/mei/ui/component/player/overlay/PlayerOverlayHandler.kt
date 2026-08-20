@@ -22,6 +22,7 @@ import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
 
 /**
  * 播放器弹窗处理器
@@ -176,14 +177,17 @@ class PlayerOverlayHandler(
     fun addSongToPlaylist(selectedPlaylist: Playlist, mediaId: Long) {
         playlistViewModel.addSongToPlaylist(
             pid = selectedPlaylist.id,
-            trackIds = mediaId.toString()
-        )
-        android.widget.Toast.makeText(
-            context,
-            "已添加到 ${selectedPlaylist.title}",
-            android.widget.Toast.LENGTH_SHORT
-        ).show()
-        timber.log.Timber.tag("Playlist").d("Added song to ${selectedPlaylist.title}")
+            trackIds = mediaId.toString(),
+            previousTrackCount = selectedPlaylist.count
+        ) { outcome ->
+            val message = when (outcome) {
+                PlaylistTrackAddOutcome.Added -> "已添加到 ${selectedPlaylist.title}"
+                PlaylistTrackAddOutcome.AlreadyExists -> "歌曲已在 ${selectedPlaylist.title} 中"
+                PlaylistTrackAddOutcome.Failed -> "添加到歌单失败"
+            }
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+            timber.log.Timber.tag("Playlist").d("Add song to ${selectedPlaylist.title}: $outcome")
+        }
         dismiss()
     }
 
