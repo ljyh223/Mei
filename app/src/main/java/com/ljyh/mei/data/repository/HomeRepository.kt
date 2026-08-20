@@ -35,33 +35,31 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
     suspend fun getHomePageResourceShow(
         refresh: Boolean = false
     ): Resource<List<HomePageResourceShow.Data.Block>> {
-        Timber.tag("NewDay").d(isNewDay(getLastFetchTime(context)).toString())
-        Timber.tag("refresh").d(refresh.toString())
+
+        // 1. 如果是新的一天或者刷新，尝试去网络请求更新缓存
         if (isNewDay(getLastFetchTime(context)) || refresh) {
             Timber.tag("getHomePageResourceShow").d("新加载")
-            val page1 =
-                eApiService.getHomePageResourceShow(buildGetHomePageResourceShow(refresh = refresh.toString()))
-//            val page2 = eApiService.getHomePageResourceShow(
-//                buildGetHomePageResourceShow(refresh = refresh.toString())
-//            )
-            saveLastHomePage(context, 1, page1.data.blocks)
-//            saveLastHomePage(context, 2, page2.data.blocks)
+            try {
+                val page1 = eApiService.getHomePageResourceShow(body = buildGetHomePageResourceShow(refresh = "false"))
+                val page2 = eApiService.getHomePageResourceShow(body = buildGetHomePageResourceShow(refresh = refresh.toString()))
 
-            Timber.tag("getHomePageResourceShow").d("更新缓存")
-            return withContext(Dispatchers.IO) {
-                safeApiCall {
-                    page1.data.blocks
-//                    page1.data.blocks + page2.data.blocks
-                }
+                saveLastHomePage(context, page = 1, newData = page1.data.blocks)
+                saveLastHomePage(context, page = 2, newData = page2.data.blocks)
+
+                Timber.tag("getHomePageResourceShow").d("更新缓存")
+            } catch (e: Exception) {
+                // 断网或请求失败时捕获，不让 App 崩溃
+                Timber.tag("getHomePageResourceShow").e(t = e, message = "断网或网络请求失败，降级读取缓存")
             }
-        } else {
-            Timber.tag("getHomePageResourceShow").d("加载缓存")
-            val page1 = getLastHomePage(context, 1)
-//            val page2 = getLastHomePage(context, 2)
-            return Resource.Success(page1)
         }
-    }
 
+        // 2. 无论上面联网成功还是失败（断网），统一从本地缓存读取数据返回给 UI
+        val page1 = getLastHomePage(context, page = 1)
+
+        // 只拿 page1 的数据（避免与 page2 拼接冲突），并且对 blocks 内部按照 blockCode 或实例彻底去重
+        val safeBlocks = page1?.distinctBy { it.toString() } ?: emptyList()
+        return Resource.Success(data = safeBlocks)
+    }
 
     private suspend fun saveLastHomePage(
         context: Context,

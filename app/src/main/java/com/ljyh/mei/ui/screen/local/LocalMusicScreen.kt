@@ -7,6 +7,14 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.LaunchedEffect
+import java.io.File
+import android.os.Environment
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.flow.firstOrNull
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.data.model.room.DownloadStatus
+import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -49,8 +59,44 @@ fun LocalMusicScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
+    val allDbSongs by db.songDao().getAllSong().collectAsState(initial = emptyList())
 
-    val localSongs by db.songDao().getLocalSongs().collectAsState(initial = emptyList())
+    // 1. 获取 Music/Mei 文件夹
+    val meiFolder = File(Environment.getExternalStorageDirectory(), "Music/Mei")
+
+    // 2. 扫盘匹配：递归扫描 Mei 及其所有子文件夹
+    val localSongs = remember(allDbSongs) {
+        if (meiFolder.exists() && meiFolder.isDirectory) {
+            val localFiles = meiFolder.walk()
+                .filter { it.isFile && it.extension.lowercase() in listOf("mp3", "flac", "m4a", "wav") }
+                .toList()
+
+            localFiles.map { file ->
+                val dbSong = allDbSongs.find { song ->
+                    song.path == file.absolutePath || file.name.contains(song.title ?: "")
+                }
+
+                // 关键点：不管文件在哪个子文件夹里，强制把 folderPath 设为 meiFolder 的路径
+                dbSong?.copy(
+                    path = file.absolutePath,
+                    folderPath = meiFolder.absolutePath
+                ) ?: Song(
+                    id = file.name + System.currentTimeMillis(),
+                    title = file.nameWithoutExtension,
+                    artist = listOf("milet"),
+                    album = "本地音乐",
+                    cover = "",
+                    duration = 0L,
+                    path = file.absolutePath,
+                    folderPath = meiFolder.absolutePath
+                )
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+
     val albums by db.songDao().getLocalAlbums().collectAsState(initial = emptyList())
 
     val artists = remember(localSongs) {
