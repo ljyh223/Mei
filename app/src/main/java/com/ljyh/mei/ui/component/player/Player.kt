@@ -5,6 +5,8 @@ import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.ui.component.player.component.applemusic.AppleMusicPlayer
@@ -24,6 +26,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 @Composable
 fun BottomSheetPlayer(
     state: BottomSheetState,
+    collapsedBottomOffset: Dp = 0.dp,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
@@ -52,6 +55,7 @@ fun BottomSheetPlayer(
             modifier = modifier,
             stateContainer = stateContainer,
             overlayHandler = overlayHandler,
+            collapsedBottomOffset = collapsedBottomOffset,
         )
     } else {
         AppleMusicPlayer(
@@ -59,6 +63,7 @@ fun BottomSheetPlayer(
             modifier = modifier,
             stateContainer = stateContainer,
             overlayHandler = overlayHandler,
+            collapsedBottomOffset = collapsedBottomOffset,
         )
     }
 

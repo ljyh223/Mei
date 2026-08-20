@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.ljyh.mei.constants.FloatingCapsuleHorizontalPadding
@@ -42,6 +43,7 @@ fun ClassicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
+    collapsedBottomOffset: Dp = 0.dp,
 ) {
 
     val device = rememberDeviceInfo()
@@ -105,7 +107,7 @@ fun ClassicPlayer(
             expandedHorizontalMargin = 0.dp,
             expandedCornerRadius = 0.dp,
             collapsedHeight = FloatingCapsuleMiniPlayerHeight,
-            collapsedBottomMargin = 8.dp,
+            collapsedBottomMargin = 8.dp + collapsedBottomOffset,
             expandedBottomMargin = 0.dp,
         )
     ) {

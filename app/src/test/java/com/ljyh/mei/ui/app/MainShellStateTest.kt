@@ -48,7 +48,7 @@ class MainShellStateTest {
     fun playerBoundsAlwaysIncludeSystemGestureInset() {
         val systemInset = 24.dp
 
-        assertTrue(collapsedPlayerBound(systemInset, false) > systemInset)
+        assertTrue(collapsedPlayerBound(systemInset) > systemInset)
         assertTrue(playerAwareBottomInset(systemInset, false, true) > systemInset)
         assertEquals(systemInset, playerAwareBottomInset(systemInset, false, false))
     }

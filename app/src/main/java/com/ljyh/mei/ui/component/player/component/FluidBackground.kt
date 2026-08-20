@@ -1,12 +1,11 @@
 package com.ljyh.mei.ui.component.player.component
 
-import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import coil3.ImageLoader
+import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
@@ -30,6 +29,7 @@ fun FluidBackground(
     imageUrl: String?,
     audioVisualizerManager: AudioVisualizerManager,
     isPlaying: Boolean = true,
+    renderAlpha: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -50,13 +50,12 @@ fun FluidBackground(
             return@produceState
         }
         withContext(Dispatchers.IO) {
-            val loader = ImageLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(imageUrl)
                 .size(256)
                 .allowHardware(false)
                 .build()
-            val result = loader.execute(request)
+            val result = context.imageLoader.execute(request)
             if (result is SuccessResult) {
                 value = result.image.toBitmap()
             }
@@ -81,6 +80,7 @@ fun FluidBackground(
             }
         },
         update = { view ->
+            view.alpha = renderAlpha.coerceIn(0f, 1f)
             albumBitmap?.let { bmp ->
                 view.setAlbum(bmp)
             }

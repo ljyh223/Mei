@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -99,6 +100,7 @@ fun AppleMusicPlayer(
     modifier: Modifier = Modifier,
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
+    collapsedBottomOffset: Dp = 0.dp,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -138,6 +140,8 @@ fun AppleMusicPlayer(
     ) { if (it) 1f else 0f }
 
     val sheetProgress = state.progress
+    val expandedUiAlpha = ((sheetProgress - 0.42f) / 0.28f).coerceIn(0f, 1f)
+    val meshBackgroundAlpha = ((sheetProgress - 0.12f) / 0.28f).coerceIn(0f, 1f)
 
     val colorScheme = MaterialTheme.colorScheme
     val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
@@ -164,7 +168,15 @@ fun AppleMusicPlayer(
         val miniStart = with(density) { (FloatingCapsuleHorizontalPadding + 12.dp).toPx() }
         val miniRadius = with(density) { ThumbnailCornerRadius.toPx() }
         val collapsedBoundPx = with(density) { state.collapsedBound.toPx() }
-        val miniAbsTop = maxHeightPx - collapsedBoundPx + with(density) { 8.dp.toPx() }
+        val collapsedBottomOffsetPx = with(density) { collapsedBottomOffset.toPx() }
+        val collapsedMarginPx = with(density) { (8.dp + collapsedBottomOffset).toPx() }
+        val coverVerticalInsetPx = with(density) {
+            ((FloatingCapsuleMiniPlayerHeight - 36.dp) / 2).toPx()
+        }
+        val collapsedMiniTop = maxHeightPx - collapsedBoundPx - collapsedBottomOffsetPx
+        val revealMiniTop = maxHeightPx - with(density) { state.value.toPx() } -
+            collapsedMarginPx * state.revealProgress + coverVerticalInsetPx
+        val miniAbsTop = if (state.revealProgress < 1f) revealMiniTop else collapsedMiniTop
 
         // B. Normal Expanded
         val topSafeArea = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
@@ -219,10 +231,10 @@ fun AppleMusicPlayer(
                 expandedHorizontalMargin = 0.dp,
                 expandedCornerRadius = 0.dp,
                 collapsedHeight = FloatingCapsuleMiniPlayerHeight,
-                collapsedBottomMargin = 8.dp,
+                collapsedBottomMargin = 8.dp + collapsedBottomOffset,
                 expandedBottomMargin = 0.dp,
             ),
-            sharedTransitionKey = "player-container",
+            keepExpandedContentComposed = true,
             onDismiss = {
                 stateContainer.playerConnection.player.stop()
                 stateContainer.playerConnection.player.clearMediaItems()
@@ -253,13 +265,14 @@ fun AppleMusicPlayer(
                         }
                     },
                     onNext = stateContainer.playerConnection::seekToNext,
+                    drawCover = false,
                 )
             }
         ) {
             val coverUrl = mediaMetadata?.coverUrl
-            
+
             val audioVisualizerManager = remember { AudioVisualizerManager(context) }
-            
+
             LaunchedEffect(stateContainer.playerConnection.player) {
                 val player = stateContainer.playerConnection.player as? ExoPlayer
                 player?.audioSessionId?.let { sessionId ->
@@ -267,13 +280,23 @@ fun AppleMusicPlayer(
                 }
             }
 
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(backgroundColor),
+            )
             FluidBackground(
                 imageUrl = coverUrl,
                 audioVisualizerManager = audioVisualizerManager,
-                isPlaying = isPlaying
+                isPlaying = isPlaying,
+                renderAlpha = meshBackgroundAlpha,
             )
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = expandedUiAlpha },
+            ) {
 
 
                 // Mode B: Lyric Player
@@ -451,45 +474,46 @@ fun AppleMusicPlayer(
             }
         }
 
-        AnimatedContent(
-            targetState = mediaMetadata,
-            transitionSpec = {
-                (fadeIn(animationSpec = tween(durationMillis = 400)) +
+        mediaMetadata?.let { currentMedia ->
+            AnimatedContent(
+                targetState = currentMedia,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(durationMillis = 400)) +
                         scaleIn(initialScale = 0.92f, animationSpec = tween(durationMillis = 400)))
-                    .togetherWith(
-                        fadeOut(animationSpec = tween(durationMillis = 400))
-                    )
-            },
-            label = "CoverTransition",
-            modifier = Modifier
-                .graphicsLayer {
-                    translationX = finalStart
-                    translationY = finalTop
-                    shadowElevation = mShadowElevation.toPx()
-                    shape = RoundedCornerShape(finalRadius)
-                    clip = true
-                }
-                .size(
-                    width = with(density) { finalSize.toDp() },
-                    height = with(density) { finalSize.toDp() }
-                )
-                .combinedClickable(
-                    onClick = {
-                        if (!state.isExpanded) {
-                            state.expandSoft()
-                        } else {
-                            showLyrics = !showLyrics
-                        }
-                    },
-                    onLongClick = {
-                        if (state.isExpanded) {
-                            showFullImage = true
-                        }
+                        .togetherWith(
+                            fadeOut(animationSpec = tween(durationMillis = 400))
+                        )
+                },
+                label = "CoverTransition",
+                modifier = Modifier
+                    .graphicsLayer {
+                        alpha = state.revealProgress
+                        translationX = finalStart
+                        translationY = finalTop
+                        shadowElevation = mShadowElevation.toPx()
+                        shape = RoundedCornerShape(finalRadius)
+                        clip = true
                     }
-                )
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        ) { currentMetadata ->
-            if (currentMetadata != null) {
+                    .size(
+                        width = with(density) { finalSize.toDp() },
+                        height = with(density) { finalSize.toDp() }
+                    )
+                    .combinedClickable(
+                        onClick = {
+                            if (!state.isExpanded) {
+                                state.expandSoft()
+                            } else {
+                                showLyrics = !showLyrics
+                            }
+                        },
+                        onLongClick = {
+                            if (state.isExpanded) {
+                                showFullImage = true
+                            }
+                        }
+                    )
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) { currentMetadata ->
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(currentMetadata.coverUrl)
@@ -501,8 +525,6 @@ fun AppleMusicPlayer(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-            } else {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
             }
         }
 

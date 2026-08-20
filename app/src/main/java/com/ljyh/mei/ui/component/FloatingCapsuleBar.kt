@@ -145,6 +145,7 @@ fun FloatingCapsulePlayerBarContent(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    drawCover: Boolean = true,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -162,6 +163,7 @@ fun FloatingCapsulePlayerBarContent(
             title = title.orEmpty(),
             artist = artist.orEmpty(),
             coverUrl = coverUrl,
+            drawCover = drawCover,
             modifier = Modifier.weight(1f),
         )
 
@@ -365,19 +367,24 @@ private fun MiniPlayerSongContent(
     artist: String,
     coverUrl: String?,
     modifier: Modifier = Modifier,
+    drawCover: Boolean = true,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
         coverUrl?.let {
-            AsyncImage(
-                model = it.smallImage(),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius))
-            )
+            if (drawCover) {
+                AsyncImage(
+                    model = it.smallImage(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(ThumbnailCornerRadius))
+                )
+            } else {
+                Spacer(modifier = Modifier.size(36.dp))
+            }
             Spacer(modifier = Modifier.width(10.dp))
         }
 

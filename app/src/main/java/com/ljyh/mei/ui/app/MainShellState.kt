@@ -51,12 +51,15 @@ fun resolveMainShellState(
     )
 }
 
+/**
+ * The player's collapsed anchor must not include transient navigation chrome.
+ * Bottom-navigation clearance is animated separately so it cannot be interpreted as sheet
+ * expansion progress when destinations change.
+ */
 fun collapsedPlayerBound(
     systemBottomInset: Dp,
-    showBottomNavigation: Boolean,
 ): Dp = systemBottomInset +
-    FloatingCapsuleMiniPlayerHeight +
-    if (showBottomNavigation) FloatingCapsuleNavHeight + 8.dp else 0.dp
+    FloatingCapsuleMiniPlayerHeight
 
 fun playerAwareBottomInset(
     systemBottomInset: Dp,

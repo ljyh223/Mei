@@ -45,6 +45,8 @@ import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.FloatingCapsuleBottomMargin
+import com.ljyh.mei.constants.FloatingCapsuleNavHeight
+import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
@@ -147,11 +149,19 @@ fun MeiApp(
                 ),
                 label = "mainNavigationStartPadding",
             )
+            val playerNavigationOffset by animateDpAsState(
+                targetValue = if (shellState.showBottomNavigation) {
+                    FloatingCapsuleNavHeight + FloatingCapsuleBottomMargin
+                } else {
+                    0.dp
+                },
+                animationSpec = NavigationBarAnimationSpec,
+                label = "playerNavigationOffset",
+            )
             val playerBottomSheetState = rememberBottomSheetState(
                 dismissedBound = 0.dp,
                 collapsedBound = collapsedPlayerBound(
                     systemBottomInset = bottomInset,
-                    showBottomNavigation = shellState.showBottomNavigation,
                 ),
                 expandedBound = maxHeight,
             )
@@ -264,7 +274,10 @@ fun MeiApp(
                         .align(Alignment.BottomCenter)
                         .padding(bottom = bottomInset + FloatingCapsuleBottomMargin),
                 )
-                BottomSheetPlayer(state = playerBottomSheetState)
+                BottomSheetPlayer(
+                    state = playerBottomSheetState,
+                    collapsedBottomOffset = playerNavigationOffset,
+                )
             }
         }
     }

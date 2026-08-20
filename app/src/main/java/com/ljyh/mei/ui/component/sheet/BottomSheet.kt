@@ -83,6 +83,7 @@ fun BottomSheet(
     onHorizontalSwipe: ((direction: HorizontalSwipeDirection) -> Unit)? = null,
     morphSpec: BottomSheetMorphSpec? = null,
     sharedTransitionKey: String? = null,
+    keepExpandedContentComposed: Boolean = false,
     collapsedContent: @Composable BoxScope.() -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -166,7 +167,11 @@ fun BottomSheet(
                 .background(
                     if (morphLayout != null) {
                         backgroundColor.copy(
-                            alpha = backgroundColor.alpha * morphLayout.backgroundAlpha
+                            alpha = backgroundColor.alpha * if (keepExpandedContentComposed) {
+                                1f
+                            } else {
+                                morphLayout.backgroundAlpha
+                            }
                         )
                     } else {
                         backgroundColor.copy(
@@ -225,12 +230,16 @@ fun BottomSheet(
                     }
                 }
             } else {
-                if (!state.isCollapsed) {
+                if (keepExpandedContentComposed || !state.isCollapsed) {
                     BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                alpha = ((state.progress - 0.25f) * 4).coerceIn(0f, 1f)
+                                alpha = if (keepExpandedContentComposed) {
+                                    1f
+                                } else {
+                                    ((state.progress - 0.25f) * 4).coerceIn(0f, 1f)
+                                }
                             },
                         content = content
                     )
@@ -240,7 +249,12 @@ fun BottomSheet(
                     Box(
                         modifier = Modifier
                             .graphicsLayer {
-                                alpha = 1f - (state.progress * 4).coerceAtMost(1f)
+                                alpha = if (keepExpandedContentComposed) {
+                                    ((MINI_PLAYER_FADE_END - state.progress) /
+                                        MINI_PLAYER_FADE_END).coerceIn(0f, 1f)
+                                } else {
+                                    1f - (state.progress * 4).coerceAtMost(1f)
+                                }
                             }
                             .fillMaxWidth()
                             .height(morphSpec?.collapsedHeight ?: state.collapsedBound)
@@ -256,6 +270,8 @@ fun BottomSheet(
         }
     }
 }
+
+private const val MINI_PLAYER_FADE_END = 0.18f
 
 @Stable
 class BottomSheetState(
