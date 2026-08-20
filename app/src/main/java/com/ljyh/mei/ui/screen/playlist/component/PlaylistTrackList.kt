@@ -45,7 +45,8 @@ fun PlaylistTrackList(
     onMoreClick: (MediaMetadata) -> Unit,
     onTrackDownload: ((MediaMetadata) -> Unit)? = null,
     lazyListState: LazyListState = rememberLazyListState(),
-    contentPadding: PaddingValues = PaddingValues(0.dp)
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    emptyMessage: String? = null
 ) {
 
     val playlistTrackTableHeader by rememberPreference(PlaylistTrackTableHeaderKey,  false)
@@ -105,6 +106,23 @@ fun PlaylistTrackList(
                     }
 
                     else -> {}
+                }
+
+                if (
+                    emptyMessage != null &&
+                    pagingItems.itemCount == 0 &&
+                    pagingItems.loadState.refresh is LoadState.NotLoading
+                ) {
+                    item {
+                        Text(
+                            text = emptyMessage,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 itemsIndexed(staticTracks, key = { _, item -> item.id }) { index, track ->

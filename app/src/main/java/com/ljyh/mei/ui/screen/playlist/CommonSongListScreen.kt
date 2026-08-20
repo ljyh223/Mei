@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,6 +26,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +76,10 @@ fun CommonSongListScreen(
     onTrackClick: (MediaMetadata, Int) -> Unit,
     onTrackDownload: ((MediaMetadata) -> Unit)? = null,
     onBack: () -> Unit,
+    playlistSearchQuery: String = "",
+    isPlaylistSearchActive: Boolean = false,
+    onPlaylistSearchQueryChange: ((String) -> Unit)? = null,
+    onPlaylistSearchActiveChange: (Boolean) -> Unit = {},
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -85,6 +95,7 @@ fun CommonSongListScreen(
     val showTopBarTitle by remember {
         derivedStateOf { lazyListState.firstVisibleItemIndex > 0 }
     }
+    val supportsPlaylistSearch = onPlaylistSearchQueryChange != null
 
 
     LaunchedEffect(Unit) {
@@ -106,29 +117,64 @@ fun CommonSongListScreen(
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
-                        AnimatedVisibility(
-                            visible = !isLoading && showTopBarTitle,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Text(
-                                text = uiData.title.let { title ->
-                                    if (title.length > 6) title.take(6) + "…" else title
-                                },
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurface
+                        if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
+                            TextField(
+                                value = playlistSearchQuery,
+                                onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
+                                modifier = Modifier.fillMaxSize(),
+                                placeholder = { Text("搜索歌名、歌手或专辑") },
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                )
                             )
+                        } else {
+                            AnimatedVisibility(
+                                visible = !isLoading && showTopBarTitle,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                Text(
+                                    text = uiData.title.let { title ->
+                                        if (title.length > 6) title.take(6) + "…" else title
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = {
+                            if (isPlaylistSearchActive) onPlaylistSearchActiveChange(false) else onBack()
+                        }) {
                             Icon(
                                 Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = "Back",
                                 // 确保图标在背景上可见，通常用 OnSurface 或者纯白
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
+                        }
+                    },
+                    actions = {
+                        if (supportsPlaylistSearch) {
+                            IconButton(onClick = {
+                                if (isPlaylistSearchActive) {
+                                    onPlaylistSearchQueryChange("")
+                                    onPlaylistSearchActiveChange(false)
+                                } else {
+                                    onPlaylistSearchActiveChange(true)
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = if (isPlaylistSearchActive) Icons.Default.Close else Icons.Default.Search,
+                                    contentDescription = if (isPlaylistSearchActive) "关闭歌单搜索" else "搜索歌单"
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -172,16 +218,41 @@ fun CommonSongListScreen(
                                     }
                                 )
                             }
-                            PlaylistTrackList(
-                                modifier = Modifier.weight(0.6f),
-                                pagingItems = pagingItems,
-                                staticTracks = uiData.tracks,
-                                isTablet = true,
-                                lazyListState = lazyListState,
-                                onTrackClick = onTrackClick,
-                                onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
-                                onTrackDownload = onTrackDownload
-                            )
+                            Column(modifier = Modifier.weight(0.6f)) {
+                                if (isPlaylistSearchActive) {
+                                    TextField(
+                                        value = playlistSearchQuery,
+                                        onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                                        placeholder = { Text("搜索歌名、歌手或专辑") },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Search, contentDescription = null)
+                                        },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(28.dp),
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                            focusedIndicatorColor = Color.Transparent,
+                                            unfocusedIndicatorColor = Color.Transparent
+                                        )
+                                    )
+                                }
+                                PlaylistTrackList(
+                                    modifier = Modifier.weight(1f),
+                                    pagingItems = pagingItems,
+                                    staticTracks = uiData.tracks,
+                                    isTablet = true,
+                                    lazyListState = lazyListState,
+                                    onTrackClick = onTrackClick,
+                                    onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                                    onTrackDownload = onTrackDownload,
+                                    emptyMessage = playlistSearchQuery.takeIf { it.isNotBlank() }
+                                        ?.let { "未找到匹配的歌曲" }
+                                )
+                            }
                         }
                     }else{
                         PlaylistTrackList(
@@ -210,6 +281,8 @@ fun CommonSongListScreen(
                             onTrackClick = onTrackClick,
                             onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
                             onTrackDownload = onTrackDownload,
+                            emptyMessage = playlistSearchQuery.takeIf { it.isNotBlank() }
+                                ?.let { "未找到匹配的歌曲" },
                             // 手机端需要考虑底部播放器的高度
                             contentPadding = PaddingValues(
                                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()

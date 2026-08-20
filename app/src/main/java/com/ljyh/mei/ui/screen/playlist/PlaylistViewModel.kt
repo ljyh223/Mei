@@ -111,6 +111,40 @@ class PlaylistViewModel @Inject constructor(
         }.cachedIn(viewModelScope)
     }
 
+    /**
+     * Loads every track in a playlist before filtering it.  The playlist detail endpoint only
+     * includes an initial batch of tracks, so filtering that batch alone would miss results in
+     * larger playlists.
+     */
+    fun searchPlaylistTracks(
+        playlistDetailResource: Resource<PlaylistDetail>,
+        query: String
+    ): Flow<PagingData<MediaMetadata>> {
+        if (playlistDetailResource !is Resource.Success || query.isBlank()) {
+            return getPlaylistTracks(playlistDetailResource)
+        }
+
+        val playlist = playlistDetailResource.data.playlist
+        return kotlinx.coroutines.flow.flow {
+            val tracksById = playlist.tracks.associateBy { it.id }.toMutableMap()
+            playlist.trackIds
+                .map { it.id }
+                .filterNot(tracksById::containsKey)
+                .chunked(200)
+                .forEach { ids ->
+                    apiService.getSongDetail(GetSongDetails(ids.joinToString(","))).songs.forEach { track ->
+                        tracksById[track.id] = track
+                    }
+                }
+
+            val matchingTracks = playlist.trackIds
+                .mapNotNull { tracksById[it.id] }
+                .map { it.toMediaMetadata() }
+                .filter { it.matchesPlaylistSearch(query) }
+            emit(PagingData.from(matchingTracks))
+        }.cachedIn(viewModelScope)
+    }
+
 
     fun updateAllLike(likes: List<Like>) {
         viewModelScope.launch {
@@ -227,3 +261,12 @@ class PlaylistViewModel @Inject constructor(
 
 }
 
+internal fun MediaMetadata.matchesPlaylistSearch(query: String): Boolean {
+    val keyword = query.trim()
+    return title.contains(keyword, ignoreCase = true) ||
+        album.title.contains(keyword, ignoreCase = true) ||
+        artists.any { artist ->
+            artist.name.contains(keyword, ignoreCase = true) ||
+                artist.alias.orEmpty().any { it.contains(keyword, ignoreCase = true) }
+        }
+}

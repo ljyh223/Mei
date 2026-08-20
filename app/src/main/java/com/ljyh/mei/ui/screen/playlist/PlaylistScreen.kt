@@ -68,8 +68,10 @@ fun PlaylistScreen(
     val unSubscriberState by viewModel.unSubscribePlaylist.collectAsState()
 
     // 3. Paging 数据
-    val pagingFlow = remember(id, playlistDetail) {
-        viewModel.getPlaylistTracks(playlistDetail)
+    var isPlaylistSearchActive by remember { mutableStateOf(false) }
+    var playlistSearchQuery by remember { mutableStateOf("") }
+    val pagingFlow = remember(id, playlistDetail, playlistSearchQuery) {
+        viewModel.searchPlaylistTracks(playlistDetail, playlistSearchQuery)
     }
     val lazyPagingItems = pagingFlow.collectAsLazyPagingItems()
 
@@ -345,10 +347,24 @@ fun PlaylistScreen(
             onTrackClick = { mediaMetadata, index ->
                 playerConnection.onTrackClicked(
                     trackId = mediaMetadata.id.toString(),
-                    buildQueue = { buildListQueue(index) }
+                    buildQueue = {
+                        val originalIndex = (playlistDetail as? Resource.Success)
+                            ?.data?.playlist?.trackIds
+                            ?.indexOfFirst { it.id == mediaMetadata.id }
+                            ?.takeIf { it >= 0 }
+                            ?: index
+                        buildListQueue(originalIndex)
+                    }
                 )
             },
 
+            playlistSearchQuery = playlistSearchQuery,
+            isPlaylistSearchActive = isPlaylistSearchActive,
+            onPlaylistSearchQueryChange = { playlistSearchQuery = it },
+            onPlaylistSearchActiveChange = { active ->
+                isPlaylistSearchActive = active
+                if (!active) playlistSearchQuery = ""
+            },
             onBack = { navController.popBackStack() }
         )
     }
