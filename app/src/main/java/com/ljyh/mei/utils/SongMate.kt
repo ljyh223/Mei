@@ -49,9 +49,9 @@ object SongMate {
         coverUrl: String,
         filePath: String,
         lyric: String? = null
-    ) {
+    ): TagStatus? {
         val coverBytes = if (coverUrl.isNotBlank()) downloadImageBytes(coverUrl) else null
-        writeTagsWithCoverBytes(title, artist, album, coverBytes, filePath, lyric)
+        return writeTagsWithCoverBytes(title, artist, album, coverBytes, filePath, lyric)
     }
 
     suspend fun writeTagsWithCoverBytes(
@@ -61,17 +61,17 @@ object SongMate {
         coverBytes: ByteArray?,
         filePath: String,
         lyric: String? = null
-    ) {
-        try {
+    ): TagStatus? {
+        return try {
             val file = File(filePath)
             val audioFile = AudioFileIO.read(file)
             var tag = audioFile.tagOrCreateAndSetDefault
             val isFlac = tag is FlacTag
 
-            if (!isFlac && tag !is ID3v24Tag) {
-                val oldArtwork = if (tag is AbstractID3v2Tag) {
-                    tag.firstArtwork
-                } else null
+            // Only MP3 ID3 tags may be upgraded to v2.4. Replacing an MP4/Vorbis
+            // tag with ID3 corrupts the container metadata and drops lyrics.
+            if (tag is AbstractID3v2Tag && tag !is ID3v24Tag) {
+                val oldArtwork = tag.firstArtwork
                 val v24Tag = ID3v24Tag()
                 oldArtwork?.let { v24Tag.setField(it) }
                 audioFile.tag = v24Tag
@@ -116,8 +116,10 @@ object SongMate {
             }
 
             audioFile.commit()
+            checkTags(filePath)
         } catch (e: Exception) {
             Timber.tag("SongMate").e(e, "writeTags failed for $filePath")
+            null
         }
     }
 }

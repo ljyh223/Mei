@@ -47,16 +47,46 @@ interface LikeDao {
 
 @Dao
 interface HistoryDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateSong(song: Song)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertSongIfAbsent(song: Song): Long
+
+    @Query("""
+        UPDATE song SET
+            title = :title,
+            artist = :artist,
+            album = :album,
+            cover = :cover,
+            duration = CASE WHEN :duration > 0 THEN :duration ELSE duration END,
+            updatedAt = :updatedAt
+        WHERE id = :id
+    """)
+    suspend fun updateHistoryMetadata(
+        id: String,
+        title: String,
+        artist: List<String>,
+        album: String,
+        cover: String,
+        duration: Long,
+        updatedAt: Long,
+    )
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHistory(history: PlaybackHistory)
 
     @Transaction
     suspend fun addSongToHistory(song: Song) {
-        insertOrUpdateSong(song)
-        insertHistory(PlaybackHistory(songId = song.id, playedAt = System.currentTimeMillis()))
+        val now = System.currentTimeMillis()
+        insertSongIfAbsent(song)
+        updateHistoryMetadata(
+            id = song.id,
+            title = song.title,
+            artist = song.artist,
+            album = song.album,
+            cover = song.cover,
+            duration = song.duration,
+            updatedAt = now,
+        )
+        insertHistory(PlaybackHistory(songId = song.id, playedAt = now))
     }
 
     @Query("""

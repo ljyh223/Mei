@@ -25,13 +25,19 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
     val amSource = sources.filterIsInstance<LyricSourceData.AM>().firstOrNull()
     if (amSource != null) {
         val a = amSource.lyric
-        Timber.tag("LyricUtils").d("TMLL")
-        return LyricData(
-            isVerbatim = true,
-            isPureMusic = isPureMusic,
-            source = LyricSource.AM,
-            lyricLine = TTMLParser().parse(a)
-        )
+        val parsed = runCatching { TTMLParser().parse(a) }.getOrNull()
+        if (parsed != null && parsed.lines.isNotEmpty()) {
+            Timber.tag("LyricUtils").d("TTML")
+            return LyricData(
+                isVerbatim = parsed.lines.any {
+                    it is com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine &&
+                            it.syllables.isNotEmpty()
+                },
+                isPureMusic = isPureMusic,
+                source = LyricSource.AM,
+                lyricLine = parsed
+            )
+        }
     }
     val neteaseSource = sources.filterIsInstance<LyricSourceData.NetEase>().firstOrNull()
     if (neteaseSource != null) {

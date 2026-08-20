@@ -49,7 +49,7 @@ object AppModule {
 
     @Provides @Singleton
     fun provideHistoryDao(database: AppDatabase): HistoryRepository =
-        HistoryRepository(database.historyDao(), database.songDao())
+        HistoryRepository(database.historyDao())
 
     @Provides
     fun provideAlbumsDao(db: AppDatabase): AlbumsRepository =

@@ -1,8 +1,5 @@
 package com.ljyh.mei.utils.lyric
 
-import android.content.Context
-import com.ljyh.mei.constants.QqTimeout
-import com.ljyh.mei.constants.QqTimeoutKey
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.qq.u.LyricResult
@@ -16,12 +13,9 @@ import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
-import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.encrypt.QRCUtils
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlin.math.abs
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -49,7 +43,6 @@ class LyricManager @Inject constructor(
     private val cachedLyricRepository: CachedLyricRepository,
     private val duetDetector: DuetDetector,
     private val preloader: LyricPreloader,
-    @ApplicationContext private val context: Context
 ) {
 
     private val TAG = "LyricManager"
@@ -81,9 +74,6 @@ class LyricManager @Inject constructor(
 
     /** 内存缓存，FIFO 淘汰，最多 5 首 */
     private val lyricCache = LinkedHashMap<String, LyricData>()
-
-    /** 预加载协程 Job */
-    private var preloadJob: Job? = null
 
     // ==================== 三源 StateFlow ====================
 
@@ -164,167 +154,11 @@ class LyricManager @Inject constructor(
                 }
             }
 
-            delay(100)
-
-            launch { fetchNetEaseLyric(songId) }
-            launch { fetchAMLLyric(songId) }
-
-            // QQ 音乐拉取（带超时控制）
-            val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
-            val qqTimeout = try {
-                QqTimeout.valueOf(
-                    context.dataStore.data.first()[QqTimeoutKey] ?: QqTimeout.Sec8.name
-                ).seconds
-            } catch (_: Exception) {
-                8
+            preloader.sourceFlow(metadata, forceReload).collect { snapshot ->
+                netLyricResult.value = snapshot.netEase
+                qqLyricResult.value = snapshot.qq
+                amLyricResult.value = snapshot.ttml
             }
-            try {
-                withTimeout(qqTimeout * 1000L) {
-                    if (localSong != null) {
-                        fetchQQLyric(localSong)
-                    } else {
-                        autoSearchAndPickBest(metadata)
-                    }
-                }
-            } catch (_: TimeoutCancellationException) {
-                qqLyricResult.value = Resource.Error("QQ timed out")
-            }
-
-            // 预加载已有 QQSong 时，补充填充搜索结果供 Sheet 使用
-            if (localSong != null) {
-                launch { searchAndMatchBest(metadata) }
-            }
-        }
-    }
-
-    /**
-     * 自动搜索 QQ 音乐并选择最佳匹配
-     *
-     * 先按歌名搜索，无 duration 匹配时回退为"歌名+歌手"搜索
-     */
-    private suspend fun autoSearchAndPickBest(metadata: MediaMetadata) {
-        val best = searchAndMatchBest(metadata)
-        if (best != null) {
-            val qqSong = QQSong(
-                id = metadata.id.toString(),
-                qid = best.id.toString(),
-                title = best.title,
-                artist = best.singer.joinToString(",") { it.name },
-                album = best.album.title,
-                duration = best.interval
-            )
-            qqSongRepository.insertSong(qqSong)
-            fetchQQLyric(qqSong)
-        }
-    }
-
-    /**
-     * 两级搜索匹配：先按歌名，无匹配则按"歌名+歌手"
-     *
-     * @return 匹配到的 QQ 歌曲，未匹配到返回 null
-     */
-    private suspend fun searchAndMatchBest(metadata: MediaMetadata): SearchResult.Request.Data.Body.ItemSong? {
-        val currentDurationSec = metadata.duration / 1000
-        val artistName = metadata.artists.firstOrNull()?.name ?: ""
-        val title = metadata.title
-        val cleanedTitle = cleanTitle(title)
-
-        // 1. 清洗后的歌名
-        if (cleanedTitle != title) {
-            Timber.tag(TAG).d("QQ search : $cleanedTitle")
-            val best = trySearchMatch(cleanedTitle, currentDurationSec)
-            _qqSearchResult.value = trySearchLastResult
-            if (best != null) return best
-        }
-
-        // 2. 原始歌名
-        Timber.tag(TAG).d("QQ search retry with: $title")
-        val bestByTitle = trySearchMatch(title, currentDurationSec)
-        _qqSearchResult.value = trySearchLastResult
-        if (bestByTitle != null) return bestByTitle
-
-        // 3. 清洗后歌名+歌手
-        if (artistName.isNotBlank() && cleanedTitle != title) {
-            val combined = "$cleanedTitle $artistName"
-            Timber.tag(TAG).d("QQ search retry with cleanedTitle+artist: $combined")
-            val best = trySearchMatch(combined, currentDurationSec)
-            _qqSearchResult.value = trySearchLastResult
-            if (best != null) return best
-        }
-
-        // 4. 原始歌名+歌手
-        if (artistName.isNotBlank()) {
-            val combined = "$title $artistName"
-            Timber.tag(TAG).d("QQ search retry with title+artist: $combined")
-            val best = trySearchMatch(combined, currentDurationSec)
-            _qqSearchResult.value = trySearchLastResult
-            if (best != null) return best
-        }
-
-        return null
-    }
-
-    /**
-     * 去除歌名中的括号内容（如 feat./with/remix 等附加信息）
-     *
-     * 处理中文括号（）和英文括号 ()。
-     * 例如 "abc (feat. xxx)" → "abc"
-     */
-    private fun cleanTitle(title: String): String {
-        return title
-            .replace(Regex("""[\(（][^)）]*[\)）]"""), "")
-            .replace(Regex("""\s+"""), " ")
-            .trim()
-    }
-
-    /** 缓存最后一次 QQ 搜索结果，供 _qqSearchResult 和预加载流程使用 */
-    private var trySearchLastResult: Resource<SearchResult> = Resource.Loading
-
-    /**
-     * 搜索 QQ 音乐并在前 5 条结果中匹配时长（±5 秒）
-     *
-     * @param keyword 搜索关键词
-     * @param targetDurationSec 目标时长（秒）
-     * @return 匹配到的歌曲，未匹配到返回 null
-     */
-    private suspend fun trySearchMatch(
-        keyword: String,
-        targetDurationSec: Long
-    ): SearchResult.Request.Data.Body.ItemSong? {
-        val result = repository.searchNew(keyword)
-        trySearchLastResult = result
-        if (result !is Resource.Success) return null
-        val songs = result.data.request.data.body.itemSong
-        return songs.take(5).firstOrNull { song ->
-            abs(targetDurationSec - song.interval) <= 5
-        }
-    }
-
-    /**
-     * 拉取网易云歌词
-     *
-     * 写入 netLyricResult（Lyric 结构体，含 lrc/yrc/tlyric/ytlrc 等字段）。
-     */
-    private suspend fun fetchNetEaseLyric(id: String) {
-        try {
-            netLyricResult.value = repository.getLyricV1(id)
-        } catch (e: Exception) {
-            Timber.e(e, "NetEase fetch error")
-            netLyricResult.value = Resource.Error("NetEase fetch failed")
-        }
-    }
-
-    /**
-     * 拉取 Apple Music TTML 逐字歌词
-     *
-     * 写入 amLyricResult（原始 TTML 字符串）。
-     */
-    private suspend fun fetchAMLLyric(id: String) {
-        try {
-            amLyricResult.value = repository.getAMLLyric(id)
-        } catch (e: Exception) {
-            Timber.e(e, "AML fetch error")
-            amLyricResult.value = Resource.Error("AML fetch failed")
         }
     }
 
@@ -345,6 +179,7 @@ class LyricManager @Inject constructor(
                     song.title, song.album, song.artist, song.duration, song.qid.toLong()
                 )
                 qqLyricResult.value = result
+                currentSongId?.let { preloader.overrideQq(it, result) }
                 if (result is Resource.Success) {
                     val qrcT = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data.qrcT
                     if (qrcT != 0) {
@@ -353,7 +188,9 @@ class LyricManager @Inject constructor(
                 }
             } catch (e: Exception) {
                 Timber.e(e, "QQ fetch error")
-                qqLyricResult.value = Resource.Error("QQ fetch failed")
+                val error = Resource.Error("QQ fetch failed")
+                qqLyricResult.value = error
+                currentSongId?.let { preloader.overrideQq(it, error) }
             }
         }
     }
@@ -472,11 +309,11 @@ class LyricManager @Inject constructor(
             && mergeResult.lyricData.lyricLine.lines.isEmpty()
         ) return
 
-        // 守卫：同一源不重复更新 UI
-        val currentSource = _lyricData.value.source
-        val skipUiUpdate =
-            currentSource != LyricSource.Loading && currentSource != LyricSource.Empty
-                    && mergeResult.lyricData.source == currentSource
+        // Progressive results may arrive out of order. Never replace a better lyric with a
+        // lower-quality candidate, while still allowing the same source to gain translation.
+        val currentData = _lyricData.value
+        val candidateData = mergeResult.lyricData
+        val skipUiUpdate = !shouldApplyLyricUpdate(currentData, candidateData)
         val cacheContent = mergeResult.cacheContent
 
         if (!skipUiUpdate) {
@@ -596,7 +433,6 @@ class LyricManager @Inject constructor(
      */
     fun cancelAll() {
         fetchJob?.cancel()
-        preloadJob?.cancel()
         currentSongId = null
     }
 
@@ -611,15 +447,7 @@ class LyricManager @Inject constructor(
     fun preloadLyrics(metadata: MediaMetadata) {
         val songId = metadata.id.toString()
         if (lyricCache.containsKey(songId) || currentSongId == songId) return
-
-        preloadJob?.cancel()
-        preloadJob = scope.launch {
-            val result = preloader.preload(metadata)
-            if (result != null) {
-                lyricCache[songId] = result
-                trimCache()
-            }
-        }
+        preloader.preload(metadata)
     }
 
     // ==================== 缓存管理 ====================

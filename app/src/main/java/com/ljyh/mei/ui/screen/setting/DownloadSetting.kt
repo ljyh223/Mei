@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.HighQuality
+import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,10 +25,12 @@ import androidx.compose.ui.Modifier
 import com.ljyh.mei.constants.DownloadPathKey
 import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
+import com.ljyh.mei.constants.EmbedOriginalTtmlKey
 import com.ljyh.mei.ui.component.EditTextPreference
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
@@ -52,6 +55,10 @@ fun DownloadSetting(
     val (downloadQuality, onDownloadQualityChange) = rememberEnumPreference(
         key = DownloadQualityKey,
         defaultValue = DownloadQuality.EXHIGH,
+    )
+    val (embedOriginalTtml, onEmbedOriginalTtmlChange) = rememberPreference(
+        key = EmbedOriginalTtmlKey,
+        defaultValue = false
     )
 
     Scaffold(
@@ -95,6 +102,14 @@ fun DownloadSetting(
                 selectedValue = downloadQuality,
                 onValueSelected = onDownloadQualityChange,
                 valueText = { "${it.label} - ${it.description}" }
+            )
+
+            SwitchPreference(
+                title = { Text("原样嵌入 TTML 歌词") },
+                description = "关闭时将 TTML 转换为兼容性更好的增强型 LRC",
+                icon = { Icon(Icons.Rounded.Lyrics, null) },
+                checked = embedOriginalTtml,
+                onCheckedChange = onEmbedOriginalTtmlChange
             )
         }
     }

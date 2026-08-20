@@ -68,6 +68,7 @@ val TabletAnimationStyleKey = stringPreferencesKey("tabletAnimationStyle")
 
 val DownloadPathKey = stringPreferencesKey("downloadPath")
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
+val EmbedOriginalTtmlKey = booleanPreferencesKey("embedOriginalTtml")
 val QqTimeoutKey = stringPreferencesKey("qq_timeout")
 
 enum class QqTimeout(val seconds: Int, val label: String) {

@@ -1,7 +1,6 @@
 package com.ljyh.mei.di.repository
 
 import android.content.Context
-import android.database.sqlite.SQLiteConstraintException
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -19,14 +18,12 @@ import com.ljyh.mei.data.model.room.CacheColor
 import com.ljyh.mei.data.model.room.CachedLyric
 import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.data.model.room.Like
-import com.ljyh.mei.data.model.room.PlaybackHistory
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.di.dao.AlbumsDao
 import com.ljyh.mei.di.dao.CachedLyricDao
 import com.ljyh.mei.di.dao.ColorDao
 import com.ljyh.mei.di.dao.HistoryDao
 import com.ljyh.mei.di.dao.LikeDao
-import com.ljyh.mei.di.dao.SongDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -106,17 +103,9 @@ class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
 @Singleton
 class HistoryRepository @Inject constructor(
     private val historyDao: HistoryDao,
-    private val songDao: SongDao
 ) {
     suspend fun addToHistory(song: Song) {
-        try {
-            historyDao.addSongToHistory(song)
-        } catch (e: Exception) {
-            if (e is SQLiteConstraintException) {
-                songDao.insertSongs(listOf(song))
-                historyDao.insertHistory(PlaybackHistory(songId = song.id, playedAt = System.currentTimeMillis()))
-            } else throw e
-        }
+        historyDao.addSongToHistory(song)
     }
 
     fun getHistoryStream(): Flow<List<HistoryItem>> = historyDao.getHistory()

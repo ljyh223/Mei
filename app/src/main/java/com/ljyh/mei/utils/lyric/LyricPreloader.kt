@@ -1,5 +1,8 @@
 package com.ljyh.mei.utils.lyric
 
+import android.content.Context
+import com.ljyh.mei.constants.QqTimeout
+import com.ljyh.mei.constants.QqTimeoutKey
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.qq.u.LyricResult
@@ -8,73 +11,119 @@ import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.di.repository.QQSongRepository
-import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSourceData
+import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.encrypt.QRCUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
 
+data class LyricSourceSnapshot(
+    val netEase: Resource<Lyric> = Resource.Loading,
+    val qq: Resource<LyricResult> = Resource.Loading,
+    val ttml: Resource<String> = Resource.Loading,
+)
+
 /**
  * 歌词预加载器
  *
- * 独立于 [LyricManager] 运行，提前拉取下一首歌曲的歌词到内存缓存。
- * 所有网络请求使用私有方法，绝不更新共享 StateFlow，因此不会干扰当前歌词展示。
+ * Owns shared per-song resolution sessions. Preloading starts a session and the player later
+ * observes the same source states without issuing duplicate requests.
  */
 @Singleton
 class LyricPreloader @Inject constructor(
     private val repository: PlayerRepository,
     private val qqSongRepository: QQSongRepository,
+    @param:ApplicationContext private val context: Context,
 ) {
     private val TAG = "LyricPreloader"
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val sessions = LinkedHashMap<String, Session>(8, 0.75f, true)
 
-    /**
-     * 预加载指定歌曲的歌词
-     *
-     * @param metadata 歌曲元数据
-     * @return 合并后的歌词数据，失败或无需预加载时返回 null
-     */
-    suspend fun preload(metadata: MediaMetadata): LyricData? {
-        val songId = metadata.id.toString()
-        return fetchAndMerge(metadata, songId)
+    fun preload(metadata: MediaMetadata) {
+        sourceFlow(metadata)
     }
 
-    private suspend fun fetchAndMerge(metadata: MediaMetadata, songId: String): LyricData? {
-        val (netResult, amResult, qqResult) = coroutineScope {
-            val netDeferred = async { fetchNetEase(songId) }
-            val amDeferred = async { fetchAM(songId) }
-            val qqDeferred = async { fetchQQ(metadata) }
-            Triple(netDeferred.await(), amDeferred.await(), qqDeferred.await())
-        }
+    fun sourceFlow(
+        metadata: MediaMetadata,
+        forceReload: Boolean = false,
+    ): StateFlow<LyricSourceSnapshot> = synchronized(sessions) {
+        val songId = metadata.id.toString()
+        if (forceReload) sessions.remove(songId)?.job?.cancel()
+        sessions[songId]?.state ?: createSession(metadata).also { trimSessions() }.state
+    }
 
-        return withContext(Dispatchers.IO) {
-            val isPureMusic = (netResult as? Resource.Success)?.data?.pureMusic == true
-            val sources = mutableListOf<LyricSourceData>()
-
-            (amResult as? Resource.Success)?.let { sources.add(LyricSourceData.AM(it.data)) }
-            (netResult as? Resource.Success)?.data?.let { sources.add(LyricSourceData.NetEase(it)) }
-            (qqResult as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let { data ->
-                try {
-                    val isQRC = data.qrcT != 0
-                    val decoded = data.copy(
-                        lyric = QRCUtils.decodeLyric(data.lyric),
-                        trans = QRCUtils.decodeLyric(data.trans, true),
-                        roma = QRCUtils.decodeLyric(data.roma)
-                    )
-                    sources.add(LyricSourceData.QQMusic(decoded, isQRC, null))
-                } catch (e: Exception) {
-                    Timber.e(e, "QRC decoding failed in preload")
+    private fun createSession(metadata: MediaMetadata): Session {
+        val songId = metadata.id.toString()
+        val state = MutableStateFlow(LyricSourceSnapshot())
+        val session = Session(state)
+        sessions[songId] = session
+        session.job = scope.launch {
+            launch {
+                state.update { it.copy(netEase = fetchNetEase(songId)) }
+            }
+            launch {
+                state.update { it.copy(ttml = fetchAM(songId)) }
+            }
+            launch {
+                val timeoutSeconds = runCatching {
+                    QqTimeout.valueOf(
+                        context.dataStore.data.firstOrNull()?.get(QqTimeoutKey)
+                            ?: QqTimeout.Sec8.name
+                    ).seconds
+                }.getOrDefault(QqTimeout.Sec8.seconds)
+                val result = try {
+                    withTimeout(timeoutSeconds * 1_000L) {
+                        fetchQQ(songId, metadata)
+                    }
+                } catch (_: TimeoutCancellationException) {
+                    Resource.Error("QQ timed out")
+                }
+                if (!session.qqOverridden) {
+                    state.update { it.copy(qq = result) }
                 }
             }
-
-            mergeLyrics(sources, isPureMusic)
         }
+        return session
+    }
+
+    private fun trimSessions() {
+        while (sessions.size > MAX_SESSIONS) {
+            val eldest = sessions.entries.first()
+            sessions.remove(eldest.key)
+            eldest.value.job?.cancel()
+        }
+    }
+
+    fun overrideQq(songId: String, result: Resource<LyricResult>) {
+        synchronized(sessions) {
+            sessions[songId]?.let { session ->
+                session.qqOverridden = true
+                session.state.update { it.copy(qq = result) }
+            }
+        }
+    }
+
+    private class Session(val state: MutableStateFlow<LyricSourceSnapshot>) {
+        var job: Job? = null
+        @Volatile var qqOverridden: Boolean = false
+    }
+
+    private companion object {
+        const val MAX_SESSIONS = 5
     }
 
     private suspend fun fetchNetEase(id: String): Resource<Lyric> {
@@ -95,9 +144,10 @@ class LyricPreloader @Inject constructor(
         }
     }
 
-    private suspend fun fetchQQ(metadata: MediaMetadata): Resource<LyricResult> {
-        val songId = metadata.id.toString()
-
+    private suspend fun fetchQQ(
+        songId: String,
+        metadata: MediaMetadata?
+    ): Resource<LyricResult> {
         val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
         if (localSong != null) {
             return try {
@@ -112,7 +162,8 @@ class LyricPreloader @Inject constructor(
         }
 
         // 静默搜索：查询但不写入任何共享 StateFlow
-        val best = searchSilent(metadata) ?: return Resource.Error("No QQ match found")
+        val searchMetadata = metadata ?: return Resource.Error("QQ mapping not found")
+        val best = searchSilent(searchMetadata) ?: return Resource.Error("No QQ match found")
 
         val qqSong = QQSong(
             id = songId,
@@ -135,12 +186,32 @@ class LyricPreloader @Inject constructor(
         }
     }
 
+    /** Resolves and decodes the same QQ lyric source used by player preloading. */
+    internal suspend fun resolveQqSource(
+        songId: String,
+        metadata: MediaMetadata? = null
+    ): LyricSourceData.QQMusic? {
+        val result = fetchQQ(songId, metadata) as? Resource.Success ?: return null
+        return try {
+            val data = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data
+            val decoded = data.copy(
+                lyric = QRCUtils.decodeLyric(data.lyric),
+                trans = QRCUtils.decodeLyric(data.trans, true),
+                roma = QRCUtils.decodeLyric(data.roma)
+            )
+            LyricSourceData.QQMusic(decoded, isQRC = data.qrcT != 0, lrcContent = null)
+        } catch (e: Exception) {
+            Timber.e(e, "QRC decoding failed while resolving QQ lyrics")
+            null
+        }
+    }
+
     // ==================== 静默搜索（不写入共享 StateFlow） ====================
 
     /**
      * 搜索 QQ 音乐并匹配最佳结果，不产生任何副作用。
      *
-     * 与 [LyricManager.searchAndMatchBest] 逻辑相同，但不写入 _qqSearchResult。
+     * Uses the same title cleanup and duration matching rules for preload and active playback.
      */
     private suspend fun searchSilent(
         metadata: MediaMetadata
