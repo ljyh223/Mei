@@ -24,6 +24,12 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
 
+enum class TabletPlayerPanel {
+    Lyrics,
+    Queue,
+    Comments,
+}
+
 /**
  * 播放器弹窗处理器
  * 统一管理所有弹窗的显示逻辑
@@ -33,10 +39,14 @@ class PlayerOverlayHandler(
     private val stateContainer: PlayerStateContainer,
     private val playlistViewModel: PlaylistViewModel,
     private val navController: NavController,
-    private val context: android.content.Context
+    private val context: android.content.Context,
+    private val useInlineQueue: Boolean,
 ) {
     private val _currentOverlay = mutableStateOf<OverlayState>(OverlayState.None)
     val currentOverlay: State<OverlayState> = _currentOverlay
+
+    private val _tabletPanel = mutableStateOf(TabletPlayerPanel.Lyrics)
+    val tabletPanel: State<TabletPlayerPanel> = _tabletPanel
 
     val currentOverlayValue: OverlayState
         get() = _currentOverlay.value
@@ -46,6 +56,25 @@ class PlayerOverlayHandler(
      */
     fun showPlaylist() {
         _currentOverlay.value = OverlayState.Playlist
+    }
+
+    fun toggleInlineQueue() {
+        _tabletPanel.value = when (_tabletPanel.value) {
+            TabletPlayerPanel.Lyrics -> TabletPlayerPanel.Queue
+            TabletPlayerPanel.Queue,
+            TabletPlayerPanel.Comments -> TabletPlayerPanel.Lyrics
+        }
+    }
+
+    fun showLyrics() {
+        _tabletPanel.value = TabletPlayerPanel.Lyrics
+    }
+
+    fun showInlineComments(): Boolean {
+        if (!useInlineQueue) return false
+        _tabletPanel.value = TabletPlayerPanel.Comments
+        dismiss()
+        return true
     }
 
     /**
@@ -154,7 +183,12 @@ class PlayerOverlayHandler(
                 }
             }
             MoreAction.VIEW_PLAYLIST -> {
-                showPlaylist()
+                if (useInlineQueue) {
+                    _tabletPanel.value = TabletPlayerPanel.Queue
+                    dismiss()
+                } else {
+                    showPlaylist()
+                }
             }
             MoreAction.SLEEP_TIMER -> {
                 showSleepTimer()
@@ -223,16 +257,18 @@ class PlayerOverlayHandler(
 fun rememberOverlayHandler(
     stateContainer: PlayerStateContainer,
     playlistViewModel: PlaylistViewModel,
-    navController: NavController
+    navController: NavController,
+    useInlineQueue: Boolean,
 ): PlayerOverlayHandler {
     val context = LocalContext.current
 
-    return remember(stateContainer) {
+    return remember(stateContainer, useInlineQueue) {
         PlayerOverlayHandler(
             stateContainer = stateContainer,
             playlistViewModel = playlistViewModel,
             navController = navController,
-            context = context
+            context = context,
+            useInlineQueue = useInlineQueue,
         )
     }
 }

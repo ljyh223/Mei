@@ -42,7 +42,8 @@ fun BottomSheetPlayer(
     val overlayHandler = rememberOverlayHandler(
         stateContainer = stateContainer,
         playlistViewModel = playlistViewModel,
-        navController = navController
+        navController = navController,
+        useInlineQueue = device.isTablet && device.isLandscape,
     )
 
     if (device.isTablet) {

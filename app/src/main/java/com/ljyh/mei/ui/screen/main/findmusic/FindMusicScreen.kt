@@ -54,9 +54,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.weapi.Playlists
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.component.home.PlaylistCard as SharedPlaylistCard
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -180,96 +182,35 @@ fun PlaylistGrid(
     onPlaylistClick: (Long) -> Unit
 ) {
     val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val device = rememberDeviceInfo()
+    val gridPadding = if (device.isTablet) 28.dp else 16.dp
+    val minCardWidth = if (device.isTablet) 180.dp else 140.dp
+    val horizontalSpacing = if (device.isTablet) 20.dp else 12.dp
+    val verticalSpacing = if (device.isTablet) 24.dp else 16.dp
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 140.dp), // 自适应宽度，每行至少160dp
+        columns = GridCells.Adaptive(minSize = minCardWidth),
         contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            bottom = systemBarsPadding.calculateBottomPadding()
+            start = gridPadding,
+            end = gridPadding,
+            bottom = systemBarsPadding.calculateBottomPadding() + gridPadding
         ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(horizontalSpacing),
+        verticalArrangement = Arrangement.spacedBy(verticalSpacing),
         state = listState,
     ) {
         items(
             items = playlists,
             key = { it.id } // 优化性能，使用唯一ID
         ) { playlist ->
-            PlaylistCard(playlist = playlist, onClick = onPlaylistClick)
-        }
-    }
-}
-
-/**
- * 单个歌单卡片
- */
-@Composable
-fun PlaylistCard(
-    playlist: Playlists,
-    onClick: (Long) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                onClick = { onClick(playlist.id) },
-                interactionSource = null,
-                indication = null // 也可以加上点击涟漪效果
+            SharedPlaylistCard(
+                id = playlist.id.toString(),
+                title = playlist.name,
+                coverImg = playlist.coverImgUrl,
+                extInfo = formatPlayCount(playlist.playCount),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onPlaylistClick(playlist.id) }
             )
-    ) {
-        // 封面图容器
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f) // 1:1 正方形
-                .clip(RoundedCornerShape(12.dp))
-        ) {
-            AsyncImage(
-                model = playlist.coverImgUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // 播放量遮罩 (右上角)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.PlayArrow,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = formatPlayCount(playlist.playCount),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 歌单标题
-        Text(
-            text = playlist.name,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 

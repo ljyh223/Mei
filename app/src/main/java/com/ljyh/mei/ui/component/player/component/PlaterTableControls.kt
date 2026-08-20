@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Repeat
@@ -44,7 +45,8 @@ fun PlayerTableControls(
     canSkipNext: Boolean,
     isPlaying: Boolean,
     playbackState: Int,
-    onPlaylistClick: () -> Unit
+    onPlaylistClick: () -> Unit,
+    showLyricsIcon: Boolean = false,
 ){
     val playModeValue by playerConnection.repeatMode.collectAsState()
     val playMode = remember(playModeValue) {
@@ -157,8 +159,9 @@ fun PlayerTableControls(
                         .clip(RoundedCornerShape(4.dp))
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                        contentDescription = "播放队列",
+                        imageVector = if (showLyricsIcon) Icons.Rounded.Lyrics
+                        else Icons.AutoMirrored.Rounded.QueueMusic,
+                        contentDescription = if (showLyricsIcon) "歌词" else "播放队列",
                         tint = Color.White
                     )
                 }

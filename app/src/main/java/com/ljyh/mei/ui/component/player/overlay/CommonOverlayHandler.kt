@@ -1,8 +1,6 @@
 package com.ljyh.mei.ui.component.player.overlay
 
 import android.widget.Toast
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -43,6 +41,10 @@ fun CommonOverlayHandler(
     val context = LocalContext.current
     val navController = LocalNavController.current
     val playerViewModel = stateContainer.playerViewModel
+    val navigateFromPlayer: (() -> Unit) -> Unit = { navigate ->
+        overlayHandler.dismiss()
+        sheetState?.collapseThen(navigate) ?: navigate()
+    }
 
     when (val overlay = overlayHandler.currentOverlayValue) {
         OverlayState.None -> {}
@@ -59,16 +61,18 @@ fun CommonOverlayHandler(
                 albumInfo = overlay.album,
                 artistList = overlay.artists,
                 onAlbumClick = { id ->
-                    Screen.Album.navigate(navController) {
-                        addPath(id.toString())
+                    navigateFromPlayer {
+                        Screen.Album.navigate(navController) {
+                            addPath(id.toString())
+                        }
                     }
-                    sheetState?.collapse(spring(stiffness = Spring.StiffnessVeryLow))
                 },
                 onArtistClick = { id ->
-                    Screen.Artist.navigate(navController) {
-                        addPath(id.toString())
+                    navigateFromPlayer {
+                        Screen.Artist.navigate(navController) {
+                            addPath(id.toString())
+                        }
                     }
-                    sheetState?.collapse(spring(stiffness = Spring.StiffnessVeryLow))
                 },
                 onDismissRequest = { overlayHandler.dismiss() },
             )
@@ -134,11 +138,13 @@ fun CommonOverlayHandler(
                 onActionClick = { action ->
                     if(action == MoreAction.COMMENT){
                         stateContainer.mediaMetadata.value?.let { v->
-                            Screen.Comment.navigate(navController) {
-                                addPath(v.id.toString())
+                            if (!overlayHandler.showInlineComments()) {
+                                navigateFromPlayer {
+                                    Screen.Comment.navigate(navController) {
+                                        addPath(v.id.toString())
+                                    }
+                                }
                             }
-                            overlayHandler.dismiss()
-                            sheetState?.collapse(spring(stiffness = Spring.StiffnessVeryLow))
                         }
 
                     }else{

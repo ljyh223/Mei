@@ -1,7 +1,7 @@
 package com.ljyh.mei.ui.model
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Delete
@@ -29,7 +29,7 @@ enum class MoreAction(
     DELETE("delete", "删除", Icons.Rounded.Delete, 1, 9), // 低频，高风险 (手滑就没了)
 
     // --- 播放列表操作 ---
-    VIEW_PLAYLIST("view_playlist", "查看歌单", Icons.AutoMirrored.Rounded.PlaylistAdd, 7, 1), // 跳转
+    VIEW_PLAYLIST("view_playlist", "查看播放队列", Icons.AutoMirrored.Rounded.QueueMusic, 7, 1),
 
     // --- 高级功能 ---
     SLEEP_TIMER("sleep", "睡眠定时", Icons.Rounded.Bedtime, 3, 2), // 辅助功能

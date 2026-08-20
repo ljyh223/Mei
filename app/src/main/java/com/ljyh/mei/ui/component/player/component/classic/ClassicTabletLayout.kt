@@ -25,9 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -51,6 +49,7 @@ import com.ljyh.mei.ui.component.player.component.classic.component.Cover
 import com.ljyh.mei.ui.component.player.component.classic.component.PlayerHeader
 import com.ljyh.mei.ui.component.player.component.sheet.PlaylistContent
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
+import com.ljyh.mei.ui.component.player.overlay.TabletPlayerPanel
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.rememberEnumPreference
@@ -58,7 +57,8 @@ import com.ljyh.mei.utils.rememberEnumPreference
 @Composable
 fun ClassicTabletLayout(
     stateContainer: PlayerStateContainer,
-    overlayHandler: PlayerOverlayHandler
+    overlayHandler: PlayerOverlayHandler,
+    onViewAllComments: (Long) -> Unit,
 ) {
     val context = LocalContext.current
     val mediaMetadata by stateContainer.mediaMetadata
@@ -69,7 +69,8 @@ fun ClassicTabletLayout(
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
     val isLiked by stateContainer.isLiked
 
-    var isShowingPlaylist by remember { mutableStateOf(false) }
+    val tabletPanel by overlayHandler.tabletPanel
+    val isShowingSidePanel = tabletPanel != TabletPlayerPanel.Lyrics
 
     val (progressBarStyle, _) = rememberEnumPreference(
         key = ProgressBarStyleKey,
@@ -165,8 +166,9 @@ fun ClassicTabletLayout(
                 playbackState = playbackState,
                 modifier = Modifier.fillMaxWidth(0.7f),
                 onPlaylistClick = {
-                    isShowingPlaylist = !isShowingPlaylist
-                }
+                    overlayHandler.toggleInlineQueue()
+                },
+                showLyricsIcon = isShowingSidePanel,
             )
 
         }
@@ -213,19 +215,29 @@ fun ClassicTabletLayout(
                 )
             }
 
-            val playlistContent = @Composable {
+            val sidePanelContent = @Composable {
+                if (tabletPanel == TabletPlayerPanel.Comments) {
+                    PlayerCommentsContent(
+                        songId = mediaMetadata?.id?.toString().orEmpty(),
+                        onViewAllComments = { mediaMetadata?.let { onViewAllComments(it.id) } },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = PlayerHorizontalPadding)
+                    )
+                } else {
                 PlaylistContent(
-                    onDismiss = { isShowingPlaylist = false },
+                    onDismiss = overlayHandler::showLyrics,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = PlayerHorizontalPadding)
                 )
+                }
             }
 
             when (tabletAnimStyle) {
                 TabletAnimationStyle.FLIP_3D -> {
                     val rotation by animateFloatAsState(
-                        targetValue = if (isShowingPlaylist) 180f else 0f,
+                        targetValue = if (isShowingSidePanel) 180f else 0f,
                         animationSpec = tween(600, easing = FastOutSlowInEasing)
                     )
                     val density = LocalDensity.current
@@ -252,14 +264,14 @@ fun ClassicTabletLayout(
                                     cameraDistance = 12f * density.density
                                 }
                         ) {
-                            playlistContent()
+                            sidePanelContent()
                         }
                     }
                 }
 
                 TabletAnimationStyle.SLIDE -> {
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = !isShowingPlaylist,
+                        visible = !isShowingSidePanel,
                         enter = slideInHorizontally { -it } + fadeIn(),
                         exit = slideOutHorizontally { -it } + fadeOut(),
                         modifier = Modifier.fillMaxSize()
@@ -267,18 +279,18 @@ fun ClassicTabletLayout(
                         lyricContent()
                     }
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = isShowingPlaylist,
+                        visible = isShowingSidePanel,
                         enter = slideInHorizontally { it } + fadeIn(),
                         exit = slideOutHorizontally { it } + fadeOut(),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        playlistContent()
+                        sidePanelContent()
                     }
                 }
 
                 TabletAnimationStyle.CROSSFADE -> {
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = !isShowingPlaylist,
+                        visible = !isShowingSidePanel,
                         enter = fadeIn(),
                         exit = fadeOut(),
                         modifier = Modifier.fillMaxSize()
@@ -286,18 +298,18 @@ fun ClassicTabletLayout(
                         lyricContent()
                     }
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = isShowingPlaylist,
+                        visible = isShowingSidePanel,
                         enter = fadeIn(),
                         exit = fadeOut(),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        playlistContent()
+                        sidePanelContent()
                     }
                 }
 
                 TabletAnimationStyle.ZOOM -> {
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = !isShowingPlaylist,
+                        visible = !isShowingSidePanel,
                         enter = scaleIn(initialScale = 0.92f) + fadeIn(),
                         exit = scaleOut(targetScale = 0.92f) + fadeOut(),
                         modifier = Modifier.fillMaxSize()
@@ -305,12 +317,12 @@ fun ClassicTabletLayout(
                         lyricContent()
                     }
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = isShowingPlaylist,
+                        visible = isShowingSidePanel,
                         enter = scaleIn(initialScale = 0.92f) + fadeIn(),
                         exit = scaleOut(targetScale = 0.92f) + fadeOut(),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        playlistContent()
+                        sidePanelContent()
                     }
                 }
             }

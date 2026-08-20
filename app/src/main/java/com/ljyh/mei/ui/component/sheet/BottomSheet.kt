@@ -325,6 +325,24 @@ class BottomSheetState(
         collapse(spring(stiffness = Spring.StiffnessMediumLow))
     }
 
+    /**
+     * Closes the expanded sheet before leaving the current screen.
+     *
+     * Navigation changes the content beneath the player immediately. Waiting for the collapse
+     * animation prevents the expanded player from remaining above the destination while keeping
+     * the player transition visible.
+     */
+    fun collapseThen(onCollapsed: () -> Unit) {
+        updateTargetAnchor(collapsedAnchor)
+        coroutineScope.launch {
+            animatable.animateTo(
+                collapsedBound,
+                tween(durationMillis = 280)
+            )
+            onCollapsed()
+        }
+    }
+
     fun expandSoft() {
         expand(spring(stiffness = Spring.StiffnessMediumLow))
     }

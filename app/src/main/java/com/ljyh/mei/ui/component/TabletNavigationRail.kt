@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -17,7 +18,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.R
 import com.ljyh.mei.ui.screen.Index
 
 val TabletNavigationRailWidth = 92.dp
@@ -41,10 +44,10 @@ fun TabletNavigationRail(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = "M",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
+            Image(
+                painter = painterResource(R.drawable.logo),
+                contentDescription = "Mei",
+                modifier = Modifier.size(42.dp),
             )
             Spacer(Modifier.height(14.dp))
             Index.entries.forEach { destination ->
