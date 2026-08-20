@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Lyrics
@@ -181,6 +182,13 @@ fun AboutScreen() {
                             title = "accompanist-lyrics-ui",
                             subtitle = "精美歌词组件渲染",
                             onClick = { openUrl(context, "https://github.com/6xingyv/accompanist-lyrics-ui") }
+                        )
+                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                        AboutActionItem(
+                            icon = Icons.Rounded.BlurOn,
+                            title = "Backdrop",
+                            subtitle = "Compose Multiplatform 流体玻璃效果",
+                            onClick = { openUrl(context, "https://github.com/Kyant0/AndroidLiquidGlass") }
                         )
                     }
                 }
