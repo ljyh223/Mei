@@ -23,6 +23,7 @@ class MediaUriProvider @Inject constructor(
     private val urlCache = ConcurrentHashMap<String, String>()
 
     suspend fun resolveMediaUri(mediaId: String, quality: String): Uri {
+        // 1. 优先用本地文件
         val localPath = songRepository.getSong(mediaId).firstOrNull()?.path
             ?: songRepository.getSong("local_$mediaId").firstOrNull()?.path
         if (localPath != null) {
@@ -35,7 +36,10 @@ class MediaUriProvider @Inject constructor(
             }
         }
 
+        // 2. 内存缓存
         urlCache[mediaId]?.let { return it.toUri() }
+
+        // 3. 请求网络
         return try {
             val response = apiService.getSongUrlV1(
                 GetSongUrlV1(ids = "[$mediaId]", level = quality)
@@ -55,3 +59,4 @@ class MediaUriProvider @Inject constructor(
         }
     }
 }
+

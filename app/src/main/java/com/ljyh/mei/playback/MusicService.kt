@@ -6,14 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Binder
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.widget.Toast
-import androidx.compose.ui.text.toLowerCase
-import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -27,13 +25,7 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
-import androidx.media3.datasource.cache.Cache
-import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
-import androidx.media3.datasource.cache.ContentMetadata
-import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
@@ -60,18 +52,14 @@ import com.ljyh.mei.R
 import com.ljyh.mei.constants.IsShuffleModeKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
-import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.constants.RepeatModeKey
-import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.di.repository.HistoryRepository
 import com.ljyh.mei.di.repository.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
-import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.CacheManager.getCacheDataSourceFactory
 import com.ljyh.mei.playback.CacheManager.isContentFullyCached
 import com.ljyh.mei.utils.CoilBitmapLoader
@@ -79,23 +67,17 @@ import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
-import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.io.File
-import java.util.Locale
 import java.util.Locale.getDefault
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -439,12 +421,13 @@ class MusicService : MediaLibraryService(),
     ) {
 
     }
-
     private fun createDataSourceFactory(): DataSource.Factory {
         val simpleCache = CacheManager.getSimpleCache(context)
 
         return ResolvingDataSource.Factory(getCacheDataSourceFactory(context)) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media key")
+
+            // 1. 本地文件优先
             val localFilePath = runBlocking {
                 val song = songRepository.getSong(mediaId).firstOrNull()
                     ?: songRepository.getSong("local_$mediaId").firstOrNull()
@@ -453,22 +436,40 @@ class MusicService : MediaLibraryService(),
             if (localFilePath != null) {
                 val file = File(localFilePath)
                 if (file.exists()) {
-                    Timber.tag("ResolvingDataSource").d("Using local file for mediaId: $mediaId, filePath: ${file.path}")
+                    Timber.tag("ResolvingDataSource").d("Using local file for mediaId: $mediaId")
                     return@Factory dataSpec.withUri(Uri.fromFile(file))
                 }
             }
+
+            // 2. 已完全缓存
             if (isContentFullyCached(simpleCache, mediaId)) {
                 Timber.tag("ResolvingDataSource").d("Fully cached on disk: $mediaId")
                 return@Factory dataSpec
             }
 
+            // 3. 【关键】无网络直接失败，避免 runBlocking 卡住
+            if (!isNetworkAvailable()) {
+                throw SourceNotFoundException("No network available for $mediaId")
+            }
+
+            // 4. 有网络才去请求
             runBlocking {
-                val quality = context.dataStore[MusicQualityKey]?.lowercase(getDefault()) ?: MusicQuality.EXHIGH.text
+                val quality = context.dataStore[MusicQualityKey]?.lowercase(getDefault())
+                    ?: MusicQuality.EXHIGH.text
                 val uri = mediaUriProvider.resolveMediaUri(mediaId, quality)
                 dataSpec.withUri(uri)
             }
         }
     }
+
+    // 把这个方法加到 MusicService 类里面
+    private fun isNetworkAvailable(): Boolean {
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
 
     private fun createRenderersFactory() =
         object : DefaultRenderersFactory(this) {

@@ -23,8 +23,8 @@ interface SongDao {
     @Query("SELECT * FROM song WHERE sourceType = :sourceType")
     fun getSongsBySource(sourceType: SourceType): Flow<List<Song>>
 
-    @Query("SELECT * FROM song WHERE folderPath = :folderPath")
-    fun getSongsByFolder(folderPath: String): Flow<List<Song>>
+    @Query("SELECT * FROM song WHERE folderPath LIKE :folderPath || '%' OR path LIKE '%' || :folderPath || '%'")
+    fun getSongsByFolderPath(folderPath: String): Flow<List<Song>>
 
     @Query("SELECT DISTINCT album FROM song WHERE album != '' AND path IS NOT NULL AND path != ''")
     fun getLocalAlbums(): Flow<List<String>>
