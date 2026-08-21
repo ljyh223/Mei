@@ -17,7 +17,10 @@
 ## 项目介绍
 
 Mei 是一款使用 **Jetpack Compose** 开发的 **网易云音乐第三方客户端**。
-好久不见，最近会整合代码，并带来一些新UI，比如将applemusic-like-lyric那样的效果迁移到本项目中
+
+好久不见，最近会整合代码，并带来一些新UI，比如将applemusic-like-lyric那样的效果迁移到本项目中(已经实现，不过一些gpu处理器会出现bug，希望大家能够针对贡献一些pr)
+
+** v1.54** 还有一些bug(比如进入全屏播放器有闪烁，player bar 消失，流体玻璃的适配等问题)，会在近期发布修复版本
 <table>
   <tr>
     <td><img src="./screenshot/2026-05-01/player1.jpg" width="200"></td>
@@ -32,30 +35,13 @@ Mei 是一款使用 **Jetpack Compose** 开发的 **网易云音乐第三方客�
 ### 已实现
 
 * 逐字歌词（支持：**网易云** / **99音乐** / **TMLL**）
-* 播放列表管理(应该比较稳定)
-* 喜欢音乐(似乎能用，但是不太稳定)
-* 随机播放 & 播放顺序优化(算是稳定吧，修复了很多次)
+* 播放列表管理
+* 喜欢音乐
+* 随机播放 & 播放顺序优化
 * 定时播放
 * 历史播放记录(本地存储)
 * 专辑详情页
 * 自选背景 & 个人中心 UI 迭代
-
----
-
-### TODO 清单
-
-| 任务         | 状态   |
-| ---------- |------|
-| 搜索功能    | 已完成  |
-| 播放记录    | 已添加  |
-| 性能优化    | 持续中  |
-| 专辑页面    | 已完成  |
-| 歌单管理    | 已完成  |
-| 歌手主页 | 已完成  |
-| FM 播放   | 以完成  |
-| 红心模式    | 以完成  |
-
-> 已完成 | 未来更新（不保证啥时候）
 
 ---
 
@@ -95,12 +81,12 @@ cookie: MUSIC_U=xxxxx;
 
 ## 开源致谢
 
-感谢以下两位开源圣人：
+感谢以下几位开源圣人：
 
 * 提供高质量歌词库 [amll-ttml-db](https://github.com/Steve-xmh/amll-ttml-db)
 * 提供精美歌词组件 [accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui.git)
 * 提供qrc解密算法 [qrcDecrypt](https://github.com/TLittlePrince/qrcDecrypt)
-
+* 提供流体玻璃效果 [AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass)
 
 
 
@@ -114,39 +100,28 @@ screenshot
 
 <table>
   <tr>
-    <td><img src="./screenshot/2025-12-22/Screenshot_2025-12-22-16-27-39-23_1f30cde8653eb5f00e783c830c9ae6c6.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-22/Screenshot_2025-12-22-16-27-45-49_1f30cde8653eb5f00e783c830c9ae6c6.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-01/Screenshot_2025-12-01-11-37-53-613_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-01/Screenshot_2025-12-01-11-38-04-398_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/home.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/home-play.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/find.jpg" width="200"></td>
   </tr>
   <tr>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-33-154_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-35-720_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-39-301_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-27-43-241_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/library.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/library-1.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/playlist.jpg" width="200"></td>
   </tr>
   <tr>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-20-878_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-22-374_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-12-22/Screenshot_2025-12-22-16-28-32-34_1f30cde8653eb5f00e783c830c9ae6c6.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-28-33-984_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/player.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/lyric.jpg" width="200"></td>
+
   </tr>
   <tr>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-00-715_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-20-876_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-24-064_com.ljyh.mei.jpg" width="200"></td>
-    <td><img src="./screenshot/2025-11-26/Screenshot_2025-11-26-13-29-28-763_com.ljyh.mei.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/player-1.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/lyric-1.jpg" width="200"></td>
   </tr>
 
   <tr>
-    <td><img src="./screenshot/2026-02-01/Screenshot_2026-01-31-20-39-33-53_1f30cde8653eb5f.jpg" width="200"></td>
-    <td><img src="./screenshot/2026-02-01/Screenshot_2026-01-31-20-39-29-59_1f30cde8653eb5f.jpg" width="200"></td>
-    <td><img src="./screenshot/2026-02-01/Screenshot_2026-01-31-20-39-39-14_1f30cde8653eb5f.jpg" width="200"></td>
-  </tr>
-
-<tr>
-    <td><img src="./screenshot/2026-02-14/tab_playlist.png" width="400"></td>
-    <td><img src="./screenshot/2026-02-14/tab_library.png" width="400"></td>
+    <td><img src="./screenshot/2026-08-21/player-2.jpg" width="200"></td>
+    <td><img src="./screenshot/2026-08-21/lyric-2.jpg" width="200"></td>
   </tr>
 </table>
 
