@@ -150,6 +150,7 @@ dependencies {
     implementation(libs.compose.cloudy)
 
     implementation(libs.backdrop)
+    implementation(libs.zxing.core)
 
 
 }

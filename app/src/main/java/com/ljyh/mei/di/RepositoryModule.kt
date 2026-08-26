@@ -2,6 +2,7 @@ package com.ljyh.mei.di
 
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.QQMusicUApiService
+import com.ljyh.mei.data.network.QrLoginClient
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.repository.HomeRepository
@@ -37,8 +38,13 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideUserRepository(apiService: ApiService,eApiService: EApiService, weApiService: WeApiService): UserRepository {
-        return UserRepository(apiService,eApiService, weApiService)
+    fun provideUserRepository(
+        apiService: ApiService,
+        eApiService: EApiService,
+        weApiService: WeApiService,
+        qrLoginClient: QrLoginClient,
+    ): UserRepository {
+        return UserRepository(apiService, eApiService, weApiService, qrLoginClient)
     }
 
 
@@ -73,4 +79,3 @@ object RepositoryModule {
         return CommentRepository(apiService, weApiService)
     }
 }
-
