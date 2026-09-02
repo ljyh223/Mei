@@ -69,11 +69,11 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.size.Precision
 import coil3.size.Size
-import com.ljyh.mei.constants.FloatingCapsuleHorizontalPadding
-import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
+import com.ljyh.mei.constants.MiniPlayerBarHeight
+import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
-import com.ljyh.mei.ui.component.FloatingCapsulePlayerBarContent
+import com.ljyh.mei.ui.component.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
@@ -165,20 +165,11 @@ fun AppleMusicPlayer(
 
         // --- 1. 定义关键尺寸参数 ---
 
-        // A. Mini Player (Bottom) — 对齐 FloatingCapsuleMiniPlayer 布局
-        val miniSize = with(density) { 36.dp.toPx() }
-        val miniStart = with(density) { (FloatingCapsuleHorizontalPadding + 12.dp).toPx() }
+        // A. Mini Player (Bottom) — align with the full-width Material 3 player bar.
+        val miniSize = with(density) { MiniPlayerCoverSize.toPx() }
+        val miniStart = with(density) { 16.dp.toPx() }
         val miniRadius = with(density) { ThumbnailCornerRadius.toPx() }
-        val collapsedBoundPx = with(density) { state.collapsedBound.toPx() }
-        val collapsedBottomOffsetPx = with(density) { collapsedBottomOffset.toPx() }
-        val collapsedMarginPx = with(density) { (8.dp + collapsedBottomOffset).toPx() }
-        val coverVerticalInsetPx = with(density) {
-            ((FloatingCapsuleMiniPlayerHeight - 36.dp) / 2).toPx()
-        }
-        val collapsedMiniTop = maxHeightPx - collapsedBoundPx - collapsedBottomOffsetPx
-        val revealMiniTop = maxHeightPx - with(density) { state.value.toPx() } -
-            collapsedMarginPx * state.revealProgress + coverVerticalInsetPx
-        val miniAbsTop = if (state.revealProgress < 1f) revealMiniTop else collapsedMiniTop
+        val miniTop = with(density) { 12.dp.toPx() }
 
         // B. Normal Expanded
         val topSafeArea = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
@@ -213,10 +204,13 @@ fun AppleMusicPlayer(
         val targetStart = lerp(normalStart, headerStart, lyricAnimFraction)
         val targetRadius = with(density) { lerp(12.dp.toPx(), headerRadius, lyricAnimFraction) }
 
-        val finalSize = lerp(miniSize, targetSize, sheetProgress)
-        val finalTop = lerp(miniAbsTop, targetTop, sheetProgress)
-        val finalStart = lerp(miniStart, targetStart, sheetProgress)
-        val finalRadius = lerp(miniRadius, targetRadius, sheetProgress)
+        // Keep the cover on the same continuous progress as the sheet. Forcing this to zero when
+        // the collapsed anchor settles creates a visible second shrink on the final frame.
+        val coverProgress = sheetProgress
+        val finalSize = lerp(miniSize, targetSize, coverProgress)
+        val finalTop = lerp(miniTop, targetTop, coverProgress)
+        val finalStart = lerp(miniStart, targetStart, coverProgress)
+        val finalRadius = lerp(miniRadius, targetRadius, coverProgress)
 
         val shadowAlpha = if (sheetProgress > 0.8f) (1f - lyricAnimFraction) else 0f
         var mShadowElevation = 16.dp * shadowAlpha
@@ -228,16 +222,18 @@ fun AppleMusicPlayer(
             modifier = Modifier.fillMaxSize(),
             backgroundColor = backgroundColor,
             morphSpec = BottomSheetMorphSpec(
-                collapsedHorizontalMargin = FloatingCapsuleHorizontalPadding,
-                collapsedCornerRadius = 24.dp,
+                collapsedHorizontalMargin = 0.dp,
+                collapsedCornerRadius = 0.dp,
                 expandedHorizontalMargin = 0.dp,
                 expandedCornerRadius = 0.dp,
-                collapsedHeight = FloatingCapsuleMiniPlayerHeight,
-                collapsedBottomMargin = 8.dp + collapsedBottomOffset,
+                collapsedHeight = MiniPlayerBarHeight,
+                collapsedBottomMargin = collapsedBottomOffset,
                 expandedBottomMargin = 0.dp,
             ),
             keepExpandedContentComposed = true,
-            transparentCollapsedContainer = backdrop != null,
+            // The bar is a full-width Material 3 surface; the player cover is drawn by the
+            // sheet-local overlay so it shares the sheet's coordinate space.
+            transparentCollapsedContainer = true,
             onDismiss = {
                 stateContainer.playerConnection.player.stop()
                 stateContainer.playerConnection.player.clearMediaItems()
@@ -251,7 +247,7 @@ fun AppleMusicPlayer(
                 }
             },
             collapsedContent = {
-                FloatingCapsulePlayerBarContent(
+                MiniPlayerBarContent(
                     title = mediaMetadata?.title,
                     artist = mediaMetadata?.artists?.joinToString { it.name },
                     coverUrl = mediaMetadata?.coverUrl,
@@ -269,9 +265,70 @@ fun AppleMusicPlayer(
                     },
                     onNext = stateContainer.playerConnection::seekToNext,
                     drawCover = false,
-                    backdrop = backdrop,
                 )
-            }
+            },
+            overlayContent = {
+                mediaMetadata?.let { currentMedia ->
+                    AnimatedContent(
+                        targetState = currentMedia,
+                        transitionSpec = {
+                            val enter = if (state.revealProgress <= 0f) {
+                                fadeIn(animationSpec = tween(durationMillis = 120))
+                            } else {
+                                fadeIn(animationSpec = tween(durationMillis = 400)) +
+                                    scaleIn(
+                                        initialScale = 0.92f,
+                                        animationSpec = tween(durationMillis = 400),
+                                    )
+                            }
+                            enter.togetherWith(
+                                fadeOut(animationSpec = tween(durationMillis = 400)),
+                            )
+                        },
+                        label = "CoverTransition",
+                        modifier = Modifier
+                            .graphicsLayer {
+                                alpha = state.revealProgress
+                                translationX = finalStart
+                                translationY = finalTop
+                                shadowElevation = mShadowElevation.toPx()
+                                shape = RoundedCornerShape(finalRadius)
+                                clip = true
+                            }
+                            .size(
+                                width = with(density) { finalSize.toDp() },
+                                height = with(density) { finalSize.toDp() },
+                            )
+                            .combinedClickable(
+                                onClick = {
+                                    if (!state.isExpanded) {
+                                        state.expandSoft()
+                                    } else {
+                                        showLyrics = !showLyrics
+                                    }
+                                },
+                                onLongClick = {
+                                    if (state.isExpanded) {
+                                        showFullImage = true
+                                    }
+                                },
+                            )
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    ) { currentMetadata ->
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(currentMetadata.coverUrl)
+                                .size(Size.ORIGINAL)
+                                .precision(Precision.EXACT)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Cover",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            },
         ) {
             val coverUrl = mediaMetadata?.coverUrl
 
@@ -478,60 +535,6 @@ fun AppleMusicPlayer(
                         }
                     }
                 }
-            }
-        }
-
-        mediaMetadata?.let { currentMedia ->
-            AnimatedContent(
-                targetState = currentMedia,
-                transitionSpec = {
-                    (fadeIn(animationSpec = tween(durationMillis = 400)) +
-                        scaleIn(initialScale = 0.92f, animationSpec = tween(durationMillis = 400)))
-                        .togetherWith(
-                            fadeOut(animationSpec = tween(durationMillis = 400))
-                        )
-                },
-                label = "CoverTransition",
-                modifier = Modifier
-                    .graphicsLayer {
-                        alpha = state.revealProgress
-                        translationX = finalStart
-                        translationY = finalTop
-                        shadowElevation = mShadowElevation.toPx()
-                        shape = RoundedCornerShape(finalRadius)
-                        clip = true
-                    }
-                    .size(
-                        width = with(density) { finalSize.toDp() },
-                        height = with(density) { finalSize.toDp() }
-                    )
-                    .combinedClickable(
-                        onClick = {
-                            if (!state.isExpanded) {
-                                state.expandSoft()
-                            } else {
-                                showLyrics = !showLyrics
-                            }
-                        },
-                        onLongClick = {
-                            if (state.isExpanded) {
-                                showFullImage = true
-                            }
-                        }
-                    )
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) { currentMetadata ->
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(currentMetadata.coverUrl)
-                        .size(Size.ORIGINAL)
-                        .precision(Precision.EXACT)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Cover",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
             }
         }
 

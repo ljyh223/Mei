@@ -18,8 +18,8 @@ fun SyncPlayerSheetVisibility(
 
         fun sync() {
             if (player.currentMediaItem == null) {
-                if (!sheetState.isDismissed) sheetState.dismiss()
-            } else if (sheetState.isDismissed) {
+                if (!sheetState.isTargetDismissed) sheetState.dismiss()
+            } else if (sheetState.isTargetDismissed) {
                 sheetState.collapseSoft()
             }
         }

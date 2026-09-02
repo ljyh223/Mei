@@ -3,35 +3,6 @@ package com.ljyh.mei.ui.component.sheet
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-internal enum class BottomSheetTarget { Dismissed, Collapsed, Expanded }
-
-internal fun resolveFlingTarget(
-    value: Dp,
-    velocity: Float,
-    dismissedBound: Dp,
-    collapsedBound: Dp,
-    expandedBound: Dp,
-    canDismiss: Boolean,
-    velocityThreshold: Float = 250f,
-): BottomSheetTarget {
-    if (velocity > velocityThreshold) return BottomSheetTarget.Expanded
-    if (velocity < -velocityThreshold) {
-        return if (value < collapsedBound && canDismiss) {
-            BottomSheetTarget.Dismissed
-        } else {
-            BottomSheetTarget.Collapsed
-        }
-    }
-
-    val dismissedCollapsedMidpoint = dismissedBound + (collapsedBound - dismissedBound) / 2f
-    val collapsedExpandedMidpoint = collapsedBound + (expandedBound - collapsedBound) / 2f
-    return when {
-        value < dismissedCollapsedMidpoint && canDismiss -> BottomSheetTarget.Dismissed
-        value < collapsedExpandedMidpoint -> BottomSheetTarget.Collapsed
-        else -> BottomSheetTarget.Expanded
-    }
-}
-
 internal data class BottomSheetMorphLayout(
     val width: Dp,
     val height: Dp,

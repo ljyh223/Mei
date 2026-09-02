@@ -19,9 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import com.ljyh.mei.constants.FloatingCapsuleHorizontalPadding
-import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
-import com.ljyh.mei.ui.component.FloatingCapsulePlayerBarContent
+import com.ljyh.mei.constants.MiniPlayerBarHeight
+import com.ljyh.mei.ui.component.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
@@ -86,7 +85,7 @@ fun ClassicPlayer(
             }
         },
         collapsedContent = {
-            FloatingCapsulePlayerBarContent(
+            MiniPlayerBarContent(
                 title = mediaMetadata?.title,
                 artist = mediaMetadata?.artists?.joinToString { it.name },
                 coverUrl = mediaMetadata?.coverUrl,
@@ -101,15 +100,16 @@ fun ClassicPlayer(
             )
         },
         morphSpec = BottomSheetMorphSpec(
-            collapsedHorizontalMargin = FloatingCapsuleHorizontalPadding,
-            collapsedMaxWidth = if (device.isTablet && device.isLandscape) 560.dp else null,
-            collapsedCornerRadius = 24.dp,
+            collapsedHorizontalMargin = 0.dp,
+            collapsedMaxWidth = null,
+            collapsedCornerRadius = 0.dp,
             expandedHorizontalMargin = 0.dp,
             expandedCornerRadius = 0.dp,
-            collapsedHeight = FloatingCapsuleMiniPlayerHeight,
-            collapsedBottomMargin = 8.dp + collapsedBottomOffset,
+            collapsedHeight = MiniPlayerBarHeight,
+            collapsedBottomMargin = collapsedBottomOffset,
             expandedBottomMargin = 0.dp,
-        )
+        ),
+        transparentCollapsedContainer = true,
     ) {
 
         val coverUrl = mediaMetadata?.coverUrl

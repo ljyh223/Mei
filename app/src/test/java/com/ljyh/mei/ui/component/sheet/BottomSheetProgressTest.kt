@@ -1,8 +1,13 @@
 package com.ljyh.mei.ui.component.sheet
 
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import kotlin.coroutines.EmptyCoroutineContext
 
 class BottomSheetProgressTest {
     @Test
@@ -18,5 +23,44 @@ class BottomSheetProgressTest {
     fun zeroLengthSegmentHasStableEndpoints() {
         assertEquals(0f, normalizedProgress(0.dp, 8.dp, 8.dp))
         assertEquals(1f, normalizedProgress(8.dp, 8.dp, 8.dp))
+    }
+
+    @Test
+    fun stateProgressUsesUpdatedBounds() {
+        val density = Density(1f)
+        val initialAnchors = DraggableAnchors {
+            BottomSheetValue.Dismissed at 0f
+            BottomSheetValue.Collapsed at 64f
+            BottomSheetValue.Expanded at 914f
+        }
+        val draggableState = AnchoredDraggableState(
+            initialValue = BottomSheetValue.Collapsed,
+            anchors = initialAnchors,
+        )
+        val state = BottomSheetState(
+            anchoredDraggableState = draggableState,
+            coroutineScope = CoroutineScope(EmptyCoroutineContext),
+            onAnchorChanged = {},
+            density = density,
+            dismissedBound = 0.dp,
+            collapsedBound = 64.dp,
+            expandedBound = 914.dp,
+        )
+        val updatedAnchors = DraggableAnchors {
+            BottomSheetValue.Dismissed at 0f
+            BottomSheetValue.Collapsed at 88f
+            BottomSheetValue.Expanded at 914f
+        }
+
+        state.updateAnchors(
+            density = density,
+            dismissedBound = 0.dp,
+            collapsedBound = 88.dp,
+            expandedBound = 914.dp,
+            anchors = updatedAnchors,
+        )
+
+        assertEquals(88.dp, state.value)
+        assertEquals(0f, state.progress)
     }
 }

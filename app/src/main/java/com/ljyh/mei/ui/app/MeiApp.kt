@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -44,14 +46,12 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.DynamicThemeKey
-import com.ljyh.mei.constants.FloatingCapsuleBottomMargin
-import com.ljyh.mei.constants.FloatingCapsuleNavHeight
 import com.ljyh.mei.constants.LiquidGlassKey
-import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
-import com.ljyh.mei.ui.component.AdaptiveMainNavigation
+import com.ljyh.mei.ui.component.AdaptiveMainNavigationRail
+import com.ljyh.mei.ui.component.AppBottomNavigationBar
 import com.ljyh.mei.ui.component.TabletNavigationAnimationDurationMillis
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
@@ -155,15 +155,6 @@ fun MeiApp(
                 ),
                 label = "mainNavigationStartPadding",
             )
-            val playerNavigationOffset by animateDpAsState(
-                targetValue = if (shellState.showBottomNavigation) {
-                    FloatingCapsuleNavHeight + FloatingCapsuleBottomMargin
-                } else {
-                    0.dp
-                },
-                animationSpec = NavigationBarAnimationSpec,
-                label = "playerNavigationOffset",
-            )
             val playerBottomSheetState = rememberBottomSheetState(
                 dismissedBound = 0.dp,
                 collapsedBound = collapsedPlayerBound(
@@ -184,20 +175,6 @@ fun MeiApp(
             val onActiveChange: (Boolean) -> Unit = { active ->
                 searchActive = active
                 if (!active) focusManager.clearFocus()
-            }
-            val playerAwareWindowInsets = remember(
-                bottomInset,
-                shellState.showBottomNavigation,
-                playerBottomSheetState.isDismissed,
-            ) {
-                val bottom = playerAwareBottomInset(
-                    systemBottomInset = bottomInset,
-                    showBottomNavigation = shellState.showBottomNavigation,
-                    showMiniPlayer = !playerBottomSheetState.isDismissed,
-                )
-                systemBars
-                    .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
-                    .add(WindowInsets(top = AppBarHeight, bottom = bottom))
             }
             val topLevelScreens = remember {
                 setOf(
@@ -228,71 +205,102 @@ fun MeiApp(
             }
 
             SyncPlayerSheetVisibility(playerConnection, playerBottomSheetState)
-            CompositionLocalProvider(
-                LocalDatabase provides database,
-                LocalNavController provides navController,
-                LocalPlayerConnection provides playerConnection,
-                LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
-                LocalUserData provides userData,
-            ) {
-                NavHost(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(
-                            if (mobileLiquidGlassEnabled) {
-                                Modifier.layerBackdrop(mobileBackdrop)
-                            } else {
-                                Modifier
-                            },
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = Color.Transparent,
+                contentWindowInsets = WindowInsets(0),
+                bottomBar = {
+                    if (!useTabletSidebar && shellState.showBottomNavigation) {
+                        AppBottomNavigationBar(
+                            visible = !playerBottomSheetState.isTargetExpanded,
+                            selectedRoute = route,
+                            onTabSelect = navController::selectMainDestination,
                         )
-                        .padding(start = navigationStartPadding),
-                    navController = navController,
-                    startDestination = when (startTab) {
-                        NavigationTab.Home -> Screen.Home.route
-                        NavigationTab.Library -> Screen.Library.route
-                    },
+                    }
+                },
+            ) {
+                val scaffoldBottomInset = it.calculateBottomPadding()
+                val playerNavigationOffset = playerBottomNavigationOffset(
+                    systemBottomInset = bottomInset,
+                    scaffoldBottomInset = scaffoldBottomInset,
+                )
+                val playerAwareWindowInsets = remember(
+                    bottomInset,
+                    scaffoldBottomInset,
+                    playerBottomSheetState.isDismissed,
                 ) {
-                    navigationBuilder(navController, topAppBarScrollBehavior)
+                    val bottom = playerAwareBottomInset(
+                        systemBottomInset = bottomInset,
+                        scaffoldBottomInset = scaffoldBottomInset,
+                        showMiniPlayer = !playerBottomSheetState.isDismissed,
+                    )
+                    systemBars
+                        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
+                        .add(WindowInsets(top = AppBarHeight, bottom = bottom))
                 }
 
-                AppSearchOverlay(
-                    shellState = shellState,
-                    query = query,
-                    onQueryChange = onQueryChange,
-                    onActiveChange = onActiveChange,
-                    onSubmit = { searchQuery, type ->
-                        if (searchQuery.isNotEmpty()) {
-                            onActiveChange(false)
-                            Screen.SearchResult.navigate(navController) {
-                                addPath(searchQuery)
-                                addPath(type.toString())
-                            }
-                        }
-                    },
-                    onNavigateUp = { navController.navigateUp() },
-                    onBackToMain = { navController.backToMain() },
-                    onOpenSettings = { navController.navigate(Screen.Setting.route) },
-                    isTopLevelRoute = route in topLevelScreens,
-                    scrollBehavior = searchBarScrollBehavior,
-                    focusRequester = searchBarFocusRequester,
-                )
+                CompositionLocalProvider(
+                    LocalDatabase provides database,
+                    LocalNavController provides navController,
+                    LocalPlayerConnection provides playerConnection,
+                    LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
+                    LocalUserData provides userData,
+                ) {
+                    NavHost(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (mobileLiquidGlassEnabled) {
+                                    Modifier.layerBackdrop(mobileBackdrop)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .padding(start = navigationStartPadding),
+                        navController = navController,
+                        startDestination = when (startTab) {
+                            NavigationTab.Home -> Screen.Home.route
+                            NavigationTab.Library -> Screen.Library.route
+                        },
+                    ) {
+                        navigationBuilder(navController, topAppBarScrollBehavior)
+                    }
 
-                AdaptiveMainNavigation(
-                    useSidebar = useTabletSidebar,
-                    shouldShow = shellState.showMainNavigation,
-                    backdrop = mobileBackdrop.takeIf { mobileLiquidGlassEnabled },
-                    selectedRoute = route,
-                    onTabSelect = navController::selectMainDestination,
-                    sidebarModifier = Modifier.align(Alignment.CenterStart),
-                    bottomBarModifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = bottomInset + FloatingCapsuleBottomMargin),
-                )
-                BottomSheetPlayer(
-                    state = playerBottomSheetState,
-                    collapsedBottomOffset = playerNavigationOffset,
-                    backdrop = mobileBackdrop.takeIf { mobileLiquidGlassEnabled },
-                )
+                    AppSearchOverlay(
+                        shellState = shellState,
+                        query = query,
+                        onQueryChange = onQueryChange,
+                        onActiveChange = onActiveChange,
+                        onSubmit = { searchQuery, type ->
+                            if (searchQuery.isNotEmpty()) {
+                                onActiveChange(false)
+                                Screen.SearchResult.navigate(navController) {
+                                    addPath(searchQuery)
+                                    addPath(type.toString())
+                                }
+                            }
+                        },
+                        onNavigateUp = { navController.navigateUp() },
+                        onBackToMain = { navController.backToMain() },
+                        onOpenSettings = { navController.navigate(Screen.Setting.route) },
+                        isTopLevelRoute = route in topLevelScreens,
+                        scrollBehavior = searchBarScrollBehavior,
+                        focusRequester = searchBarFocusRequester,
+                    )
+
+                    AdaptiveMainNavigationRail(
+                        useSidebar = useTabletSidebar,
+                        shouldShow = shellState.showMainNavigation,
+                        selectedRoute = route,
+                        onTabSelect = navController::selectMainDestination,
+                        sidebarModifier = Modifier.align(Alignment.CenterStart),
+                    )
+                    BottomSheetPlayer(
+                        state = playerBottomSheetState,
+                        collapsedBottomOffset = playerNavigationOffset,
+                        backdrop = mobileBackdrop.takeIf { mobileLiquidGlassEnabled },
+                    )
+                }
             }
         }
     }

@@ -6,12 +6,8 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.SpringSpec
-import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,9 +15,13 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.DraggableState
+import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -34,15 +34,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -52,14 +56,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.constants.NavigationBarAnimationSpec
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 data class BottomSheetMorphSpec(
     val collapsedHorizontalMargin: Dp = 12.dp,
@@ -86,9 +91,26 @@ fun BottomSheet(
     keepExpandedContentComposed: Boolean = false,
     transparentCollapsedContainer: Boolean = false,
     collapsedContent: @Composable BoxScope.() -> Unit,
+    overlayContent: @Composable BoxScope.() -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
 ) {
     val progress = state.progress
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val flingBehavior = AnchoredDraggableDefaults.flingBehavior(
+        state = state.anchoredDraggableState,
+        positionalThreshold = { distance -> distance * 0.5f },
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+    )
+
+    LaunchedEffect(state) {
+        snapshotFlow { state.settledValue }
+            .drop(1)
+            .collect { settledValue ->
+                if (settledValue == BottomSheetValue.Dismissed) {
+                    currentOnDismiss?.invoke()
+                }
+            }
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val morphLayout = morphSpec?.let {
@@ -144,26 +166,16 @@ fun BottomSheet(
                         }
                     )
                 }
-                .pointerInput(state) {
-                    val velocityTracker = VelocityTracker()
-
-                    detectVerticalDragGestures(
-                        onVerticalDrag = { change, dragAmount ->
-                            velocityTracker.addPointerInputChange(change)
-                            state.dispatchRawDelta(dragAmount)
-                        },
-                        onDragCancel = {
-                            velocityTracker.resetTracking()
-                            state.snapTo(state.collapsedBound)
-                        },
-                        onDragEnd = {
-                            val velocity = -velocityTracker.calculateVelocity().y
-                            velocityTracker.resetTracking()
-                            state.performFling(velocity, onDismiss)
-                        }
-                    )
-                }
-                .shadow(elevation = 8.dp, shape = sheetShape)
+                .anchoredDraggable(
+                    state = state.anchoredDraggableState,
+                    orientation = Orientation.Vertical,
+                    reverseDirection = true,
+                    flingBehavior = flingBehavior,
+                )
+                .shadow(
+                    elevation = if (transparentCollapsedContainer) 0.dp else 8.dp,
+                    shape = sheetShape,
+                )
                 .clip(sheetShape)
                 .background(
                     if (morphLayout != null) {
@@ -270,6 +282,8 @@ fun BottomSheet(
                     )
                 }
             }
+
+            overlayContent()
         }
     }
 }
@@ -278,66 +292,89 @@ private const val MINI_PLAYER_FADE_END = 0.18f
 
 @Stable
 class BottomSheetState(
-    draggableState: DraggableState,
+    internal val anchoredDraggableState: AnchoredDraggableState<BottomSheetValue>,
     private val coroutineScope: CoroutineScope,
-    private val animatable: Animatable<Dp, AnimationVector1D>,
     private val onAnchorChanged: (Int) -> Unit,
-    val collapsedBound: Dp,
-    initialAnchor: Int,
-) : DraggableState by draggableState {
-    private var targetAnchor by mutableIntStateOf(initialAnchor)
+    density: Density,
+    dismissedBound: Dp,
+    collapsedBound: Dp,
+    expandedBound: Dp,
+) {
+    private var density by mutableStateOf(density)
 
-    val dismissedBound: Dp
-        get() = animatable.lowerBound!!
+    var dismissedBound by mutableStateOf(dismissedBound)
+        private set
 
-    val expandedBound: Dp
-        get() = animatable.upperBound!!
+    var collapsedBound by mutableStateOf(collapsedBound)
+        private set
 
-    val value by animatable.asState()
+    var expandedBound by mutableStateOf(expandedBound)
+        private set
+
+    val settledValue: BottomSheetValue
+        get() = anchoredDraggableState.settledValue
+
+    val value: Dp
+        get() = with(density) {
+            anchoredDraggableState.offset
+                .takeUnless(Float::isNaN)
+                ?.toDp()
+                ?: dismissedBound
+        }
 
     val isDismissed by derivedStateOf {
-        value == animatable.lowerBound!!
+        isAt(BottomSheetValue.Dismissed)
     }
 
     val isCollapsed by derivedStateOf {
-        value == collapsedBound
+        isAt(BottomSheetValue.Collapsed)
     }
 
     val isExpanded by derivedStateOf {
-        value == animatable.upperBound
+        isAt(BottomSheetValue.Expanded)
     }
 
     val isTargetExpanded: Boolean
-        get() = targetAnchor == expandedAnchor
+        get() = anchoredDraggableState.targetValue == BottomSheetValue.Expanded
+
+    val isTargetDismissed: Boolean
+        get() = anchoredDraggableState.targetValue == BottomSheetValue.Dismissed
 
     val revealProgress by derivedStateOf {
-        normalizedProgress(animatable.value, dismissedBound, collapsedBound)
+        normalizedProgress(
+            value = value,
+            start = this.dismissedBound,
+            end = this.collapsedBound,
+        )
     }
 
     val progress by derivedStateOf {
-        normalizedProgress(animatable.value, collapsedBound, expandedBound)
+        normalizedProgress(
+            value = value,
+            start = this.collapsedBound,
+            end = this.expandedBound,
+        )
     }
 
-    fun collapse(animationSpec: AnimationSpec<Dp>) {
-        updateTargetAnchor(collapsedAnchor)
+    private fun animateTo(
+        target: BottomSheetValue,
+        anchor: Int,
+        animationSpec: AnimationSpec<Float>,
+        onFinished: (() -> Unit)? = null,
+    ) {
+        onAnchorChanged(anchor)
         coroutineScope.launch {
-            animatable.animateTo(collapsedBound, animationSpec)
+            anchoredDraggableState.animateTo(target, animationSpec)
+            onFinished?.invoke()
         }
     }
 
-    fun expand(animationSpec: AnimationSpec<Dp>) {
-        updateTargetAnchor(expandedAnchor)
-        coroutineScope.launch {
-            animatable.animateTo(animatable.upperBound!!, animationSpec)
-        }
+    private fun collapse(animationSpec: AnimationSpec<Float>) {
+        animateTo(BottomSheetValue.Collapsed, collapsedAnchor, animationSpec)
     }
 
-    private fun collapse() {
-        collapse(SpringSpec())
-    }
-
-    private fun expand() {
-        expand(SpringSpec())
+    private fun expand(animationSpec: AnimationSpec<Float>) {
+        animateTo(BottomSheetValue.Expanded, expandedAnchor, animationSpec)
     }
 
     fun collapseSoft() {
@@ -352,14 +389,12 @@ class BottomSheetState(
      * the player transition visible.
      */
     fun collapseThen(onCollapsed: () -> Unit) {
-        updateTargetAnchor(collapsedAnchor)
-        coroutineScope.launch {
-            animatable.animateTo(
-                collapsedBound,
-                tween(durationMillis = 280)
-            )
-            onCollapsed()
-        }
+        animateTo(
+            target = BottomSheetValue.Collapsed,
+            anchor = collapsedAnchor,
+            animationSpec = tween(durationMillis = 280),
+            onFinished = onCollapsed,
+        )
     }
 
     fun expandSoft() {
@@ -367,46 +402,57 @@ class BottomSheetState(
     }
 
     fun dismiss() {
-        updateTargetAnchor(dismissedAnchor)
-        coroutineScope.launch {
-            animatable.animateTo(animatable.lowerBound!!)
-        }
+        animateTo(
+            target = BottomSheetValue.Dismissed,
+            anchor = dismissedAnchor,
+            animationSpec = spring(),
+        )
     }
 
-    private fun updateTargetAnchor(anchor: Int) {
-        targetAnchor = anchor
-        onAnchorChanged(anchor)
+    internal fun updateAnchors(
+        density: Density,
+        dismissedBound: Dp,
+        collapsedBound: Dp,
+        expandedBound: Dp,
+        anchors: DraggableAnchors<BottomSheetValue>,
+    ) {
+        this.density = density
+        this.dismissedBound = dismissedBound
+        this.collapsedBound = collapsedBound
+        this.expandedBound = expandedBound
+        anchoredDraggableState.updateAnchors(anchors)
     }
 
-    fun snapTo(value: Dp) {
-        coroutineScope.launch {
-            animatable.snapTo(value)
-        }
-    }
-
-    fun performFling(velocity: Float, onDismiss: (() -> Unit)?) {
-        when (
-            resolveFlingTarget(
-                value = value,
-                velocity = velocity,
-                dismissedBound = dismissedBound,
-                collapsedBound = collapsedBound,
-                expandedBound = expandedBound,
-                canDismiss = onDismiss != null,
-            )
-        ) {
-            BottomSheetTarget.Dismissed -> {
-                dismiss()
-                onDismiss?.invoke()
+    internal fun recordSettledAnchor(value: BottomSheetValue) {
+        onAnchorChanged(
+            when (value) {
+                BottomSheetValue.Dismissed -> dismissedAnchor
+                BottomSheetValue.Collapsed -> collapsedAnchor
+                BottomSheetValue.Expanded -> expandedAnchor
             }
-            BottomSheetTarget.Collapsed -> collapse()
-            BottomSheetTarget.Expanded -> expand()
-        }
+        )
     }
 
-    val preUpPostDownNestedScrollConnection: NestedScrollConnection =
-        BottomSheetNestedScrollConnection(this)
+    private fun isAt(value: BottomSheetValue): Boolean {
+        val anchor = anchoredDraggableState.anchors.positionOf(value)
+        val offset = anchoredDraggableState.offset
+        return !anchor.isNaN() && !offset.isNaN() && abs(anchor - offset) < 0.5f
+    }
 }
+
+enum class BottomSheetValue {
+    Dismissed,
+    Collapsed,
+    Expanded,
+}
+
+private fun bottomSheetValue(anchor: Int): BottomSheetValue =
+    when (anchor) {
+        dismissedAnchor -> BottomSheetValue.Dismissed
+        collapsedAnchor -> BottomSheetValue.Collapsed
+        expandedAnchor -> BottomSheetValue.Expanded
+        else -> error("Unknown BottomSheet anchor: $anchor")
+    }
 
 const val expandedAnchor = 2
 const val collapsedAnchor = 1
@@ -425,35 +471,43 @@ fun rememberBottomSheetState(
     var previousAnchor by rememberSaveable {
         mutableIntStateOf(initialAnchor)
     }
-    val animatable = remember {
-        Animatable(0.dp, Dp.VectorConverter)
+    val anchors = DraggableAnchors {
+        BottomSheetValue.Dismissed at with(density) { dismissedBound.toPx() }
+        BottomSheetValue.Collapsed at with(density) { collapsedBound.toPx() }
+        BottomSheetValue.Expanded at with(density) { expandedBound.toPx() }
     }
-
-
-    val state = remember(dismissedBound, expandedBound, collapsedBound, coroutineScope) {
-        animatable.updateBounds(dismissedBound.coerceAtMost(expandedBound), expandedBound)
+    val anchoredDraggableState = remember {
+        AnchoredDraggableState(
+            initialValue = bottomSheetValue(previousAnchor),
+            anchors = anchors,
+        )
+    }
+    val state = remember(coroutineScope, anchoredDraggableState) {
         BottomSheetState(
-            draggableState = DraggableState { delta ->
-                coroutineScope.launch {
-                    animatable.snapTo(animatable.value - with(density) { delta.toDp() })
-                }
-            },
+            anchoredDraggableState = anchoredDraggableState,
             onAnchorChanged = { previousAnchor = it },
             coroutineScope = coroutineScope,
-            animatable = animatable,
+            density = density,
+            dismissedBound = dismissedBound,
             collapsedBound = collapsedBound,
-            initialAnchor = previousAnchor
+            expandedBound = expandedBound,
+        )
+    }
+
+    SideEffect {
+        state.updateAnchors(
+            density = density,
+            dismissedBound = dismissedBound,
+            collapsedBound = collapsedBound,
+            expandedBound = expandedBound,
+            anchors = anchors,
         )
     }
 
     LaunchedEffect(state) {
-        val target = when (previousAnchor) {
-            expandedAnchor -> expandedBound
-            collapsedAnchor -> collapsedBound
-            dismissedAnchor -> dismissedBound
-            else -> error("Unknown BottomSheet anchor")
+        snapshotFlow { state.settledValue }.collect { settledValue ->
+            state.recordSettledAnchor(settledValue)
         }
-        animatable.animateTo(target, NavigationBarAnimationSpec)
     }
 
     return state

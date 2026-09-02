@@ -3,9 +3,7 @@ package com.ljyh.mei.ui.app
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.constants.FloatingCapsuleBottomMargin
-import com.ljyh.mei.constants.FloatingCapsuleMiniPlayerHeight
-import com.ljyh.mei.constants.FloatingCapsuleNavHeight
+import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.ui.component.isMainDestination
 import com.ljyh.mei.ui.screen.Screen
 
@@ -59,12 +57,16 @@ fun resolveMainShellState(
 fun collapsedPlayerBound(
     systemBottomInset: Dp,
 ): Dp = systemBottomInset +
-    FloatingCapsuleMiniPlayerHeight
+    MiniPlayerBarHeight
 
 fun playerAwareBottomInset(
     systemBottomInset: Dp,
-    showBottomNavigation: Boolean,
+    scaffoldBottomInset: Dp,
     showMiniPlayer: Boolean,
-): Dp = systemBottomInset +
-    (if (showBottomNavigation) FloatingCapsuleBottomMargin + FloatingCapsuleNavHeight else 0.dp) +
-    (if (showMiniPlayer) FloatingCapsuleBottomMargin + FloatingCapsuleMiniPlayerHeight else 0.dp)
+): Dp = maxOf(systemBottomInset, scaffoldBottomInset) +
+    (if (showMiniPlayer) MiniPlayerBarHeight else 0.dp)
+
+fun playerBottomNavigationOffset(
+    systemBottomInset: Dp,
+    scaffoldBottomInset: Dp,
+): Dp = (scaffoldBottomInset - systemBottomInset).coerceAtLeast(0.dp)

@@ -127,10 +127,7 @@ class PlayerConnection(
     fun playQueue(queue: ListQueue) {
         // 判断当前 UI 上的模式是否是随机模式
         val startInShuffle = repeatMode.value == PlayMode.SHUFFLE_MODE_ALL.mode
-        // 调用新的 playQueue 方法，传入随机意图
-        service.scope.launch {
-            service.queueManager.playQueue(queue, startInShuffleMode = startInShuffle)
-        }
+        service.queueManager.playQueue(queue, startInShuffleMode = startInShuffle)
     }
     fun playNext(item: MediaItem) = playNext(listOf(item))
 

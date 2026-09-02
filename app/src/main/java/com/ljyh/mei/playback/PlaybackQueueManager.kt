@@ -162,15 +162,12 @@ class PlaybackQueueManager(
 
                 val mediaItems = allIds.map { item -> item.second ?: createPlaceholder(item.first) }
 
-                // 2. 停止并重置
-                player.stop()
-                player.clearMediaItems()
-
                 // 强制先关闭随机模式 必须先关掉，才能保证 setMediaItems 里的 index 是线性的、准确的
                 player.shuffleModeEnabled = false
                 _isShuffleModeEnabled.value = false
 
-                // 设置列表并直接跳转 此时 shuffle 是 false，所以 status.mediaItemIndex 绝对对应 list 里的第 N 个
+                // setMediaItems replaces the playlist atomically. Clearing first publishes an
+                // empty timeline to MediaSession/UI and races with the new queue transition.
                 player.setMediaItems(
                     mediaItems,
                     status.mediaItemIndex,
