@@ -63,7 +63,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -78,7 +77,6 @@ import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.component.LyricScreen
-import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
@@ -146,15 +144,6 @@ fun AppleMusicPlayer(
     val expandedUiAlpha = ((sheetProgress - 0.42f) / 0.28f).coerceIn(0f, 1f)
     val meshBackgroundAlpha = ((sheetProgress - 0.12f) / 0.28f).coerceIn(0f, 1f)
     val coverUrl = mediaMetadata?.coverUrl
-    val audioVisualizerManager = remember { AudioVisualizerManager(context) }
-
-    LaunchedEffect(stateContainer.playerConnection.player) {
-        val player = stateContainer.playerConnection.player as? ExoPlayer
-        player?.audioSessionId?.let { sessionId ->
-            audioVisualizerManager.attachToPlayer(sessionId)
-        }
-    }
-
     val colorScheme = MaterialTheme.colorScheme
     val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
         if (isSystemInDarkTheme && state.value > state.collapsedBound) {
@@ -350,7 +339,6 @@ fun AppleMusicPlayer(
             )
             FluidBackground(
                 imageUrl = coverUrl,
-                audioVisualizerManager = audioVisualizerManager,
                 isPlaying = isPlaying,
                 renderAlpha = meshBackgroundAlpha,
             )

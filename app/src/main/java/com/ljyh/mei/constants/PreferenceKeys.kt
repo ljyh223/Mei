@@ -59,7 +59,6 @@ val MeshFlowSpeedKey = floatPreferencesKey("meshFlowSpeed")
 val MeshRenderScaleKey = floatPreferencesKey("meshRenderScale")
 val MeshStaticModeKey = booleanPreferencesKey("meshStaticMode")
 val MeshPlayingKey = booleanPreferencesKey("meshPlaying")
-val MeshLowFreqVolumeKey = floatPreferencesKey("meshLowFreqVolume")
 val MeshSubdivisionKey = intPreferencesKey("meshSubdivision")
 
 val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")

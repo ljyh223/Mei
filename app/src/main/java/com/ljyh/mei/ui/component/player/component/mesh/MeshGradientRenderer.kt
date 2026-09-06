@@ -43,9 +43,6 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     private var isPlaying: Boolean = true
 
     @Volatile
-    var volume: Float = 0f
-
-    @Volatile
     var flowSpeed: Float = 0.25f
 
     @Volatile
@@ -262,14 +259,12 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
         val uTexture = GLES30.glGetUniformLocation(mainProgram, "u_texture")
         val uTime = GLES30.glGetUniformLocation(mainProgram, "u_time")
-        val uVolume = GLES30.glGetUniformLocation(mainProgram, "u_volume")
         val uAspect = GLES30.glGetUniformLocation(mainProgram, "u_aspect")
 
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, state.textureId)
         GLES30.glUniform1i(uTexture, 0)
         GLES30.glUniform1f(uTime, time)
-        GLES30.glUniform1f(uVolume, volume)
         GLES30.glUniform1f(
             uAspect,
             if (scaledHeight > 0) scaledWidth.toFloat() / scaledHeight else 1f
@@ -452,6 +447,12 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
 
     private val renderer = MeshGradientRenderer()
+    private var submittedAlbum: Bitmap? = null
+    private var appliedFlowSpeed = renderer.flowSpeed
+    private var appliedRenderScale = renderer.renderScale
+    private var appliedSubdivision = renderer.subdivision
+    private var appliedStaticMode = false
+    private var appliedPlaying = true
 
     init {
         setEGLContextClientVersion(3)
@@ -461,35 +462,44 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
     }
 
     fun setAlbum(bitmap: Bitmap) {
+        if (bitmap.isRecycled || submittedAlbum === bitmap) return
+        submittedAlbum = bitmap
         queueEvent { renderer.setAlbum(bitmap) }
     }
 
-    fun updateVolume(v: Float) {
-        renderer.volume = v
-    }
-
     fun setFlowSpeed(speed: Float) {
+        if (appliedFlowSpeed == speed) return
+        appliedFlowSpeed = speed
         renderer.flowSpeed = speed
     }
 
     fun setRenderScale(scale: Float) {
+        if (appliedRenderScale == scale) return
+        appliedRenderScale = scale
         renderer.renderScale = scale
         queueEvent { renderer.rebuildFbo() }
     }
 
     fun setSubdivision(level: Int) {
+        if (appliedSubdivision == level) return
+        appliedSubdivision = level
         renderer.subdivision = level
     }
 
     fun setStaticMode(enable: Boolean) {
+        if (appliedStaticMode == enable) return
+        appliedStaticMode = enable
         queueEvent { renderer.setStaticMode(enable) }
     }
 
     fun setPlaying(playing: Boolean) {
+        if (appliedPlaying == playing) return
+        appliedPlaying = playing
         renderer.setPlaying(playing)
     }
 
     override fun onDetachedFromWindow() {
+        submittedAlbum = null
         super.onDetachedFromWindow()
         queueEvent { renderer.release() }
     }

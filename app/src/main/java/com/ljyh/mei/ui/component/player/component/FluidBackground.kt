@@ -12,13 +12,11 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import coil3.Bitmap
 import com.ljyh.mei.constants.MeshFlowSpeedKey
-import com.ljyh.mei.constants.MeshLowFreqVolumeKey
 import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
 import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.ui.component.player.component.mesh.MeshBackgroundView
-import com.ljyh.mei.utils.audio.AudioVisualizerManager
 import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,19 +25,15 @@ import kotlinx.coroutines.withContext
 @Composable
 fun FluidBackground(
     imageUrl: String?,
-    audioVisualizerManager: AudioVisualizerManager,
     isPlaying: Boolean = true,
     renderAlpha: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val bass by audioVisualizerManager.bassValue.collectAsState()
-
     val (flowSpeed) = rememberPreference(MeshFlowSpeedKey, defaultValue = 0.25f)
     val (renderScale) = rememberPreference(MeshRenderScaleKey, defaultValue = 0.75f)
     val (staticMode) = rememberPreference(MeshStaticModeKey, defaultValue = false)
     val (meshPlaying) = rememberPreference(MeshPlayingKey, defaultValue = true)
-    val (volumeScale) = rememberPreference(MeshLowFreqVolumeKey, defaultValue = 0.1f)
     val (subdivision) = rememberPreference(MeshSubdivisionKey, defaultValue = 50)
 
     // 1. 将图片加载逻辑独立出来，只负责把 Bitmap 提取出来
@@ -85,7 +79,6 @@ fun FluidBackground(
                 view.setAlbum(bmp)
             }
 
-            view.updateVolume(bass * volumeScale)
             view.setFlowSpeed(flowSpeed)
             view.setRenderScale(renderScale)
             view.setSubdivision(subdivision)

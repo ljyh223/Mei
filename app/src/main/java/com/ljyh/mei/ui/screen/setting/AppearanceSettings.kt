@@ -22,7 +22,6 @@ import androidx.compose.material.icons.rounded.Subtitles
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Timer
-import androidx.compose.material.icons.rounded.Highlight
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,7 +35,6 @@ import androidx.compose.ui.Modifier
 import com.ljyh.mei.constants.AccompanimentLyricTextBoldKey
 import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
 import com.ljyh.mei.constants.MeshFlowSpeedKey
-import com.ljyh.mei.constants.MeshLowFreqVolumeKey
 import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
 import com.ljyh.mei.constants.MeshStaticModeKey
@@ -142,9 +140,6 @@ fun AppearanceSettings(
     )
     val (meshPlaying, onMeshPlayingChange) = rememberPreference(
         MeshPlayingKey, defaultValue = true
-    )
-    val (meshLowFreqVolume, onMeshLowFreqVolumeChange) = rememberPreference(
-        MeshLowFreqVolumeKey, defaultValue = 0.1f
     )
     val (meshSubdivision, onMeshSubdivisionChange) = rememberPreference(
         MeshSubdivisionKey, defaultValue = 50
@@ -272,25 +267,6 @@ fun AppearanceSettings(
                 values = listOf(0.25f, 0.5f, 0.75f, 1.0f),
                 onValueSelected = onMeshRenderScaleChange,
                 valueText = { "${(it * 100).toInt()}%" }
-            )
-            ListPreference(
-                title = { Text("节拍灵敏度") },
-                description = "低频节拍对背景的影响程度",
-                icon = { Icon(Icons.Rounded.Highlight, null) },
-                selectedValue = meshLowFreqVolume,
-                values = listOf(0.0f, 0.1f, 0.2f, 0.3f, 0.4f, 0.5f),
-                onValueSelected = onMeshLowFreqVolumeChange,
-                valueText = {
-                    when (it) {
-                        0.0f -> "关闭"
-                        0.1f -> "极低"
-                        0.2f -> "低"
-                        0.3f -> "中"
-                        0.4f -> "高"
-                        0.5f -> "极高"
-                        else -> "${(it * 100).toInt()}%"
-                    }
-                }
             )
             ListPreference(
                 title = { Text("网格细分") },

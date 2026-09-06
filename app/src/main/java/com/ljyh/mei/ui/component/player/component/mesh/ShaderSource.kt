@@ -37,7 +37,6 @@ in vec2 v_uv;
 
 uniform sampler2D u_texture;
 uniform float u_time;
-uniform float u_volume;
 
 out vec4 fragColor;
 
@@ -52,20 +51,15 @@ vec2 rot(vec2 v, float angle) {
 }
 
 void main() {
-    float volumeEffect = u_volume * 2.0;
-    float timeVolume = u_time + u_volume;
-
     float dither = gradientNoise(gl_FragCoord.xy) / 255.0 - 0.5 / 255.0;
 
     vec2 centered = v_uv - vec2(0.2);
-    vec2 rotated = rot(centered, timeVolume * 2.0);
-    vec2 finalUV = rotated * max(0.001, 1.0 - volumeEffect) + vec2(0.5);
+    vec2 rotated = rot(centered, u_time * 2.0);
+    vec2 finalUV = rotated + vec2(0.5);
 
     vec4 result = texture(u_texture, finalUV);
 
-    float alphaVolume = max(0.5, 1.0 - u_volume * 0.5);
-    result.rgb *= v_color * alphaVolume;
-    result.a *= alphaVolume;
+    result.rgb *= v_color;
 
     result.rgb += vec3(dither);
 
