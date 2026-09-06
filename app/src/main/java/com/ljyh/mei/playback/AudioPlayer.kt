@@ -3,23 +3,15 @@ package com.ljyh.mei.playback
 
 import android.animation.Animator
 import android.animation.ValueAnimator
-import android.media.MediaPlayer
 import android.view.animation.LinearInterpolator
 import androidx.media3.exoplayer.ExoPlayer
 
 /**
- * 音频播放器（部分源码，淡入淡出部分）
- * 由 MediaPlayer 拓展，使用很简单
- *
- * AudioPlayer (Part of the source code)
- * The android.media.MediaPlayer extensions for audio play.
- * It is very easy to use.
- *
- * @version 20210730
- * @author Moriafly
- * @since 2021/07/26
+ * Controls ExoPlayer volume fades. It intentionally does not inherit MediaPlayer: creating an
+ * unused platform player allocated native audio resources and made the two player lifecycles
+ * appear coupled.
  */
-class AudioPlayer(private val exoPlayer: ExoPlayer): MediaPlayer() {
+class AudioPlayer(private val exoPlayer: ExoPlayer) {
 
     private var volume = 1F
 
@@ -104,7 +96,7 @@ class AudioPlayer(private val exoPlayer: ExoPlayer): MediaPlayer() {
 
     private var isStartSmoothing: Boolean = false
 
-    override fun isPlaying(): Boolean {
+    fun isPlaying(): Boolean {
         if (isPauseSmoothing) {
             return false
         }
@@ -126,19 +118,13 @@ class AudioPlayer(private val exoPlayer: ExoPlayer): MediaPlayer() {
         startSmoothValueAnimator.start()
     }
 
-    override fun setVolume(leftVolume: Float, rightVolume: Float) {
-        super.setVolume(
-            leftVolume * leftChannel,
-            rightVolume * rightChannel
-        )
-
-        setExoPlayerVolume(leftVolume)
+    fun setVolume(leftVolume: Float, rightVolume: Float) {
+        setExoPlayerVolume(leftVolume * leftChannel)
     }
 
-    override fun reset() {
+    fun release() {
         pauseSmoothValueAnimator.cancel()
         startSmoothValueAnimator.cancel()
-        super.reset()
     }
 
 }

@@ -12,8 +12,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.ui.text.toLowerCase
-import androidx.core.net.toUri
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -23,7 +21,6 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
 import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
-import androidx.media3.common.Timeline
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -41,11 +38,7 @@ import androidx.media3.exoplayer.analytics.PlaybackStats
 import androidx.media3.exoplayer.analytics.PlaybackStatsListener
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
-import androidx.media3.exoplayer.drm.DrmSessionManagerProvider
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.exoplayer.source.MediaSource
-import androidx.media3.exoplayer.source.preload.DefaultPreloadManager
-import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
@@ -60,11 +53,8 @@ import com.ljyh.mei.R
 import com.ljyh.mei.constants.IsShuffleModeKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
-import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.constants.RepeatModeKey
-import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
@@ -79,23 +69,17 @@ import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
-import okhttp3.OkHttpClient
 import timber.log.Timber
-import java.io.File
-import java.util.Locale
 import java.util.Locale.getDefault
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -117,14 +101,13 @@ class MusicService : MediaLibraryService(),
     private var historyJob: Job? = null
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var baseMediaSourceFactory: DefaultMediaSourceFactory
-    private lateinit var preloadManager: DefaultPreloadManager
-    private val preloadStrategy = MusicPreloadStrategy()
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
 
     @Inject
     lateinit var mediaUriProvider: MediaUriProvider
 
-    private var errorCount = 0 // 记录连续错误的次数，防止死循环
+    private var consecutiveFailedItems = 0
+    private var retriedMediaId: String? = null
 
     private val binder = MusicBinder()
 
@@ -147,34 +130,6 @@ class MusicService : MediaLibraryService(),
         super.onCreate()
         baseMediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
             .setLoadErrorHandlingPolicy(MusicLoadErrorHandlingPolicy()) // 应用自定义错误策略
-        preloadManager = DefaultPreloadManager.Builder(
-            this,
-            preloadStrategy
-        )
-            .setMediaSourceFactory(baseMediaSourceFactory) // 告诉管理器用什么去下载
-            .build()
-
-        val playerMediaSourceFactory = object : MediaSource.Factory {
-            // 必须实现的方法，委托给 baseMediaSourceFactory
-            override fun setDrmSessionManagerProvider(provider: DrmSessionManagerProvider) = apply {
-                baseMediaSourceFactory.setDrmSessionManagerProvider(provider)
-            }
-
-            override fun setLoadErrorHandlingPolicy(policy: LoadErrorHandlingPolicy) = apply {
-                baseMediaSourceFactory.setLoadErrorHandlingPolicy(policy)
-            }
-
-            override fun getSupportedTypes(): IntArray = baseMediaSourceFactory.supportedTypes
-
-            // 创建 MediaSource
-            override fun createMediaSource(mediaItem: MediaItem): MediaSource {
-                // 优先问 PreloadManager 要预加载好的 Source
-                return preloadManager.getMediaSource(mediaItem)
-                // 如果没预加载过，就创建一个新的
-                    ?: baseMediaSourceFactory.createMediaSource(mediaItem)
-            }
-        }
-
 
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
@@ -186,8 +141,8 @@ class MusicService : MediaLibraryService(),
         )
 
         player = ExoPlayer.Builder(this)
-            //媒体源工厂
-            .setMediaSourceFactory(playerMediaSourceFactory)
+            // 媒体源工厂
+            .setMediaSourceFactory(baseMediaSourceFactory)
             //渲染器工厂
             .setRenderersFactory(createRenderersFactory())
             //处理音频焦点变化和音频播放行为
@@ -209,20 +164,18 @@ class MusicService : MediaLibraryService(),
             .setSeekForwardIncrementMs(5000)
             .build()
             .apply {
+                // This app plays an ExoPlayer playlist, so use its integrated preloading. The
+                // buffered source remains inside the same playlist and needs no manual handoff.
+                setPreloadConfiguration(
+                    ExoPlayer.PreloadConfiguration(PLAYLIST_PRELOAD_DURATION_US)
+                )
                 //添加监听器
                 addListener(this@MusicService)
                 //睡眠定时
                 sleepTimer = SleepTimer(scope, this)
                 addListener(sleepTimer)
-                addListener(this@MusicService)
-                // 添加监听，更新预加载索引
                 addListener(object : Player.Listener {
-                    override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                        updatePreload()
-                    }
-
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        updatePreload()
                         historyJob?.cancel()
                         if (mediaItem != null) {
                             historyJob = scope.launch {
@@ -325,21 +278,6 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    private fun updatePreload() {
-        if (player.currentTimeline.isEmpty) return
-
-        val currentIndex = player.currentMediaItemIndex
-        preloadStrategy.currentPlayingIndex = currentIndex
-        if (currentIndex + 1 < player.mediaItemCount) {
-            val nextItem = player.getMediaItemAt(currentIndex + 1)
-            preloadManager.add(nextItem, currentIndex + 1)
-        }
-
-        // 3. 触发检查
-        preloadManager.invalidate()
-    }
-
-
     private fun openAudioEffectSession() {
         if (isAudioEffectSessionOpened) return
         isAudioEffectSessionOpened = true
@@ -419,15 +357,13 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
-        CacheManager.release()
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)
         queueManager.release()
-        preloadManager.release()
-
+        audioPlayer.release()
         player.release()
-        queueManager.release()
+        CacheManager.release()
         serviceJob.cancel()
         super.onDestroy()
     }
@@ -444,28 +380,16 @@ class MusicService : MediaLibraryService(),
         val simpleCache = CacheManager.getSimpleCache(context)
 
         return ResolvingDataSource.Factory(getCacheDataSourceFactory(context)) { dataSpec ->
-            val mediaId = dataSpec.key ?: error("No media key")
-            val localFilePath = runBlocking {
-                val song = songRepository.getSong(mediaId).firstOrNull()
-                    ?: songRepository.getSong("local_$mediaId").firstOrNull()
-                song?.path
-            }
-            if (localFilePath != null) {
-                val file = File(localFilePath)
-                if (file.exists()) {
-                    Timber.tag("ResolvingDataSource").d("Using local file for mediaId: $mediaId, filePath: ${file.path}")
-                    return@Factory dataSpec.withUri(Uri.fromFile(file))
-                }
-            }
-            if (isContentFullyCached(simpleCache, mediaId)) {
-                Timber.tag("ResolvingDataSource").d("Fully cached on disk: $mediaId")
-                return@Factory dataSpec
-            }
-
             runBlocking {
                 val quality = context.dataStore[MusicQualityKey]?.lowercase(getDefault()) ?: MusicQuality.EXHIGH.text
+                val mediaId = dataSpec.key ?: throw SourceNotFoundException("Missing media cache key")
+                val cacheKey = "$mediaId|$quality"
+                if (isContentFullyCached(simpleCache, cacheKey)) {
+                    Timber.tag("ResolvingDataSource").d("Fully cached on disk: $cacheKey")
+                    return@runBlocking dataSpec.buildUpon().setKey(cacheKey).build()
+                }
                 val uri = mediaUriProvider.resolveMediaUri(mediaId, quality)
-                dataSpec.withUri(uri)
+                dataSpec.buildUpon().setUri(uri).setKey(cacheKey).build()
             }
         }
     }
@@ -496,21 +420,25 @@ class MusicService : MediaLibraryService(),
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
     override fun onPlayerError(error: PlaybackException) {
         Timber.tag("MusicService").e( "Player Error: ${error.errorCodeName}, ${error.message}")
+        val mediaId = player.currentMediaItem?.mediaId
+        if (isSourceError(error) && mediaId != null) {
+            // A signed URL may have expired between preloading and playback. Refresh it once for
+            // the same item before deciding the item is unavailable.
+            if (retriedMediaId != mediaId) {
+                retriedMediaId = mediaId
+                mediaUriProvider.invalidateRemoteUrl(mediaId)
+                Timber.tag("MusicService").i("Refreshing playback URL for $mediaId")
+                player.prepare()
+                player.play()
+                return
+            }
 
-        val isSourceError = error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
-                error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
-                error.cause is SourceNotFoundException ||
-                error.message?.contains("Unable to resolve url") == true
-
-        if (isSourceError) {
-            errorCount++
-            Timber.tag("MusicService").e( "Play failure detected. Count: $errorCount")
-
-            // 如果连续错误超过5次，停止播放，避免无限刷 API
-            if (errorCount > 5) {
+            consecutiveFailedItems++
+            Timber.tag("MusicService").e("Play failure detected. Count: $consecutiveFailedItems")
+            if (consecutiveFailedItems > MAX_CONSECUTIVE_FAILED_ITEMS) {
                 Toast.makeText(context, "播放失败，已连续跳过多首歌曲", Toast.LENGTH_LONG).show()
                 player.stop()
-                errorCount = 0
+                retriedMediaId = null
                 return
             }
 
@@ -530,24 +458,31 @@ class MusicService : MediaLibraryService(),
                 Toast.makeText(context, "播放结束，部分歌曲无法加载", Toast.LENGTH_SHORT).show()
             }
         } else {
-            // 其他错误（如解码器错误），重置计数器并提示
-            errorCount = 0
             Toast.makeText(context, "播放出错: ${error.errorCodeName}", Toast.LENGTH_SHORT).show()
         }
     }
 
+    private fun isSourceError(error: PlaybackException): Boolean {
+        var cause: Throwable? = error
+        while (cause != null) {
+            if (cause is SourceNotFoundException || cause is java.io.IOException) return true
+            cause = cause.cause
+        }
+        return error.errorCodeName.startsWith("ERROR_CODE_IO_")
+    }
+
+    override fun onPlaybackStateChanged(playbackState: Int) {
+        if (playbackState == Player.STATE_READY && player.playerError == null) {
+            consecutiveFailedItems = 0
+            retriedMediaId = null
+        }
+    }
+
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        // 如果成功切歌，重置错误计数器
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
             reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
-            // 注意：这里需要延迟一点或者确认新歌曲开始缓冲后再重置，
-            // 简单的做法是：只要正常切歌了，我们暂时认为链条断了
-            errorCount = 0
-
-            // 触发 FM 模式检查 (见下文)
             checkFmModeLoadMore()
         }
-        updatePreload()
     }
 
     private fun checkFmModeLoadMore() {
@@ -571,5 +506,7 @@ class MusicService : MediaLibraryService(),
     companion object {
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
+        private const val PLAYLIST_PRELOAD_DURATION_US = 5_000_000L
+        private const val MAX_CONSECUTIVE_FAILED_ITEMS = 5
     }
 }
