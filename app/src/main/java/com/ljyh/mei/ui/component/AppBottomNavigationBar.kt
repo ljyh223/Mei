@@ -1,8 +1,9 @@
 package com.ljyh.mei.ui.component
 
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarArrangement
+import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,16 +34,17 @@ fun AppBottomNavigationBar(
     var navigationBarHeight by remember { mutableIntStateOf(0) }
     val progress = visibilityProgress.coerceIn(0f, 1f)
 
-    NavigationBar(
+    ShortNavigationBar(
         modifier = modifier
             .onSizeChanged { navigationBarHeight = it.height }
             .graphicsLayer {
                 alpha = progress
                 translationY = navigationBarHeight * (1f - progress)
             },
+        arrangement = ShortNavigationBarArrangement.EqualWeight,
     ) {
         Index.entries.forEach { destination ->
-            NavigationBarItem(
+            ShortNavigationBarItem(
                 selected = selectedRoute == destination.route,
                 onClick = { onTabSelect(destination) },
                 enabled = interactive,
