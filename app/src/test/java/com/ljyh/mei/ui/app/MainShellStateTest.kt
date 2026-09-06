@@ -47,12 +47,32 @@ class MainShellStateTest {
     @Test
     fun playerBoundsAlwaysIncludeSystemGestureInset() {
         val systemInset = 24.dp
-        val navigationInset = 104.dp
+        val scaffoldInset = 104.dp
+        val navigationOffset = 80.dp
 
         assertTrue(collapsedPlayerBound(systemInset) > systemInset)
         assertTrue(playerAwareBottomInset(systemInset, 0.dp, true) > systemInset)
         assertEquals(systemInset, playerAwareBottomInset(systemInset, 0.dp, false))
-        assertEquals(navigationInset, playerAwareBottomInset(systemInset, navigationInset, false))
-        assertEquals(80.dp, playerBottomNavigationOffset(systemInset, navigationInset))
+        assertEquals(scaffoldInset, playerAwareBottomInset(systemInset, navigationOffset, false))
+        assertEquals(navigationOffset, playerBottomNavigationOffset(systemInset, scaffoldInset))
+    }
+
+    @Test
+    fun navigationProgressMovesPlayerBetweenMainAndSecondaryPositions() {
+        val systemInset = 24.dp
+        val scaffoldInset = 104.dp
+
+        assertEquals(
+            80.dp,
+            playerBottomNavigationOffset(systemInset, scaffoldInset, visibilityProgress = 1f),
+        )
+        assertEquals(
+            40.dp,
+            playerBottomNavigationOffset(systemInset, scaffoldInset, visibilityProgress = 0.5f),
+        )
+        assertEquals(
+            0.dp,
+            playerBottomNavigationOffset(systemInset, scaffoldInset, visibilityProgress = 0f),
+        )
     }
 }

@@ -61,12 +61,14 @@ fun collapsedPlayerBound(
 
 fun playerAwareBottomInset(
     systemBottomInset: Dp,
-    scaffoldBottomInset: Dp,
+    navigationOffset: Dp,
     showMiniPlayer: Boolean,
-): Dp = maxOf(systemBottomInset, scaffoldBottomInset) +
+): Dp = systemBottomInset + navigationOffset.coerceAtLeast(0.dp) +
     (if (showMiniPlayer) MiniPlayerBarHeight else 0.dp)
 
 fun playerBottomNavigationOffset(
     systemBottomInset: Dp,
     scaffoldBottomInset: Dp,
-): Dp = (scaffoldBottomInset - systemBottomInset).coerceAtLeast(0.dp)
+    visibilityProgress: Float = 1f,
+): Dp = (scaffoldBottomInset - systemBottomInset).coerceAtLeast(0.dp) *
+    visibilityProgress.coerceIn(0f, 1f)

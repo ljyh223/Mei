@@ -1,8 +1,5 @@
 package com.ljyh.mei.ui.component
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -17,6 +14,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import com.ljyh.mei.ui.screen.Index
 
+const val BottomNavigationAnimationDurationMillis = 240
+
 /**
  * Material 3 bottom navigation owned by the app scaffold.
  *
@@ -25,34 +24,28 @@ import com.ljyh.mei.ui.screen.Index
  */
 @Composable
 fun AppBottomNavigationBar(
-    visible: Boolean,
+    visibilityProgress: Float,
+    interactive: Boolean,
     selectedRoute: String?,
     onTabSelect: (Index) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val visibilityProgress by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = BottomNavigationAnimationDurationMillis,
-            easing = FastOutSlowInEasing,
-        ),
-        label = "bottomNavigationVisibility",
-    )
     var navigationBarHeight by remember { mutableIntStateOf(0) }
+    val progress = visibilityProgress.coerceIn(0f, 1f)
 
     NavigationBar(
         modifier = modifier
             .onSizeChanged { navigationBarHeight = it.height }
             .graphicsLayer {
-                alpha = visibilityProgress
-                translationY = navigationBarHeight * (1f - visibilityProgress)
+                alpha = progress
+                translationY = navigationBarHeight * (1f - progress)
             },
     ) {
         Index.entries.forEach { destination ->
             NavigationBarItem(
                 selected = selectedRoute == destination.route,
                 onClick = { onTabSelect(destination) },
-                enabled = visible,
+                enabled = interactive,
                 icon = {
                     Icon(
                         imageVector = destination.icon,
@@ -64,5 +57,3 @@ fun AppBottomNavigationBar(
         }
     }
 }
-
-private const val BottomNavigationAnimationDurationMillis = 220

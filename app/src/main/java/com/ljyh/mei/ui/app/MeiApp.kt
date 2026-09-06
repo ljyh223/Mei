@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.app
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -52,6 +53,7 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.component.AdaptiveMainNavigationRail
 import com.ljyh.mei.ui.component.AppBottomNavigationBar
+import com.ljyh.mei.ui.component.BottomNavigationAnimationDurationMillis
 import com.ljyh.mei.ui.component.TabletNavigationAnimationDurationMillis
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
@@ -162,6 +164,24 @@ fun MeiApp(
                 ),
                 expandedBound = maxHeight,
             )
+            val bottomChromeAnimationSpec = remember {
+                tween<Float>(
+                    durationMillis = BottomNavigationAnimationDurationMillis,
+                    easing = FastOutSlowInEasing,
+                )
+            }
+            val routeBottomNavigationProgress by animateFloatAsState(
+                targetValue = if (shellState.showBottomNavigation) 1f else 0f,
+                animationSpec = bottomChromeAnimationSpec,
+                label = "routeBottomNavigationProgress",
+            )
+            val playerBottomNavigationProgress by animateFloatAsState(
+                targetValue = if (playerBottomSheetState.isTargetExpanded) 0f else 1f,
+                animationSpec = bottomChromeAnimationSpec,
+                label = "playerBottomNavigationProgress",
+            )
+            val bottomNavigationProgress =
+                routeBottomNavigationProgress * playerBottomNavigationProgress
             val canScrollAppBar = {
                 route?.startsWith("search_result/") == false &&
                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
@@ -210,9 +230,11 @@ fun MeiApp(
                 containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
-                    if (!useTabletSidebar && shellState.showBottomNavigation) {
+                    if (!useTabletSidebar) {
                         AppBottomNavigationBar(
-                            visible = !playerBottomSheetState.isTargetExpanded,
+                            visibilityProgress = bottomNavigationProgress,
+                            interactive = shellState.showBottomNavigation &&
+                                !playerBottomSheetState.isTargetExpanded,
                             selectedRoute = route,
                             onTabSelect = navController::selectMainDestination,
                         )
@@ -223,15 +245,16 @@ fun MeiApp(
                 val playerNavigationOffset = playerBottomNavigationOffset(
                     systemBottomInset = bottomInset,
                     scaffoldBottomInset = scaffoldBottomInset,
+                    visibilityProgress = routeBottomNavigationProgress,
                 )
                 val playerAwareWindowInsets = remember(
                     bottomInset,
-                    scaffoldBottomInset,
+                    playerNavigationOffset,
                     playerBottomSheetState.isDismissed,
                 ) {
                     val bottom = playerAwareBottomInset(
                         systemBottomInset = bottomInset,
-                        scaffoldBottomInset = scaffoldBottomInset,
+                        navigationOffset = playerNavigationOffset,
                         showMiniPlayer = !playerBottomSheetState.isDismissed,
                     )
                     systemBars
