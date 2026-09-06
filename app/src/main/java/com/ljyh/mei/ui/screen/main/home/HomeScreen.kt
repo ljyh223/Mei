@@ -69,6 +69,7 @@ import com.ljyh.mei.ui.component.home.PlaylistCard
 import com.ljyh.mei.ui.component.home.RecommendCard
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.playlist.PlayingImageView
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -161,7 +162,7 @@ fun HomeScreen(
                 }
 
                 Resource.Loading -> {
-                    HomeShimmer()
+                    HomeShimmer(viewModel = viewModel)
                 }
             }
         }
@@ -446,14 +447,16 @@ private fun <T> BlockWithTitle(
 }
 
 @Composable
-fun Title(text: String) {
+fun Title(text: String, isLoading: Boolean = false) {
     Text(
-        text = text,
+        text = if (isLoading) "正在加载" else text,
         fontSize = 20.sp,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground,
         maxLines = 1,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .skeleton(isLoading)
     )
 }
 

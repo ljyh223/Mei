@@ -38,6 +38,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.screen.playlist.ActionButton
 import com.ljyh.mei.utils.rememberEnumPreference
 
@@ -57,6 +58,7 @@ fun PlaylistHeader(
     onDownload: () -> Unit = {},
     actionIcon: ImageVector,
     actionLabel: String,
+    isLoading: Boolean = false,
 ) {
 
     val playlistCoverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
@@ -70,10 +72,11 @@ fun PlaylistHeader(
         Card(
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-            modifier = Modifier.size(220.dp)
+            modifier = Modifier
+                .size(220.dp)
+                .skeleton(isLoading, RoundedCornerShape(16.dp))
         ) {
-
-            when (playlistCoverStyle) {
+            if (!isLoading) when (playlistCoverStyle) {
                 PlaylistCoverStyle.Cover -> {
                     AsyncImage(
                         model = cover,
@@ -116,7 +119,8 @@ fun PlaylistHeader(
 
         // 2. Title & Metadata
         Text(
-            text = title,
+            text = if (isLoading) "正在加载的歌单标题\n歌单标题" else title,
+            modifier = Modifier.skeleton(isLoading),
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
@@ -128,17 +132,19 @@ fun PlaylistHeader(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "By $creator",
+                text = if (isLoading) "By 创建者名称" else "By $creator",
+                modifier = Modifier.skeleton(isLoading),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(8.dp))
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = CircleShape
+                shape = CircleShape,
+                modifier = Modifier.skeleton(isLoading, CircleShape)
             ) {
                 Text(
-                    text = "$count 首",
+                    text = if (isLoading) "00 首" else "$count 首",
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                 )
@@ -146,10 +152,12 @@ fun PlaylistHeader(
         }
 
         Text(
-            text = "播放 $playCount · 收藏 $subscribeCount",
+            text = if (isLoading) "播放 00000000 · 收藏 000000" else "播放 $playCount · 收藏 $subscribeCount",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .skeleton(isLoading)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -168,13 +176,16 @@ fun PlaylistHeader(
                 color = if (isSubscribed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = {
                     onSubscribed(isSubscribed)
-                }
+                },
+                isLoading = isLoading,
             )
 
 
             // Play All Button (Prominent)
             Button(
                 onClick = onPlayAll,
+                enabled = !isLoading,
+                modifier = Modifier.skeleton(isLoading, RoundedCornerShape(24.dp)),
                 contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
@@ -191,7 +202,8 @@ fun PlaylistHeader(
             ActionButton(
                 icon = Icons.Filled.Download,
                 text = "下载",
-                onClick = onDownload
+                onClick = onDownload,
+                isLoading = isLoading,
             )
         }
 

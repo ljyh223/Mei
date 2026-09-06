@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCardSize
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.largeImage
 import androidx.compose.ui.unit.Dp
 
@@ -47,6 +48,7 @@ fun PlaylistCard(
     imageSize: Boolean = true,
     cardSize: Dp = PlaylistCardSize,
     modifier: Modifier = Modifier.width(cardSize),
+    isLoading: Boolean = false,
     onClick: () -> Unit
 ) {
     // 常用阴影样式，提取出来复用
@@ -59,14 +61,15 @@ fun PlaylistCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp)) // 整个组件裁切，防止水波纹溢出
-            .clickable { onClick() }
+            .clickable(enabled = !isLoading) { onClick() }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
+                .skeleton(isLoading, RoundedCornerShape(8.dp))
         ) {
-            AsyncImage(
+            if (!isLoading) AsyncImage(
                 model = if (imageSize) coverImg.largeImage() else coverImg,
                 modifier = Modifier
                     .matchParentSize()
@@ -76,7 +79,7 @@ fun PlaylistCard(
             )
 
             // 顶部播放量
-            if (extInfo != null) {
+            if (!isLoading && extInfo != null) {
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -101,7 +104,7 @@ fun PlaylistCard(
             }
 
             // 底部左侧副标题 (如果有)
-            if (subTitle != null) {
+            if (!isLoading && subTitle != null) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -120,7 +123,7 @@ fun PlaylistCard(
             }
 
             // 右下角播放按钮
-            if (showPlay) {
+            if (!isLoading && showPlay) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -140,14 +143,14 @@ fun PlaylistCard(
 
         // 标题
         Text(
-            text = title,
+            text = if (isLoading) "正在加载的推荐歌单\n推荐歌单" else title,
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
             fontSize = 13.sp, // 调整字体大小，更精致
             lineHeight = 18.sp,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().skeleton(isLoading)
         )
     }
 }

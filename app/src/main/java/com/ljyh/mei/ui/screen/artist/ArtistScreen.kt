@@ -67,9 +67,9 @@ import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.item.Track
-import com.ljyh.mei.ui.component.shimmer.ListItemPlaceHolder
-import com.ljyh.mei.ui.component.shimmer.ShimmerHost
-import com.ljyh.mei.ui.component.shimmer.TextPlaceholder
+import com.ljyh.mei.ui.component.item.TrackPlaceholder
+import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -198,7 +198,13 @@ fun ArtistScreen(
                         )
                     }
                 }
-                is Resource.Loading -> items(5) { ShimmerHost { ListItemPlaceHolder() } }
+                is Resource.Loading -> item {
+                    SkeletonShimmerHost(enabled = true) {
+                        Column {
+                            repeat(5) { index -> TrackPlaceholder(index = index) }
+                        }
+                    }
+                }
                 is Resource.Error -> item { ErrorItem(songsResource.message) }
             }
 
@@ -233,11 +239,13 @@ fun ArtistScreen(
                     }
                 }
                 is Resource.Loading -> item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(4) { ShimmerHost { AlbumCardShimmer() } }
+                    SkeletonShimmerHost(enabled = true) {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(4) { AlbumCardShimmer() }
+                        }
                     }
                 }
                 is Resource.Error -> item { ErrorItem(albumsResource.message) }
@@ -252,11 +260,13 @@ fun ArtistScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ArtistHeader(
-    artist: ArtistDetail.Data.Artist,
-    expertIdentities: List<ArtistDetail.Data.SecondaryExpertIdentiy>
+    artist: ArtistDetail.Data.Artist?,
+    expertIdentities: List<ArtistDetail.Data.SecondaryExpertIdentiy>,
+    isLoading: Boolean = false,
 ) {
     var descExpanded by remember { mutableStateOf(false) }
     val bgColor = MaterialTheme.colorScheme.background
+    val loading = isLoading || artist == null
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
@@ -267,16 +277,24 @@ fun ArtistHeader(
                 .height(320.dp)
         ) {
             // 封面图铺满
-            AsyncImage(
-                model = artist.cover,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
+            if (loading) {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .skeleton(true, RoundedCornerShape(0.dp))
+                )
+            } else {
+                AsyncImage(
+                    model = artist?.cover,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
             // 底部渐变：透明 → bgColor，让 Hero 与 body 无缝衔接
             // 中间留一段纯透明区让封面透出来，底部收口到完全不透明
-            Box(
+            if (!loading) Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
@@ -301,7 +319,11 @@ fun ArtistHeader(
                     .padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
             ) {
                 // 认证/身份 badges
-                val allTags = artist.identifyTag ?: (emptyList<String>() + artist.identities)
+                val allTags = if (loading) {
+                    emptyList()
+                } else {
+                    artist?.identifyTag ?: artist?.identities.orEmpty()
+                }
                 if (allTags.isNotEmpty()) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -318,19 +340,28 @@ fun ArtistHeader(
                     verticalAlignment = Alignment.Bottom,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    AsyncImage(
-                        model = artist.avatar,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (loading) {
+                        Spacer(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .skeleton(true, CircleShape)
+                        )
+                    } else {
+                        AsyncImage(
+                            model = artist?.avatar,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = artist.name,
+                            text = artist?.name ?: "正在加载的艺人名称",
+                            modifier = Modifier.skeleton(loading),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
@@ -338,15 +369,19 @@ fun ArtistHeader(
                             overflow = TextOverflow.Ellipsis
                         )
                         val subtitleParts = buildList {
-                            if (artist.transNames.isNotEmpty()) addAll(artist.transNames)
-                            if (artist.alias.isNotEmpty()) addAll(artist.alias)
+                            if (loading) {
+                                add("艺人别名")
+                            } else {
+                                artist?.transNames?.takeIf { it.isNotEmpty() }?.let(::addAll)
+                                artist?.alias?.takeIf { it.isNotEmpty() }?.let(::addAll)
+                            }
                         }
                         if (subtitleParts.isNotEmpty()) {
                             Text(
                                 text = subtitleParts.joinToString(" · "),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.48f),
-                                modifier = Modifier.padding(top = 2.dp),
+                                modifier = Modifier.padding(top = 2.dp).skeleton(loading),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -358,9 +393,9 @@ fun ArtistHeader(
 
                 // 统计数字行
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    StatItem(value = artist.musicSize.formatCount(), label = "单曲")
-                    StatItem(value = artist.albumSize.toString(), label = "专辑")
-                    StatItem(value = artist.mvSize.toString(), label = "MV")
+                    StatItem(value = artist?.musicSize?.formatCount() ?: "000", label = "单曲", isLoading = loading)
+                    StatItem(value = artist?.albumSize?.toString() ?: "00", label = "专辑", isLoading = loading)
+                    StatItem(value = artist?.mvSize?.toString() ?: "00", label = "MV", isLoading = loading)
                 }
             }
         }
@@ -374,16 +409,18 @@ fun ArtistHeader(
             // 关注按钮
             OutlinedButton(
                 onClick = { /* TODO */ },
+                enabled = !loading,
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp, bottom = 16.dp)
+                    .skeleton(loading, RoundedCornerShape(50))
             ) {
                 Text("关注", style = MaterialTheme.typography.labelLarge)
             }
 
             // 创作领域 chips
-            if (expertIdentities.isNotEmpty()) {
+            if (!loading && expertIdentities.isNotEmpty()) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -399,23 +436,27 @@ fun ArtistHeader(
             }
 
             // 简介
-            if (artist.briefDesc.isNotBlank()) {
+            if (loading || !artist?.briefDesc.isNullOrBlank()) {
                 Text(
-                    text = artist.briefDesc,
+                    text = artist?.briefDesc
+                        ?: "艺人简介正在加载中，用于保持正式内容的三行文本布局。\n艺人简介占位内容。\n艺人简介占位内容。",
+                    modifier = Modifier.skeleton(loading),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
                     lineHeight = 20.sp,
                     maxLines = if (descExpanded) Int.MAX_VALUE else 3,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = if (descExpanded) "收起" else "展开全部",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(top = 4.dp, bottom = 8.dp)
-                        .clickable { descExpanded = !descExpanded }
-                )
+                if (!loading) {
+                    Text(
+                        text = if (descExpanded) "收起" else "展开全部",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(top = 4.dp, bottom = 8.dp)
+                            .clickable { descExpanded = !descExpanded }
+                    )
+                }
             }
         }
     }
@@ -443,10 +484,11 @@ private fun HeroBadge(text: String) {
 // ─── Stat Item ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun StatItem(value: String, label: String) {
+private fun StatItem(value: String, label: String, isLoading: Boolean = false) {
     Column {
         Text(
             text = value,
+            modifier = Modifier.skeleton(isLoading),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -455,7 +497,7 @@ private fun StatItem(value: String, label: String) {
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.42f),
-            modifier = Modifier.padding(top = 1.dp)
+            modifier = Modifier.padding(top = 1.dp).skeleton(isLoading)
         )
     }
 }
@@ -492,24 +534,39 @@ private fun ExpertiseChip(name: String, count: Int) {
 // ─── Album Card ───────────────────────────────────────────────────────────────
 
 @Composable
-fun AlbumCard(album: Album, onClick: (Long) -> Unit) {
+fun AlbumCard(
+    album: Album? = null,
+    isLoading: Boolean = false,
+    onClick: (Long) -> Unit,
+) {
     Column(
         modifier = Modifier
             .width(116.dp)
-            .clickable { onClick(album.id) }
+            .clickable(enabled = !isLoading && album != null) {
+                album?.id?.let(onClick)
+            }
     ) {
-        AsyncImage(
-            model = album.cover,
-            contentDescription = album.title,
-            modifier = Modifier
-                .size(116.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentScale = ContentScale.Crop
-        )
+        if (isLoading) {
+            Spacer(
+                modifier = Modifier
+                    .size(116.dp)
+                    .skeleton(true, RoundedCornerShape(8.dp))
+            )
+        } else {
+            AsyncImage(
+                model = album?.cover,
+                contentDescription = album?.title,
+                modifier = Modifier
+                    .size(116.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentScale = ContentScale.Crop
+            )
+        }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = album.title,
+            text = album?.title ?: "正在加载的专辑标题\n专辑标题",
+            modifier = Modifier.skeleton(isLoading),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
             maxLines = 2,
@@ -517,28 +574,17 @@ fun AlbumCard(album: Album, onClick: (Long) -> Unit) {
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            text = "${album.size} 首",
+            text = album?.let { "${it.size} 首" } ?: "00 首",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.42f),
-            modifier = Modifier.padding(top = 2.dp)
+            modifier = Modifier.padding(top = 2.dp).skeleton(isLoading)
         )
     }
 }
 
 @Composable
 fun AlbumCardShimmer() {
-    Column(modifier = Modifier.width(116.dp)) {
-        Spacer(
-            modifier = Modifier
-                .size(116.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        TextPlaceholder(Modifier.width(96.dp).height(14.dp))
-        Spacer(modifier = Modifier.height(4.dp))
-        TextPlaceholder(Modifier.width(56.dp).height(12.dp))
-    }
+    AlbumCard(isLoading = true, onClick = {})
 }
 
 
@@ -546,65 +592,12 @@ fun AlbumCardShimmer() {
 
 @Composable
 fun ArtistHeaderShimmer() {
-    ShimmerHost {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Hero 占位
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(320.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.BottomStart
-            ) {
-                Column(
-                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Spacer(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        )
-                        Spacer(modifier = Modifier.width(14.dp))
-                        Column {
-                            TextPlaceholder(Modifier.width(160.dp).height(22.dp))
-                            Spacer(modifier = Modifier.height(6.dp))
-                            TextPlaceholder(Modifier.width(100.dp).height(13.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                        repeat(3) {
-                            Column {
-                                TextPlaceholder(Modifier.width(36.dp).height(18.dp))
-                                Spacer(modifier = Modifier.height(4.dp))
-                                TextPlaceholder(Modifier.width(24.dp).height(11.dp))
-                            }
-                        }
-                    }
-                }
-            }
-            // Body 占位
-            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Spacer(
-                    modifier = Modifier
-                        .padding(vertical = 16.dp)
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                )
-                TextPlaceholder(Modifier.fillMaxWidth().height(13.dp))
-                Spacer(modifier = Modifier.height(6.dp))
-                TextPlaceholder(Modifier.fillMaxWidth(0.82f).height(13.dp))
-                Spacer(modifier = Modifier.height(6.dp))
-                TextPlaceholder(Modifier.fillMaxWidth(0.6f).height(13.dp))
-            }
-        }
+    SkeletonShimmerHost(enabled = true) {
+        ArtistHeader(
+            artist = null,
+            expertIdentities = emptyList(),
+            isLoading = true,
+        )
     }
 }
 

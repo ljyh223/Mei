@@ -32,6 +32,8 @@ import androidx.paging.compose.itemKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.ui.component.item.Track
+import com.ljyh.mei.ui.component.item.TrackPlaceholder
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.rememberPreference
 
 @Composable
@@ -46,7 +48,9 @@ fun PlaylistTrackList(
     onTrackDownload: ((MediaMetadata) -> Unit)? = null,
     lazyListState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    emptyMessage: String? = null
+    emptyMessage: String? = null,
+    isLoading: Boolean = false,
+    loadingItemCount: Int = 8,
 ) {
 
     val playlistTrackTableHeader by rememberPreference(PlaylistTrackTableHeaderKey,  false)
@@ -54,7 +58,7 @@ fun PlaylistTrackList(
     Column(modifier = modifier.fillMaxSize()) {
 
         if (isTablet && playlistTrackTableHeader) {
-            TrackTableHeader()
+            TrackTableHeader(isLoading = isLoading)
         }
 
         LazyColumn(
@@ -69,7 +73,14 @@ fun PlaylistTrackList(
             }
             // 如果是平板，可以在这里加一个 StickyHeader 作为“表头”
 
-            if (pagingItems != null) {
+            if (isLoading) {
+                items(
+                    count = loadingItemCount,
+                    key = { "playlist_track_placeholder_$it" },
+                ) { index ->
+                    TrackPlaceholder(index = index, isTablet = isTablet)
+                }
+            } else if (pagingItems != null) {
                 items(
                     count = pagingItems.itemCount,
                     key = pagingItems.itemKey { it.id },
@@ -154,7 +165,7 @@ fun PlaylistTrackList(
 
 
 @Composable
-fun TrackTableHeader() {
+fun TrackTableHeader(isLoading: Boolean = false) {
     Column {
         Row(
             modifier = Modifier
@@ -162,18 +173,18 @@ fun TrackTableHeader() {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("#", Modifier.width(36.dp), textAlign = TextAlign.Center,
+            Text("#", Modifier.width(36.dp).skeleton(isLoading), textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             // 这里的 paddingStart 必须和 Track 里的封面宽度 + 间距对齐
             // 40.dp (封面) + 16.dp (间距) = 56.dp
-            Text("标题", Modifier.weight(4f).padding(start = 56.dp),
+            Text("标题", Modifier.weight(4f).padding(start = 56.dp).skeleton(isLoading),
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            Text("专辑", Modifier.weight(3f).padding(horizontal = 8.dp),
+            Text("专辑", Modifier.weight(3f).padding(horizontal = 8.dp).skeleton(isLoading),
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            Text("时长", Modifier.width(60.dp), textAlign = TextAlign.End,
+            Text("时长", Modifier.width(60.dp).skeleton(isLoading), textAlign = TextAlign.End,
                 style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(Modifier.width(40.dp))

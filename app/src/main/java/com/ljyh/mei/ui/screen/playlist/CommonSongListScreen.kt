@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -52,12 +53,13 @@ import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
+import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionOverlay
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistHeader
-import com.ljyh.mei.ui.screen.playlist.component.PlaylistShimmer
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
 
 
@@ -167,7 +169,7 @@ fun CommonSongListScreen(
                     }
                 }
                 val actions: @Composable RowScope.() -> Unit = {
-                    if (supportsPlaylistSearch) {
+                    if (supportsPlaylistSearch && !isLoading) {
                         IconButton(onClick = {
                             if (isPlaylistSearchActive) {
                                 onPlaylistSearchQueryChange("")
@@ -203,15 +205,12 @@ fun CommonSongListScreen(
                 }
             }
         ) { paddingValues ->
-            Box(
-                Modifier
+            SkeletonShimmerHost(
+                enabled = isLoading,
+                modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(paddingValues),
             ) {
-
-                if (isLoading) {
-                    PlaylistShimmer()
-                } else {
                     if (device.isTablet && device.isLandscape) {
                         // --- 平板布局：左右并排 ---
                         Row(modifier = Modifier.fillMaxSize()) {
@@ -229,13 +228,14 @@ fun CommonSongListScreen(
                                     playCount = uiData.playCount ?: 0L,
                                     subscribeCount = uiData.subscriberCount,
                                     isSubscribed = uiData.isSubscribed,
+                                    isLoading = isLoading,
                                     onSubscribed = {
                                         onHeaderAction()
                                     }
                                 )
                             }
                             Column(modifier = Modifier.weight(0.6f)) {
-                                if (isPlaylistSearchActive) {
+                                if (!isLoading && isPlaylistSearchActive) {
                                     TextField(
                                         value = playlistSearchQuery,
                                         onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
@@ -266,7 +266,9 @@ fun CommonSongListScreen(
                                     onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
                                     onTrackDownload = onTrackDownload,
                                     emptyMessage = playlistSearchQuery.takeIf { it.isNotBlank() }
-                                        ?.let { "未找到匹配的歌曲" }
+                                        ?.let { "未找到匹配的歌曲" },
+                                    isLoading = isLoading,
+                                    loadingItemCount = 10,
                                 )
                             }
                         }
@@ -291,6 +293,7 @@ fun CommonSongListScreen(
                                     playCount = uiData.playCount ?: 0L,
                                     subscribeCount = uiData.subscriberCount,
                                     isSubscribed = uiData.isSubscribed,
+                                    isLoading = isLoading,
                                     onSubscribed = { onHeaderAction() }
                                 )
                             },
@@ -302,11 +305,10 @@ fun CommonSongListScreen(
                             // 手机端需要考虑底部播放器的高度
                             contentPadding = PaddingValues(
                                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-                            )
+                            ),
+                            isLoading = isLoading,
                         )
                     }
-                }
-
             }
 
             PlaylistActionOverlay(
@@ -333,15 +335,26 @@ fun ActionButton(
     icon: ImageVector,
     text: String,
     onClick: () -> Unit,
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    isLoading: Boolean = false,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         IconButton(
             onClick = onClick,
+            enabled = !isLoading,
             colors = IconButtonDefaults.iconButtonColors(contentColor = color)
         ) {
-            Icon(icon, contentDescription = text, modifier = Modifier.size(28.dp))
+            Icon(
+                icon,
+                contentDescription = text,
+                modifier = Modifier.size(28.dp).skeleton(isLoading, CircleShape),
+            )
         }
-        Text(text, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.8f))
+        Text(
+            text,
+            modifier = Modifier.skeleton(isLoading),
+            style = MaterialTheme.typography.labelSmall,
+            color = color.copy(alpha = 0.8f),
+        )
     }
 }

@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.Dp
 import com.ljyh.mei.constants.RecommendCardHeight
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.ui.screen.main.home.HomeViewModel
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.largeImage
 
 @Composable
@@ -51,6 +52,7 @@ fun RecommendCard(
     cardWidth: Dp = RecommendCardWidth,
     cardHeight: Dp = RecommendCardHeight,
     viewModel: HomeViewModel,
+    isLoading: Boolean = false,
     onPlayClick: (() -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
@@ -58,8 +60,10 @@ fun RecommendCard(
         mutableStateOf(viewModel.getCachedColor(cover) ?: Color.DarkGray)
     }
 
-    LaunchedEffect(cover) {
-        extractedColor = viewModel.getOrExtractColor(cover)
+    LaunchedEffect(cover, isLoading) {
+        if (!isLoading) {
+            extractedColor = viewModel.getOrExtractColor(cover)
+        }
     }
 
     val baseColor by animateColorAsState(extractedColor, label = "recommendCardColor")
@@ -68,9 +72,10 @@ fun RecommendCard(
         modifier = Modifier
             .size(width = cardWidth, height = cardHeight)
             .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() }
+            .clickable(enabled = !isLoading) { onClick() }
+            .skeleton(isLoading, RoundedCornerShape(8.dp))
     ) {
-        AsyncImage(
+        if (!isLoading) AsyncImage(
             model = cover.largeImage(),
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -81,7 +86,7 @@ fun RecommendCard(
         )
 
         // 信息叠在封面上；底部渐变覆盖同一张图，因此没有图片与信息区的物理边界。
-        Box(
+        if (!isLoading) Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
