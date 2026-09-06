@@ -15,8 +15,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import com.ljyh.mei.ui.screen.Index
 
-const val BottomNavigationAnimationDurationMillis = 240
-
 /**
  * Material 3 bottom navigation owned by the app scaffold.
  *

@@ -7,11 +7,8 @@ import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -87,6 +84,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.lerp
 import com.ljyh.mei.ui.model.LyricSource
+import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.UnitUtils.toPx
 import kotlin.math.min
 import com.kyant.backdrop.Backdrop
@@ -137,12 +135,12 @@ fun AppleMusicPlayer(
     val lyricTransition = updateTransition(targetState = showLyrics, label = "LyricMode")
     val lyricAnimFraction by lyricTransition.animateFloat(
         label = "Fraction",
-        transitionSpec = { spring(stiffness = Spring.StiffnessLow) }
+        transitionSpec = { PlayerMotionSpec.LyricModeSpring }
     ) { if (it) 1f else 0f }
 
     val sheetProgress = state.progress
-    val expandedUiAlpha = ((sheetProgress - 0.42f) / 0.28f).coerceIn(0f, 1f)
-    val meshBackgroundAlpha = ((sheetProgress - 0.12f) / 0.28f).coerceIn(0f, 1f)
+    val expandedUiAlpha = PlayerMotionSpec.ExpandedUiReveal.transform(sheetProgress)
+    val meshBackgroundAlpha = PlayerMotionSpec.BackgroundReveal.transform(sheetProgress)
     val coverUrl = mediaMetadata?.coverUrl
     val colorScheme = MaterialTheme.colorScheme
     val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
@@ -211,7 +209,11 @@ fun AppleMusicPlayer(
         val finalStart = lerp(miniStart, targetStart, coverProgress)
         val finalRadius = lerp(miniRadius, targetRadius, coverProgress)
 
-        val shadowAlpha = if (sheetProgress > 0.8f) (1f - lyricAnimFraction) else 0f
+        val shadowAlpha = if (sheetProgress > PlayerMotionSpec.CoverShadowStartProgress) {
+            1f - lyricAnimFraction
+        } else {
+            0f
+        }
         var mShadowElevation = 16.dp * shadowAlpha
 
         // --- 3. UI Structure ---
@@ -272,16 +274,30 @@ fun AppleMusicPlayer(
                         targetState = currentMedia,
                         transitionSpec = {
                             val enter = if (state.revealProgress <= 0f) {
-                                fadeIn(animationSpec = tween(durationMillis = 120))
+                                fadeIn(
+                                    animationSpec = PlayerMotionSpec.tween(
+                                        PlayerMotionSpec.InitialCoverEnterDurationMillis,
+                                    ),
+                                )
                             } else {
-                                fadeIn(animationSpec = tween(durationMillis = 400)) +
+                                fadeIn(
+                                    animationSpec = PlayerMotionSpec.tween(
+                                        PlayerMotionSpec.CoverSwapDurationMillis,
+                                    ),
+                                ) +
                                     scaleIn(
-                                        initialScale = 0.92f,
-                                        animationSpec = tween(durationMillis = 400),
+                                        initialScale = PlayerMotionSpec.CoverSwapInitialScale,
+                                        animationSpec = PlayerMotionSpec.tween(
+                                            PlayerMotionSpec.CoverSwapDurationMillis,
+                                        ),
                                     )
                             }
                             enter.togetherWith(
-                                fadeOut(animationSpec = tween(durationMillis = 400)),
+                                fadeOut(
+                                    animationSpec = PlayerMotionSpec.tween(
+                                        PlayerMotionSpec.CoverSwapDurationMillis,
+                                    ),
+                                ),
                             )
                         },
                         label = "CoverTransition",
@@ -398,16 +414,8 @@ fun AppleMusicPlayer(
                 // Mode C: Header Info
                 if (mediaMetadata != null) {
                     val fraction = lyricAnimFraction
-                    val enterThreshold = 0.4f
-
-                    val headerTextAlpha = if (fraction > enterThreshold) {
-                        ((fraction - enterThreshold) / (1f - enterThreshold)).coerceIn(
-                            0f,
-                            1f
-                        ) * sheetProgress
-                    } else {
-                        0f
-                    }
+                    val headerTextAlpha =
+                        PlayerMotionSpec.LyricHeaderReveal.transform(fraction) * sheetProgress
 
                     if (headerTextAlpha > 0.01f) {
                         val headerTextWidth =

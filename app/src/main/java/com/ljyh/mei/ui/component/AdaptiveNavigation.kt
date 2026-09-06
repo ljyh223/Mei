@@ -1,8 +1,6 @@
 package com.ljyh.mei.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -11,10 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
+import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
-
-const val TabletNavigationAnimationDurationMillis = 240
 
 fun String?.isMainDestination(): Boolean = Screen.MainScreens.any { it.route == this }
 
@@ -43,22 +40,16 @@ fun AdaptiveMainNavigationRail(
             visible = shouldShow,
             modifier = sidebarModifier,
             enter = slideInHorizontally(
-                animationSpec = tween(
-                    durationMillis = TabletNavigationAnimationDurationMillis,
-                    easing = FastOutSlowInEasing,
-                ),
+                animationSpec = PlayerMotionSpec.tween(),
                 initialOffsetX = { -it },
             ) + fadeIn(
-                animationSpec = tween(TabletNavigationAnimationDurationMillis),
+                animationSpec = PlayerMotionSpec.tween(),
             ),
             exit = slideOutHorizontally(
-                animationSpec = tween(
-                    durationMillis = TabletNavigationAnimationDurationMillis,
-                    easing = FastOutSlowInEasing,
-                ),
+                animationSpec = PlayerMotionSpec.tween(),
                 targetOffsetX = { -it },
             ) + fadeOut(
-                animationSpec = tween(TabletNavigationAnimationDurationMillis),
+                animationSpec = PlayerMotionSpec.tween(),
             ),
         ) {
             TabletNavigationRail(

@@ -2,10 +2,7 @@ package com.ljyh.mei.ui.component.player.component.classic.component
 
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -53,6 +50,7 @@ import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.image.saveImageToGallery
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
@@ -87,10 +85,7 @@ fun Cover(
 
     val coverScale by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0.9f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec = PlayerMotionSpec.CoverPlayStateSpring,
         label = "CoverScale"
     )
 
@@ -103,7 +98,11 @@ fun Cover(
         AnimatedContent(
             targetState = mediaMetadata.coverUrl,
             transitionSpec = {
-                fadeIn(tween(500)) togetherWith fadeOut(tween(500))
+                fadeIn(
+                    PlayerMotionSpec.tween(PlayerMotionSpec.ClassicCoverSwapDurationMillis),
+                ) togetherWith fadeOut(
+                    PlayerMotionSpec.tween(PlayerMotionSpec.ClassicCoverSwapDurationMillis),
+                )
             },
             label = "CoverTransition",
             modifier = Modifier.graphicsLayer {

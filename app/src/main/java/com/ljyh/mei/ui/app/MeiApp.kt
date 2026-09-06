@@ -1,9 +1,7 @@
 package com.ljyh.mei.ui.app
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -53,8 +51,6 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.component.AdaptiveMainNavigationRail
 import com.ljyh.mei.ui.component.AppBottomNavigationBar
-import com.ljyh.mei.ui.component.BottomNavigationAnimationDurationMillis
-import com.ljyh.mei.ui.component.TabletNavigationAnimationDurationMillis
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
 import com.ljyh.mei.ui.component.player.SyncPlayerSheetVisibility
@@ -70,6 +66,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.local.LocalUserData
+import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
@@ -151,10 +148,7 @@ fun MeiApp(
                 } else {
                     0.dp
                 },
-                animationSpec = tween(
-                    durationMillis = TabletNavigationAnimationDurationMillis,
-                    easing = FastOutSlowInEasing,
-                ),
+                animationSpec = PlayerMotionSpec.tween(),
                 label = "mainNavigationStartPadding",
             )
             val playerBottomSheetState = rememberBottomSheetState(
@@ -165,10 +159,7 @@ fun MeiApp(
                 expandedBound = maxHeight,
             )
             val bottomChromeAnimationSpec = remember {
-                tween<Float>(
-                    durationMillis = BottomNavigationAnimationDurationMillis,
-                    easing = FastOutSlowInEasing,
-                )
+                PlayerMotionSpec.tween<Float>()
             }
             val routeBottomNavigationProgress by animateFloatAsState(
                 targetValue = if (shellState.showBottomNavigation) 1f else 0f,

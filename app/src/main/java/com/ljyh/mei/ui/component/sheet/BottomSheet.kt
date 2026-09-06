@@ -7,12 +7,9 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
@@ -61,6 +58,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -106,7 +104,7 @@ fun BottomSheet(
     val flingBehavior = AnchoredDraggableDefaults.flingBehavior(
         state = state.anchoredDraggableState,
         positionalThreshold = { distance -> distance * 0.5f },
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = PlayerMotionSpec.SheetSettleSpring,
     )
 
     LaunchedEffect(state) {
@@ -193,7 +191,7 @@ fun BottomSheet(
                     if (morphLayout != null) {
                         backgroundColor.copy(
                             alpha = backgroundColor.alpha * if (transparentCollapsedContainer) {
-                                ((progress - 0.12f) / 0.28f).coerceIn(0f, 1f)
+                                PlayerMotionSpec.BackgroundReveal.transform(progress)
                             } else if (keepExpandedContentComposed) {
                                 1f
                             } else {
@@ -203,7 +201,7 @@ fun BottomSheet(
                     } else {
                         backgroundColor.copy(
                             alpha = backgroundColor.alpha *
-                                    ((state.progress - 0.15f) / 0.85f).coerceIn(0f, 1f)
+                                    PlayerMotionSpec.DefaultContainerReveal.transform(state.progress)
                         )
                     }
                 )
@@ -218,8 +216,15 @@ fun BottomSheet(
                     AnimatedContent(
                         targetState = state.isTargetExpanded,
                         transitionSpec = {
-                            fadeIn(animationSpec = tween(180)) togetherWith
-                                    fadeOut(animationSpec = tween(120))
+                            fadeIn(
+                                animationSpec = PlayerMotionSpec.tween(
+                                    PlayerMotionSpec.ContainerEnterDurationMillis,
+                                ),
+                            ) togetherWith fadeOut(
+                                animationSpec = PlayerMotionSpec.tween(
+                                    PlayerMotionSpec.ContainerExitDurationMillis,
+                                ),
+                            )
                         },
                         modifier = Modifier.fillMaxSize(),
                         label = "playerContainerContent"
@@ -265,7 +270,7 @@ fun BottomSheet(
                                 alpha = if (keepExpandedContentComposed) {
                                     1f
                                 } else {
-                                    ((state.progress - 0.25f) * 4).coerceIn(0f, 1f)
+                                    PlayerMotionSpec.ExpandedContentReveal.transform(state.progress)
                                 }
                             },
                         content = content
@@ -277,10 +282,9 @@ fun BottomSheet(
                         modifier = Modifier
                             .graphicsLayer {
                                 alpha = if (keepExpandedContentComposed) {
-                                    ((MINI_PLAYER_FADE_END - state.progress) /
-                                        MINI_PLAYER_FADE_END).coerceIn(0f, 1f)
+                                    PlayerMotionSpec.MiniPlayerExit.reverse(state.progress)
                                 } else {
-                                    1f - (state.progress * 4).coerceAtMost(1f)
+                                    PlayerMotionSpec.MorphMiniPlayerExit.reverse(state.progress)
                                 }
                             }
                             .fillMaxWidth()
@@ -299,8 +303,6 @@ fun BottomSheet(
         }
     }
 }
-
-private const val MINI_PLAYER_FADE_END = 0.18f
 
 @Stable
 class BottomSheetState(
@@ -390,7 +392,7 @@ class BottomSheetState(
     }
 
     fun collapseSoft() {
-        collapse(spring(stiffness = Spring.StiffnessMediumLow))
+        collapse(PlayerMotionSpec.SheetSettleSpring)
     }
 
     /**
@@ -404,20 +406,22 @@ class BottomSheetState(
         animateTo(
             target = BottomSheetValue.Collapsed,
             anchor = collapsedAnchor,
-            animationSpec = tween(durationMillis = 280),
+            animationSpec = PlayerMotionSpec.tween(
+                PlayerMotionSpec.CollapseForNavigationDurationMillis,
+            ),
             onFinished = onCollapsed,
         )
     }
 
     fun expandSoft() {
-        expand(spring(stiffness = Spring.StiffnessMediumLow))
+        expand(PlayerMotionSpec.SheetSettleSpring)
     }
 
     fun dismiss() {
         animateTo(
             target = BottomSheetValue.Dismissed,
             anchor = dismissedAnchor,
-            animationSpec = spring(),
+            animationSpec = PlayerMotionSpec.SheetDismissSpring,
         )
     }
 
