@@ -6,11 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -79,25 +80,36 @@ fun Title(
         // 2. 按钮区域
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Like Button
-            IconButton(onClick = onLikeClick) {
+            val actionButtonColors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = iconColor.copy(alpha = 0.14f),
+                contentColor = iconColor,
+            )
+
+            FilledTonalIconButton(
+                onClick = onLikeClick,
+                modifier = Modifier.size(40.dp),
+                colors = actionButtonColors,
+            ) {
                 Icon(
-                    imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    imageVector = if (isLiked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
                     contentDescription = "Like",
-                    tint = if (isLiked) Color.Red else iconColor.copy(alpha = 0.8f), // 喜欢时变红
-                    modifier = Modifier.size(24.dp) // 稍微调整大小适配不同高度
+                    tint = iconColor.copy(alpha = if (isLiked) 1f else 0.8f),
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
-            // More Button
-            IconButton(onClick = onMoreClick) {
+            FilledTonalIconButton(
+                onClick = onMoreClick,
+                modifier = Modifier.size(40.dp),
+                colors = actionButtonColors,
+            ) {
                 Icon(
-                    imageVector = Icons.Rounded.MoreVert, // 或者 MoreHoriz
+                    imageVector = Icons.Rounded.MoreVert,
                     contentDescription = "More",
                     tint = iconColor.copy(alpha = 0.8f),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp),
                 )
             }
         }
