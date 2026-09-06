@@ -77,6 +77,12 @@ data class BottomSheetMorphSpec(
     val expandedBottomMargin: Dp = 0.dp,
 )
 
+/** Controls whether the player surface changes size or moves as a fixed-size sheet. */
+enum class BottomSheetContainerMotion {
+    Morph,
+    Sheet,
+}
+
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -87,6 +93,7 @@ fun BottomSheet(
     onDismiss: (() -> Unit)? = null,
     onHorizontalSwipe: ((direction: HorizontalSwipeDirection) -> Unit)? = null,
     morphSpec: BottomSheetMorphSpec? = null,
+    containerMotion: BottomSheetContainerMotion = BottomSheetContainerMotion.Morph,
     sharedTransitionKey: String? = null,
     keepExpandedContentComposed: Boolean = false,
     transparentCollapsedContainer: Boolean = false,
@@ -133,7 +140,12 @@ fun BottomSheet(
             Modifier
                 .align(Alignment.TopCenter)
                 .width(morphLayout.width)
-                .height(morphLayout.height)
+                .height(
+                    when (containerMotion) {
+                        BottomSheetContainerMotion.Morph -> morphLayout.height
+                        BottomSheetContainerMotion.Sheet -> state.expandedBound
+                    }
+                )
         } else {
             Modifier.fillMaxSize()
         }

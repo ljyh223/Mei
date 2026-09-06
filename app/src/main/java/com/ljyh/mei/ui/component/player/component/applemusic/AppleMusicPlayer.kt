@@ -83,6 +83,7 @@ import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheet
+import com.ljyh.mei.ui.component.sheet.BottomSheetContainerMotion
 import com.ljyh.mei.ui.component.sheet.BottomSheetMorphSpec
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
@@ -144,6 +145,15 @@ fun AppleMusicPlayer(
     val sheetProgress = state.progress
     val expandedUiAlpha = ((sheetProgress - 0.42f) / 0.28f).coerceIn(0f, 1f)
     val meshBackgroundAlpha = ((sheetProgress - 0.12f) / 0.28f).coerceIn(0f, 1f)
+    val coverUrl = mediaMetadata?.coverUrl
+    val audioVisualizerManager = remember { AudioVisualizerManager(context) }
+
+    LaunchedEffect(stateContainer.playerConnection.player) {
+        val player = stateContainer.playerConnection.player as? ExoPlayer
+        player?.audioSessionId?.let { sessionId ->
+            audioVisualizerManager.attachToPlayer(sessionId)
+        }
+    }
 
     val colorScheme = MaterialTheme.colorScheme
     val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
@@ -215,12 +225,11 @@ fun AppleMusicPlayer(
         val shadowAlpha = if (sheetProgress > 0.8f) (1f - lyricAnimFraction) else 0f
         var mShadowElevation = 16.dp * shadowAlpha
 
-
         // --- 3. UI Structure ---
         BottomSheet(
             state = state,
             modifier = Modifier.fillMaxSize(),
-            backgroundColor = backgroundColor,
+            backgroundColor = Color.Transparent,
             morphSpec = BottomSheetMorphSpec(
                 collapsedHorizontalMargin = 0.dp,
                 collapsedCornerRadius = 0.dp,
@@ -230,6 +239,7 @@ fun AppleMusicPlayer(
                 collapsedBottomMargin = collapsedBottomOffset,
                 expandedBottomMargin = 0.dp,
             ),
+            containerMotion = BottomSheetContainerMotion.Sheet,
             keepExpandedContentComposed = true,
             // The bar is a full-width Material 3 surface; the player cover is drawn by the
             // sheet-local overlay so it shares the sheet's coordinate space.
@@ -330,23 +340,12 @@ fun AppleMusicPlayer(
                 }
             },
         ) {
-            val coverUrl = mediaMetadata?.coverUrl
-
-            val audioVisualizerManager = remember { AudioVisualizerManager(context) }
-
-            LaunchedEffect(stateContainer.playerConnection.player) {
-                val player = stateContainer.playerConnection.player as? ExoPlayer
-                player?.audioSessionId?.let { sessionId ->
-                    audioVisualizerManager.attachToPlayer(sessionId)
-                }
-            }
-
+            // This OpenGL surface now keeps its full-screen size for the entire transition. The
+            // sheet moves as one fixed page, avoiding the SurfaceView resize seam seen on devices.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer {
-                        alpha = if (backdrop == null) 1f else meshBackgroundAlpha
-                    }
+                    .graphicsLayer { alpha = meshBackgroundAlpha }
                     .background(backgroundColor),
             )
             FluidBackground(
