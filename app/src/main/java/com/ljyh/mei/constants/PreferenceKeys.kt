@@ -25,6 +25,7 @@ val UserAvatarUrlKey = stringPreferencesKey("userAvatarUrl")
 val UserPhotoKey = stringPreferencesKey("userPhoto")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val DesktopLyricsEnabledKey = booleanPreferencesKey("desktopLyricsEnabled")
+val DesktopLyricsBackgroundKey = booleanPreferencesKey("desktopLyricsBackground")
 val DesktopLyricsXKey = intPreferencesKey("desktopLyricsX")
 val DesktopLyricsYKey = intPreferencesKey("desktopLyricsY")
 

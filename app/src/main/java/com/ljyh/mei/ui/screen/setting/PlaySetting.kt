@@ -37,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.ljyh.mei.constants.DesktopLyricsEnabledKey
+import com.ljyh.mei.constants.DesktopLyricsBackgroundKey
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
@@ -63,6 +64,10 @@ fun PlaySetting(
     val (desktopLyricsEnabled, onDesktopLyricsChange) = rememberPreference(
         key = DesktopLyricsEnabledKey,
         defaultValue = false
+    )
+    val (desktopLyricsBackground, onDesktopLyricsBackgroundChange) = rememberPreference(
+        key = DesktopLyricsBackgroundKey,
+        defaultValue = true
     )
     var overlayPermissionGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     var waitingForOverlayPermission by remember { mutableStateOf(false) }
@@ -134,7 +139,7 @@ fun PlaySetting(
             )
             SwitchPreference(
                 title = { Text("桌面歌词") },
-                description = if (overlayPermissionGranted) "播放时显示，可拖动位置" else "开启需授予悬浮窗权限",
+                description = if (overlayPermissionGranted) "可拖动，点击关闭按钮可退出" else "开启需授予悬浮窗权限",
                 icon = { Icon(Icons.Rounded.Lyrics, null) },
                 checked = desktopLyricsEnabled && overlayPermissionGranted,
                 onCheckedChange = { enabled ->
@@ -153,6 +158,14 @@ fun PlaySetting(
                         )
                     }
                 }
+            )
+            SwitchPreference(
+                title = { Text("桌面歌词背景") },
+                description = "关闭后只显示歌词与播放按钮",
+                icon = { Icon(Icons.Rounded.Lyrics, null) },
+                checked = desktopLyricsBackground,
+                onCheckedChange = onDesktopLyricsBackgroundChange,
+                isEnabled = desktopLyricsEnabled && overlayPermissionGranted,
             )
             SwitchPreference(
                 title = { Text("循环播放") },
