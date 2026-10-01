@@ -40,15 +40,27 @@ data class CoverPalette(
     val textColor4: String?
 )
 
+data class MotionArtworkClip(
+    val url: String,
+    val palette: CoverPalette?,
+    val previewUrl: String?
+)
+
 data class DynamicCover(
     val songId: Long,
     val url: String,
     val source: Source,
     val cacheKey: String,
     val palette: CoverPalette? = null,
-    val previewUrl: String? = null
+    val previewUrl: String? = null,
+    val portraitClip: MotionArtworkClip? = null
 ) {
     enum class Source { APPLE_MUSIC, NETEASE }
+
+    fun portraitVariant(): DynamicCover? = portraitClip?.let {
+        copy(url = it.url, cacheKey = "$cacheKey:portrait", palette = it.palette,
+            previewUrl = it.previewUrl, portraitClip = null)
+    }
 }
 
 /** Decorative data: any network, parsing or matching failure falls back to the next source. */
@@ -202,10 +214,17 @@ class DynamicCoverRepository @Inject constructor(
         val video = appleGet(motionUrl.toString()).optJSONArray("data")
             ?.optJSONObject(0)?.optJSONObject("attributes")?.optJSONObject("editorialVideo")
             ?: return null
-        val clip = listOf("motionDetailSquare", "motionSquareVideo1x1", "motionDetailTall", "motionTallVideo3x4")
-            .firstNotNullOfOrNull { key -> video.optJSONObject(key)?.takeIf { it.optString("video").isNotBlank() } }
-            ?: return null
-        val url = clip.optString("video").takeIf { it.startsWith("https://") } ?: return null
+        val square = parseMotionClip(video.optJSONObject("motionDetailSquare"))
+            ?: parseMotionClip(video.optJSONObject("motionSquareVideo1x1"))
+        val portrait = parseMotionClip(video.optJSONObject("motionDetailTall"))
+            ?: parseMotionClip(video.optJSONObject("motionTallVideo3x4"))
+        val primary = square ?: portrait ?: return null
+        return DynamicCover(song.id, primary.url, DynamicCover.Source.APPLE_MUSIC,
+            "dynamic:apple:$id", primary.palette, primary.previewUrl, portrait)
+    }
+
+    private fun parseMotionClip(clip: JSONObject?): MotionArtworkClip? {
+        val url = clip?.optString("video")?.takeIf { it.startsWith("https://") } ?: return null
         val artwork = clip.optJSONObject("previewFrame")
         val palette = artwork?.let {
             CoverPalette(it.optString("bgColor"), it.optString("textColor1"),
@@ -213,7 +232,7 @@ class DynamicCoverRepository @Inject constructor(
         }
         val previewUrl = artwork?.optString("url")?.takeIf { it.startsWith("https://") }
             ?.replace("{w}x{h}", "1000x1000")?.replace("{f}", "jpg")
-        return DynamicCover(song.id, url, DynamicCover.Source.APPLE_MUSIC, "dynamic:apple:$id", palette, previewUrl)
+        return MotionArtworkClip(url, palette, previewUrl)
     }
 
     private suspend fun appleGet(url: String): JSONObject {

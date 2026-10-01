@@ -76,7 +76,9 @@ class PlayerViewModel @Inject constructor(
             val cover = dynamicCoverRepository.resolve(song)
             _dynamicCover.value = cover
             if (next != null && next.id != song.id) {
-                dynamicCoverRepository.resolve(next)?.let { dynamicCoverRepository.prefetch(it) }
+                dynamicCoverRepository.resolve(next)?.let {
+                    dynamicCoverRepository.prefetch(it.portraitVariant() ?: it)
+                }
             } else if (next == null && nextId != null && nextId != song.id) {
                 dynamicCoverRepository.prefetchNetease(nextId)
             }

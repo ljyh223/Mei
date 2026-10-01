@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.component.player.component
 
+import android.content.Context
+import android.graphics.Matrix
 import android.view.TextureView
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
@@ -21,6 +23,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -42,6 +45,9 @@ fun DynamicCoverView(
     val context = LocalContext.current
     var firstFrame by remember(cover?.cacheKey, cover?.url) { mutableStateOf(false) }
     var failed by remember(cover?.cacheKey, cover?.url) { mutableStateOf(false) }
+    var videoDimensions by remember(cover?.cacheKey, cover?.url) {
+        mutableStateOf(Triple(0, 0, 1f))
+    }
     val player = remember(cover?.cacheKey, cover?.url) {
         cover?.let {
             ExoPlayer.Builder(context)
@@ -64,6 +70,9 @@ fun DynamicCoverView(
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onRenderedFirstFrame() { firstFrame = true }
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                videoDimensions = Triple(videoSize.width, videoSize.height, videoSize.pixelWidthHeightRatio)
+            }
             override fun onPlayerError(error: PlaybackException) {
                 failed = true
                 onPlaybackError()
@@ -91,9 +100,39 @@ fun DynamicCoverView(
         )
         if (player != null && !failed) {
             AndroidView(
-                factory = { viewContext -> TextureView(viewContext).also(player::setVideoTextureView) },
+                factory = { viewContext -> CenterCropTextureView(viewContext).also(player::setVideoTextureView) },
+                update = { view ->
+                    view.setVideoDimensions(videoDimensions.first, videoDimensions.second, videoDimensions.third)
+                },
                 modifier = Modifier.fillMaxSize().alpha(if (firstFrame) 1f else 0f)
             )
         }
+    }
+}
+
+private class CenterCropTextureView(context: Context) : TextureView(context) {
+    private var videoWidth = 0
+    private var videoHeight = 0
+    private var pixelRatio = 1f
+
+    fun setVideoDimensions(width: Int, height: Int, ratio: Float) {
+        videoWidth = width
+        videoHeight = height
+        pixelRatio = ratio
+        updateTransform()
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        updateTransform()
+    }
+
+    private fun updateTransform() {
+        if (width <= 0 || height <= 0 || videoWidth <= 0 || videoHeight <= 0) return
+        val videoRatio = videoWidth * pixelRatio / videoHeight
+        val viewRatio = width.toFloat() / height
+        val scaleX = if (videoRatio > viewRatio) videoRatio / viewRatio else 1f
+        val scaleY = if (videoRatio < viewRatio) viewRatio / videoRatio else 1f
+        setTransform(Matrix().apply { setScale(scaleX, scaleY, width / 2f, height / 2f) })
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -51,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
@@ -70,6 +72,7 @@ import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
+import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.ui.component.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
@@ -122,7 +125,9 @@ fun AppleMusicPlayer(
     val isDragging by remember { derivedStateOf { stateContainer.isDragging } }
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
     val isLiked by stateContainer.isLiked
-
+    val portraitCover = dynamicCover?.takeIf {
+        it.source == DynamicCover.Source.APPLE_MUSIC && it.songId == mediaMetadata?.id
+    }?.portraitVariant()
     // --- Apple Music 特定的 LaunchedEffect ---
     LaunchedEffect(state.isCollapsed) {
         if (state.isCollapsed) {
@@ -144,6 +149,14 @@ fun AppleMusicPlayer(
     val sheetProgress = state.progress
     val expandedUiAlpha = PlayerMotionSpec.ExpandedUiReveal.transform(sheetProgress)
     val meshBackgroundAlpha = PlayerMotionSpec.BackgroundReveal.transform(sheetProgress)
+    val portraitReveal by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (portraitCover != null) 1f else 0f,
+        animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis),
+        label = "PortraitArtworkReveal",
+    )
+    val portraitAlpha = if (portraitCover != null) {
+        meshBackgroundAlpha * portraitReveal * (1f - lyricAnimFraction)
+    } else 0f
     val coverUrl = mediaMetadata?.coverUrl
     val colorScheme = MaterialTheme.colorScheme
     val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
@@ -306,7 +319,7 @@ fun AppleMusicPlayer(
                         label = "CoverTransition",
                         modifier = Modifier
                             .graphicsLayer {
-                                alpha = state.revealProgress
+                                alpha = state.revealProgress * (1f - portraitAlpha)
                                 translationX = finalStart
                                 translationY = finalTop
                                 shadowElevation = mShadowElevation.toPx()
@@ -334,7 +347,8 @@ fun AppleMusicPlayer(
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                     ) { currentMetadata ->
                         val activeCover = dynamicCover?.takeIf {
-                            it.songId == currentMetadata.id && state.isExpanded && !showLyrics
+                            it.songId == currentMetadata.id && portraitCover == null &&
+                                state.isExpanded && !showLyrics
                         }
                         if (activeCover != null) {
                             DynamicCoverView(
@@ -369,11 +383,41 @@ fun AppleMusicPlayer(
                     .graphicsLayer { alpha = meshBackgroundAlpha }
                     .background(backgroundColor),
             )
-            FluidBackground(
-                imageUrl = coverUrl,
-                isPlaying = isPlaying,
-                renderAlpha = meshBackgroundAlpha,
-            )
+            if (portraitCover == null || showLyrics || portraitAlpha < 0.999f) {
+                FluidBackground(
+                    imageUrl = coverUrl,
+                    isPlaying = isPlaying,
+                    renderAlpha = meshBackgroundAlpha,
+                )
+            }
+            if (portraitCover != null && portraitAlpha > 0.001f && mediaMetadata != null) {
+                DynamicCoverView(
+                    imageUrl = mediaMetadata!!.coverUrl,
+                    cover = portraitCover,
+                    playing = isPlaying && !showLyrics && sheetProgress > 0.5f,
+                    onPlaybackError = {
+                        mediaMetadata?.let(stateContainer.playerViewModel::fallbackDynamicCover)
+                    },
+                    modifier = Modifier.fillMaxSize().graphicsLayer { alpha = portraitAlpha },
+                )
+                val backgroundTap = if (portraitAlpha > 0.5f) {
+                    Modifier.clickable { showLyrics = true }
+                } else Modifier
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = portraitAlpha }
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Black.copy(alpha = 0.28f),
+                                0.35f to Color.Transparent,
+                                0.58f to Color.Transparent,
+                                1f to Color.Black.copy(alpha = 0.76f),
+                            )
+                        )
+                        .then(backgroundTap),
+                )
+            }
 
             Box(
                 modifier = Modifier
