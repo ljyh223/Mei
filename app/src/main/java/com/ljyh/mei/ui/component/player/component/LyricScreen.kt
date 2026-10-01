@@ -19,11 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,8 +36,10 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextMotion
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
@@ -58,7 +59,10 @@ import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.ui.composable.list.rememberLyricsLazyListState
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsAnchor
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsFade
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -69,11 +73,16 @@ fun LyricScreen(
     onClick: (LyricSource) -> Unit,
     onLongClick: (LyricSource) -> Unit,
     controlsVisible: Boolean,
-    onToggleControls: (Boolean) -> Unit
+    onToggleControls: (Boolean) -> Unit,
+    anchor: LyricsAnchor = LyricsAnchor.Fixed(40.dp),
+    bottomFade: LyricsFade = LyricsFade.Fraction(0.5f),
 ) {
     val listState = rememberLyricsLazyListState()
     val context = LocalContext.current
-    var animatedPosition by remember { mutableLongStateOf(0) }
+    val playbackPosition = remember(playerConnection.player) {
+        mutableIntStateOf(playerConnection.player.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+    }
+    val currentPosition = remember(playbackPosition) { { playbackPosition.intValue } }
     val (normalLyricTextSize, _) = rememberEnumPreference(
         NormalLyricTextSizeKey,
         LyricTextSize.Size24
@@ -110,17 +119,40 @@ fun LyricScreen(
         }
     }
 
-    LaunchedEffect(playerConnection.isPlaying) {
-        if (playerConnection.isPlaying.value) {
-            while (true) {
-                animatedPosition = (playerConnection.player.currentPosition).coerceAtMost(
-                    playerConnection.player.duration
-                )
-                delay(50)
+    LaunchedEffect(playerConnection.player) {
+        while (isActive) {
+            withFrameNanos {
+                val duration = playerConnection.player.duration
+                    .takeIf { it > 0L }
+                    ?.coerceAtMost(Int.MAX_VALUE.toLong())
+                    ?: Int.MAX_VALUE.toLong()
+                playbackPosition.intValue = playerConnection.player.currentPosition
+                    .coerceIn(0L, duration)
+                    .toInt()
             }
-        } else {
-            animatedPosition = playerConnection.player.currentPosition
         }
+    }
+
+    val baseTextStyle = LocalTextStyle.current
+    val normalStyle = remember(baseTextStyle, normalLyricTextSize, normalLyricTextBold) {
+        baseTextStyle.copy(
+            fontSize = normalLyricTextSize.text.sp,
+            lineHeight = TextUnit.Unspecified,
+            fontFamily = FontFamily.SansSerif,
+            fontWeight = if (normalLyricTextBold) FontWeight.Bold else FontWeight.Normal,
+            textMotion = TextMotion.Animated,
+        )
+    }
+    val accompanimentStyle = remember(
+        baseTextStyle, accompanimentLyricTextSize, accompanimentLyricTextBold
+    ) {
+        baseTextStyle.copy(
+            fontSize = accompanimentLyricTextSize.text.sp,
+            lineHeight = TextUnit.Unspecified,
+            fontFamily = FontFamily.SansSerif,
+            fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
+            textMotion = TextMotion.Animated,
+        )
     }
 
     Column(
@@ -139,10 +171,13 @@ fun LyricScreen(
             if (lyricData.lyricLine.lines.isNotEmpty()) {
                 key(System.identityHashCode(lyricData.lyricLine)) {
                 KaraokeLyricsView(
+                    anchor = anchor,
+                    bottomFade = bottomFade,
                     listState = listState,
                     lyrics = lyricData.lyricLine,
-                    currentPosition = { animatedPosition.toInt() },
+                    currentPosition = currentPosition,
                     onLineClicked = { line ->
+                        playbackPosition.intValue = line.start
                         playerConnection.player.seekTo(line.start.toLong())
                         onToggleControls(true)
                     },
@@ -175,16 +210,8 @@ fun LyricScreen(
                             blendMode = BlendMode.Plus
                             compositingStrategy = CompositingStrategy.Offscreen
                         },
-                    normalLineTextStyle = LocalTextStyle.current.copy(
-                        fontSize = normalLyricTextSize.text.sp,
-                        fontWeight = if (normalLyricTextBold) FontWeight.Bold else FontWeight.Normal,
-                        textMotion = TextMotion.Animated,
-                    ),
-                    accompanimentLineTextStyle = LocalTextStyle.current.copy(
-                        fontSize = accompanimentLyricTextSize.text.sp,
-                        fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
-                        textMotion = TextMotion.Animated,
-                    )
+                    normalLineTextStyle = normalStyle,
+                    accompanimentLineTextStyle = accompanimentStyle,
                 )
                 }
 

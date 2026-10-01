@@ -42,6 +42,8 @@ import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidProgressSlider
 import com.ljyh.mei.ui.component.player.component.PlayerControls
 import com.ljyh.mei.ui.component.player.component.LyricScreen
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsAnchor
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsFade
 import com.ljyh.mei.ui.component.player.component.PlayerActionToolbar
 import com.ljyh.mei.ui.component.player.component.PlayerProgressSlider
 import com.ljyh.mei.ui.component.player.component.PlayerTableControls
@@ -212,6 +214,8 @@ fun ClassicTabletLayout(
                     },
                     controlsVisible = stateContainer.controlsVisible,
                     onToggleControls = {},
+                    anchor = LyricsAnchor.Fraction(0.4f),
+                    bottomFade = LyricsFade.Fraction(0.2f),
                 )
             }
 

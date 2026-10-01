@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
@@ -38,7 +39,10 @@ import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextMotion
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.Lifecycle
@@ -315,24 +319,31 @@ internal class DesktopLyricsController(
                     }
                     LaunchedEffect(line) {
                         while (isActive) {
-                            position = player.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
-                            delay(50)
+                            withFrameNanos {
+                                val duration = player.duration
+                                    .takeIf { it > 0L }
+                                    ?.coerceAtMost(Int.MAX_VALUE.toLong())
+                                    ?: Int.MAX_VALUE.toLong()
+                                position = player.currentPosition.coerceIn(0L, duration).toInt()
+                            }
                         }
+                    }
+                    val lyricStyle = remember {
+                        TextStyle(
+                            fontSize = 18.sp,
+                            lineHeight = TextUnit.Unspecified,
+                            fontFamily = FontFamily.SansSerif,
+                            fontWeight = FontWeight.Bold,
+                            textMotion = TextMotion.Animated,
+                            shadow = Shadow(ComposeColor.Black, Offset(0f, 1f), 4f),
+                        )
                     }
                     KaraokeLineText(
                         line = line,
                         currentTimeProvider = { position },
                         modifier = Modifier.fillMaxWidth(),
-                        normalLineTextStyle = TextStyle(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            shadow = Shadow(ComposeColor.Black, Offset(0f, 1f), 4f),
-                        ),
-                        accompanimentLineTextStyle = TextStyle(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            shadow = Shadow(ComposeColor.Black, Offset(0f, 1f), 4f),
-                        ),
+                        normalLineTextStyle = lyricStyle,
+                        accompanimentLineTextStyle = lyricStyle,
                         activeColor = ComposeColor.White,
                         blendMode = BlendMode.SrcOver,
                         showTranslation = false,

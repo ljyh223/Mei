@@ -23,6 +23,8 @@ import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.LyricScreen
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsAnchor
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsFade
 import com.ljyh.mei.ui.component.player.component.classic.component.Cover
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
@@ -120,6 +122,8 @@ fun ClassicImmersiveLayout(
             },
             controlsVisible = stateContainer.controlsVisible,
             onToggleControls = {},
+            anchor = LyricsAnchor.Fraction(0.4f),
+            bottomFade = LyricsFade.Fraction(0.2f),
         )
     }
 }
