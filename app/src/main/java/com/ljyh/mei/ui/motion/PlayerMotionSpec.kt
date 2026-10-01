@@ -43,6 +43,9 @@ object PlayerMotionSpec {
 
     val BackgroundReveal = MotionProgressWindow(start = 0.12f, end = 0.40f)
     val DefaultContainerReveal = MotionProgressWindow(start = 0.15f, end = 1f)
+    // Restore the navigation bar before the sheet reaches its collapsed anchor so the tabs are
+    // already in place and tappable when the mini player meets them.
+    val BottomNavigationExit = MotionProgressWindow(start = 0.04f, end = 0.22f)
     val MiniPlayerExit = MotionProgressWindow(start = 0f, end = 0.18f)
     val MorphMiniPlayerExit = MotionProgressWindow(start = 0f, end = 0.25f)
     val ExpandedContentReveal = MotionProgressWindow(start = 0.25f, end = 0.50f)

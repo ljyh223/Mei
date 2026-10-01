@@ -26,6 +26,17 @@ class PlayerMotionSpecTest {
     }
 
     @Test
+    fun bottomNavigationReturnsBeforeTheSheetSettles() {
+        val exit = PlayerMotionSpec.BottomNavigationExit
+
+        assertEquals(1f, exit.reverse(0f))
+        assertEquals(1f, exit.reverse(0.04f))
+        assertEquals(0.5f, exit.reverse(0.13f), 0.0001f)
+        assertEquals(0f, exit.reverse(0.22f))
+        assertEquals(0f, exit.reverse(1f))
+    }
+
+    @Test
     fun progressWindowRejectsEmptyOrReversedRanges() {
         assertThrows(IllegalArgumentException::class.java) {
             MotionProgressWindow(start = 0.5f, end = 0.5f)
