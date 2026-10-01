@@ -67,6 +67,7 @@ import com.ljyh.mei.playback.CacheManager.isContentFullyCached
 import com.ljyh.mei.utils.CoilBitmapLoader
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +93,7 @@ class MusicService : MediaLibraryService(),
 
     lateinit var player: ExoPlayer
     private lateinit var audioPlayer: AudioPlayer
+    private lateinit var desktopLyricsController: DesktopLyricsController
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
 
@@ -126,6 +128,8 @@ class MusicService : MediaLibraryService(),
 
     @Inject
     lateinit var songRepository: SongRepository
+    @Inject
+    lateinit var lyricManager: LyricManager
     override fun onCreate() {
         super.onCreate()
         baseMediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
@@ -209,6 +213,9 @@ class MusicService : MediaLibraryService(),
 
 
 
+
+        desktopLyricsController = DesktopLyricsController(this, player, lyricManager, scope)
+        desktopLyricsController.start()
 
         audioPlayer = AudioPlayer(player)
         val singletonImageLoader = ImageLoader(this)
@@ -362,6 +369,7 @@ class MusicService : MediaLibraryService(),
         player.removeListener(sleepTimer)
         queueManager.release()
         audioPlayer.release()
+        desktopLyricsController.close()
         player.release()
         CacheManager.release()
         serviceJob.cancel()

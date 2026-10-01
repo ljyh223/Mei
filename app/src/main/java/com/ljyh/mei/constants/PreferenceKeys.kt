@@ -24,6 +24,9 @@ val UserNicknameKey = stringPreferencesKey("userNickname")
 val UserAvatarUrlKey = stringPreferencesKey("userAvatarUrl")
 val UserPhotoKey = stringPreferencesKey("userPhoto")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
+val DesktopLyricsEnabledKey = booleanPreferencesKey("desktopLyricsEnabled")
+val DesktopLyricsXKey = intPreferencesKey("desktopLyricsX")
+val DesktopLyricsYKey = intPreferencesKey("desktopLyricsY")
 
 
 val CookieKey = stringPreferencesKey("cookie")
