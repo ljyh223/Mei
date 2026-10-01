@@ -4,7 +4,6 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.media.audiofx.AudioEffect
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
@@ -64,6 +63,8 @@ import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.CacheManager.getCacheDataSourceFactory
 import com.ljyh.mei.playback.CacheManager.isContentFullyCached
+import com.ljyh.mei.playback.equalizer.ParametricEqualizerProcessor
+import com.ljyh.mei.playback.equalizer.EqualizerProfile
 import com.ljyh.mei.utils.CoilBitmapLoader
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.get
@@ -93,7 +94,9 @@ class MusicService : MediaLibraryService(),
 
     lateinit var player: ExoPlayer
     private lateinit var audioPlayer: AudioPlayer
+    private lateinit var audioEffectsController: AudioEffectsController
     private lateinit var desktopLyricsController: DesktopLyricsController
+    private val parametricEqualizerProcessor = ParametricEqualizerProcessor()
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
 
@@ -115,7 +118,6 @@ class MusicService : MediaLibraryService(),
 
     lateinit var queueManager: PlaybackQueueManager
     var queueTitle: String? = null
-    private var isAudioEffectSessionOpened = false
 
     @Inject
     lateinit var weApiService: WeApiService
@@ -216,6 +218,7 @@ class MusicService : MediaLibraryService(),
 
         desktopLyricsController = DesktopLyricsController(this, player, lyricManager, scope)
         desktopLyricsController.start()
+        audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor)
 
         audioPlayer = AudioPlayer(player)
         val singletonImageLoader = ImageLoader(this)
@@ -285,29 +288,6 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    private fun openAudioEffectSession() {
-        if (isAudioEffectSessionOpened) return
-        isAudioEffectSessionOpened = true
-        sendBroadcast(
-            Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, player.audioSessionId)
-                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-                putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
-            }
-        )
-    }
-
-    private fun closeAudioEffectSession() {
-        if (!isAudioEffectSessionOpened) return
-        isAudioEffectSessionOpened = false
-        sendBroadcast(
-            Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, player.audioSessionId)
-                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-            }
-        )
-    }
-
     override fun onEvents(player: Player, events: Player.Events) {
         if (events.containsAny(
                 Player.EVENT_PLAYBACK_STATE_CHANGED,
@@ -317,10 +297,8 @@ class MusicService : MediaLibraryService(),
             val isBufferingOrReady =
                 player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
             if (isBufferingOrReady && player.playWhenReady) {
-                openAudioEffectSession()
                 audioPlayer.startSmooth()
             } else {
-                closeAudioEffectSession()
                 audioPlayer.pauseSmooth()
             }
         }
@@ -363,12 +341,17 @@ class MusicService : MediaLibraryService(),
         queueManager.setShuffleModeEnabled(isShuffle)
     }
 
+    fun previewEqualizerProfile(profile: EqualizerProfile) {
+        parametricEqualizerProcessor.setProfile(profile)
+    }
+
     override fun onDestroy() {
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)
         queueManager.release()
         audioPlayer.release()
+        audioEffectsController.release()
         desktopLyricsController.close()
         player.release()
         CacheManager.release()
@@ -409,11 +392,12 @@ class MusicService : MediaLibraryService(),
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean,
             ) = DefaultAudioSink.Builder(this@MusicService)
-                .setEnableFloatOutput(enableFloatOutput)
+                // Media3 bypasses user audio processors for high-resolution float output.
+                .setEnableFloatOutput(false)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        emptyArray(),
+                        arrayOf(parametricEqualizerProcessor),
                         SilenceSkippingAudioProcessor(2_000_000, 0.01f, 2_000_000, 0, 256),
                         SonicAudioProcessor()
                     )

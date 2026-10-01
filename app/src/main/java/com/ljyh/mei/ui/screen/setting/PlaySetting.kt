@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
+import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,10 +45,12 @@ import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
+import com.ljyh.mei.ui.component.PreferenceEntry
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
@@ -136,6 +139,12 @@ fun PlaySetting(
         ) {
             PreferenceGroupTitle(
                 title = "PLAY"
+            )
+            PreferenceEntry(
+                title = { Text("均衡器与音效") },
+                description = "参数均衡器、频响曲线与预设",
+                icon = { Icon(Icons.Rounded.Equalizer, null) },
+                onClick = { Screen.Equalizer.navigate(navController) }
             )
             SwitchPreference(
                 title = { Text("桌面歌词") },

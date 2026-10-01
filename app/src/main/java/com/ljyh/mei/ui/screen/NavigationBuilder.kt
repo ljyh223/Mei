@@ -36,6 +36,7 @@ import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.DownloadManageScreen
 import com.ljyh.mei.ui.screen.setting.DownloadSetting
 import com.ljyh.mei.ui.screen.setting.PlaySetting
+import com.ljyh.mei.ui.screen.setting.EqualizerScreen
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 import com.ljyh.mei.ui.screen.log.LogScreen
 import com.ljyh.mei.ui.screen.comment.CommentScreen
@@ -75,6 +76,10 @@ fun NavGraphBuilder.navigationBuilder(
     }
     composable(Screen.PlaySettings.route){
         PlaySetting(scrollBehavior)
+    }
+
+    composable(Screen.Equalizer.route) {
+        EqualizerScreen(scrollBehavior)
     }
 
     composable(Screen.DownloadSettings.route) {

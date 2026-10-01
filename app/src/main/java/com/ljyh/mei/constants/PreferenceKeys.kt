@@ -50,6 +50,14 @@ val NoAudioSourceKey = booleanPreferencesKey("noAudioSource")
 val IsShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val RepeatModeKey = intPreferencesKey("repeatMode")
 
+// Playback effects. Band levels are stored as millibels, separated by commas.
+val EqualizerEnabledKey = booleanPreferencesKey("equalizerEnabled")
+val EqualizerPresetKey = stringPreferencesKey("equalizerPreset")
+val EqualizerBandLevelsKey = stringPreferencesKey("equalizerBandLevels")
+val LoudnessEnhancerGainKey = intPreferencesKey("loudnessEnhancerGain")
+val ParametricEqualizerProfileKey = stringPreferencesKey("parametricEqualizerProfile")
+val UserEqualizerPresetsKey = stringPreferencesKey("userEqualizerPresets")
+
 val DeviceIdKey = stringPreferencesKey("deviceId")
 val DebugKey = booleanPreferencesKey("debug")
 val DevModeKey = booleanPreferencesKey("dev_mode")
