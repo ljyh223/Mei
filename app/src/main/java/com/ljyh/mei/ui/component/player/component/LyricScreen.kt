@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
@@ -57,6 +56,7 @@ import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.setClipboard
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
+import com.mocharealm.accompanist.lyrics.ui.composable.list.rememberLyricsLazyListState
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.delay
 
@@ -71,7 +71,7 @@ fun LyricScreen(
     controlsVisible: Boolean,
     onToggleControls: (Boolean) -> Unit
 ) {
-    val listState = rememberLazyListState()
+    val listState = rememberLyricsLazyListState()
     val context = LocalContext.current
     var animatedPosition by remember { mutableLongStateOf(0) }
     val (normalLyricTextSize, _) = rememberEnumPreference(
