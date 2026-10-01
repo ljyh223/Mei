@@ -7,16 +7,11 @@ import android.content.res.ColorStateList
 import android.hardware.display.DisplayManager
 import android.graphics.Color
 import android.graphics.Rect
-import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.provider.Settings
 import android.text.TextUtils
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.Display
 import android.view.Gravity
@@ -28,8 +23,33 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.edit
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.media3.common.Player
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.DesktopLyricsBackgroundKey
@@ -39,12 +59,15 @@ import com.ljyh.mei.constants.DesktopLyricsYKey
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.lyric.LyricManager
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLineText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.math.abs
@@ -74,16 +97,17 @@ internal class DesktopLyricsController(
     }
     private val windowManager by lazy { windowContext.getSystemService(WindowManager::class.java) }
     private var window: LinearLayout? = null
+    private var karaokeText: ComposeView? = null
     private var primaryText: TextView? = null
     private var translationText: TextView? = null
     private var playPauseButton: ImageButton? = null
     private var nextButton: ImageButton? = null
     private var params: WindowManager.LayoutParams? = null
+    private var overlayLifecycle: OverlayLifecycleOwner? = null
     private var ticker: Job? = null
     private var currentSongId: String? = null
     private var lastLine: DesktopLyricLine? = null
-    private var lastCompletedCharacters = -1
-    private var lastHighlightedCharacters = -1
+    private val karaokeLineState = mutableStateOf<KaraokeLine?>(null)
     private var lastPlaying: Boolean? = null
     private var showBackground = true
     private var savedX: Int? = null
@@ -155,22 +179,19 @@ internal class DesktopLyricsController(
                 metadata.artists.joinToString("、") { it.name }.ifBlank { null },
             )
         if (window == null) show()
-        val completed = line.completedCharactersAt(position)
-        val highlighted = line.highlightedCharactersAt(position)
         val lineChanged = line != lastLine
         if (lineChanged) {
+            karaokeLineState.value = line.karaokeLine
+            karaokeText?.visibility = if (line.karaokeLine == null) View.GONE else View.VISIBLE
+            primaryText?.apply {
+                text = line.text
+                visibility = if (line.karaokeLine == null) View.VISIBLE else View.GONE
+            }
             translationText?.apply {
                 text = line.translation.orEmpty()
                 visibility = if (line.translation == null) View.GONE else View.VISIBLE
             }
             lastLine = line
-        }
-        if (lineChanged || completed != lastCompletedCharacters ||
-            highlighted != lastHighlightedCharacters
-        ) {
-            primaryText?.text = styledLyric(line, completed, highlighted)
-            lastCompletedCharacters = completed
-            lastHighlightedCharacters = highlighted
         }
         val canPause = player.playWhenReady && player.playbackState != Player.STATE_ENDED
         if (lastPlaying != canPause) {
@@ -192,6 +213,10 @@ internal class DesktopLyricsController(
 
     private fun show() {
         val content = makeWindow()
+        val lifecycle = OverlayLifecycleOwner()
+        content.setViewTreeLifecycleOwner(lifecycle)
+        content.setViewTreeSavedStateRegistryOwner(lifecycle)
+        lifecycle.start()
         lastLine = null
         lastPlaying = null
         val bounds = screenBounds()
@@ -213,12 +238,17 @@ internal class DesktopLyricsController(
             windowManager.addView(content, layout)
             window = content
             params = layout
+            overlayLifecycle = lifecycle
         } catch (error: RuntimeException) {
+            lifecycle.destroy()
             Timber.w(error, "Could not show desktop lyrics overlay")
+            hide()
         }
     }
 
     private fun hide() {
+        overlayLifecycle?.destroy()
+        overlayLifecycle = null
         window?.let { view ->
             try {
                 windowManager.removeView(view)
@@ -227,14 +257,14 @@ internal class DesktopLyricsController(
             }
         }
         window = null
+        karaokeText = null
+        karaokeLineState.value = null
         primaryText = null
         translationText = null
         playPauseButton = null
         nextButton = null
         params = null
         lastLine = null
-        lastCompletedCharacters = -1
-        lastHighlightedCharacters = -1
         lastPlaying = null
     }
 
@@ -274,6 +304,44 @@ internal class DesktopLyricsController(
     private fun makeWindow(): LinearLayout {
         val main = lyricText(18f, Color.WHITE)
         val translation = lyricText(13f, Color.rgb(206, 206, 211))
+        val karaoke = ComposeView(windowContext).apply {
+            visibility = View.GONE
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                val line = karaokeLineState.value
+                if (line != null) {
+                    var position by remember(line) {
+                        mutableIntStateOf(player.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+                    }
+                    LaunchedEffect(line) {
+                        while (isActive) {
+                            position = player.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+                            delay(50)
+                        }
+                    }
+                    KaraokeLineText(
+                        line = line,
+                        currentTimeProvider = { position },
+                        modifier = Modifier.fillMaxWidth(),
+                        normalLineTextStyle = TextStyle(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            shadow = Shadow(ComposeColor.Black, Offset(0f, 1f), 4f),
+                        ),
+                        accompanimentLineTextStyle = TextStyle(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            shadow = Shadow(ComposeColor.Black, Offset(0f, 1f), 4f),
+                        ),
+                        activeColor = ComposeColor.White,
+                        blendMode = BlendMode.SrcOver,
+                        showTranslation = false,
+                        showPhonetic = false,
+                    )
+                }
+            }
+        }
+        karaokeText = karaoke
         primaryText = main
         translationText = translation
 
@@ -319,6 +387,7 @@ internal class DesktopLyricsController(
             minimumHeight = dp(56)
             this.background = windowBackground()
             contentDescription = "桌面歌词，拖动可移动，点击返回 Mei"
+            addView(karaoke, LinearLayout.LayoutParams(-1, -2))
             addView(main, LinearLayout.LayoutParams(-1, -2))
             addView(translation, LinearLayout.LayoutParams(-1, -2))
             addView(controls, LinearLayout.LayoutParams(-1, dp(48)))
@@ -419,25 +488,6 @@ internal class DesktopLyricsController(
         null
     }
 
-    private fun styledLyric(
-        line: DesktopLyricLine,
-        completed: Int,
-        highlighted: Int,
-    ): CharSequence {
-        if (line.syllables.isEmpty()) return line.text
-        return SpannableString(line.text).apply {
-            val flags = Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            setSpan(ForegroundColorSpan(Color.argb(150, 255, 255, 255)), 0, length, flags)
-            if (completed > 0) {
-                setSpan(ForegroundColorSpan(Color.rgb(205, 205, 211)), 0, completed, flags)
-            }
-            if (highlighted > completed) {
-                setSpan(ForegroundColorSpan(Color.WHITE), completed, highlighted, flags)
-                setSpan(StyleSpan(Typeface.BOLD), completed, highlighted, flags)
-            }
-        }
-    }
-
     private fun lyricText(sizeSp: Float, colorValue: Int) = TextView(windowContext).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
         setTextColor(colorValue)
@@ -455,4 +505,27 @@ internal class DesktopLyricsController(
         }
 
     private fun dp(value: Int) = (value * windowContext.resources.displayMetrics.density).roundToInt()
+}
+
+private class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner {
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateController = SavedStateRegistryController.create(this)
+
+    override val lifecycle: Lifecycle = lifecycleRegistry
+    override val savedStateRegistry: SavedStateRegistry = savedStateController.savedStateRegistry
+
+    init {
+        savedStateController.performAttach()
+        savedStateController.performRestore(null)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+    }
+
+    fun start() {
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    }
+
+    fun destroy() {
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
+    }
 }

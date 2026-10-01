@@ -51,11 +51,7 @@ class DesktopLyricLineTest {
         val line = lyrics.desktopLineAt(250)
         assertEquals("你好", line?.text)
         assertEquals("Hello", line?.translation)
-        assertEquals(1, line?.highlightedCharactersAt(150))
-        assertEquals(2, line?.highlightedCharactersAt(250))
-        assertEquals(0, line?.highlightedCharactersAt(50))
-        assertEquals(0, line?.completedCharactersAt(150))
-        assertEquals(1, line?.completedCharactersAt(250))
+        assertEquals(karaoke, line?.karaokeLine)
         assertNull(lyrics.copy(source = LyricSource.Loading).desktopLineAt(250))
     }
 }
