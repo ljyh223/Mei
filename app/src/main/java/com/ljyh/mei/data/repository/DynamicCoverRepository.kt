@@ -3,19 +3,25 @@ package com.ljyh.mei.data.repository
 import android.content.Context
 import android.util.Base64
 import androidx.annotation.OptIn
+import androidx.datastore.preferences.core.edit
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheWriter
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.constants.AppleMusicWebTokenKey
+import com.ljyh.mei.constants.AppleMusicWebTokenRefreshAtKey
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.playback.CacheManager
+import com.ljyh.mei.utils.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -59,6 +65,12 @@ class DynamicCoverRepository @Inject constructor(
     private var webTokenUntil = 0L
     private val memory = mutableMapOf<Long, Pair<Long, DynamicCover?>>()
 
+    /** Called at app start when the user has enabled motion artwork. */
+    suspend fun warmWebToken() = withContext(Dispatchers.IO) {
+        optional { getWebToken() }
+        Unit
+    }
+
     suspend fun resolve(song: MediaMetadata): DynamicCover? = withContext(Dispatchers.IO) {
         if (!song.coverUrl.startsWith("http")) return@withContext null
         val now = System.currentTimeMillis()
@@ -68,7 +80,17 @@ class DynamicCoverRepository @Inject constructor(
 
         val result = optional { appleCover(song) } ?: optional { neteaseCover(song) }
         synchronized(memory) {
-            memory[song.id] = (now + if (result == null) 20 * 60_000L else 60 * 60_000L) to result
+            val validUntil = when (result?.source) {
+                DynamicCover.Source.NETEASE -> {
+                    val signedExpiry = result.url.toHttpUrlOrNull()
+                        ?.queryParameter("wsTime")?.toLongOrNull()?.times(1000L)
+                        ?.minus(60_000L) ?: Long.MAX_VALUE
+                    minOf(now + 10 * 60_000L, signedExpiry).coerceAtLeast(now)
+                }
+                DynamicCover.Source.APPLE_MUSIC -> now + 60 * 60_000L
+                null -> now + 20 * 60_000L
+            }
+            memory[song.id] = validUntil to result
         }
         result
     }
@@ -188,7 +210,14 @@ class DynamicCoverRepository @Inject constructor(
                 .build()
             webClient.newCall(request).execute().use { response ->
                 if (response.code == 401 && attempt == 0) {
-                    tokenMutex.withLock { webToken = null; webTokenUntil = 0L }
+                    tokenMutex.withLock {
+                        webToken = null
+                        webTokenUntil = 0L
+                        context.dataStore.edit {
+                            it.remove(AppleMusicWebTokenKey)
+                            it.remove(AppleMusicWebTokenRefreshAtKey)
+                        }
+                    }
                 } else {
                     if (!response.isSuccessful) throw IOException("Apple catalog: HTTP ${response.code}")
                     return JSONObject(String(readLimited(response.body.byteStream(), 2 * 1024 * 1024)))
@@ -201,18 +230,47 @@ class DynamicCoverRepository @Inject constructor(
     private suspend fun getWebToken(): String = tokenMutex.withLock {
         val now = System.currentTimeMillis()
         webToken?.takeIf { webTokenUntil > now }?.let { return@withLock it }
-        val html = String(getWebBytes("https://music.apple.com", 16 * 1024 * 1024))
-        val jsPath = Regex("/assets/index~[^\\\"']+\\.js").find(html)?.value
-            ?: throw IOException("Apple web player script not found")
-        val js = String(getWebBytes("https://music.apple.com$jsPath", 64 * 1024 * 1024))
-        val token = Regex("eyJ[A-Za-z0-9_=-]+\\.eyJ[A-Za-z0-9_=-]+\\.[A-Za-z0-9_=-]+")
-            .find(js)?.value ?: throw IOException("Apple web token not found")
-        val payload = token.split('.')[1]
+        val stored = context.dataStore.data.first()
+        val savedToken = stored[AppleMusicWebTokenKey]
+        val savedRefreshAt = stored[AppleMusicWebTokenRefreshAtKey] ?: 0L
+        val savedExpiry = savedToken?.let { runCatching { tokenExpiryMillis(it) }.getOrNull() } ?: 0L
+        if (savedToken != null && savedExpiry > now && savedRefreshAt > now) {
+            webToken = savedToken
+            webTokenUntil = savedRefreshAt
+            return@withLock savedToken
+        }
+        try {
+            val html = String(getWebBytes("https://music.apple.com", 16 * 1024 * 1024))
+            val jsPath = Regex("/assets/index~[^\\\"']+\\.js").find(html)?.value
+                ?: throw IOException("Apple web player script not found")
+            val js = String(getWebBytes("https://music.apple.com$jsPath", 64 * 1024 * 1024))
+            val token = Regex("eyJ[A-Za-z0-9_=-]+\\.eyJ[A-Za-z0-9_=-]+\\.[A-Za-z0-9_=-]+")
+                .find(js)?.value ?: throw IOException("Apple web token not found")
+            val expiryMillis = tokenExpiryMillis(token)
+            if (expiryMillis <= now) throw IOException("Apple web token expired")
+            val refreshAt = now + (expiryMillis - now) / 2
+            context.dataStore.edit {
+                it[AppleMusicWebTokenKey] = token
+                it[AppleMusicWebTokenRefreshAtKey] = refreshAt
+            }
+            webToken = token
+            webTokenUntil = refreshAt
+            token
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            // A token past its refresh point is still usable until exp if renewal is offline.
+            if (savedToken == null || savedExpiry <= now) throw error
+            webToken = savedToken
+            webTokenUntil = minOf(savedExpiry, now + 6 * 60 * 60_000L)
+            savedToken
+        }
+    }
+
+    private fun tokenExpiryMillis(token: String): Long {
+        val payload = token.split('.').getOrNull(1) ?: throw IOException("Invalid Apple web token")
         val claims = JSONObject(String(Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)))
-        val expiryMillis = claims.optLong("exp") * 1000L
-        webToken = token
-        webTokenUntil = now + ((expiryMillis - now).coerceAtLeast(0L) / 2)
-        token
+        return claims.optLong("exp") * 1000L
     }
 
     private fun getWebBytes(url: String, limit: Int): ByteArray {

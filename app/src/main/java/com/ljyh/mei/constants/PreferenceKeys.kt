@@ -66,6 +66,8 @@ val AndroidIdKey = stringPreferencesKey("androidId")
 // 原图封面
 val OriginalCoverKey = booleanPreferencesKey("originalCover")
 val DynamicCoverKey = booleanPreferencesKey("dynamicCover")
+val AppleMusicWebTokenKey = stringPreferencesKey("appleMusicWebToken")
+val AppleMusicWebTokenRefreshAtKey = longPreferencesKey("appleMusicWebTokenRefreshAt")
 val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
 
 val MeshFlowSpeedKey = floatPreferencesKey("meshFlowSpeed")
