@@ -64,6 +64,7 @@ class DynamicCoverRepository @Inject constructor(
     private var webToken: String? = null
     private var webTokenUntil = 0L
     private val memory = mutableMapOf<Long, Pair<Long, DynamicCover?>>()
+    private val neteaseMemory = mutableMapOf<Long, Pair<Long, DynamicCover>>()
 
     /** Called at app start when the user has enabled motion artwork. */
     suspend fun warmWebToken() = withContext(Dispatchers.IO) {
@@ -82,10 +83,7 @@ class DynamicCoverRepository @Inject constructor(
         synchronized(memory) {
             val validUntil = when (result?.source) {
                 DynamicCover.Source.NETEASE -> {
-                    val signedExpiry = result.url.toHttpUrlOrNull()
-                        ?.queryParameter("wsTime")?.toLongOrNull()?.times(1000L)
-                        ?.minus(60_000L) ?: Long.MAX_VALUE
-                    minOf(now + 10 * 60_000L, signedExpiry).coerceAtLeast(now)
+                    neteaseCacheUntil(result.url, now)
                 }
                 DynamicCover.Source.APPLE_MUSIC -> now + 60 * 60_000L
                 null -> now + 20 * 60_000L
@@ -146,11 +144,29 @@ class DynamicCoverRepository @Inject constructor(
     private suspend fun neteaseCover(song: MediaMetadata): DynamicCover? = neteaseCover(song.id)
 
     private suspend fun neteaseCover(songId: Long): DynamicCover? {
+        val now = System.currentTimeMillis()
+        synchronized(neteaseMemory) {
+            neteaseMemory[songId]?.takeIf { it.first > now }
+        }?.let { return it.second }
         val url = api.getDynamicCover(mapOf("songId" to songId))
             .takeIf { it.code == 200 }?.data?.videoPlayUrl
             ?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
             ?: return null
-        return DynamicCover(songId, url, DynamicCover.Source.NETEASE, "dynamic:netease:$songId")
+        val validUntil = neteaseCacheUntil(url, now)
+        if (validUntil <= now) return null
+        val cover = DynamicCover(songId, url, DynamicCover.Source.NETEASE, "dynamic:netease:$songId")
+        synchronized(neteaseMemory) {
+            if (neteaseMemory.size >= 256) neteaseMemory.clear()
+            neteaseMemory[songId] = validUntil to cover
+        }
+        return cover
+    }
+
+    private fun neteaseCacheUntil(url: String, now: Long): Long {
+        val signedExpiry = url.toHttpUrlOrNull()
+            ?.queryParameter("wsTime")?.toLongOrNull()?.times(1000L)
+            ?.minus(60_000L) ?: Long.MAX_VALUE
+        return minOf(now + 10 * 60_000L, signedExpiry).coerceAtLeast(now)
     }
 
     private suspend fun appleCover(song: MediaMetadata): DynamicCover? {
