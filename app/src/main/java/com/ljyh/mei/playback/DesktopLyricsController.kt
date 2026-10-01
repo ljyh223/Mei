@@ -3,6 +3,7 @@ package com.ljyh.mei.playback
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.hardware.display.DisplayManager
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.Typeface
@@ -11,6 +12,7 @@ import android.os.Build
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.TypedValue
+import android.view.Display
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -46,12 +48,22 @@ internal class DesktopLyricsController(
     private val lyricManager: LyricManager,
     private val scope: CoroutineScope,
 ) {
-    private val windowContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        context.createWindowContext(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
-    } else {
-        context
+    // A Service is not a visual Context. Resolve the display only when the overlay is needed.
+    private val windowContext: Context by lazy {
+        val display = context.getSystemService(DisplayManager::class.java)
+            .getDisplay(Display.DEFAULT_DISPLAY)
+            ?: error("Default display is unavailable")
+        val displayContext = context.createDisplayContext(display)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            displayContext.createWindowContext(
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                null,
+            )
+        } else {
+            displayContext
+        }
     }
-    private val windowManager = windowContext.getSystemService(WindowManager::class.java)
+    private val windowManager by lazy { windowContext.getSystemService(WindowManager::class.java) }
     private var window: LinearLayout? = null
     private var primaryText: TextView? = null
     private var translationText: TextView? = null
@@ -76,7 +88,13 @@ internal class DesktopLyricsController(
                         savedY = snapshot[DesktopLyricsYKey]
                         ticker = launch {
                             while (true) {
-                                refresh()
+                                try {
+                                    refresh()
+                                } catch (error: RuntimeException) {
+                                    Timber.e(error, "Desktop lyrics overlay failed")
+                                    hide()
+                                    break
+                                }
                                 delay(180)
                             }
                         }
