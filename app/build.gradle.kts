@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.media3)
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
+    implementation(libs.media3.hls)
     implementation(libs.annotations)
     implementation(libs.androidx.core.animation)
     implementation(libs.androidx.compose.material3.window.size.class1)

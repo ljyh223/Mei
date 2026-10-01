@@ -22,6 +22,8 @@ import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
+import com.ljyh.mei.data.repository.DynamicCover
+import com.ljyh.mei.data.repository.DynamicCoverRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
@@ -36,6 +38,7 @@ import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -58,8 +61,38 @@ class PlayerViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val likeRepository: LikeRepository,
     private val colorRepository: ColorRepository,
+    private val dynamicCoverRepository: DynamicCoverRepository,
     val lyricManager: LyricManager
 ) : ViewModel() {
+    private val _dynamicCover = MutableStateFlow<DynamicCover?>(null)
+    val dynamicCover: StateFlow<DynamicCover?> = _dynamicCover.asStateFlow()
+    private var coverJob: Job? = null
+
+    fun loadDynamicCover(song: MediaMetadata?, next: MediaMetadata?, nextId: Long?, enabled: Boolean) {
+        coverJob?.cancel()
+        _dynamicCover.value = null
+        if (!enabled || song == null) return
+        coverJob = viewModelScope.launch {
+            val cover = dynamicCoverRepository.resolve(song)
+            _dynamicCover.value = cover
+            if (next != null && next.id != song.id) {
+                dynamicCoverRepository.resolve(next)?.let { dynamicCoverRepository.prefetch(it) }
+            } else if (next == null && nextId != null && nextId != song.id) {
+                dynamicCoverRepository.prefetchNetease(nextId)
+            }
+        }
+    }
+
+    fun fallbackDynamicCover(song: MediaMetadata) {
+        val current = _dynamicCover.value ?: return
+        if (current.songId != song.id) return
+        viewModelScope.launch {
+            val fallback = if (current.source == DynamicCover.Source.APPLE_MUSIC) {
+                dynamicCoverRepository.neteaseFallback(song)
+            } else null
+            if (_dynamicCover.value == current) _dynamicCover.value = fallback
+        }
+    }
     val searchResult: StateFlow<Resource<SearchResult>> = lyricManager.qqSearchResult
     val lyric: StateFlow<LyricData> = lyricManager.lyricData
 

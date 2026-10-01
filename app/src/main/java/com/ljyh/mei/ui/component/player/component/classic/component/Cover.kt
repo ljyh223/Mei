@@ -49,6 +49,8 @@ import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.repository.DynamicCover
+import com.ljyh.mei.ui.component.player.component.DynamicCoverView
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.image.saveImageToGallery
@@ -66,6 +68,8 @@ fun Cover(
     playerConnection: PlayerConnection,
     mediaMetadata: MediaMetadata,
     isPlaying: Boolean,
+    dynamicCover: DynamicCover? = null,
+    onDynamicCoverError: (MediaMetadata) -> Unit = {},
     modifier: Modifier,
     onDoubleClick: (Offset, Int) -> Unit = { _, _ ->}
 ) {
@@ -129,16 +133,27 @@ fun Cover(
                 shape = coverShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .placeholderMemoryCacheKey(url.smallImage())
-                        .data(if (originalCover) url else url.size1600())
-                        .crossfade(false)
-                        .build(),
-                    contentScale = ContentScale.Crop,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val activeCover = dynamicCover?.takeIf { it.songId == mediaMetadata.id && url == mediaMetadata.coverUrl }
+                if (activeCover != null) {
+                    DynamicCoverView(
+                        imageUrl = if (originalCover) url else url.size1600(),
+                        cover = activeCover,
+                        playing = isPlaying,
+                        onPlaybackError = { onDynamicCoverError(mediaMetadata) },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .placeholderMemoryCacheKey(url.smallImage())
+                            .data(if (originalCover) url else url.size1600())
+                            .crossfade(false)
+                            .build(),
+                        contentScale = ContentScale.Crop,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
 

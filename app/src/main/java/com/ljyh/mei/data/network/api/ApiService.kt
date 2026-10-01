@@ -50,6 +50,8 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ApiService {
+    @POST("/api/songplay/dynamic-cover")
+    suspend fun getDynamicCover(@Body body: Map<String, Long>): DynamicCoverResponse
     /*
     * 获取歌单详情
     * */

@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +73,7 @@ import com.ljyh.mei.constants.ThumbnailCornerRadius
 import com.ljyh.mei.ui.component.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
+import com.ljyh.mei.ui.component.player.component.DynamicCoverView
 import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
@@ -112,6 +114,7 @@ fun AppleMusicPlayer(
 
     // --- 从状态容器获取数据 ---
     val mediaMetadata by stateContainer.mediaMetadata
+    val dynamicCover by stateContainer.playerViewModel.dynamicCover.collectAsState()
     val isPlaying by stateContainer.isPlaying
     val playbackState by stateContainer.playbackState
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
@@ -330,17 +333,30 @@ fun AppleMusicPlayer(
                             )
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                     ) { currentMetadata ->
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(currentMetadata.coverUrl)
-                                .size(Size.ORIGINAL)
-                                .precision(Precision.EXACT)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = "Cover",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        val activeCover = dynamicCover?.takeIf {
+                            it.songId == currentMetadata.id && state.isExpanded && !showLyrics
+                        }
+                        if (activeCover != null) {
+                            DynamicCoverView(
+                                imageUrl = currentMetadata.coverUrl,
+                                cover = activeCover,
+                                playing = isPlaying,
+                                onPlaybackError = { stateContainer.playerViewModel.fallbackDynamicCover(currentMetadata) },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(currentMetadata.coverUrl)
+                                    .size(Size.ORIGINAL)
+                                    .precision(Precision.EXACT)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Cover",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                 }
             },

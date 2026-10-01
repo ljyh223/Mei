@@ -4,11 +4,16 @@ import android.os.Build
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.C
+import com.ljyh.mei.constants.DynamicCoverKey
+import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.ui.component.player.component.applemusic.AppleMusicPlayer
 import com.ljyh.mei.ui.component.player.component.classic.ClassicPlayer
 import com.ljyh.mei.ui.component.player.overlay.CommonOverlayHandler
@@ -21,6 +26,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.kyant.backdrop.Backdrop
+import com.ljyh.mei.utils.rememberPreference
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -42,6 +48,18 @@ fun BottomSheetPlayer(
         playerViewModel = playerViewModel,
         playerConnection = playerConnection
     )
+    val dynamicCoverEnabled by rememberPreference(DynamicCoverKey, defaultValue = false)
+    val currentMetadata by stateContainer.mediaMetadata
+    val player = playerConnection.player
+    val nextIndex = player.nextMediaItemIndex
+    val nextItem = if (nextIndex != C.INDEX_UNSET && nextIndex < player.mediaItemCount) {
+        player.getMediaItemAt(nextIndex)
+    } else null
+    val nextMetadata = nextItem?.metadata
+    val nextId = nextItem?.mediaId?.toLongOrNull()
+    LaunchedEffect(currentMetadata?.id, nextId, dynamicCoverEnabled) {
+        playerViewModel.loadDynamicCover(currentMetadata, nextMetadata, nextId, dynamicCoverEnabled)
+    }
 
     // 创建弹窗处理器
     val overlayHandler = rememberOverlayHandler(

@@ -41,6 +41,7 @@ import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
+import com.ljyh.mei.constants.DynamicCoverKey
 import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.LiquidGlassKey
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
@@ -104,6 +105,11 @@ fun AppearanceSettings(
 
     val (originalCover, onOriginalCover) = rememberPreference(
         OriginalCoverKey,
+        defaultValue = false
+    )
+
+    val (dynamicCover, onDynamicCoverChange) = rememberPreference(
+        DynamicCoverKey,
         defaultValue = false
     )
 
@@ -222,6 +228,13 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.Image, null) },
                 checked = originalCover,
                 onCheckedChange = onOriginalCover
+            )
+            SwitchPreference(
+                title = { Text("动态封面") },
+                description = "播放时自动加载，优先 Apple Music，其次网易云",
+                icon = { Icon(Icons.Rounded.MusicVideo, null) },
+                checked = dynamicCover,
+                onCheckedChange = onDynamicCoverChange
             )
             EnumListPreference(
                 title = { Text("进度条样式") },

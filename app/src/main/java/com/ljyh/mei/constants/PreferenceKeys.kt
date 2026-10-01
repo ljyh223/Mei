@@ -57,6 +57,7 @@ val AndroidIdKey = stringPreferencesKey("androidId")
 
 // 原图封面
 val OriginalCoverKey = booleanPreferencesKey("originalCover")
+val DynamicCoverKey = booleanPreferencesKey("dynamicCover")
 val ProgressBarStyleKey = stringPreferencesKey("progressBarStyle")
 
 val MeshFlowSpeedKey = floatPreferencesKey("meshFlowSpeed")

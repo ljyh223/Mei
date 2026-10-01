@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,6 +38,7 @@ fun ClassicImmersiveLayout(
 ) {
     val context = LocalContext.current
     val mediaMetadata by stateContainer.mediaMetadata
+    val dynamicCover by stateContainer.playerViewModel.dynamicCover.collectAsState()
     val isPlaying by stateContainer.isPlaying
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
 
@@ -59,6 +61,8 @@ fun ClassicImmersiveLayout(
                     playerConnection = stateContainer.playerConnection,
                     mediaMetadata = it,
                     isPlaying = isPlaying,
+                    dynamicCover = dynamicCover,
+                    onDynamicCoverError = stateContainer.playerViewModel::fallbackDynamicCover,
                     modifier = Modifier
                         .fillMaxWidth(0.75f)
                         .aspectRatio(1f),

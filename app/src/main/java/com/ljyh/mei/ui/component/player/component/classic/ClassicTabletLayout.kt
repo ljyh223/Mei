@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -64,6 +65,7 @@ fun ClassicTabletLayout(
 ) {
     val context = LocalContext.current
     val mediaMetadata by stateContainer.mediaMetadata
+    val dynamicCover by stateContainer.playerViewModel.dynamicCover.collectAsState()
     val isPlaying by stateContainer.isPlaying
     val playbackState by stateContainer.playbackState
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
@@ -98,6 +100,8 @@ fun ClassicTabletLayout(
                     playerConnection = stateContainer.playerConnection,
                     mediaMetadata = it,
                     isPlaying = isPlaying,
+                    dynamicCover = dynamicCover,
+                    onDynamicCoverError = stateContainer.playerViewModel::fallbackDynamicCover,
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
                         .aspectRatio(1f)

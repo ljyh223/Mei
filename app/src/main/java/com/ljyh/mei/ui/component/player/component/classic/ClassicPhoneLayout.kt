@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -65,6 +66,7 @@ fun ClassicPhoneLayout(
     val scope = rememberCoroutineScope()
 
     val mediaMetadata by stateContainer.mediaMetadata
+    val dynamicCover by stateContainer.playerViewModel.dynamicCover.collectAsState()
     val isPlaying by stateContainer.isPlaying
     val playbackState by stateContainer.playbackState
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
@@ -125,6 +127,8 @@ fun ClassicPhoneLayout(
                                 playerConnection = stateContainer.playerConnection,
                                 mediaMetadata = it,
                                 isPlaying = isPlaying,
+                                dynamicCover = dynamicCover,
+                                onDynamicCoverError = stateContainer.playerViewModel::fallbackDynamicCover,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(1f)
