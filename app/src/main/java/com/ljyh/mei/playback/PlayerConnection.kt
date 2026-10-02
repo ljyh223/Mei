@@ -95,6 +95,7 @@ class PlayerConnection(
         queueWindows.value = player.getQueueWindows()
         currentWindowIndex.value = player.getCurrentQueueIndex()
         currentMediaItemIndex.value = player.currentMediaItemIndex
+        isFMMode.value = service.isFmMode()
 
         updatePlayModeState() // 核心：更新播放模式
         updateCanSkipPreviousAndNext()
@@ -219,6 +220,7 @@ class PlayerConnection(
     }
 
     override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+        isFMMode.value = service.isFmMode()
         queueWindows.value = player.getQueueWindows()
         queueTitle.value = service.queueTitle
         currentMediaItemIndex.value = player.currentMediaItemIndex

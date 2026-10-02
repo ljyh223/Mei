@@ -16,9 +16,16 @@ class PlaybackQueueSnapshotTest {
             duration = 180_000,
             album = MediaMetadata.Album(4, "Album"),
         )
-        val snapshot = PlaybackQueueSnapshot(listOf("1", "2", "3"), 1, 43_000, current)
+        val snapshot = PlaybackQueueSnapshot(listOf("1", "2", "3"), 1, 43_000, current, isFmMode = true)
 
         assertEquals(snapshot, PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(snapshot)))
+    }
+
+    @Test
+    fun oldSnapshotRestoresAsNormalQueue() {
+        val oldSnapshot = """{"ids":["1"],"currentIndex":0,"positionMs":0}"""
+
+        assertEquals(false, PlaybackQueueSnapshotCodec.decode(oldSnapshot)?.isFmMode)
     }
 
     @Test

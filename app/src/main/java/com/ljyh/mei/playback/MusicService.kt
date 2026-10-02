@@ -287,6 +287,7 @@ class MusicService : MediaLibraryService(),
                 // A user action made while the service was starting takes precedence over the snapshot.
                 val playerWasEmpty = player.mediaItemCount == 0
                 if (playerWasEmpty && snapshot != null) {
+                    queueManager.isFmMode = snapshot.isFmMode
                     val items = snapshot.ids.mapIndexed { index, id ->
                         if (index == snapshot.currentIndex && snapshot.currentSong != null) {
                             snapshot.currentSong.toMediaItem()
@@ -301,13 +302,14 @@ class MusicService : MediaLibraryService(),
                 }
 
                 if (playerWasEmpty) {
-                    val savedShuffleMode = preferences[IsShuffleModeKey] ?: true
-                    val savedRepeatMode = preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL
+                    val savedShuffleMode = !queueManager.isFmMode && (preferences[IsShuffleModeKey] ?: true)
+                    val savedRepeatMode = if (queueManager.isFmMode) Player.REPEAT_MODE_ALL
+                        else preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL
                     player.repeatMode = savedRepeatMode
                     player.shuffleModeEnabled = savedShuffleMode
                     queueManager.setShuffleModeEnabled(savedShuffleMode)
                     Timber.tag("MusicService").d(
-                        "Restored queue: ${snapshot?.ids?.size ?: 0}, shuffle: $savedShuffleMode, repeat: $savedRepeatMode"
+                        "Restored queue: ${snapshot?.ids?.size ?: 0}, FM: ${queueManager.isFmMode}, shuffle: $savedShuffleMode, repeat: $savedRepeatMode"
                     )
                 }
             } catch (e: CancellationException) {
@@ -336,6 +338,7 @@ class MusicService : MediaLibraryService(),
                 currentIndex = player.currentMediaItemIndex,
                 positionMs = player.currentPosition.coerceAtLeast(0L),
                 currentSong = snapshotCurrentSong(),
+                isFmMode = queueManager.isFmMode,
             )
         } else null
         try {

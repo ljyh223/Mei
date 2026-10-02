@@ -9,6 +9,7 @@ internal data class PlaybackQueueSnapshot(
     val currentIndex: Int,
     val positionMs: Long,
     val currentSong: MediaMetadata?,
+    val isFmMode: Boolean = false,
 )
 
 internal object PlaybackQueueSnapshotCodec {
