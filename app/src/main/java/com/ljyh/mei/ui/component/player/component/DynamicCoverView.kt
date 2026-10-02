@@ -2,12 +2,19 @@ package com.ljyh.mei.ui.component.player.component
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.LinearGradient
 import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.Shader
+import android.view.View
+import android.widget.FrameLayout
 import android.view.TextureView
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -20,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -46,6 +54,7 @@ fun DynamicCoverView(
     playing: Boolean,
     onPlaybackError: (PlaybackException) -> Unit = {},
     onFrameSample: ((Bitmap) -> Unit)? = null,
+    bottomFadeColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -131,6 +140,8 @@ fun DynamicCoverView(
         runCatching { Color(android.graphics.Color.parseColor("#${cover?.palette?.bgColor}")) }
             .getOrDefault(Color.Transparent)
     }
+    val showVideo = player != null && !failed && firstFrame &&
+        videoDimensions.first > 0 && videoDimensions.second > 0
     Box(modifier.background(background)) {
         AsyncImage(
             model = cover?.previewUrl ?: imageUrl,
@@ -144,20 +155,58 @@ fun DynamicCoverView(
             key(cover.cacheKey, cover.url) {
                 AndroidView(
                     factory = { viewContext ->
-                        CenterCropTextureView(viewContext).also {
-                            textureView = it
-                            player.setVideoTextureView(it)
+                        FrameLayout(viewContext).also { frame ->
+                            CenterCropTextureView(viewContext).also {
+                                textureView = it
+                                player.setVideoTextureView(it)
+                                frame.addView(it, FrameLayout.LayoutParams(-1, -1))
+                            }
+                            frame.addView(BottomFadeView(viewContext), FrameLayout.LayoutParams(-1, -1))
                         }
                     },
-                    update = { view ->
-                        view.setVideoDimensions(videoDimensions.first, videoDimensions.second, videoDimensions.third)
+                    update = { frame ->
+                        (frame.getChildAt(0) as CenterCropTextureView).setVideoDimensions(
+                            videoDimensions.first, videoDimensions.second, videoDimensions.third
+                        )
+                        (frame.getChildAt(1) as BottomFadeView).fadeColor = bottomFadeColor?.toArgb()
                     },
-                    modifier = Modifier.fillMaxSize().alpha(
-                        if (firstFrame && videoDimensions.first > 0 && videoDimensions.second > 0) 1f else 0f
-                    )
+                    modifier = Modifier.fillMaxSize().alpha(if (showVideo) 1f else 0f)
                 )
             }
         }
+        if (bottomFadeColor != null && !showVideo) {
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        0.55f to Color.Transparent,
+                        1f to bottomFadeColor,
+                    )
+                )
+            )
+        }
+    }
+}
+
+/** Draws above TextureView in the same native view hierarchy, so its bottom edge cannot bypass the fade. */
+private class BottomFadeView(context: Context) : View(context) {
+    var fadeColor: Int? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidate()
+            }
+        }
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val color = fadeColor ?: return
+        paint.shader = LinearGradient(
+            0f, height * 0.55f, 0f, height.toFloat(),
+            color and 0x00ffffff, color, Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, height * 0.55f, width.toFloat(), height.toFloat(), paint)
     }
 }
 
