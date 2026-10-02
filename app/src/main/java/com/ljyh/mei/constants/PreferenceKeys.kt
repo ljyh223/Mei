@@ -150,7 +150,9 @@ enum class LyricTextSize(val text: Int) {
     Size26(26),
     Size28(28),
     Size30(30),
-    Size32(32)
+    Size32(32),
+    Size34(34),
+    Size36(36),
 }
 
 enum class ProgressBarStyle(val label: String) {

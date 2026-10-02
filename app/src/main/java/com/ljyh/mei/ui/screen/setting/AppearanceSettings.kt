@@ -76,11 +76,9 @@ fun AppearanceSettings(
         DynamicThemeKey,
         defaultValue = true
     )
-
-
     val (normalLyricTextSize, onNormalLyricTextSizeChange) = rememberEnumPreference(
         NormalLyricTextSizeKey,
-        defaultValue = LyricTextSize.Size24
+        defaultValue = LyricTextSize.Size34
     )
     val (normalLyricTextBold, onNormalLyricTextBoldChange) = rememberPreference(
         NormalLyricTextBoldKey,
@@ -89,7 +87,7 @@ fun AppearanceSettings(
 
     val (accompanimentLyricTextSize, onAccompanimentLyricTextSizeChange) = rememberEnumPreference(
         AccompanimentLyricTextSizeKey,
-        defaultValue = LyricTextSize.Size18
+        defaultValue = LyricTextSize.Size20
     )
 
     val (accompanimentLyricTextBold, onAccompanimentLyricTextBoldChange) = rememberPreference(
@@ -103,7 +101,6 @@ fun AppearanceSettings(
         OriginalCoverKey,
         defaultValue = false
     )
-
     val (dynamicCover, onDynamicCoverChange) = rememberPreference(
         DynamicCoverKey,
         defaultValue = false
