@@ -207,7 +207,9 @@ class DownloadWorker(
                 } catch (e: Exception) {
                     Timber.e(e, "Tag repair failed for ${task.songTitle}")
                 }
-                if (saveSeparateLyrics) saveLyricSidecar(songId, task, relativePath)
+                if (saveSeparateLyrics) {
+                    saveLyricSidecar(songId, task, existingSong.folderPath ?: relativePath)
+                }
                 updateTask(db, songId, DownloadStatus.COMPLETED, 100)
                 completedCount.incrementAndGet()
                 return
@@ -359,26 +361,7 @@ class DownloadWorker(
                     temporary.delete()
                 }
             } else {
-                // Android 10 has no all-files grant; write an app-owned document through MediaStore.
-                val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-                    put(MediaStore.Downloads.RELATIVE_PATH, "Download/Mei/Lyrics/")
-                    put(MediaStore.Downloads.IS_PENDING, 1)
-                }
-                val resolver = applicationContext.contentResolver
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                    ?: error("Cannot create lyric document")
-                try {
-                    resolver.openOutputStream(uri)?.use { it.write(lyric.toByteArray(Charsets.UTF_8)) }
-                        ?: error("Cannot write lyric document")
-                    values.clear()
-                    values.put(MediaStore.Downloads.IS_PENDING, 0)
-                    resolver.update(uri, values, null, null)
-                } catch (e: Exception) {
-                    resolver.delete(uri, null, null)
-                    throw e
-                }
+                Android10LyricTree.write(applicationContext, relativePath, fileName, lyric)
             }
         } catch (e: CancellationException) {
             throw e

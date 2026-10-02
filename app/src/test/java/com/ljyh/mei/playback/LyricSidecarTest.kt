@@ -1,6 +1,7 @@
 package com.ljyh.mei.playback
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LyricSidecarTest {
@@ -18,5 +19,20 @@ class LyricSidecarTest {
             "Title - Artist.ttml",
             lyricSidecarFileName("Title", "Artist", "<?xml version=\"1.0\"?><tt></tt>"),
         )
+    }
+
+    @Test
+    fun android10MusicTreeTargetsTheAudioPlaylistFolder() {
+        assertEquals(
+            listOf("Mei", "Favorites"),
+            Android10LyricTree.directorySegments("Music/Mei/Favorites", "primary:Music"),
+        )
+        assertEquals(
+            listOf("Favorites"),
+            Android10LyricTree.directorySegments("Music/Mei/Favorites", "primary:Music/Mei"),
+        )
+        assertNull(Android10LyricTree.directorySegments("Music/Mei/Favorites", "primary:Download"))
+        assertNull(Android10LyricTree.directorySegments("Music/Other/Favorites", "primary:Music"))
+        assertNull(Android10LyricTree.directorySegments("Music/Mei/../Other", "primary:Music"))
     }
 }

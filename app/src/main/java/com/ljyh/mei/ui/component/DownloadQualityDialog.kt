@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.DownloadQuality
+import com.ljyh.mei.playback.Android10LyricTree
 
 @Composable
 fun DownloadConfirmDialog(
@@ -47,13 +48,26 @@ fun DownloadConfirmDialog(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        saveSeparateLyrics = Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()
+        saveSeparateLyrics = Environment.isExternalStorageManager()
         if (!saveSeparateLyrics) {
             Toast.makeText(context, "未获得所有文件访问权限，已取消单独保存歌词", Toast.LENGTH_SHORT).show()
         }
     }
+    val musicFolderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        saveSeparateLyrics = uri != null && Android10LyricTree.persistTree(context, uri)
+        if (uri != null && !saveSeparateLyrics) {
+            Toast.makeText(context, "请选择内部存储的 Music 或 Music/Mei 文件夹", Toast.LENGTH_SHORT).show()
+        }
+    }
     fun requestLyricStorage() {
-        if (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()) {
+        if (Build.VERSION.SDK_INT == 29) {
+            if (Android10LyricTree.grantedTree(context) != null) saveSeparateLyrics = true
+            else musicFolderLauncher.launch(null)
+            return
+        }
+        if (Environment.isExternalStorageManager()) {
             saveSeparateLyrics = true
             return
         }
@@ -113,7 +127,9 @@ fun DownloadConfirmDialog(
                     Column {
                         Text("单独保存歌词文件")
                         Text(
-                            "与歌曲同名保存为 .lrc 或 .ttml；开启需授权访问所有文件",
+                            if (Build.VERSION.SDK_INT == 29)
+                                "与歌曲同目录保存为 .lrc 或 .ttml；请选择内部存储的 Music 文件夹"
+                            else "与歌曲同目录保存为 .lrc 或 .ttml；开启需授权访问所有文件",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -123,8 +139,9 @@ fun DownloadConfirmDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                if (saveSeparateLyrics && Build.VERSION.SDK_INT >= 30 &&
-                    !Environment.isExternalStorageManager()
+                if (saveSeparateLyrics &&
+                    ((Build.VERSION.SDK_INT == 29 && Android10LyricTree.grantedTree(context) == null) ||
+                        (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()))
                 ) requestLyricStorage()
                 else onConfirm(saveSeparateLyrics)
             }) {
