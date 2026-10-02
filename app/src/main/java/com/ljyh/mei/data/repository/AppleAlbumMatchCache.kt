@@ -1,31 +1,37 @@
 package com.ljyh.mei.data.repository
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 internal data class AlbumMatchEntry(val id: String?, val validUntil: Long)
 
 private const val MatchTtlMs = 30L * 24 * 60 * 60_000
 private const val NoMatchTtlMs = 6L * 60 * 60_000
 
-/** Serializes lookups, so songs from the same album share one search even when requested together. */
+/** Shares work for one album while allowing different albums to search concurrently. */
 internal class AppleAlbumMatchCache(
     private val read: suspend () -> Map<String, AlbumMatchEntry>,
     private val write: suspend (Map<String, AlbumMatchEntry>) -> Unit,
-    private val search: suspend (album: String, artist: String) -> String?,
+    private val search: suspend (album: String, artist: String, artworkUrl: String) -> String?,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     private val mutex = Mutex()
     private val entries = mutableMapOf<String, AlbumMatchEntry>()
+    private val inFlight = mutableMapOf<String, CompletableDeferred<String?>>()
     private var loaded = false
 
-    suspend fun get(album: String, artist: String): String? {
+    suspend fun get(album: String, artist: String, artworkUrl: String): String? {
         val albumKey = normalized(album)
         val artistKey = normalized(artist)
         if (albumKey.isBlank() || artistKey.isBlank()) return null
-        val key = "$albumKey\u0000$artistKey"
-        return mutex.withLock {
+        // Version the key so old negative results do not suppress the new image fallback.
+        val key = "v2\u0000$albumKey\u0000$artistKey"
+        var owner = false
+        val pending = mutex.withLock {
             if (!loaded) {
                 try {
                     entries.putAll(read())
@@ -37,23 +43,39 @@ internal class AppleAlbumMatchCache(
                 loaded = true
             }
             val currentTime = now()
-            entries[key]?.takeIf { it.validUntil > currentTime }?.let { return@withLock it.id }
-            val id = search(album, artist)
-            entries[key] = AlbumMatchEntry(
-                id, currentTime + if (id == null) NoMatchTtlMs else MatchTtlMs
-            )
-            entries.entries.removeAll { it.value.validUntil <= currentTime }
-            if (entries.size > 256) {
-                entries.minByOrNull { it.value.validUntil }?.key?.let(entries::remove)
+            entries[key]?.takeIf { it.validUntil > currentTime }?.let { return it.id }
+            inFlight[key] ?: CompletableDeferred<String?>().also {
+                inFlight[key] = it
+                owner = true
             }
-            try {
-                write(entries.toMap())
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                // In-memory deduplication still works if persistence temporarily fails.
+        }
+        if (!owner) return pending.await()
+        try {
+            val id = search(album, artist, artworkUrl)
+            mutex.withLock {
+                val currentTime = now()
+                entries[key] = AlbumMatchEntry(
+                    id, currentTime + if (id == null) NoMatchTtlMs else MatchTtlMs
+                )
+                entries.entries.removeAll { it.value.validUntil <= currentTime }
+                if (entries.size > 256) {
+                    entries.minByOrNull { it.value.validUntil }?.key?.let(entries::remove)
+                }
+                try {
+                    write(entries.toMap())
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    // In-memory deduplication still works if persistence temporarily fails.
+                }
+                inFlight.remove(key)?.complete(id)
             }
-            id
+            return id
+        } catch (failure: Throwable) {
+            withContext(NonCancellable) {
+                mutex.withLock { inFlight.remove(key)?.completeExceptionally(failure) }
+            }
+            throw failure
         }
     }
 }

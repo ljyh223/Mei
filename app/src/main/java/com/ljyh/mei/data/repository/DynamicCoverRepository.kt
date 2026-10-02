@@ -1,12 +1,18 @@
 package com.ljyh.mei.data.repository
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.Base64
 import androidx.annotation.OptIn
 import androidx.datastore.preferences.core.edit
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.cache.CacheWriter
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.constants.AppleMusicWebTokenKey
 import com.ljyh.mei.constants.AppleMusicWebTokenRefreshAtKey
@@ -17,9 +23,14 @@ import com.ljyh.mei.utils.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -97,6 +108,9 @@ private data class AlbumMotionEntry(
 
 private const val AlbumMotionTtlMs = 60L * 60_000
 private const val NoAlbumMotionTtlMs = 20L * 60_000
+private const val ArtworkHashSide = 32
+private const val ArtworkHashCacheSize = 256
+private const val ArtworkDownloadConcurrency = 3
 
 internal fun formatAppleArtworkUrl(url: String?, size: Int): String? = url
     ?.takeIf { it.startsWith("https://") }
@@ -146,11 +160,18 @@ class DynamicCoverRepository @Inject constructor(
     private var webTokenUntil = 0L
     private val memory = mutableMapOf<Pair<Long, Boolean>, Pair<Long, DynamicCover?>>()
     private val neteaseMemory = mutableMapOf<Long, Pair<Long, DynamicCover>>()
+    private val artworkDownloadSemaphore = Semaphore(ArtworkDownloadConcurrency)
+    private val artworkHashes = object : LinkedHashMap<String, Long>(ArtworkHashCacheSize, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?): Boolean =
+            size > ArtworkHashCacheSize
+    }
     private val albumMatchCache = AppleAlbumMatchCache(
         read = ::loadAlbumMatches,
         write = ::persistAlbumMatches,
-        search = { album, artist ->
-            matchAppleAlbum(searchAppleAlbums(album, artist), album, artist)?.id
+        search = { album, artist, artworkUrl ->
+            val candidates = searchAppleAlbums(album, artist)
+            matchAppleAlbum(candidates, album, artist)?.id
+                ?: matchAppleAlbumByArtwork(candidates, artist, artworkUrl)?.id
         },
     )
     private val albumMotionMutex = Mutex()
@@ -268,7 +289,7 @@ class DynamicCoverRepository @Inject constructor(
         withContext(Dispatchers.IO) { appleLookup(album.trim(), artist.trim()) }
 
     private suspend fun appleCover(song: MediaMetadata): DynamicCover? {
-        val id = albumMatchCache.get(song.album.title, song.artists.firstOrNull()?.name.orEmpty())
+        val id = albumMatchCache.get(song.album.title, song.artists.firstOrNull()?.name.orEmpty(), song.coverUrl)
             ?: return null
         val motion = cachedAlbumMotion(id)
         val primary = motion.square ?: motion.portrait ?: return null
@@ -328,6 +349,58 @@ class DynamicCoverRepository @Inject constructor(
             ?: return AppleMusicCoverDiagnostic(query, candidates, null, null, null)
         val motion = fetchAlbumMotion(match.id)
         return AppleMusicCoverDiagnostic(query, candidates, match, motion.square, motion.portrait)
+    }
+
+    private suspend fun matchAppleAlbumByArtwork(
+        candidates: List<AppleAlbumCandidate>, artist: String, artworkUrl: String
+    ): AppleAlbumCandidate? = coroutineScope {
+        val eligible = candidates.filter { candidate ->
+            candidate.artworkUrl != null && artistMatchesForArtwork(candidate.artist, artist)
+        }
+        if (eligible.isEmpty()) return@coroutineScope null
+        val sourceHash = artworkHash(artworkUrl)
+        var failed = false
+        val hashes = eligible.map { candidate ->
+            async(Dispatchers.IO) {
+                try {
+                    candidate.id to artworkHash(candidate.artworkUrl!!)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    candidate.id to null
+                }
+            }
+        }.awaitAll().onEach { if (it.second == null) failed = true }
+            .mapNotNull { (id, hash) -> hash?.let { id to it } }.toMap()
+        val match = rankedArtworkMatches(eligible, artist, sourceHash, hashes).firstOrNull()
+        if (match == null && failed) throw IOException("Artwork comparison incomplete")
+        match
+    }
+
+    private suspend fun artworkHash(url: String): Long {
+        synchronized(artworkHashes) { artworkHashes[url] }?.let { return it }
+        val request = ImageRequest.Builder(context).data(url).size(96)
+            .allowHardware(false).build()
+        val result = artworkDownloadSemaphore.withPermit { context.imageLoader.execute(request) } as? SuccessResult
+            ?: throw IOException("Artwork unavailable")
+        val bitmap = result.image.toBitmap()
+        val small = Bitmap.createScaledBitmap(bitmap, ArtworkHashSide, ArtworkHashSide, true)
+        val pixels = IntArray(ArtworkHashSide * ArtworkHashSide)
+        try {
+            small.getPixels(pixels, 0, ArtworkHashSide, 0, 0, ArtworkHashSide, ArtworkHashSide)
+        } finally {
+            if (small !== bitmap) small.recycle()
+        }
+        val luminance = DoubleArray(pixels.size) { index ->
+            val pixel = pixels[index]
+            val red = pixel shr 16 and 0xff
+            val green = pixel shr 8 and 0xff
+            val blue = pixel and 0xff
+            0.299 * red + 0.587 * green + 0.114 * blue
+        }
+        val hash = ArtworkSimilarity.hash(luminance)
+        synchronized(artworkHashes) { artworkHashes[url] = hash }
+        return hash
     }
 
     private suspend fun searchAppleAlbums(album: String, artist: String): List<AppleAlbumCandidate> {
