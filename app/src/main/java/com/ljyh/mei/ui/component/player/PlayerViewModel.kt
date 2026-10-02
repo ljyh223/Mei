@@ -243,7 +243,11 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun downloadSong(metadata: MediaMetadata, context: android.content.Context) {
+    fun downloadSong(
+        metadata: MediaMetadata,
+        context: android.content.Context,
+        saveSeparateLyrics: Boolean = false,
+    ) {
         viewModelScope.launch {
             val quality = try {
                 val saved = AppContext.instance.dataStore[DownloadQualityKey]
@@ -280,7 +284,8 @@ class PlayerViewModel @Inject constructor(
                             )
                         ),
                         playlistName = "单曲下载",
-                        downloadPath = downloadPath
+                        downloadPath = downloadPath,
+                        saveSeparateLyrics = saveSeparateLyrics,
                     )
                     android.widget.Toast.makeText(context, "已添加到下载队列", android.widget.Toast.LENGTH_SHORT).show()
                 } else {

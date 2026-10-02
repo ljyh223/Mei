@@ -1,5 +1,13 @@
 package com.ljyh.mei.ui.component
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,9 +17,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -23,10 +38,35 @@ fun DownloadConfirmDialog(
     currentQuality: DownloadQuality,
     downloadPath: String,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
+    onConfirm: (saveSeparateLyrics: Boolean) -> Unit,
     onGoToSettings: () -> Unit,
     onGoToDownloadManage: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    var saveSeparateLyrics by rememberSaveable { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        saveSeparateLyrics = Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()
+        if (!saveSeparateLyrics) {
+            Toast.makeText(context, "未获得所有文件访问权限，已取消单独保存歌词", Toast.LENGTH_SHORT).show()
+        }
+    }
+    fun requestLyricStorage() {
+        if (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()) {
+            saveSeparateLyrics = true
+            return
+        }
+        val appSettings = Intent(
+            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            Uri.parse("package:${context.packageName}"),
+        )
+        try {
+            permissionLauncher.launch(appSettings)
+        } catch (_: Exception) {
+            permissionLauncher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("确认下载") },
@@ -62,10 +102,32 @@ fun DownloadConfirmDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = saveSeparateLyrics,
+                        onCheckedChange = { checked ->
+                            if (checked) requestLyricStorage() else saveSeparateLyrics = false
+                        },
+                    )
+                    Column {
+                        Text("单独保存歌词文件")
+                        Text(
+                            "与歌曲同名保存为 .lrc 或 .ttml；开启需授权访问所有文件",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(onClick = {
+                if (saveSeparateLyrics && Build.VERSION.SDK_INT >= 30 &&
+                    !Environment.isExternalStorageManager()
+                ) requestLyricStorage()
+                else onConfirm(saveSeparateLyrics)
+            }) {
                 Text("开始下载")
             }
         },

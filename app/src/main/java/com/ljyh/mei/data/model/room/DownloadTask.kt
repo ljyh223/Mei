@@ -16,6 +16,7 @@ data class DownloadTask(
     val songAlbum: String = "",
     val songCover: String = "",
     val quality: String = "",
+    val saveSeparateLyrics: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

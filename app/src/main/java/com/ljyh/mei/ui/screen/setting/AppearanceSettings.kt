@@ -14,7 +14,6 @@ import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.LinearScale
-import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Speed
@@ -43,7 +42,6 @@ import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.DynamicCoverKey
 import com.ljyh.mei.constants.LyricTextSize
-import com.ljyh.mei.constants.LiquidGlassKey
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
@@ -75,10 +73,6 @@ fun AppearanceSettings(
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
-    )
-    val (liquidGlass, onLiquidGlassChange) = rememberPreference(
-        LiquidGlassKey,
-        defaultValue = false,
     )
 
 
@@ -184,13 +178,6 @@ fun AppearanceSettings(
                 icon = { Icon(Icons.Rounded.Palette, null) },
                 checked = dynamicTheme,
                 onCheckedChange = onDynamicThemeChange
-            )
-            SwitchPreference(
-                title = { Text("流体玻璃") },
-                description = "实验性效果，仅应用于手机端底部导航和迷你播放器",
-                icon = { Icon(Icons.Rounded.BlurOn, null) },
-                checked = liquidGlass,
-                onCheckedChange = onLiquidGlassChange,
             )
             PreferenceGroupTitle(
                 title = "PLAYLIST"

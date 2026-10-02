@@ -36,7 +36,6 @@ val MusicQualityKey = stringPreferencesKey("musicQuality")
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
-val LiquidGlassKey = booleanPreferencesKey("liquidGlass")
 val PlayerActionKey = stringPreferencesKey("playerBottomAction")
 
 val NormalLyricTextSizeKey = stringPreferencesKey("lyricTextSize")
@@ -49,6 +48,7 @@ val LoopPlaybackKey = booleanPreferencesKey("loopPlayback")
 val NoAudioSourceKey = booleanPreferencesKey("noAudioSource")
 val IsShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val RepeatModeKey = intPreferencesKey("repeatMode")
+val LastPlaybackQueueKey = stringPreferencesKey("lastPlaybackQueue")
 
 // Playback effects. Band levels are stored as millibels, separated by commas.
 val EqualizerEnabledKey = booleanPreferencesKey("equalizerEnabled")

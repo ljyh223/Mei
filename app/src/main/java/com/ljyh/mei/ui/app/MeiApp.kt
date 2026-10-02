@@ -45,7 +45,6 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.DynamicThemeKey
-import com.ljyh.mei.constants.LiquidGlassKey
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
@@ -72,8 +71,6 @@ import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.utils.rememberPreference
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import okhttp3.OkHttpClient
 import java.io.File
 
@@ -92,7 +89,6 @@ fun MeiApp(
     val navController = rememberNavController()
     var searchActive by rememberSaveable { mutableStateOf(false) }
     val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
-    val liquidGlass by rememberPreference(LiquidGlassKey, defaultValue = false)
     val playerConnection = rememberPlayerConnection(context, database)
 
     setSingletonImageLoaderFactory {
@@ -127,8 +123,6 @@ fun MeiApp(
             val density = LocalDensity.current
             val device = rememberDeviceInfo()
             val useTabletSidebar = device.isTablet && device.isLandscape
-            val mobileLiquidGlassEnabled = liquidGlass && !device.isTablet
-            val mobileBackdrop = rememberLayerBackdrop()
             val systemBars = WindowInsets.systemBars
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val route = navBackStackEntry?.destination?.route
@@ -263,13 +257,6 @@ fun MeiApp(
                     NavHost(
                         modifier = Modifier
                             .fillMaxSize()
-                            .then(
-                                if (mobileLiquidGlassEnabled) {
-                                    Modifier.layerBackdrop(mobileBackdrop)
-                                } else {
-                                    Modifier
-                                },
-                            )
                             .padding(start = navigationStartPadding),
                         navController = navController,
                         startDestination = when (startTab) {
@@ -312,7 +299,6 @@ fun MeiApp(
                     BottomSheetPlayer(
                         state = playerBottomSheetState,
                         collapsedBottomOffset = playerNavigationOffset,
-                        backdrop = mobileBackdrop.takeIf { mobileLiquidGlassEnabled },
                     )
                 }
             }

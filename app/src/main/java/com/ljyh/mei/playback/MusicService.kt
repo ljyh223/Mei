@@ -50,10 +50,14 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.IsShuffleModeKey
+import com.ljyh.mei.constants.LastPlaybackQueueKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.RepeatModeKey
 import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.SongEntity
+import com.ljyh.mei.data.model.createPlaceholder
+import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
@@ -71,12 +75,14 @@ import com.ljyh.mei.utils.get
 import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
@@ -104,6 +110,8 @@ class MusicService : MediaLibraryService(),
     private val serviceJob = SupervisorJob()
     var scope = CoroutineScope(Dispatchers.Main + serviceJob)
     private var historyJob: Job? = null
+    private var queueSaveJob: Job? = null
+    private var restoringQueue = true
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var baseMediaSourceFactory: DefaultMediaSourceFactory
     val currentMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
@@ -254,38 +262,107 @@ class MusicService : MediaLibraryService(),
             .build()
 
 
+        // The manager must exist before restored items publish timeline events.
+        queueManager = PlaybackQueueManager(player, apiService, weApiService, scope)
         restorePlayerState()
+        scope.launch {
+            while (isActive) {
+                delay(10_000)
+                if (!restoringQueue && player.mediaItemCount > 0) savePlaybackQueue()
+            }
+        }
         val sessionToken = SessionToken(this, ComponentName(this, MusicService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, MoreExecutors.directExecutor())
 
         connectivityManager = getSystemService(ConnectivityManager::class.java)
 
-        // 初始化队列管理器
-        queueManager = PlaybackQueueManager( player, apiService, weApiService, scope)
-
-
     }
 
     private fun restorePlayerState() {
         scope.launch {
-            val preferences = context.dataStore.data.firstOrNull() ?: return@launch
+            try {
+                val preferences = context.dataStore.data.firstOrNull() ?: return@launch
+                val snapshot = PlaybackQueueSnapshotCodec.decode(preferences[LastPlaybackQueueKey])
+                // A user action made while the service was starting takes precedence over the snapshot.
+                val playerWasEmpty = player.mediaItemCount == 0
+                if (playerWasEmpty && snapshot != null) {
+                    val items = snapshot.ids.mapIndexed { index, id ->
+                        if (index == snapshot.currentIndex && snapshot.currentSong != null) {
+                            snapshot.currentSong.toMediaItem()
+                        } else {
+                            createPlaceholder(id)
+                        }
+                    }
+                    player.setMediaItems(items, snapshot.currentIndex, snapshot.positionMs)
+                    player.playWhenReady = false
+                    player.prepare()
+                    currentMediaMetadata.value = player.currentMetadata
+                }
 
-            // 获取保存的值，默认值为 true (随机) 和 REPEAT_MODE_OFF (循环)
-            val savedShuffleMode = preferences[IsShuffleModeKey] ?: true
-            val savedRepeatMode = preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL
-            if (player.shuffleModeEnabled != savedShuffleMode) {
-                player.shuffleModeEnabled = savedShuffleMode
-                // 如果你有 queueManager 管理 shuffle，可能也需要通知它
-                queueManager.setShuffleModeEnabled(savedShuffleMode)
+                if (playerWasEmpty) {
+                    val savedShuffleMode = preferences[IsShuffleModeKey] ?: true
+                    val savedRepeatMode = preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL
+                    player.repeatMode = savedRepeatMode
+                    player.shuffleModeEnabled = savedShuffleMode
+                    queueManager.setShuffleModeEnabled(savedShuffleMode)
+                    Timber.tag("MusicService").d(
+                        "Restored queue: ${snapshot?.ids?.size ?: 0}, shuffle: $savedShuffleMode, repeat: $savedRepeatMode"
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.tag("MusicService").e(e, "Failed to restore player state")
+            } finally {
+                restoringQueue = false
             }
-
-            if (player.repeatMode != savedRepeatMode) {
-                player.repeatMode = savedRepeatMode
-            }
-
-            Timber.tag("MusicService").d("Restored State -> Shuffle: $savedShuffleMode, Repeat: $savedRepeatMode")
         }
+    }
+
+    private fun scheduleQueueSave() {
+        if (restoringQueue) return
+        queueSaveJob?.cancel()
+        queueSaveJob = scope.launch {
+            delay(500)
+            savePlaybackQueue()
+        }
+    }
+
+    private suspend fun savePlaybackQueue() {
+        val snapshot = if (player.mediaItemCount > 0 && player.currentMediaItemIndex >= 0) {
+            PlaybackQueueSnapshot(
+                ids = player.mediaItems.map(MediaItem::mediaId),
+                currentIndex = player.currentMediaItemIndex,
+                positionMs = player.currentPosition.coerceAtLeast(0L),
+                currentSong = snapshotCurrentSong(),
+            )
+        } else null
+        try {
+            context.dataStore.edit { preferences ->
+                if (snapshot == null) preferences.remove(LastPlaybackQueueKey)
+                else preferences[LastPlaybackQueueKey] = PlaybackQueueSnapshotCodec.encode(snapshot)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.tag("MusicService").e(e, "Failed to save playback queue")
+        }
+    }
+
+    private fun snapshotCurrentSong(): MediaMetadata? {
+        val item = player.currentMediaItem ?: return null
+        val current = player.currentMetadata ?: (item.localConfiguration?.tag as? SongEntity)?.let {
+            MediaMetadata(
+                id = it.id,
+                title = it.title,
+                coverUrl = it.coverUrl,
+                artists = listOf(MediaMetadata.Artist(it.artistId, it.artistName)),
+                duration = it.duration,
+                album = MediaMetadata.Album(it.albumId, it.albumName),
+            )
+        }
+        return current?.takeIf { it.id.toString() == item.mediaId }
     }
 
     override fun onEvents(player: Player, events: Player.Events) {
@@ -304,6 +381,7 @@ class MusicService : MediaLibraryService(),
         }
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             currentMediaMetadata.value = player.currentMetadata
+            scheduleQueueSave()
         }
     }
 
@@ -346,6 +424,10 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
+        queueSaveJob?.cancel()
+        if (!restoringQueue) {
+            runBlocking { savePlaybackQueue() }
+        }
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)

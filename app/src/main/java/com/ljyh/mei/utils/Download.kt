@@ -29,7 +29,8 @@ object DownloadManager {
         songs: List<SongDownloadInfo>,
         playlistName: String,
         playlistId: String = "",
-        downloadPath: String = getDefaultDownloadPath()
+        downloadPath: String = getDefaultDownloadPath(),
+        saveSeparateLyrics: Boolean = false,
     ) {
         DownloadWorker.createNotificationChannel(context)
 
@@ -55,6 +56,7 @@ object DownloadManager {
                     songAlbum = info.songAlbum,
                     songCover = info.songCover,
                     quality = "",
+                    saveSeparateLyrics = saveSeparateLyrics,
                     createdAt = System.currentTimeMillis(),
                     updatedAt = System.currentTimeMillis()
                 )
@@ -72,6 +74,7 @@ object DownloadManager {
                         .putString(DownloadWorker.KEY_SONG_IDS, songIdsJson)
                         .putString(DownloadWorker.KEY_PLAYLIST_NAME, playlistName)
                         .putString(DownloadWorker.KEY_DOWNLOAD_PATH, downloadPath)
+                        .putBoolean(DownloadWorker.KEY_SAVE_SEPARATE_LYRICS, saveSeparateLyrics)
                         .build()
                 )
                 .build()
@@ -112,7 +115,8 @@ object DownloadManager {
             ),
             playlistName = playlistName,
             playlistId = "resume_${System.currentTimeMillis()}",
-            downloadPath = downloadPath
+            downloadPath = downloadPath,
+            saveSeparateLyrics = task.saveSeparateLyrics,
         )
     }
 

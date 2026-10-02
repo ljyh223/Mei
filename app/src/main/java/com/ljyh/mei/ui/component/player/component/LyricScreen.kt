@@ -3,6 +3,9 @@ package com.ljyh.mei.ui.component.player.component
 
 import android.widget.Toast
 import androidx.annotation.OptIn
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -77,12 +83,25 @@ fun LyricScreen(
     anchor: LyricsAnchor = LyricsAnchor.Fixed(40.dp),
     bottomFade: LyricsFade = LyricsFade.Fraction(0.5f),
 ) {
-    val listState = rememberLyricsLazyListState()
     val context = LocalContext.current
     val playbackPosition = remember(playerConnection.player) {
         mutableIntStateOf(playerConnection.player.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
     }
     val currentPosition = remember(playbackPosition) { { playbackPosition.intValue } }
+    val initialLineIndex = remember(lyricData.lyricLine) {
+        val position = playerConnection.player.currentPosition
+        lyricData.lyricLine.lines.indexOfLast { it.start.toLong() <= position }.coerceAtLeast(0)
+    }
+    val listState = key(lyricData.lyricLine) {
+        rememberLyricsLazyListState(initialFirstVisibleItemIndex = initialLineIndex)
+    }
+    var positioningInitialLine by remember(lyricData.lyricLine) { mutableStateOf(true) }
+    LaunchedEffect(listState, lyricData.lyricLine) {
+        // The lyric view is recreated when cover mode ends. Snap to the current line before
+        // enabling the normal follow animation so it does not travel down from line zero.
+        if (lyricData.lyricLine.lines.isNotEmpty()) listState.scrollToItem(initialLineIndex)
+        positioningInitialLine = false
+    }
     val (normalLyricTextSize, _) = rememberEnumPreference(
         NormalLyricTextSizeKey,
         LyricTextSize.Size24
@@ -212,6 +231,8 @@ fun LyricScreen(
                         },
                     normalLineTextStyle = normalStyle,
                     accompanimentLineTextStyle = accompanimentStyle,
+                    scrollAnimationSpec = if (positioningInitialLine) snap() else
+                        tween(650, easing = FastOutSlowInEasing),
                 )
                 }
 

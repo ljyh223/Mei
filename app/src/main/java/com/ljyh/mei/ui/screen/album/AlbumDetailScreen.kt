@@ -143,7 +143,7 @@ fun AlbumDetailScreen(
     val (downloadQuality) = rememberEnumPreference(DownloadQualityKey, DownloadQuality.EXHIGH)
 
     // 5. 下载处理逻辑
-    fun doDownload(tracks: List<MediaMetadata>) {
+    fun doDownload(tracks: List<MediaMetadata>, saveSeparateLyrics: Boolean) {
         scope.launch {
             val songIds = tracks.map { it.id.toString() }
             val result = viewModel.resolveSongUrls(songIds, downloadQuality.toMusicQuality())
@@ -186,7 +186,8 @@ fun AlbumDetailScreen(
                 songs = downloadInfos,
                 playlistName = playlistName,
                 playlistId = id.toString(),
-                downloadPath = downloadPath
+                downloadPath = downloadPath,
+                saveSeparateLyrics = saveSeparateLyrics,
             )
             Toast.makeText(context, "已添加 ${downloadInfos.size} 首到下载队列", Toast.LENGTH_SHORT).show()
         }
@@ -207,9 +208,9 @@ fun AlbumDetailScreen(
             currentQuality = downloadQuality,
             downloadPath = downloadPath,
             onDismiss = { showDownloadDialog = false },
-            onConfirm = {
+            onConfirm = { saveSeparateLyrics ->
                 showDownloadDialog = false
-                doDownload(pendingDownloadTracks)
+                doDownload(pendingDownloadTracks, saveSeparateLyrics)
             },
             onGoToSettings = {
                 showDownloadDialog = false

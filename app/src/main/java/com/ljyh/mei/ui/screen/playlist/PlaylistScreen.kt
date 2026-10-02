@@ -197,7 +197,7 @@ fun PlaylistScreen(
     }
 
     // 7. 下载处理逻辑
-    fun doBulkDownload(allTracks: List<MediaMetadata>) {
+    fun doBulkDownload(allTracks: List<MediaMetadata>, saveSeparateLyrics: Boolean) {
         scope.launch {
             val songIds = allTracks.map { it.id.toString() }
             val result = viewModel.resolveSongUrls(songIds, downloadQuality.toMusicQuality())
@@ -240,7 +240,8 @@ fun PlaylistScreen(
                 songs = downloadInfos,
                 playlistName = playlistName,
                 playlistId = id.toString(),
-                downloadPath = downloadPath
+                downloadPath = downloadPath,
+                saveSeparateLyrics = saveSeparateLyrics,
             )
             Toast.makeText(context, "已添加 ${downloadInfos.size} 首到下载队列", Toast.LENGTH_SHORT).show()
         }
@@ -297,9 +298,9 @@ fun PlaylistScreen(
             currentQuality = downloadQuality,
             downloadPath = downloadPath,
             onDismiss = { showDownloadDialog = false },
-            onConfirm = {
+            onConfirm = { saveSeparateLyrics ->
                 showDownloadDialog = false
-                doBulkDownload(pendingDownloadTracks)
+                doBulkDownload(pendingDownloadTracks, saveSeparateLyrics)
             },
             onGoToSettings = {
                 showDownloadDialog = false

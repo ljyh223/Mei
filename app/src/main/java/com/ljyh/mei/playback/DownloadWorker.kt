@@ -8,6 +8,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -64,6 +66,7 @@ class DownloadWorker(
         const val KEY_SONG_IDS = "song_ids_json"
         const val KEY_PLAYLIST_NAME = "playlist_name"
         const val KEY_DOWNLOAD_PATH = "download_path"
+        const val KEY_SAVE_SEPARATE_LYRICS = "save_separate_lyrics"
         const val CHANNEL_ID = "download_channel"
         const val NOTIFICATION_ID = 1001
         private const val CONCURRENCY = 3
@@ -115,6 +118,7 @@ class DownloadWorker(
         val playlistName = inputData.getString(KEY_PLAYLIST_NAME) ?: "未分类"
         val downloadPath = inputData.getString(KEY_DOWNLOAD_PATH)
             ?: "Music/Mei"
+        val saveSeparateLyrics = inputData.getBoolean(KEY_SAVE_SEPARATE_LYRICS, false)
 
         val songIds: List<String> = try {
             Gson().fromJson(songIdsJson, object : TypeToken<List<String>>() {}.type)
@@ -131,6 +135,7 @@ class DownloadWorker(
         val totalCount = songIds.size
 
         val sanitizedPlaylistName = specialReplace(playlistName).trim()
+            .takeUnless { it.isBlank() || it == "." || it == ".." } ?: "未分类"
         val relativePath = "Music/Mei/$sanitizedPlaylistName"
         val tempDir = File(applicationContext.cacheDir, "download")
         if (!tempDir.exists()) tempDir.mkdirs()
@@ -146,7 +151,7 @@ class DownloadWorker(
                     semaphore.withPermit {
                         if (isStopped) return@withPermit
 
-                        processSong(songId, db, tempDir, relativePath)
+                        processSong(songId, db, tempDir, relativePath, saveSeparateLyrics)
                     }
 
                     val done = completedCount.get() + failedCount.get()
@@ -172,7 +177,8 @@ class DownloadWorker(
         songId: String,
         db: AppDatabase,
         tempDir: File,
-        relativePath: String
+        relativePath: String,
+        saveSeparateLyrics: Boolean,
     ) {
         val task = db.downloadDao().getBySongId(songId)
         if (task == null || task.url.isBlank() || task.status == DownloadStatus.PAUSED) {
@@ -201,6 +207,7 @@ class DownloadWorker(
                 } catch (e: Exception) {
                     Timber.e(e, "Tag repair failed for ${task.songTitle}")
                 }
+                if (saveSeparateLyrics) saveLyricSidecar(songId, task, relativePath)
                 updateTask(db, songId, DownloadStatus.COMPLETED, 100)
                 completedCount.incrementAndGet()
                 return
@@ -234,6 +241,7 @@ class DownloadWorker(
             } catch (e: Exception) {
                 Timber.e(e, "Tag repair failed for existing MediaStore file ${task.songTitle}")
             }
+            if (saveSeparateLyrics) saveLyricSidecar(songId, task, relativePath)
             saveDownloadedSong(
                 db = db,
                 songId = songId,
@@ -249,6 +257,7 @@ class DownloadWorker(
 
         try {
             coroutineScope {
+            var resolvedLyric: String? = null
             val lyricDeferred = async(Dispatchers.IO) {
                 lyricProvider.getEmbeddedLyric(songId)
             }
@@ -265,6 +274,7 @@ class DownloadWorker(
             if (success && tempFile.exists()) {
                 try {
                     val lyric = lyricDeferred.await()
+                    resolvedLyric = lyric
                     val coverBytes = coverDeferred.await()
                     val tagStatus = SongMate.writeTagsWithCoverBytes(
                         task.songTitle, task.songArtist, task.songAlbum,
@@ -290,6 +300,7 @@ class DownloadWorker(
                 }
 
                 if (mediaStoreUri != null) {
+                    if (saveSeparateLyrics) saveLyricSidecar(songId, task, relativePath, resolvedLyric)
                     saveDownloadedSong(
                         db = db,
                         songId = songId,
@@ -317,6 +328,62 @@ class DownloadWorker(
             Timber.e(e, "Download failed for ${task.songTitle}")
             failedCount.incrementAndGet()
             updateTask(db, songId, DownloadStatus.FAILED, 0)
+        }
+    }
+
+    /** A sidecar failure never invalidates a successfully downloaded audio file. */
+    private suspend fun saveLyricSidecar(
+        songId: String,
+        task: DownloadTask,
+        relativePath: String,
+        resolvedLyric: String? = null,
+    ) = withContext(Dispatchers.IO) {
+        if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
+            Timber.w("Skipping lyric sidecar: all-files access was revoked")
+            return@withContext
+        }
+        try {
+            val lyric = (resolvedLyric ?: lyricProvider.getEmbeddedLyric(songId))
+                ?.takeIf(String::isNotBlank)
+                ?: return@withContext
+            val fileName = lyricSidecarFileName(task.songTitle, task.songArtist, lyric)
+            if (Build.VERSION.SDK_INT >= 30) {
+                val directory = File(Environment.getExternalStorageDirectory(), relativePath)
+                if (!directory.isDirectory && !directory.mkdirs()) error("Cannot create $directory")
+                val temporary = File.createTempFile(".mei-lyric-", ".tmp", directory)
+                try {
+                    temporary.writeText(lyric, Charsets.UTF_8)
+                    val destination = File(directory, fileName)
+                    if (!temporary.renameTo(destination)) error("Cannot save $destination")
+                } finally {
+                    temporary.delete()
+                }
+            } else {
+                // Android 10 has no all-files grant; write an app-owned document through MediaStore.
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                    put(MediaStore.Downloads.RELATIVE_PATH, "Download/Mei/Lyrics/")
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val resolver = applicationContext.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: error("Cannot create lyric document")
+                try {
+                    resolver.openOutputStream(uri)?.use { it.write(lyric.toByteArray(Charsets.UTF_8)) }
+                        ?: error("Cannot write lyric document")
+                    values.clear()
+                    values.put(MediaStore.Downloads.IS_PENDING, 0)
+                    resolver.update(uri, values, null, null)
+                } catch (e: Exception) {
+                    resolver.delete(uri, null, null)
+                    throw e
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to save lyric sidecar for ${task.songTitle}")
         }
     }
 
