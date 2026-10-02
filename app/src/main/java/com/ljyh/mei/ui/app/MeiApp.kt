@@ -299,6 +299,8 @@ fun MeiApp(
                     BottomSheetPlayer(
                         state = playerBottomSheetState,
                         collapsedBottomOffset = playerNavigationOffset,
+                        systemBottomInset = bottomInset,
+                        bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
                     )
                 }
             }
