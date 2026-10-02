@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.component.player.component
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.view.TextureView
 import androidx.annotation.OptIn
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -32,6 +34,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.playback.CacheManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 /** Keeps the static image visible until a video frame is actually rendered. */
 @OptIn(UnstableApi::class)
@@ -41,6 +45,7 @@ fun DynamicCoverView(
     cover: DynamicCover?,
     playing: Boolean,
     onPlaybackError: (PlaybackException) -> Unit = {},
+    onFrameSample: ((Bitmap) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -49,6 +54,10 @@ fun DynamicCoverView(
     var videoDimensions by remember(cover?.cacheKey, cover?.url) {
         mutableStateOf(Triple(0, 0, 1f))
     }
+    var textureView by remember(cover?.cacheKey, cover?.url) {
+        mutableStateOf<CenterCropTextureView?>(null)
+    }
+    val currentFrameSample by rememberUpdatedState(onFrameSample)
     val player = remember(cover?.cacheKey, cover?.url) {
         cover?.let {
             ExoPlayer.Builder(context)
@@ -88,6 +97,26 @@ fun DynamicCoverView(
     LaunchedEffect(player, playing, failed) {
         player?.playWhenReady = playing && !failed
     }
+    LaunchedEffect(player, textureView, playing, firstFrame, failed, onFrameSample != null) {
+        val view = textureView
+        if (player != null && view != null && playing && firstFrame && !failed && onFrameSample != null) {
+            while (isActive) {
+                // Copy only 16×16 pixels from the already decoded video. The backdrop uses its
+                // lower edge, so no second decoder or full-size frame copy is needed.
+                if (view.isAvailable) {
+                    runCatching {
+                        view.getBitmap(16, 16)?.let { snapshot ->
+                            val pixels = IntArray(16 * 5)
+                            snapshot.getPixels(pixels, 0, 16, 0, 11, 16, 5)
+                            snapshot.recycle()
+                            Bitmap.createBitmap(pixels, 16, 5, Bitmap.Config.ARGB_8888)
+                        }
+                    }.getOrNull()?.let { currentFrameSample?.invoke(it) }
+                }
+                delay(33)
+            }
+        }
+    }
     val background = remember(cover?.palette?.bgColor) {
         runCatching { Color(android.graphics.Color.parseColor("#${cover?.palette?.bgColor}")) }
             .getOrDefault(Color.Transparent)
@@ -104,7 +133,12 @@ fun DynamicCoverView(
             // can briefly expose the previous video's frame and its crop transform.
             key(cover.cacheKey, cover.url) {
                 AndroidView(
-                    factory = { viewContext -> CenterCropTextureView(viewContext).also(player::setVideoTextureView) },
+                    factory = { viewContext ->
+                        CenterCropTextureView(viewContext).also {
+                            textureView = it
+                            player.setVideoTextureView(it)
+                        }
+                    },
                     update = { view ->
                         view.setVideoDimensions(videoDimensions.first, videoDimensions.second, videoDimensions.third)
                     },
