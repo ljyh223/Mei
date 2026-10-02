@@ -21,4 +21,13 @@ class AppleAlbumMatchingTest {
         assertNull(matchAppleAlbum(candidates, "An Album", "Artist"))
         assertNull(matchAppleAlbum(candidates, "An Album Deluxe", ""))
     }
+
+    @Test
+    fun `formats Apple artwork template for candidate thumbnail`() {
+        assertEquals(
+            "https://example.com/240x240bb.jpg",
+            formatAppleArtworkUrl("https://example.com/{w}x{h}bb.{f}", 240)
+        )
+        assertNull(formatAppleArtworkUrl("http://example.com/{w}x{h}bb.{f}", 240))
+    }
 }

@@ -46,7 +46,12 @@ data class MotionArtworkClip(
     val previewUrl: String?
 )
 
-data class AppleAlbumCandidate(val id: String, val name: String, val artist: String)
+data class AppleAlbumCandidate(
+    val id: String,
+    val name: String,
+    val artist: String,
+    val artworkUrl: String? = null
+)
 
 data class AppleMusicCoverDiagnostic(
     val query: String,
@@ -58,6 +63,12 @@ data class AppleMusicCoverDiagnostic(
 
 private fun normalized(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
     .lowercase().replace(Regex("[\\p{P}\\p{Z}\\p{S}]"), "")
+
+internal fun formatAppleArtworkUrl(url: String?, size: Int): String? = url
+    ?.takeIf { it.startsWith("https://") }
+    ?.replace("{w}", size.toString())
+    ?.replace("{h}", size.toString())
+    ?.replace("{f}", "jpg")
 
 internal fun matchAppleAlbum(
     candidates: List<AppleAlbumCandidate>, album: String, artist: String
@@ -236,7 +247,14 @@ class DynamicCoverRepository @Inject constructor(
                 val item = albums.optJSONObject(i) ?: continue
                 val attrs = item.optJSONObject("attributes") ?: continue
                 val id = item.optString("id").takeIf(String::isNotBlank) ?: continue
-                add(AppleAlbumCandidate(id, attrs.optString("name"), attrs.optString("artistName")))
+                add(AppleAlbumCandidate(
+                    id = id,
+                    name = attrs.optString("name"),
+                    artist = attrs.optString("artistName"),
+                    artworkUrl = formatAppleArtworkUrl(
+                        attrs.optJSONObject("artwork")?.optString("url"), 240
+                    )
+                ))
             }
         }
         val match = matchAppleAlbum(candidates, album, artist)
@@ -261,8 +279,7 @@ class DynamicCoverRepository @Inject constructor(
             CoverPalette(it.optString("bgColor"), it.optString("textColor1"),
                 it.optString("textColor2"), it.optString("textColor3"), it.optString("textColor4"))
         }
-        val previewUrl = artwork?.optString("url")?.takeIf { it.startsWith("https://") }
-            ?.replace("{w}x{h}", "1000x1000")?.replace("{f}", "jpg")
+        val previewUrl = formatAppleArtworkUrl(artwork?.optString("url"), 1000)
         return MotionArtworkClip(url, palette, previewUrl)
     }
 
