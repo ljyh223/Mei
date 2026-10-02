@@ -17,7 +17,6 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,8 +32,6 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
-import com.ljyh.mei.constants.DevModeKey
-import com.ljyh.mei.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +39,6 @@ fun SettingScreen(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val navController = LocalNavController.current
-    val (devMode) = rememberPreference(DevModeKey, defaultValue = false)
 
     Scaffold(
         topBar = {
@@ -103,15 +99,6 @@ fun SettingScreen(
                     Screen.DownloadSettings.navigate(navController)
                 }
             )
-
-            if (devMode) {
-                PreferenceEntry(
-                    title = { Text("开发者选项") },
-                    description = "Apple Music 匹配与动态封面诊断",
-                    icon = { Icon(Icons.Rounded.BugReport, contentDescription = null) },
-                    onClick = { Screen.DeveloperSettings.navigate(navController) }
-                )
-            }
 
             PreferenceEntry(
                 title = { Text("关于") },

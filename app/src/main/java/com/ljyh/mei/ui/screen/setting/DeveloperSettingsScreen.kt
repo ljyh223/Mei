@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -66,19 +65,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil3.compose.AsyncImage
-import com.ljyh.mei.constants.DevModeKey
 import com.ljyh.mei.data.repository.AppleMusicCoverDiagnostic
 import com.ljyh.mei.data.repository.CoverPalette
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.data.repository.MotionArtworkClip
 import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.component.player.component.DynamicCoverView
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
-import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,7 +87,6 @@ fun DeveloperSettingsScreen(
     val playerConnection = LocalPlayerConnection.current
     val currentSong = playerConnection?.mediaMetadata?.collectAsState()?.value
     val state by viewModel.state.collectAsState()
-    val (devMode, onDevModeChange) = rememberPreference(DevModeKey, defaultValue = false)
     var album by rememberSaveable { mutableStateOf("") }
     var artist by rememberSaveable { mutableStateOf("") }
     var seededSongId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -118,7 +113,7 @@ fun DeveloperSettingsScreen(
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text("开发者选项") },
+            title = { Text("动态封面调试") },
             navigationIcon = {
                 IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
@@ -134,14 +129,7 @@ fun DeveloperSettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SwitchPreference(
-                title = { Text("开发者模式") },
-                description = "关闭后隐藏设置入口",
-                icon = { Icon(Icons.Rounded.BugReport, contentDescription = null) },
-                checked = devMode,
-                onCheckedChange = onDevModeChange
-            )
-            Text("Apple Music 动态封面诊断", style = MaterialTheme.typography.titleLarge,
+            Text("Apple Music 搜索匹配", style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp))
             Text("使用与播放时相同的专辑搜索和严格匹配规则。仅在点击查询时请求网络。",
                 style = MaterialTheme.typography.bodySmall,

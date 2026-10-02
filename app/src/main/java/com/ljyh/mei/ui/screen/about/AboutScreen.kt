@@ -43,6 +43,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -251,6 +252,31 @@ fun AboutScreen() {
                                 },
                                 headlineContent = { Text("删除QQ音乐ID数据", style = MaterialTheme.typography.bodyLarge) },
                                 supportingContent = { Text("清除 qqSong 表", style = MaterialTheme.typography.bodySmall) },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                            ListItem(
+                                modifier = Modifier.clickable {
+                                    Screen.DeveloperSettings.navigate(navController)
+                                },
+                                leadingContent = {
+                                    Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(20.dp))
+                                },
+                                headlineContent = { Text("动态封面调试", style = MaterialTheme.typography.bodyLarge) },
+                                supportingContent = { Text("Apple Music 匹配、视频与色板", style = MaterialTheme.typography.bodySmall) },
+                                trailingContent = {
+                                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                                },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                            ListItem(
+                                modifier = Modifier.clickable { onDevModeChange(false) },
+                                headlineContent = { Text("开发者模式", style = MaterialTheme.typography.bodyLarge) },
+                                supportingContent = { Text("关闭后隐藏开发者调试区域", style = MaterialTheme.typography.bodySmall) },
+                                trailingContent = {
+                                    Switch(checked = true, onCheckedChange = onDevModeChange)
+                                },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         }
