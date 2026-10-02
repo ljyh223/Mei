@@ -115,33 +115,50 @@ fun DeveloperSettingsScreen(
         TopAppBar(
             title = { Text("动态封面调试") },
             navigationIcon = {
-                IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
+                IconButton(
+                    onClick = navController::navigateUp,
+                    onLongClick = navController::backToMain
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = null
+                    )
                 }
             },
             scrollBehavior = scrollBehavior
         )
     }) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .onGloballyPositioned { viewportBounds = it.boundsInWindow() }
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Apple Music 搜索匹配", style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp))
-            Text("使用与播放时相同的专辑搜索和严格匹配规则。仅在点击查询时请求网络。",
+            Text(
+                "Apple Music 搜索匹配", style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Text(
+                "手动查询按专辑名和歌手名匹配；播放时未命中会再比较封面。仅在点击查询时请求网络。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp))
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
             OutlinedTextField(
                 value = album, onValueChange = { album = it }, label = { Text("专辑名") },
-                singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                singleLine = true, modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             )
             OutlinedTextField(
                 value = artist, onValueChange = { artist = it }, label = { Text("歌手名") },
-                singleLine = true, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                singleLine = true, modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             )
             if (currentSong != null) {
                 Button(
@@ -161,12 +178,21 @@ fun DeveloperSettingsScreen(
 
             when (val current = state) {
                 DiagnosticState.Idle -> Unit
-                DiagnosticState.Loading -> Text("正在查询…", modifier = Modifier.padding(horizontal = 16.dp))
+                DiagnosticState.Loading -> Text(
+                    "正在查询…",
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
                 is DiagnosticState.Failed -> Text(
                     "查询失败：${current.message}", color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
-                is DiagnosticState.Success -> DiagnosticResult(current.result, viewportBounds, screenResumed)
+
+                is DiagnosticState.Success -> DiagnosticResult(
+                    current.result,
+                    viewportBounds,
+                    screenResumed
+                )
             }
         }
     }
@@ -198,7 +224,9 @@ private fun DiagnosticResult(
         }
     }
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("搜索词：${result.query}", style = MaterialTheme.typography.titleSmall)
@@ -211,7 +239,10 @@ private fun DiagnosticResult(
                     containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceVariant
                 ),
-                border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+                border = if (selected) BorderStroke(
+                    2.dp,
+                    MaterialTheme.colorScheme.primary
+                ) else null
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -219,7 +250,9 @@ private fun DiagnosticResult(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp))
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surface),
                         contentAlignment = Alignment.Center
                     ) {
@@ -235,14 +268,22 @@ private fun DiagnosticResult(
                         }
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("${index + 1}. ${candidate.name}", style = MaterialTheme.typography.titleSmall,
-                            maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(candidate.artist, style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            "${index + 1}. ${candidate.name}",
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            candidate.artist, style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis
+                        )
                         Text("ID ${candidate.id}", style = MaterialTheme.typography.labelSmall)
                         if (selected) {
-                            Text("✓ 已匹配", color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                "✓ 已匹配", color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelLarge
+                            )
                         }
                     }
                 }
@@ -251,10 +292,12 @@ private fun DiagnosticResult(
         if (result.match == null) {
             Text("没有符合专辑名完全一致、歌手名包含要求的结果。")
         } else {
-            ClipResult("方形动态封面", result.square, result.match.artworkUrl,
+            ClipResult(
+                "方形动态封面", result.square, result.match.artworkUrl,
                 result.match.id, PreviewVariant.SQUARE, activePreview == PreviewVariant.SQUARE,
                 onBoundsChanged = { squareBounds = it })
-            ClipResult("竖屏动态封面", result.portrait, result.match.artworkUrl,
+            ClipResult(
+                "竖屏动态封面", result.portrait, result.match.artworkUrl,
                 result.match.id, PreviewVariant.PORTRAIT, activePreview == PreviewVariant.PORTRAIT,
                 onBoundsChanged = { portraitBounds = it })
         }
@@ -321,14 +364,18 @@ private fun ClipResult(
                     }
                 }
                 Box(
-                    Modifier.fillMaxWidth().onGloballyPositioned {
-                        onBoundsChanged(it.boundsInWindow())
-                    },
+                    Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned {
+                            onBoundsChanged(it.boundsInWindow())
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    val previewModifier = Modifier.width(if (variant == PreviewVariant.PORTRAIT) 220.dp else 240.dp)
-                        .aspectRatio(if (variant == PreviewVariant.PORTRAIT) 3f / 4f else 1f)
-                        .clip(RoundedCornerShape(12.dp))
+                    val previewModifier =
+                        Modifier
+                            .width(if (variant == PreviewVariant.PORTRAIT) 220.dp else 240.dp)
+                            .aspectRatio(if (variant == PreviewVariant.PORTRAIT) 3f / 4f else 1f)
+                            .clip(RoundedCornerShape(12.dp))
                     if (active) {
                         key(clip.url, retryAttempt) {
                             DynamicCoverView(
@@ -356,9 +403,11 @@ private fun ClipResult(
                     }
                 }
                 if (playbackError != null && retryAttempt > 0 && active) {
-                    Text("视频加载失败（错误码 $playbackError），滚出后再滚回可重试",
+                    Text(
+                        "视频加载失败（错误码 $playbackError），滚出后再滚回可重试",
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall)
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 CopyableUrl("视频", clip.url)
                 clip.previewUrl?.let { CopyableUrl("预览帧", it) }
@@ -377,8 +426,10 @@ private fun ClipResult(
 private fun CopyableUrl(label: String, url: String) {
     val context = LocalContext.current
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("$label：$url", style = MaterialTheme.typography.bodySmall,
-            maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Text(
+            "$label：$url", style = MaterialTheme.typography.bodySmall,
+            maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
+        )
         MaterialIconButton(onClick = {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             clipboard.setPrimaryClip(ClipData.newPlainText(label, url))
@@ -401,8 +452,11 @@ private fun PalettePreview(palette: CoverPalette) {
     )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Column(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                .background(background).padding(12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(background)
+                .padding(12.dp)
         ) {
             colors.drop(1).forEachIndexed { index, (_, hex) ->
                 Text(
@@ -414,12 +468,19 @@ private fun PalettePreview(palette: CoverPalette) {
             }
         }
         colors.forEach { (label, hex) ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(20.dp).clip(RoundedCornerShape(4.dp))
-                    .background(hex.asAppleColor() ?: Color.Transparent)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)))
-                Text("$label  ${hex?.let { "#$it" } ?: "无"}", style = MaterialTheme.typography.bodySmall)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .size(20.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(hex.asAppleColor() ?: Color.Transparent)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                )
+                Text("$label  ${hex?.let { "#$it" } ?: "无"}",
+                    style = MaterialTheme.typography.bodySmall)
             }
         }
     }

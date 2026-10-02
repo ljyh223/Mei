@@ -193,13 +193,6 @@ fun AboutScreen() {
                             subtitle = "精美歌词组件渲染",
                             onClick = { openUrl(context, "https://github.com/6xingyv/accompanist-lyrics-ui") }
                         )
-                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                        AboutActionItem(
-                            icon = Icons.Rounded.BlurOn,
-                            title = "Backdrop",
-                            subtitle = "Compose Multiplatform 流体玻璃效果",
-                            onClick = { openUrl(context, "https://github.com/Kyant0/AndroidLiquidGlass") }
-                        )
                     }
                 }
             }
