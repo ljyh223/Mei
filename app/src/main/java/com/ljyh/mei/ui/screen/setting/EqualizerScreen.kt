@@ -106,7 +106,7 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val playerConnection = LocalPlayerConnection.current
     val scope = rememberCoroutineScope()
     var profile by remember { mutableStateOf(EqualizerProfile()) }
-    var committedProfile by remember { mutableStateOf(EqualizerProfile()) }
+    val committedProfile = remember { mutableStateOf(EqualizerProfile()) }
     var selectedId by remember { mutableIntStateOf(-1) }
     var tab by remember { mutableIntStateOf(0) }
     var showSaveDialog by remember { mutableStateOf(false) }
@@ -123,7 +123,7 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     ?: if (legacyLevels != null) AudioEffectsController.legacyProfile(legacyEnabled ?: false, legacyLevels)
                     else EqualizerProfile()
                 profile = restored
-                committedProfile = restored
+                committedProfile.value = restored
             }
         }
         launch {
@@ -135,7 +135,7 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
     fun commit(next: EqualizerProfile) {
         val normalized = next.normalized()
         profile = normalized
-        committedProfile = normalized
+        committedProfile.value = normalized
         playerConnection?.service?.previewEqualizerProfile(normalized)
         scope.launch {
             context.dataStore.edit { it[ParametricEqualizerProfileKey] = EqualizerProfileCodec.encode(normalized) }
@@ -143,7 +143,7 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
     }
 
     DisposableEffect(playerConnection) {
-        onDispose { playerConnection?.service?.previewEqualizerProfile(committedProfile) }
+        onDispose { playerConnection?.service?.previewEqualizerProfile(committedProfile.value) }
     }
 
     fun changeFilter(id: Int, transform: (EqFilter) -> EqFilter, save: Boolean) {
