@@ -101,15 +101,25 @@ fun DynamicCoverView(
         val view = textureView
         if (player != null && view != null && playing && firstFrame && !failed && onFrameSample != null) {
             while (isActive) {
-                // Copy only 16×16 pixels from the already decoded video. The backdrop uses its
-                // lower edge, so no second decoder or full-size frame copy is needed.
+                // Collapse the last three rows into one horizontal color strip. This keeps the
+                // video's edge colors without projecting unrelated shapes into the controls.
                 if (view.isAvailable) {
                     runCatching {
                         view.getBitmap(16, 16)?.let { snapshot ->
-                            val pixels = IntArray(16 * 5)
-                            snapshot.getPixels(pixels, 0, 16, 0, 11, 16, 5)
+                            val pixels = IntArray(16 * 3)
+                            snapshot.getPixels(pixels, 0, 16, 0, 13, 16, 3)
                             snapshot.recycle()
-                            Bitmap.createBitmap(pixels, 16, 5, Bitmap.Config.ARGB_8888)
+                            val edge = IntArray(16) { x ->
+                                val a = pixels[x]
+                                val b = pixels[16 + x]
+                                val c = pixels[32 + x]
+                                android.graphics.Color.rgb(
+                                    (android.graphics.Color.red(a) + android.graphics.Color.red(b) + android.graphics.Color.red(c)) / 3,
+                                    (android.graphics.Color.green(a) + android.graphics.Color.green(b) + android.graphics.Color.green(c)) / 3,
+                                    (android.graphics.Color.blue(a) + android.graphics.Color.blue(b) + android.graphics.Color.blue(c)) / 3
+                                )
+                            }
+                            Bitmap.createBitmap(edge, 16, 1, Bitmap.Config.ARGB_8888)
                         }
                     }.getOrNull()?.let { currentFrameSample?.invoke(it) }
                 }

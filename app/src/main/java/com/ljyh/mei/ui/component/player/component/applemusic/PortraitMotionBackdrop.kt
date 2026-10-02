@@ -4,10 +4,7 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
@@ -15,17 +12,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 internal data class PortraitMotionFrame(val image: ImageBitmap, val edgeColor: Color)
-
-private const val MotionBlendAlpha = 0.7f
 
 internal fun averageMotionColor(pixels: IntArray): Color {
     if (pixels.isEmpty()) return Color.Transparent
@@ -60,34 +58,42 @@ internal class PortraitMotionBackdropState {
 }
 
 @Composable
-internal fun PortraitMotionBackdrop(state: PortraitMotionBackdropState, fallbackColor: Color) {
-    val sample = state.frame
-    Box(Modifier.fillMaxSize().background(fallbackColor)) {
-        if (sample != null) {
-            Image(
-                bitmap = sample.image,
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                alpha = MotionBlendAlpha,
-                modifier = Modifier.align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.58f)
-                    .blur(64.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-            )
-        }
-    }
+internal fun PortraitMotionBackdrop(state: PortraitMotionBackdropState, artworkBottomFraction: Float) {
+    val sample = state.frame ?: return
+    val end = artworkBottomFraction.coerceIn(0f, 1f)
+    val start = end * 0.72f
+    Image(
+        bitmap = sample.image,
+        contentDescription = null,
+        contentScale = ContentScale.FillBounds,
+        modifier = Modifier.fillMaxSize()
+            .blur(64.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        start to Color.Transparent,
+                        end to Color.Black,
+                        1f to Color.Black,
+                    ),
+                    blendMode = BlendMode.DstIn,
+                )
+            }
+    )
 }
 
 @Composable
 internal fun PortraitMotionEdgeGradient(state: PortraitMotionBackdropState, fallbackColor: Color) {
-    val edgeColor = state.frame?.edgeColor?.let { lerp(fallbackColor, it, MotionBlendAlpha) } ?: fallbackColor
+    val bottomColor = if (state.frame == null) fallbackColor else Color.Transparent
     Box(
         Modifier.fillMaxSize().background(
             Brush.verticalGradient(
                 0f to Color.Black.copy(alpha = 0.22f),
                 0.16f to Color.Transparent,
                 0.55f to Color.Transparent,
-                1f to edgeColor,
+                1f to bottomColor,
             )
         )
     )
