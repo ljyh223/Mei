@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LinearScale
 import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
@@ -41,6 +42,7 @@ import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.DynamicCoverKey
+import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
@@ -104,6 +106,10 @@ fun AppearanceSettings(
 
     val (dynamicCover, onDynamicCoverChange) = rememberPreference(
         DynamicCoverKey,
+        defaultValue = false
+    )
+    val (appleEnglishTitlesOnly, onAppleEnglishTitlesOnlyChange) = rememberPreference(
+        AppleMotionEnglishTitlesOnlyKey,
         defaultValue = false
     )
 
@@ -223,6 +229,15 @@ fun AppearanceSettings(
                 checked = dynamicCover,
                 onCheckedChange = onDynamicCoverChange
             )
+            if (dynamicCover) {
+                SwitchPreference(
+                    title = { Text("Apple Music 仅搜索英文标题") },
+                    description = "按歌名和专辑名字符筛选；不是歌词语言识别，网易云不受影响",
+                    icon = { Icon(Icons.Rounded.Language, null) },
+                    checked = appleEnglishTitlesOnly,
+                    onCheckedChange = onAppleEnglishTitlesOnlyChange
+                )
+            }
             EnumListPreference(
                 title = { Text("进度条样式") },
                 icon = { Icon(Icons.Rounded.LinearScale, null) },

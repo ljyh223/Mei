@@ -39,6 +39,7 @@ import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,16 +68,32 @@ class PlayerViewModel @Inject constructor(
     private val _dynamicCover = MutableStateFlow<DynamicCover?>(null)
     val dynamicCover: StateFlow<DynamicCover?> = _dynamicCover.asStateFlow()
     private var coverJob: Job? = null
+    private var preloadCoverJob: Job? = null
+    private var coverRequest: Pair<Long, Boolean>? = null
 
-    fun loadDynamicCover(song: MediaMetadata?, next: MediaMetadata?, nextId: Long?, enabled: Boolean) {
-        coverJob?.cancel()
-        _dynamicCover.value = null
-        if (!enabled || song == null) return
-        coverJob = viewModelScope.launch {
-            val cover = dynamicCoverRepository.resolve(song)
-            _dynamicCover.value = cover
+    fun loadDynamicCover(
+        song: MediaMetadata?, next: MediaMetadata?, nextId: Long?, enabled: Boolean,
+        englishTitlesOnly: Boolean,
+    ) {
+        val request = if (enabled && song != null) song.id to englishTitlesOnly else null
+        if (request != coverRequest) {
+            coverJob?.cancel()
+            coverRequest = request
+            _dynamicCover.value = null
+            if (request != null && song != null) {
+                coverJob = viewModelScope.launch {
+                    val cover = dynamicCoverRepository.resolve(song, englishTitlesOnly)
+                    if (coverRequest == request) _dynamicCover.value = cover
+                }
+            }
+        }
+        preloadCoverJob?.cancel()
+        if (request == null || song == null) return
+        preloadCoverJob = viewModelScope.launch {
+            // Give rapid skips time to settle before issuing a request for the next song.
+            delay(5_000)
             if (next != null && next.id != song.id) {
-                dynamicCoverRepository.resolve(next)?.let {
+                dynamicCoverRepository.resolve(next, englishTitlesOnly)?.let {
                     dynamicCoverRepository.prefetch(it.portraitVariant() ?: it)
                 }
             } else if (next == null && nextId != null && nextId != song.id) {

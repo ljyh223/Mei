@@ -20,6 +20,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.C
 import com.ljyh.mei.constants.DynamicCoverKey
+import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.ui.component.player.component.applemusic.AppleMusicPlayer
 import com.ljyh.mei.ui.component.player.component.classic.ClassicPlayer
@@ -58,6 +59,7 @@ fun BottomSheetPlayer(
         playerConnection = playerConnection
     )
     val dynamicCoverEnabled by rememberPreference(DynamicCoverKey, defaultValue = false)
+    val appleEnglishTitlesOnly by rememberPreference(AppleMotionEnglishTitlesOnlyKey, defaultValue = false)
     val currentMetadata by stateContainer.mediaMetadata
     val player = playerConnection.player
     val nextIndex = player.nextMediaItemIndex
@@ -66,8 +68,11 @@ fun BottomSheetPlayer(
     } else null
     val nextMetadata = nextItem?.metadata
     val nextId = nextItem?.mediaId?.toLongOrNull()
-    LaunchedEffect(currentMetadata?.id, nextId, dynamicCoverEnabled) {
-        playerViewModel.loadDynamicCover(currentMetadata, nextMetadata, nextId, dynamicCoverEnabled)
+    LaunchedEffect(currentMetadata?.id, nextId, nextMetadata?.album?.title,
+        dynamicCoverEnabled, appleEnglishTitlesOnly) {
+        playerViewModel.loadDynamicCover(
+            currentMetadata, nextMetadata, nextId, dynamicCoverEnabled, appleEnglishTitlesOnly
+        )
     }
 
     // 创建弹窗处理器

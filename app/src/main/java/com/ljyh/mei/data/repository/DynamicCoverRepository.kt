@@ -10,6 +10,7 @@ import androidx.media3.datasource.cache.CacheWriter
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.constants.AppleMusicWebTokenKey
 import com.ljyh.mei.constants.AppleMusicWebTokenRefreshAtKey
+import com.ljyh.mei.constants.AppleMusicAlbumMatchCacheKey
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.playback.CacheManager
 import com.ljyh.mei.utils.dataStore
@@ -17,6 +18,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -24,6 +26,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -31,6 +37,8 @@ import java.text.Normalizer
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 data class CoverPalette(
     val bgColor: String?,
@@ -61,8 +69,34 @@ data class AppleMusicCoverDiagnostic(
     val portrait: MotionArtworkClip?
 )
 
-private fun normalized(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
+internal fun normalized(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
     .lowercase().replace(Regex("[\\p{P}\\p{Z}\\p{S}]"), "")
+
+/** A title-based filter, not a claim about the language of the audio. */
+internal fun hasEnglishTitle(text: String): Boolean {
+    val title = Normalizer.normalize(text, Normalizer.Form.NFKC)
+    return title.any { it in 'A'..'Z' || it in 'a'..'z' } && isEnglishCompatibleTitle(title)
+}
+
+private fun isEnglishCompatibleTitle(text: String): Boolean =
+    Normalizer.normalize(text, Normalizer.Form.NFKC).none {
+        it.isLetter() && it !in 'A'..'Z' && it !in 'a'..'z'
+    }
+
+internal fun shouldSearchAppleMusic(song: MediaMetadata, englishTitlesOnly: Boolean): Boolean =
+    !englishTitlesOnly || (
+        isEnglishCompatibleTitle(song.title) && isEnglishCompatibleTitle(song.album.title) &&
+            (hasEnglishTitle(song.title) || hasEnglishTitle(song.album.title))
+    )
+
+private data class AlbumMotionEntry(
+    val square: MotionArtworkClip?,
+    val portrait: MotionArtworkClip?,
+    val validUntil: Long,
+)
+
+private const val AlbumMotionTtlMs = 60L * 60_000
+private const val NoAlbumMotionTtlMs = 20L * 60_000
 
 internal fun formatAppleArtworkUrl(url: String?, size: Int): String? = url
     ?.takeIf { it.startsWith("https://") }
@@ -110,8 +144,17 @@ class DynamicCoverRepository @Inject constructor(
     private val tokenMutex = Mutex()
     private var webToken: String? = null
     private var webTokenUntil = 0L
-    private val memory = mutableMapOf<Long, Pair<Long, DynamicCover?>>()
+    private val memory = mutableMapOf<Pair<Long, Boolean>, Pair<Long, DynamicCover?>>()
     private val neteaseMemory = mutableMapOf<Long, Pair<Long, DynamicCover>>()
+    private val albumMatchCache = AppleAlbumMatchCache(
+        read = ::loadAlbumMatches,
+        write = ::persistAlbumMatches,
+        search = { album, artist ->
+            matchAppleAlbum(searchAppleAlbums(album, artist), album, artist)?.id
+        },
+    )
+    private val albumMotionMutex = Mutex()
+    private val albumMotions = mutableMapOf<String, AlbumMotionEntry>()
 
     /** Called at app start when the user has enabled motion artwork. */
     suspend fun warmWebToken() = withContext(Dispatchers.IO) {
@@ -119,14 +162,17 @@ class DynamicCoverRepository @Inject constructor(
         Unit
     }
 
-    suspend fun resolve(song: MediaMetadata): DynamicCover? = withContext(Dispatchers.IO) {
+    suspend fun resolve(song: MediaMetadata, englishTitlesOnly: Boolean = false): DynamicCover? = withContext(Dispatchers.IO) {
         if (!song.coverUrl.startsWith("http")) return@withContext null
         val now = System.currentTimeMillis()
+        val key = song.id to englishTitlesOnly
         synchronized(memory) {
-            memory[song.id]?.takeIf { it.first > now }
+            memory[key]?.takeIf { it.first > now }
         }?.let { return@withContext it.second }
 
-        val result = optional { appleCover(song) } ?: optional { neteaseCover(song) }
+        val result = (if (shouldSearchAppleMusic(song, englishTitlesOnly)) {
+            optional { appleCover(song) }
+        } else null) ?: optional { neteaseCover(song) }
         synchronized(memory) {
             val validUntil = when (result?.source) {
                 DynamicCover.Source.NETEASE -> {
@@ -135,7 +181,9 @@ class DynamicCoverRepository @Inject constructor(
                 DynamicCover.Source.APPLE_MUSIC -> now + 60 * 60_000L
                 null -> now + 20 * 60_000L
             }
-            memory[song.id] = validUntil to result
+            if (memory.size >= 512) memory.entries.removeAll { it.value.first <= now }
+            if (memory.size >= 512) memory.clear()
+            memory[key] = validUntil to result
         }
         result
     }
@@ -220,11 +268,54 @@ class DynamicCoverRepository @Inject constructor(
         withContext(Dispatchers.IO) { appleLookup(album.trim(), artist.trim()) }
 
     private suspend fun appleCover(song: MediaMetadata): DynamicCover? {
-        val result = appleLookup(song.album.title, song.artists.firstOrNull()?.name.orEmpty())
-        val id = result.match?.id ?: return null
-        val primary = result.square ?: result.portrait ?: return null
+        val id = albumMatchCache.get(song.album.title, song.artists.firstOrNull()?.name.orEmpty())
+            ?: return null
+        val motion = cachedAlbumMotion(id)
+        val primary = motion.square ?: motion.portrait ?: return null
         return DynamicCover(song.id, primary.url, DynamicCover.Source.APPLE_MUSIC,
-            "dynamic:apple:$id", primary.palette, primary.previewUrl, result.portrait)
+            "dynamic:apple:$id", primary.palette, primary.previewUrl, motion.portrait)
+    }
+
+    private suspend fun loadAlbumMatches(): Map<String, AlbumMatchEntry> {
+        val saved = context.dataStore.data.first()[AppleMusicAlbumMatchCacheKey].orEmpty()
+        val entries = runCatching { JSONArray(saved) }.getOrNull()
+        val now = System.currentTimeMillis()
+        val matches = mutableMapOf<String, AlbumMatchEntry>()
+        if (entries != null) for (index in 0 until entries.length()) {
+            val entry = entries.optJSONObject(index) ?: continue
+            val key = entry.optString("key").takeIf(String::isNotBlank) ?: continue
+            val validUntil = entry.optLong("until")
+            if (validUntil > now) {
+                matches[key] = AlbumMatchEntry(
+                    entry.optString("id").takeIf(String::isNotBlank), validUntil
+                )
+            }
+        }
+        return matches
+    }
+
+    private suspend fun persistAlbumMatches(matches: Map<String, AlbumMatchEntry>) {
+        val entries = JSONArray()
+        matches.forEach { (key, entry) ->
+            entries.put(JSONObject().put("key", key).put("until", entry.validUntil).apply {
+                entry.id?.let { put("id", it) }
+            })
+        }
+        context.dataStore.edit { it[AppleMusicAlbumMatchCacheKey] = entries.toString() }
+    }
+
+    private suspend fun cachedAlbumMotion(id: String): AlbumMotionEntry = albumMotionMutex.withLock {
+        val now = System.currentTimeMillis()
+        albumMotions[id]?.takeIf { it.validUntil > now }?.let { return@withLock it }
+        val motion = fetchAlbumMotion(id)
+        val ttl = if (motion.square == null && motion.portrait == null) {
+            NoAlbumMotionTtlMs
+        } else AlbumMotionTtlMs
+        val entry = motion.copy(validUntil = now + ttl)
+        if (albumMotions.size >= 256) albumMotions.entries.removeAll { it.value.validUntil <= now }
+        if (albumMotions.size >= 256) albumMotions.clear()
+        albumMotions[id] = entry
+        entry
     }
 
     private suspend fun appleLookup(album: String, artist: String): AppleMusicCoverDiagnostic {
@@ -232,17 +323,24 @@ class DynamicCoverRepository @Inject constructor(
         if (album.isBlank() || artist.isBlank()) {
             return AppleMusicCoverDiagnostic(query, emptyList(), null, null, null)
         }
-        // This is also the production matching path, so diagnostics reflect playback decisions.
+        val candidates = searchAppleAlbums(album, artist)
+        val match = matchAppleAlbum(candidates, album, artist)
+            ?: return AppleMusicCoverDiagnostic(query, candidates, null, null, null)
+        val motion = fetchAlbumMotion(match.id)
+        return AppleMusicCoverDiagnostic(query, candidates, match, motion.square, motion.portrait)
+    }
+
+    private suspend fun searchAppleAlbums(album: String, artist: String): List<AppleAlbumCandidate> {
         val searchUrl = "https://amp-api.music.apple.com/v1/catalog/cn/search".toHttpUrl()
             .newBuilder()
-            .addQueryParameter("term", query)
+            .addQueryParameter("term", "$album $artist".trim())
             .addQueryParameter("types", "albums")
             .addQueryParameter("limit", "10")
             .addQueryParameter("l", "zh-Hans-CN")
             .build()
         val albums = appleGet(searchUrl.toString()).optJSONObject("results")
             ?.optJSONObject("albums")?.optJSONArray("data")
-        val candidates = buildList {
+        return buildList {
             if (albums != null) for (i in 0 until albums.length()) {
                 val item = albums.optJSONObject(i) ?: continue
                 val attrs = item.optJSONObject("attributes") ?: continue
@@ -257,9 +355,9 @@ class DynamicCoverRepository @Inject constructor(
                 ))
             }
         }
-        val match = matchAppleAlbum(candidates, album, artist)
-            ?: return AppleMusicCoverDiagnostic(query, candidates, null, null, null)
-        val id = match.id
+    }
+
+    private suspend fun fetchAlbumMotion(id: String): AlbumMotionEntry {
         val motionUrl = "https://amp-api.music.apple.com/v1/catalog/cn/albums/$id".toHttpUrl()
             .newBuilder().addQueryParameter("extend", "editorialVideo")
             .addQueryParameter("l", "zh-Hans-CN").build()
@@ -269,7 +367,7 @@ class DynamicCoverRepository @Inject constructor(
             ?: parseMotionClip(video?.optJSONObject("motionSquareVideo1x1"))
         val portrait = parseMotionClip(video?.optJSONObject("motionDetailTall"))
             ?: parseMotionClip(video?.optJSONObject("motionTallVideo3x4"))
-        return AppleMusicCoverDiagnostic(query, candidates, match, square, portrait)
+        return AlbumMotionEntry(square, portrait, 0L)
     }
 
     private fun parseMotionClip(clip: JSONObject?): MotionArtworkClip? {
@@ -291,7 +389,7 @@ class DynamicCoverRepository @Inject constructor(
                 .header("Origin", "https://music.apple.com")
                 .header("User-Agent", "Mozilla/5.0")
                 .build()
-            webClient.newCall(request).execute().use { response ->
+            executeCancelable(request).use { response ->
                 if (response.code == 401 && attempt == 0) {
                     tokenMutex.withLock {
                         webToken = null
@@ -309,6 +407,22 @@ class DynamicCoverRepository @Inject constructor(
         }
         throw IOException("Apple catalog authorization failed")
     }
+
+    private suspend fun executeCancelable(request: Request): Response =
+        suspendCancellableCoroutine { continuation ->
+            val call = webClient.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            call.enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    if (continuation.isActive) continuation.resumeWithException(e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    if (continuation.isActive) continuation.resume(response)
+                    else response.close()
+                }
+            })
+        }
 
     private suspend fun getWebToken(): String = tokenMutex.withLock {
         val now = System.currentTimeMillis()
