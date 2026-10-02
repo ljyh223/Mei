@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -98,6 +99,12 @@ fun SettingScreen(
                 onClick = {
                     Screen.DownloadSettings.navigate(navController)
                 }
+            )
+
+            PreferenceEntry(
+                title = { Text("缓存") },
+                icon = { Icon(Icons.Rounded.Storage, contentDescription = null) },
+                onClick = { Screen.CacheSettings.navigate(navController) }
             )
 
             PreferenceEntry(

@@ -9,6 +9,7 @@ import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.ljyh.mei.constants.DynamicCoverKey
+import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.data.repository.DynamicCoverRepository
 import com.ljyh.mei.utils.dataStore
 import dagger.hilt.android.HiltAndroidApp
@@ -75,9 +76,12 @@ class AppContext : Application(), SingletonImageLoader.Factory {
             .build()
     }
     private fun newDiskCache(): DiskCache {
+        val limitMb = kotlinx.coroutines.runBlocking {
+            dataStore.data.first()[ImageCacheLimitMbKey] ?: 250
+        }
         return DiskCache.Builder()
             .directory(cacheDir.resolve("image_cache"))
-            .maxSizePercent(0.1)
+            .maxSizeBytes(limitMb.coerceIn(50, 2048) * 1024L * 1024L)
             .build()
     }
 }

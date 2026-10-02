@@ -35,6 +35,7 @@ import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.DownloadManageScreen
 import com.ljyh.mei.ui.screen.setting.DownloadSetting
+import com.ljyh.mei.ui.screen.setting.CacheSettingsScreen
 import com.ljyh.mei.ui.screen.setting.PlaySetting
 import com.ljyh.mei.ui.screen.setting.EqualizerScreen
 import com.ljyh.mei.ui.screen.setting.SettingScreen
@@ -89,6 +90,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.DownloadSettings.route) {
         DownloadSetting(scrollBehavior)
+    }
+
+    composable(Screen.CacheSettings.route) {
+        CacheSettingsScreen(scrollBehavior)
     }
 
     composable(Screen.DownloadManage.route) {

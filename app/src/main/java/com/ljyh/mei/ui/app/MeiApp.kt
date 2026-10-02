@@ -45,6 +45,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.DynamicThemeKey
+import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.data.model.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
@@ -70,8 +71,11 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.theme.MusicTheme
+import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.rememberPreference
 import okhttp3.OkHttpClient
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import java.io.File
 
 private enum class NavigationTab { Home, Library }
@@ -92,6 +96,9 @@ fun MeiApp(
     val playerConnection = rememberPlayerConnection(context, database)
 
     setSingletonImageLoaderFactory {
+        val imageLimitMb = runBlocking {
+            context.dataStore.data.first()[ImageCacheLimitMbKey] ?: 250
+        }
         ImageLoader.Builder(context)
             .components {
                 add(OkHttpNetworkFetcherFactory(imageClient))
@@ -101,7 +108,7 @@ fun MeiApp(
             .diskCache {
                 DiskCache.Builder()
                     .directory(File(context.cacheDir, "image_cache"))
-                    .maxSizePercent(0.1)
+                    .maxSizeBytes(imageLimitMb.coerceIn(50, 2048) * 1024L * 1024L)
                     .build()
             }
             .build()

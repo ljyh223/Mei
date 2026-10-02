@@ -32,6 +32,8 @@ val DesktopLyricsYKey = intPreferencesKey("desktopLyricsY")
 
 val CookieKey = stringPreferencesKey("cookie")
 val MusicQualityKey = stringPreferencesKey("musicQuality")
+val ImageCacheLimitMbKey = intPreferencesKey("imageCacheLimitMb")
+val MusicCacheLimitMbKey = intPreferencesKey("musicCacheLimitMb")
 
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
