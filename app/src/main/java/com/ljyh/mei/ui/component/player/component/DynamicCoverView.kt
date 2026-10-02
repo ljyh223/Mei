@@ -40,7 +40,7 @@ fun DynamicCoverView(
     imageUrl: String,
     cover: DynamicCover?,
     playing: Boolean,
-    onPlaybackError: () -> Unit = {},
+    onPlaybackError: (PlaybackException) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -76,7 +76,7 @@ fun DynamicCoverView(
             }
             override fun onPlayerError(error: PlaybackException) {
                 failed = true
-                onPlaybackError()
+                onPlaybackError(error)
             }
         }
         player?.addListener(listener)
