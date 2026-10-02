@@ -39,6 +39,7 @@ fun ClassicPlayer(
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
     collapsedBottomOffset: Dp = 0.dp,
+    miniPlayerBottomInset: Dp = 0.dp,
 ) {
 
     val device = rememberDeviceInfo()
@@ -93,6 +94,7 @@ fun ClassicPlayer(
                     if (player.isPlaying) player.pause() else player.play()
                 },
                 onNext = stateContainer.playerConnection::seekToNext,
+                bottomInset = miniPlayerBottomInset,
             )
         },
         morphSpec = BottomSheetMorphSpec(
@@ -101,7 +103,7 @@ fun ClassicPlayer(
             collapsedCornerRadius = 0.dp,
             expandedHorizontalMargin = 0.dp,
             expandedCornerRadius = 0.dp,
-            collapsedHeight = MiniPlayerBarHeight,
+            collapsedHeight = MiniPlayerBarHeight + miniPlayerBottomInset,
             collapsedBottomMargin = collapsedBottomOffset,
             expandedBottomMargin = 0.dp,
         ),

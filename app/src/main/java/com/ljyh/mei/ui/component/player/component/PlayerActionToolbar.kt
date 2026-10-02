@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,6 +63,7 @@ fun PlayerActionToolbar(
     onAddToPlaylistClick: () -> Unit,
     onMoreClick: () -> Unit
 ) {
+    val foreground = LocalPlayerForegroundColor.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
 
@@ -129,7 +129,7 @@ fun PlayerActionToolbar(
                             Icon(
                                 imageVector = targetIcon,
                                 contentDescription = "播放模式",
-                                tint = Color.White
+                                tint = foreground
                             )
                         }
                     }
@@ -142,7 +142,7 @@ fun PlayerActionToolbar(
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                             contentDescription = "播放队列",
-                            tint = Color.White
+                            tint = foreground
                         )
                     }
                 }
@@ -154,7 +154,7 @@ fun PlayerActionToolbar(
                         Icon(
                             imageVector = Icons.Rounded.Lyrics,
                             contentDescription = "Lyrics",
-                            tint = Color.White
+                            tint = foreground
                         )
                     }
 
@@ -173,14 +173,14 @@ fun PlayerActionToolbar(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(50))
-                                        .background(Color.White.copy(alpha = 0.2f))
+                                        .background(foreground.copy(alpha = 0.2f))
                                         .clickable(onClick = sleepTimer::clear)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         text = makeTimeString(sleepTimerTimeLeft),
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = Color.White,
+                                        color = foreground,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1
                                     )
@@ -193,7 +193,7 @@ fun PlayerActionToolbar(
                                     Icon(
                                         imageVector = Icons.Rounded.Bedtime,
                                         contentDescription = "睡眠定时器",
-                                        tint = Color.White
+                                        tint = foreground
                                     )
                                 }
                             }
@@ -208,7 +208,7 @@ fun PlayerActionToolbar(
                         Icon(
                             imageVector = Icons.Rounded.Add,
                             contentDescription = "添加到歌单",
-                            tint = Color.White
+                            tint = foreground
                         )
                     }
                 }
@@ -222,7 +222,7 @@ fun PlayerActionToolbar(
                         Icon(
                             imageVector = Icons.Rounded.Download,
                             contentDescription = "下载",
-                            tint = Color.White
+                            tint = foreground
                         )
                     }
                 }
@@ -234,7 +234,7 @@ fun PlayerActionToolbar(
                         Icon(
                             imageVector = Icons.Rounded.MoreVert,
                             contentDescription = "更多功能",
-                            tint = Color.White
+                            tint = foreground
                         )
                     }
                 }

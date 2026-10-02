@@ -37,6 +37,15 @@ class PlayerMotionSpecTest {
     }
 
     @Test
+    fun playerBackgroundExpansionKeepsItsOwnTiming() {
+        val expansion = PlayerMotionSpec.PlayerBackgroundExpansion
+
+        assertEquals(0f, expansion.transform(0f))
+        assertEquals(0.5f, expansion.transform(0.09f))
+        assertEquals(1f, expansion.transform(0.18f))
+    }
+
+    @Test
     fun progressWindowRejectsEmptyOrReversedRanges() {
         assertThrows(IllegalArgumentException::class.java) {
             MotionProgressWindow(start = 0.5f, end = 0.5f)

@@ -24,6 +24,7 @@ import com.ljyh.mei.ui.screen.Index
 @Composable
 fun AppBottomNavigationBar(
     visibilityProgress: Float,
+    alphaProgress: Float = visibilityProgress,
     interactive: Boolean,
     selectedRoute: String?,
     onTabSelect: (Index) -> Unit,
@@ -31,12 +32,13 @@ fun AppBottomNavigationBar(
 ) {
     var navigationBarHeight by remember { mutableIntStateOf(0) }
     val progress = visibilityProgress.coerceIn(0f, 1f)
+    val alpha = alphaProgress.coerceIn(0f, 1f)
 
     ShortNavigationBar(
         modifier = modifier
             .onSizeChanged { navigationBarHeight = it.height }
             .graphicsLayer {
-                alpha = progress
+                this.alpha = alpha
                 translationY = navigationBarHeight * (1f - progress)
             },
         arrangement = ShortNavigationBarArrangement.EqualWeight,

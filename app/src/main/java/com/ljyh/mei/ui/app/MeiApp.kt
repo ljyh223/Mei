@@ -158,20 +158,18 @@ fun MeiApp(
                     systemBottomInset = bottomInset,
                 ),
                 expandedBound = maxHeight,
+                allowDismissGesture = false,
             )
-            val bottomChromeAnimationSpec = remember {
+            val routeBottomChromeAnimationSpec = remember {
                 PlayerMotionSpec.tween<Float>()
             }
             val routeBottomNavigationProgress by animateFloatAsState(
                 targetValue = if (shellState.showBottomNavigation) 1f else 0f,
-                animationSpec = bottomChromeAnimationSpec,
+                animationSpec = routeBottomChromeAnimationSpec,
                 label = "routeBottomNavigationProgress",
             )
-            val playerBottomNavigationProgress by animateFloatAsState(
-                targetValue = if (playerBottomSheetState.isTargetExpanded) 0f else 1f,
-                animationSpec = bottomChromeAnimationSpec,
-                label = "playerBottomNavigationProgress",
-            )
+            val playerBottomNavigationProgress =
+                PlayerMotionSpec.BottomNavigationExit.reverse(playerBottomSheetState.progress)
             val bottomNavigationProgress =
                 routeBottomNavigationProgress * playerBottomNavigationProgress
             val canScrollAppBar = {
@@ -225,8 +223,9 @@ fun MeiApp(
                     if (!useTabletSidebar) {
                         AppBottomNavigationBar(
                             visibilityProgress = bottomNavigationProgress,
+                            alphaProgress = routeBottomNavigationProgress,
                             interactive = shellState.showBottomNavigation &&
-                                !playerBottomSheetState.isTargetExpanded,
+                                playerBottomNavigationProgress >= 1f,
                             selectedRoute = route,
                             onTabSelect = navController::selectMainDestination,
                         )

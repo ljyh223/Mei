@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -49,58 +50,64 @@ fun MiniPlayerBarContent(
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
     drawCover: Boolean = true,
+    bottomInset: Dp = 0.dp,
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(MiniPlayerBarHeight),
+            .height(MiniPlayerBarHeight + bottomInset),
         shape = RectangleShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 2.dp,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onClick,
-                )
-                .padding(end = 6.dp),
-        ) {
-            MiniPlayerSongContent(
-                title = title.orEmpty(),
-                artist = artist.orEmpty(),
-                coverUrl = coverUrl,
-                drawCover = drawCover,
-                modifier = Modifier.weight(1f),
-            )
-
-            IconButton(
-                onClick = onPlayPause,
-                modifier = Modifier.size(48.dp),
+        Column {
+            // Keep controls in the safe area while the same surface reaches the screen edge.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(MiniPlayerBarHeight)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick,
+                    )
+                    .padding(end = 6.dp),
             ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
+                MiniPlayerSongContent(
+                    title = title.orEmpty(),
+                    artist = artist.orEmpty(),
+                    coverUrl = coverUrl,
+                    drawCover = drawCover,
+                    modifier = Modifier.weight(1f),
                 )
-            }
 
-            IconButton(
-                onClick = onNext,
-                enabled = canSkipNext,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.SkipNext,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
+                IconButton(
+                    onClick = onPlayPause,
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+                IconButton(
+                    onClick = onNext,
+                    enabled = canSkipNext,
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SkipNext,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(bottomInset))
         }
     }
 }

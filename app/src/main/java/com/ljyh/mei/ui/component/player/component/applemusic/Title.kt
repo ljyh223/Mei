@@ -37,7 +37,9 @@ fun Title(
     titleStyle: TextStyle = MaterialTheme.typography.headlineSmall,
     subTitleStyle: TextStyle = MaterialTheme.typography.titleMedium,
     needShadow: Boolean = true,
-    iconColor: Color = Color.White // 新增：控制图标颜色，方便在不同背景下调整
+    titleColor: Color = Color.White,
+    subTitleColor: Color = Color.White.copy(alpha = 0.7f),
+    iconColor: Color = Color.White,
 ) {
     val shadowStyle = if (needShadow) Shadow(
         color = Color.Black.copy(alpha = 0.5f),
@@ -62,7 +64,7 @@ fun Title(
                     shadow = shadowStyle,
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color.White,
+                color = titleColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -70,8 +72,8 @@ fun Title(
                 text = subTitle,
                 style = subTitleStyle.copy(
                     shadow = shadowStyle,
-                    color = Color.White.copy(alpha = 0.7f)
                 ),
+                color = subTitleColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

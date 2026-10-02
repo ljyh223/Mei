@@ -49,6 +49,7 @@ fun FluidProgressSlider(
     onPositionChange: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val foreground = LocalPlayerForegroundColor.current
     val musicQuality by rememberEnumPreference(MusicQualityKey, MusicQuality.EXHIGH)
     val isDurationValid = remember(duration) { duration > 0 }
     val valueRange = remember(duration) { 0f..(duration.takeIf { it > 0 } ?: 1).toFloat() }
@@ -120,7 +121,7 @@ fun FluidProgressSlider(
 
                 // 去掉默认的颜色处理，完全在 track/thumb 中自定义
                 colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
+                    thumbColor = foreground,
                     activeTrackColor = Color.Transparent,
                     inactiveTrackColor = Color.Transparent
                 ),
@@ -130,7 +131,7 @@ fun FluidProgressSlider(
                     // 绘制一个白色的圆
                     Canvas(modifier = Modifier.size(thumbRadius * 2)) {
                         drawCircle(
-                            color = Color.White,
+                            color = foreground,
                             radius = thumbRadius.toPx(),
                             // 可以加一点阴影让它更有立体感
                             // shadow = Shadow(...)
@@ -158,7 +159,7 @@ fun FluidProgressSlider(
 
                         // 1. 绘制背景轨道 (Inactive) - 半透明灰色/白色
                         drawRoundRect(
-                            color = Color.White.copy(alpha = 0.3f),
+                            color = foreground.copy(alpha = 0.3f),
                             topLeft = Offset(0f, 0f),
                             size = Size(width, height),
                             cornerRadius = CornerRadius(height / 2, height / 2) // 完全圆角
@@ -167,7 +168,7 @@ fun FluidProgressSlider(
                         // 2. 绘制已播放轨道 (Active) - 实心白色
                         if (activeWidth > 0) {
                             drawRoundRect(
-                                color = Color.White,
+                                color = foreground,
                                 topLeft = Offset(0f, 0f),
                                 size = Size(activeWidth, height),
                                 cornerRadius = CornerRadius(height / 2, height / 2)
@@ -200,14 +201,14 @@ fun FluidProgressSlider(
             Text(
                 text = makeTimeString(sliderPosition.toLong()),
                 style = commonTextStyle,
-                color = Color.White.copy(alpha = 0.9f),
+                color = foreground.copy(alpha = 0.9f),
             )
 
             // 中间：音质 (复用你原本的逻辑)
             Text(
                 text = musicQuality.explanation,
                 style = commonTextStyle.copy(fontSize = 10.sp),
-                color = Color.White.copy(alpha = 0.6f),
+                color = foreground.copy(alpha = 0.6f),
             )
 
             // 右侧：剩余时间 (Apple Music 风格通常显示剩余时间，即 "-03:45")
@@ -216,7 +217,7 @@ fun FluidProgressSlider(
             Text(
                 text = if (duration > 0) makeTimeString(duration) else "-:--",
                 style = commonTextStyle,
-                color = Color.White.copy(alpha = 0.6f),
+                color = foreground.copy(alpha = 0.6f),
             )
         }
     }

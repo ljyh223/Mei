@@ -6,6 +6,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -46,21 +48,44 @@ class BottomSheetProgressTest {
             collapsedBound = 64.dp,
             expandedBound = 914.dp,
         )
-        val updatedAnchors = DraggableAnchors {
-            BottomSheetValue.Dismissed at 0f
-            BottomSheetValue.Collapsed at 88f
-            BottomSheetValue.Expanded at 914f
-        }
-
         state.updateAnchors(
             density = density,
             dismissedBound = 0.dp,
             collapsedBound = 88.dp,
             expandedBound = 914.dp,
-            anchors = updatedAnchors,
+            allowDismissGesture = true,
         )
 
         assertEquals(88.dp, state.value)
         assertEquals(0f, state.progress)
+    }
+
+    @Test
+    fun collapsedPlayerOmitsTheDismissedGestureAnchor() {
+        assertFalse(
+            shouldIncludeDismissedAnchor(
+                allowDismissGesture = false,
+                isDismissed = false,
+                isTargetDismissed = false,
+            ),
+        )
+    }
+
+    @Test
+    fun programmaticDismissKeepsTheDismissedAnchorAvailable() {
+        assertTrue(
+            shouldIncludeDismissedAnchor(
+                allowDismissGesture = false,
+                isDismissed = false,
+                isTargetDismissed = true,
+            ),
+        )
+        assertTrue(
+            shouldIncludeDismissedAnchor(
+                allowDismissGesture = false,
+                isDismissed = true,
+                isTargetDismissed = false,
+            ),
+        )
     }
 }

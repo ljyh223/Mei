@@ -315,6 +315,7 @@ class BottomSheetState(
     expandedBound: Dp,
 ) {
     private var density by mutableStateOf(density)
+    private var programmaticDismissRequested = false
 
     var dismissedBound by mutableStateOf(dismissedBound)
         private set
@@ -384,10 +385,12 @@ class BottomSheetState(
     }
 
     private fun collapse(animationSpec: AnimationSpec<Float>) {
+        programmaticDismissRequested = false
         animateTo(BottomSheetValue.Collapsed, collapsedAnchor, animationSpec)
     }
 
     private fun expand(animationSpec: AnimationSpec<Float>) {
+        programmaticDismissRequested = false
         animateTo(BottomSheetValue.Expanded, expandedAnchor, animationSpec)
     }
 
@@ -418,6 +421,8 @@ class BottomSheetState(
     }
 
     fun dismiss() {
+        programmaticDismissRequested = true
+        ensureDismissedAnchor()
         animateTo(
             target = BottomSheetValue.Dismissed,
             anchor = dismissedAnchor,
@@ -430,13 +435,22 @@ class BottomSheetState(
         dismissedBound: Dp,
         collapsedBound: Dp,
         expandedBound: Dp,
-        anchors: DraggableAnchors<BottomSheetValue>,
+        allowDismissGesture: Boolean,
     ) {
         this.density = density
         this.dismissedBound = dismissedBound
         this.collapsedBound = collapsedBound
         this.expandedBound = expandedBound
-        anchoredDraggableState.updateAnchors(anchors)
+        anchoredDraggableState.updateAnchors(
+            buildAnchors(
+                includeDismissed = programmaticDismissRequested ||
+                    shouldIncludeDismissedAnchor(
+                        allowDismissGesture = allowDismissGesture,
+                        isDismissed = isDismissed,
+                        isTargetDismissed = isTargetDismissed,
+                    ),
+            ),
+        )
     }
 
     internal fun recordSettledAnchor(value: BottomSheetValue) {
@@ -453,6 +467,21 @@ class BottomSheetState(
         val anchor = anchoredDraggableState.anchors.positionOf(value)
         val offset = anchoredDraggableState.offset
         return !anchor.isNaN() && !offset.isNaN() && abs(anchor - offset) < 0.5f
+    }
+
+    private fun buildAnchors(includeDismissed: Boolean): DraggableAnchors<BottomSheetValue> =
+        DraggableAnchors {
+            if (includeDismissed) {
+                BottomSheetValue.Dismissed at with(density) { dismissedBound.toPx() }
+            }
+            BottomSheetValue.Collapsed at with(density) { collapsedBound.toPx() }
+            BottomSheetValue.Expanded at with(density) { expandedBound.toPx() }
+        }
+
+    private fun ensureDismissedAnchor() {
+        if (anchoredDraggableState.anchors.positionOf(BottomSheetValue.Dismissed).isNaN()) {
+            anchoredDraggableState.updateAnchors(buildAnchors(includeDismissed = true))
+        }
     }
 }
 
@@ -480,6 +509,7 @@ fun rememberBottomSheetState(
     expandedBound: Dp,
     collapsedBound: Dp = dismissedBound,
     initialAnchor: Int = dismissedAnchor,
+    allowDismissGesture: Boolean = true,
 ): BottomSheetState {
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
@@ -516,7 +546,7 @@ fun rememberBottomSheetState(
             dismissedBound = dismissedBound,
             collapsedBound = collapsedBound,
             expandedBound = expandedBound,
-            anchors = anchors,
+            allowDismissGesture = allowDismissGesture,
         )
     }
 
@@ -537,3 +567,9 @@ internal fun normalizedProgress(value: Dp, start: Dp, end: Dp): Float {
     if (end <= start) return if (value >= end) 1f else 0f
     return ((value - start) / (end - start)).coerceIn(0f, 1f)
 }
+
+internal fun shouldIncludeDismissedAnchor(
+    allowDismissGesture: Boolean,
+    isDismissed: Boolean,
+    isTargetDismissed: Boolean,
+): Boolean = allowDismissGesture || isDismissed || isTargetDismissed

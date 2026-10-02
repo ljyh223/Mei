@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -52,9 +53,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -77,6 +78,7 @@ import com.ljyh.mei.ui.component.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.DynamicCoverView
+import com.ljyh.mei.ui.component.player.component.LocalPlayerForegroundColor
 import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection
@@ -95,6 +97,11 @@ import kotlin.math.min
 import com.kyant.backdrop.Backdrop
 
 
+private val PlayerBackgroundSeamOverlap = 1.dp
+
+private fun String?.asPaletteColor(): Color? = this?.takeIf(String::isNotBlank)?.let { hex ->
+    runCatching { Color(android.graphics.Color.parseColor("#$hex")) }.getOrNull()
+}
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -104,6 +111,7 @@ fun AppleMusicPlayer(
     stateContainer: PlayerStateContainer,
     overlayHandler: PlayerOverlayHandler,
     collapsedBottomOffset: Dp = 0.dp,
+    miniPlayerBottomInset: Dp = 0.dp,
     backdrop: Backdrop? = null,
 ) {
     val density = LocalDensity.current
@@ -128,6 +136,7 @@ fun AppleMusicPlayer(
     val portraitCover = dynamicCover?.takeIf {
         it.source == DynamicCover.Source.APPLE_MUSIC && it.songId == mediaMetadata?.id
     }?.portraitVariant()
+
     // --- Apple Music 特定的 LaunchedEffect ---
     LaunchedEffect(state.isCollapsed) {
         if (state.isCollapsed) {
@@ -166,6 +175,24 @@ fun AppleMusicPlayer(
             colorScheme.surfaceContainer
         }
     }
+    val portraitBackgroundColor = portraitCover?.palette?.bgColor.asPaletteColor() ?: backgroundColor
+    val portraitBackdropState = remember(portraitCover?.cacheKey, portraitCover?.url) {
+        PortraitMotionBackdropState()
+    }
+    val motionBackgroundColor = portraitBackdropState.edgeColor?.let {
+        lerp(portraitBackgroundColor, it, 0.45f)
+    } ?: portraitBackgroundColor
+    val fallbackPortraitTextColor = if (portraitBackgroundColor.luminance() > 0.179f) {
+        Color.Black
+    } else {
+        Color.White
+    }
+    val portraitPrimaryColor = portraitCover?.palette?.textColor1.asPaletteColor()
+        ?: fallbackPortraitTextColor
+    val portraitSecondaryColor = portraitCover?.palette?.textColor2.asPaletteColor()
+        ?: portraitPrimaryColor.copy(alpha = 0.7f)
+    val playerForegroundColor = lerp(Color.White, portraitPrimaryColor, portraitAlpha)
+    val playerSecondaryColor = lerp(Color.White.copy(alpha = 0.7f), portraitSecondaryColor, portraitAlpha)
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val screenWidth = maxWidth
@@ -205,6 +232,12 @@ fun AppleMusicPlayer(
 
         val normalStart = (maxWidthPx - normalSize) / 2
 
+        // Keep motion artwork above the controls; the lower region uses this clip's palette.
+        val portraitArtworkHeight = minOf(
+            maxHeight * 0.62f,
+            (maxHeight - bottomControlsHeightDp).coerceAtLeast(0.dp),
+        )
+
         // C. Header (Top Left Small)
         val headerSize = with(density) { 46.dp.toPx() }
         val headerTop = topSafeArea + with(density) { 12.dp.toPx() }
@@ -224,6 +257,19 @@ fun AppleMusicPlayer(
         val finalTop = lerp(miniTop, targetTop, coverProgress)
         val finalStart = lerp(miniStart, targetStart, coverProgress)
         val finalRadius = lerp(miniRadius, targetRadius, coverProgress)
+        val backgroundExpansion =
+            PlayerMotionSpec.PlayerBackgroundExpansion.transform(sheetProgress)
+        val effectiveBottomMargin =
+            lerp(collapsedBottomOffset, 0.dp, sheetProgress) * state.revealProgress
+        // The mini player's own surface now occupies the gesture inset on secondary screens.
+        val collapsedBottomClearance = (
+            state.collapsedBound - MiniPlayerBarHeight - miniPlayerBottomInset +
+                collapsedBottomOffset
+            ).coerceAtLeast(0.dp)
+        val playerBackgroundHeight = (
+            state.value + effectiveBottomMargin -
+                collapsedBottomClearance * (1f - backgroundExpansion)
+            ).coerceAtLeast(MiniPlayerBarHeight) + PlayerBackgroundSeamOverlap
 
         val shadowAlpha = if (sheetProgress > PlayerMotionSpec.CoverShadowStartProgress) {
             1f - lyricAnimFraction
@@ -242,7 +288,7 @@ fun AppleMusicPlayer(
                 collapsedCornerRadius = 0.dp,
                 expandedHorizontalMargin = 0.dp,
                 expandedCornerRadius = 0.dp,
-                collapsedHeight = MiniPlayerBarHeight,
+                collapsedHeight = MiniPlayerBarHeight + miniPlayerBottomInset,
                 collapsedBottomMargin = collapsedBottomOffset,
                 expandedBottomMargin = 0.dp,
             ),
@@ -282,6 +328,7 @@ fun AppleMusicPlayer(
                     },
                     onNext = stateContainer.playerConnection::seekToNext,
                     drawCover = false,
+                    bottomInset = miniPlayerBottomInset,
                 )
             },
             overlayContent = {
@@ -379,8 +426,8 @@ fun AppleMusicPlayer(
             // sheet moves as one fixed page, avoiding the SurfaceView resize seam seen on devices.
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = meshBackgroundAlpha }
+                    .fillMaxWidth()
+                    .height(playerBackgroundHeight)
                     .background(backgroundColor),
             )
             if (portraitCover == null || showLyrics || portraitAlpha < 0.999f) {
@@ -391,15 +438,6 @@ fun AppleMusicPlayer(
                 )
             }
             if (portraitCover != null && portraitAlpha > 0.001f && mediaMetadata != null) {
-                DynamicCoverView(
-                    imageUrl = mediaMetadata!!.coverUrl,
-                    cover = portraitCover,
-                    playing = isPlaying && !showLyrics && sheetProgress > 0.5f,
-                    onPlaybackError = {
-                        mediaMetadata?.let(stateContainer.playerViewModel::fallbackDynamicCover)
-                    },
-                    modifier = Modifier.fillMaxSize().graphicsLayer { alpha = portraitAlpha },
-                )
                 val backgroundTap = if (portraitAlpha > 0.5f) {
                     Modifier.clickable { showLyrics = true }
                 } else Modifier
@@ -407,16 +445,32 @@ fun AppleMusicPlayer(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer { alpha = portraitAlpha }
-                        .background(
-                            Brush.verticalGradient(
-                                0f to Color.Black.copy(alpha = 0.28f),
-                                0.35f to Color.Transparent,
-                                0.58f to Color.Transparent,
-                                1f to Color.Black.copy(alpha = 0.76f),
-                            )
-                        )
-                        .then(backgroundTap),
-                )
+                        .background(motionBackgroundColor),
+                ) {
+                    DynamicCoverView(
+                        imageUrl = mediaMetadata!!.coverUrl,
+                        cover = portraitCover,
+                        playing = isPlaying && !showLyrics && sheetProgress > 0.5f,
+                        onPlaybackError = {
+                            mediaMetadata?.let(stateContainer.playerViewModel::fallbackDynamicCover)
+                        },
+                        onFrameSample = portraitBackdropState::accept,
+                        bottomFadeColor = motionBackgroundColor,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(portraitArtworkHeight),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(portraitArtworkHeight),
+                    ) {
+                        PortraitMotionTopScrim()
+                    }
+                    Box(modifier = Modifier.fillMaxSize().then(backgroundTap))
+                }
             }
 
             Box(
@@ -522,6 +576,9 @@ fun AppleMusicPlayer(
                                 titleStyle = MaterialTheme.typography.titleMedium,
                                 subTitleStyle = MaterialTheme.typography.bodySmall,
                                 needShadow = false,
+                                titleColor = playerForegroundColor,
+                                subTitleColor = playerSecondaryColor,
+                                iconColor = playerForegroundColor,
                                 modifier = Modifier.padding(vertical = 2.dp)
                             )
                         }
@@ -562,6 +619,9 @@ fun AppleMusicPlayer(
                                                 cover = it.coverUrl
                                             )
                                         },
+                                        titleColor = playerForegroundColor,
+                                        subTitleColor = playerSecondaryColor,
+                                        iconColor = playerForegroundColor,
                                         needShadow = false,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -571,23 +631,27 @@ fun AppleMusicPlayer(
                                 }
                             }
 
-                            PlayerControlsSection(
-                                sliderPosition = sliderPosition,
-                                duration = duration,
-                                isPlaying = isPlaying,
-                                playbackState = playbackState,
-                                playerConnection = stateContainer.playerConnection,
-                                onLyricClick = { showLyrics = !showLyrics },
-                                onPlaylistClick = { overlayHandler.showPlaylist() },
-                                onSleepTimerClick = { overlayHandler.showSleepTimer() },
-                                onAddToPlaylistClick = {
-                                    mediaMetadata?.let {
-                                        overlayHandler.showAddToPlaylist(it.id)
-                                    }
-                                },
-                                onMoreClick = { overlayHandler.showMoreAction() },
-                                isCompact = isCompactHeight || isLandscape
-                            )
+                            CompositionLocalProvider(
+                                LocalPlayerForegroundColor provides playerForegroundColor,
+                            ) {
+                                PlayerControlsSection(
+                                    sliderPosition = sliderPosition,
+                                    duration = duration,
+                                    isPlaying = isPlaying,
+                                    playbackState = playbackState,
+                                    playerConnection = stateContainer.playerConnection,
+                                    onLyricClick = { showLyrics = !showLyrics },
+                                    onPlaylistClick = { overlayHandler.showPlaylist() },
+                                    onSleepTimerClick = { overlayHandler.showSleepTimer() },
+                                    onAddToPlaylistClick = {
+                                        mediaMetadata?.let {
+                                            overlayHandler.showAddToPlaylist(it.id)
+                                        }
+                                    },
+                                    onMoreClick = { overlayHandler.showMoreAction() },
+                                    isCompact = isCompactHeight || isLandscape
+                                )
+                            }
                         }
                     }
                 }

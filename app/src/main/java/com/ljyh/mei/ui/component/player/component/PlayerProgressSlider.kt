@@ -56,6 +56,7 @@ fun PlayerProgressSlider(
     onPositionChange: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val foreground = LocalPlayerForegroundColor.current
     val musicQuality by rememberEnumPreference(MusicQualityKey, MusicQuality.EXHIGH)
     val isDurationValid = remember(duration) { duration > 0 }
     val valueRange = remember(duration) { 0f..(duration.takeIf { it > 0 } ?: 1).toFloat() }
@@ -143,7 +144,7 @@ fun PlayerProgressSlider(
                     // 1. 绘制未播放部分 (Inactive) - 直线
                     // 颜色：白色半透明 (适配所有背景)
                     drawLine(
-                        color = Color.White.copy(alpha = 0.3f),
+                        color = foreground.copy(alpha = 0.3f),
                         start = Offset(0f, centerY),
                         end = Offset(width, centerY),
                         strokeWidth = 2.dp.toPx(),
@@ -180,7 +181,7 @@ fun PlayerProgressSlider(
                         // 绘制波浪
                         drawPath(
                             path = path,
-                            color = Color.White, // 纯白，高亮
+                            color = foreground,
                             style = Stroke(
                                 width = 3.dp.toPx(), // 稍微粗一点
                                 cap = StrokeCap.Round,
@@ -191,7 +192,7 @@ fun PlayerProgressSlider(
                         // 3. 绘制末端指示器 (光标)
                         // 在波浪结束的位置画一个小圆点或竖线
                         drawCircle(
-                            color = Color.White,
+                            color = foreground,
                             radius = 6.dp.toPx(), // 大小
                             center = Offset(activeWidth, finalY),
                             // 加一点阴影让它更明显
@@ -221,7 +222,7 @@ fun PlayerProgressSlider(
             Text(
                 text = makeTimeString(sliderPosition.toLong()),
                 style = timeTextStyle,
-                color = Color.White.copy(alpha = 0.9f), // 使用白色，微透
+                color = foreground.copy(alpha = 0.9f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -229,7 +230,7 @@ fun PlayerProgressSlider(
             Text(
                 text = musicQuality.explanation,
                 style = timeTextStyle,
-                color = Color.White.copy(alpha = 0.8f),
+                color = foreground.copy(alpha = 0.8f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -238,7 +239,7 @@ fun PlayerProgressSlider(
             Text(
                 text = if (duration > 0) makeTimeString(duration) else "-:--",
                 style = timeTextStyle,
-                color = Color.White.copy(alpha = 0.6f),
+                color = foreground.copy(alpha = 0.6f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

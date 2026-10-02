@@ -3,17 +3,10 @@ package com.ljyh.mei.ui.component.player
 import android.os.Build
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -83,40 +76,30 @@ fun BottomSheetPlayer(
         useInlineQueue = device.isTablet && device.isLandscape,
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
-        if (systemBottomInset > 0.dp && !state.isDismissed &&
-            bottomNavigationVisibilityProgress < 1f
-        ) {
-            // The collapsed sheet ends above the gesture inset. Cover the content behind that
-            // inset with the same surface as the mini player while the tab bar is hidden.
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(systemBottomInset),
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 2.dp,
-            ) {}
-        }
-
-        if (device.isTablet) {
-            ClassicPlayer(
-                state = state,
-                modifier = Modifier.fillMaxSize(),
-                stateContainer = stateContainer,
-                overlayHandler = overlayHandler,
-                collapsedBottomOffset = collapsedBottomOffset,
-            )
-        } else {
-            AppleMusicPlayer(
-                state = state,
-                modifier = Modifier.fillMaxSize(),
-                stateContainer = stateContainer,
-                overlayHandler = overlayHandler,
-                collapsedBottomOffset = collapsedBottomOffset,
-                backdrop = backdrop,
-            )
-        }
+    val miniPlayerBottomInset = if (bottomNavigationVisibilityProgress < 1f) {
+        systemBottomInset
+    } else {
+        0.dp
+    }
+    if (device.isTablet) {
+        ClassicPlayer(
+            state = state,
+            modifier = modifier,
+            stateContainer = stateContainer,
+            overlayHandler = overlayHandler,
+            collapsedBottomOffset = collapsedBottomOffset,
+            miniPlayerBottomInset = miniPlayerBottomInset,
+        )
+    } else {
+        AppleMusicPlayer(
+            state = state,
+            modifier = modifier,
+            stateContainer = stateContainer,
+            overlayHandler = overlayHandler,
+            collapsedBottomOffset = collapsedBottomOffset,
+            miniPlayerBottomInset = miniPlayerBottomInset,
+            backdrop = backdrop,
+        )
     }
 
     // 公共的弹窗处理层
