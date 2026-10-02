@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.component.player.overlay
 
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -96,9 +97,11 @@ fun CommonOverlayHandler(
             val qqSongId by produceState<String?>(null, overlay.metadata.id) {
                 value = stateContainer.playerViewModel.getQQSongId(overlay.metadata.id)
             }
+            val activeDynamicCover by playerViewModel.dynamicCover.collectAsState()
             SongInfoSheet(
                 metadata = overlay.metadata,
                 qqSongId = qqSongId,
+                dynamicCover = activeDynamicCover?.takeIf { it.songId == overlay.metadata.id },
                 onDismissRequest = { overlayHandler.dismiss() }
             )
         }
