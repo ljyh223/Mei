@@ -41,9 +41,9 @@ object RetrofitModule {
     fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder().apply {
             // 基础配置
-            connectTimeout(30, TimeUnit.SECONDS)
-            readTimeout(30, TimeUnit.SECONDS)
-            writeTimeout(30, TimeUnit.SECONDS)
+            connectTimeout(8, TimeUnit.SECONDS)
+            readTimeout(10, TimeUnit.SECONDS)
+            writeTimeout(10, TimeUnit.SECONDS)
 
             // 日志拦截器
             addInterceptor(HttpLoggingInterceptor().apply {
@@ -139,9 +139,9 @@ object RetrofitModule {
     @Named("qqMusicOkHttp")
     fun provideQQMusicOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .header(
