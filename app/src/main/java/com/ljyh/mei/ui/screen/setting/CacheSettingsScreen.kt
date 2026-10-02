@@ -112,7 +112,7 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         }
                         busy = false
                         snackbar.showSnackbar(
-                            if (result.isSuccess) "$label已清理" else "清理失败，请稍后重试"
+                            if (result.isSuccess) "${label}已清理" else "清理失败，请稍后重试"
                         )
                     }
                 }) { Text("清理", color = MaterialTheme.colorScheme.error) }
