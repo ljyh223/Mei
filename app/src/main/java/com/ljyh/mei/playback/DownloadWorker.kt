@@ -27,7 +27,6 @@ import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.utils.ImageUtils
 import com.ljyh.mei.utils.SongMate
-import com.ljyh.mei.utils.StringUtils.specialReplace
 import com.ljyh.mei.utils.lyric.DownloadLyricProvider
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -134,8 +133,7 @@ class DownloadWorker(
         val db = AppDatabase.getDatabase(applicationContext)
         val totalCount = songIds.size
 
-        val sanitizedPlaylistName = specialReplace(playlistName).trim()
-            .takeUnless { it.isBlank() || it == "." || it == ".." } ?: "未分类"
+        val sanitizedPlaylistName = DownloadFileNames.playlistName(playlistName)
         val relativePath = "Music/Mei/$sanitizedPlaylistName"
         val tempDir = File(applicationContext.cacheDir, "download")
         if (!tempDir.exists()) tempDir.mkdirs()
@@ -218,18 +216,15 @@ class DownloadWorker(
 
         updateTask(db, songId, DownloadStatus.DOWNLOADING, 0)
 
-        val suffix = task.fileType.ifBlank {
-            val pathWithoutQuery = task.url.substringBefore("?")
-            val lastSegment = pathWithoutQuery.substringAfterLast("/")
-            lastSegment.substringAfterLast(".", "")
-        }
-        if (suffix.isBlank()) {
+        val suffix = DownloadFileNames.audioExtension(task.fileType, task.url)
+        if (suffix == null) {
+            Timber.w("Unsupported audio extension for song $songId")
             failedCount.incrementAndGet()
             updateTask(db, songId, DownloadStatus.FAILED, 0)
             return
         }
 
-        val fileName = "${specialReplace("${task.songTitle} - ${task.songArtist}")}.$suffix"
+        val fileName = "${DownloadFileNames.songBaseName(task.songTitle, task.songArtist)}.$suffix"
         val tempFile = File(tempDir, fileName)
 
         val existingMedia = withContext(Dispatchers.IO) {
@@ -340,6 +335,10 @@ class DownloadWorker(
         relativePath: String,
         resolvedLyric: String? = null,
     ) = withContext(Dispatchers.IO) {
+        if (!DownloadFileNames.isSafeRelativePath(relativePath)) {
+            Timber.w("Skipping lyric sidecar: invalid music directory")
+            return@withContext
+        }
         if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
             Timber.w("Skipping lyric sidecar: all-files access was revoked")
             return@withContext
