@@ -562,6 +562,7 @@ fun AppleMusicPlayer(
                                                 cover = it.coverUrl
                                             )
                                         },
+                                        needShadow = false,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = PlayerHorizontalPadding)
