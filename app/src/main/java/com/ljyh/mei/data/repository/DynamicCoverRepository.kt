@@ -46,6 +46,30 @@ data class MotionArtworkClip(
     val previewUrl: String?
 )
 
+data class AppleAlbumCandidate(val id: String, val name: String, val artist: String)
+
+data class AppleMusicCoverDiagnostic(
+    val query: String,
+    val candidates: List<AppleAlbumCandidate>,
+    val match: AppleAlbumCandidate?,
+    val square: MotionArtworkClip?,
+    val portrait: MotionArtworkClip?
+)
+
+private fun normalized(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
+    .lowercase().replace(Regex("[\\p{P}\\p{Z}\\p{S}]"), "")
+
+internal fun matchAppleAlbum(
+    candidates: List<AppleAlbumCandidate>, album: String, artist: String
+): AppleAlbumCandidate? {
+    val expectedAlbum = normalized(album)
+    val expectedArtist = normalized(artist)
+    if (expectedAlbum.isBlank() || expectedArtist.isBlank()) return null
+    return candidates.firstOrNull {
+        normalized(it.name) == expectedAlbum && normalized(it.artist).contains(expectedArtist)
+    }
+}
+
 data class DynamicCover(
     val songId: Long,
     val url: String,
@@ -181,46 +205,53 @@ class DynamicCoverRepository @Inject constructor(
         return minOf(now + 10 * 60_000L, signedExpiry).coerceAtLeast(now)
     }
 
+    suspend fun inspectAppleMusic(album: String, artist: String): AppleMusicCoverDiagnostic =
+        withContext(Dispatchers.IO) { appleLookup(album.trim(), artist.trim()) }
+
     private suspend fun appleCover(song: MediaMetadata): DynamicCover? {
-        if (song.album.title.isBlank() || song.artists.isEmpty()) return null
-        // Search only for albums, then require an exact album and artist match to avoid wrong covers.
+        val result = appleLookup(song.album.title, song.artists.firstOrNull()?.name.orEmpty())
+        val id = result.match?.id ?: return null
+        val primary = result.square ?: result.portrait ?: return null
+        return DynamicCover(song.id, primary.url, DynamicCover.Source.APPLE_MUSIC,
+            "dynamic:apple:$id", primary.palette, primary.previewUrl, result.portrait)
+    }
+
+    private suspend fun appleLookup(album: String, artist: String): AppleMusicCoverDiagnostic {
+        val query = "$album $artist".trim()
+        if (album.isBlank() || artist.isBlank()) {
+            return AppleMusicCoverDiagnostic(query, emptyList(), null, null, null)
+        }
+        // This is also the production matching path, so diagnostics reflect playback decisions.
         val searchUrl = "https://amp-api.music.apple.com/v1/catalog/cn/search".toHttpUrl()
             .newBuilder()
-            .addQueryParameter("term", "${song.album.title} ${song.artists.first().name}")
+            .addQueryParameter("term", query)
             .addQueryParameter("types", "albums")
             .addQueryParameter("limit", "10")
             .addQueryParameter("l", "zh-Hans-CN")
             .build()
         val albums = appleGet(searchUrl.toString()).optJSONObject("results")
-            ?.optJSONObject("albums")?.optJSONArray("data") ?: return null
-        val expectedAlbum = normalized(song.album.title)
-        val expectedArtist = normalized(song.artists.first().name)
-        var albumId: String? = null
-        for (i in 0 until albums.length()) {
-            val album = albums.optJSONObject(i) ?: continue
-            val attrs = album.optJSONObject("attributes") ?: continue
-            if (normalized(attrs.optString("name")) == expectedAlbum &&
-                normalized(attrs.optString("artistName")).contains(expectedArtist) &&
-                expectedArtist.isNotBlank()
-            ) {
-                albumId = album.optString("id").takeIf { it.isNotBlank() }
-                break
+            ?.optJSONObject("albums")?.optJSONArray("data")
+        val candidates = buildList {
+            if (albums != null) for (i in 0 until albums.length()) {
+                val item = albums.optJSONObject(i) ?: continue
+                val attrs = item.optJSONObject("attributes") ?: continue
+                val id = item.optString("id").takeIf(String::isNotBlank) ?: continue
+                add(AppleAlbumCandidate(id, attrs.optString("name"), attrs.optString("artistName")))
             }
         }
-        val id = albumId ?: return null
+        val match = matchAppleAlbum(candidates, album, artist)
+            ?: return AppleMusicCoverDiagnostic(query, candidates, null, null, null)
+        val id = match.id
         val motionUrl = "https://amp-api.music.apple.com/v1/catalog/cn/albums/$id".toHttpUrl()
             .newBuilder().addQueryParameter("extend", "editorialVideo")
             .addQueryParameter("l", "zh-Hans-CN").build()
         val video = appleGet(motionUrl.toString()).optJSONArray("data")
             ?.optJSONObject(0)?.optJSONObject("attributes")?.optJSONObject("editorialVideo")
-            ?: return null
-        val square = parseMotionClip(video.optJSONObject("motionDetailSquare"))
-            ?: parseMotionClip(video.optJSONObject("motionSquareVideo1x1"))
-        val portrait = parseMotionClip(video.optJSONObject("motionDetailTall"))
-            ?: parseMotionClip(video.optJSONObject("motionTallVideo3x4"))
-        val primary = square ?: portrait ?: return null
-        return DynamicCover(song.id, primary.url, DynamicCover.Source.APPLE_MUSIC,
-            "dynamic:apple:$id", primary.palette, primary.previewUrl, portrait)
+        val square = parseMotionClip(video?.optJSONObject("motionDetailSquare"))
+            ?: parseMotionClip(video?.optJSONObject("motionSquareVideo1x1"))
+        val portrait = parseMotionClip(video?.optJSONObject("motionDetailTall"))
+            ?: parseMotionClip(video?.optJSONObject("motionTallVideo3x4"))
+        return AppleMusicCoverDiagnostic(query, candidates, match, square, portrait)
     }
 
     private fun parseMotionClip(clip: JSONObject?): MotionArtworkClip? {
@@ -327,9 +358,6 @@ class DynamicCoverRepository @Inject constructor(
         }
         out.toByteArray()
     }
-
-    private fun normalized(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
-        .lowercase().replace(Regex("[\\p{P}\\p{Z}\\p{S}]"), "")
 
     private suspend inline fun <T> optional(block: () -> T): T? = try {
         block()

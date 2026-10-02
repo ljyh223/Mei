@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -98,14 +99,20 @@ fun DynamicCoverView(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
-        if (player != null && !failed) {
-            AndroidView(
-                factory = { viewContext -> CenterCropTextureView(viewContext).also(player::setVideoTextureView) },
-                update = { view ->
-                    view.setVideoDimensions(videoDimensions.first, videoDimensions.second, videoDimensions.third)
-                },
-                modifier = Modifier.fillMaxSize().alpha(if (firstFrame) 1f else 0f)
-            )
+        if (player != null && !failed && cover != null) {
+            // A TextureView must belong to exactly one cover. Reusing it across rapid song changes
+            // can briefly expose the previous video's frame and its crop transform.
+            key(cover.cacheKey, cover.url) {
+                AndroidView(
+                    factory = { viewContext -> CenterCropTextureView(viewContext).also(player::setVideoTextureView) },
+                    update = { view ->
+                        view.setVideoDimensions(videoDimensions.first, videoDimensions.second, videoDimensions.third)
+                    },
+                    modifier = Modifier.fillMaxSize().alpha(
+                        if (firstFrame && videoDimensions.first > 0 && videoDimensions.second > 0) 1f else 0f
+                    )
+                )
+            }
         }
     }
 }
@@ -128,7 +135,10 @@ private class CenterCropTextureView(context: Context) : TextureView(context) {
     }
 
     private fun updateTransform() {
-        if (width <= 0 || height <= 0 || videoWidth <= 0 || videoHeight <= 0) return
+        if (width <= 0 || height <= 0 || videoWidth <= 0 || videoHeight <= 0 || pixelRatio <= 0f) {
+            setTransform(Matrix())
+            return
+        }
         val videoRatio = videoWidth * pixelRatio / videoHeight
         val viewRatio = width.toFloat() / height
         val scaleX = if (videoRatio > viewRatio) videoRatio / viewRatio else 1f
