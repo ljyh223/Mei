@@ -4,14 +4,14 @@ import com.ljyh.mei.utils.ImageUtils.downloadImageBytes
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.flac.FlacTag
-import org.jaudiotagger.tag.id3.AbstractID3v2Tag
-import org.jaudiotagger.tag.id3.ID3v24Tag
-import org.jaudiotagger.tag.id3.valuepair.ImageFormats
 import org.jaudiotagger.tag.images.ArtworkFactory
 import timber.log.Timber
 import java.io.File
 
 object SongMate {
+    private val pngSignature = byteArrayOf(
+        0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    )
 
     data class TagStatus(
         val hasTitle: Boolean,
@@ -65,18 +65,8 @@ object SongMate {
         return try {
             val file = File(filePath)
             val audioFile = AudioFileIO.read(file)
-            var tag = audioFile.tagOrCreateAndSetDefault
+            val tag = audioFile.tagOrCreateAndSetDefault
             val isFlac = tag is FlacTag
-
-            // Only MP3 ID3 tags may be upgraded to v2.4. Replacing an MP4/Vorbis
-            // tag with ID3 corrupts the container metadata and drops lyrics.
-            if (tag is AbstractID3v2Tag && tag !is ID3v24Tag) {
-                val oldArtwork = tag.firstArtwork
-                val v24Tag = ID3v24Tag()
-                oldArtwork?.let { v24Tag.setField(it) }
-                audioFile.tag = v24Tag
-                tag = v24Tag
-            }
 
             tag.setField(FieldKey.TITLE, title)
             tag.setField(FieldKey.ARTIST, artist)
@@ -93,20 +83,34 @@ object SongMate {
 
             if (coverBytes != null) {
                 try {
+                    val coverMimeType = when {
+                        coverBytes.size >= pngSignature.size &&
+                            coverBytes.copyOfRange(0, pngSignature.size).contentEquals(pngSignature) -> "image/png"
+                        coverBytes.size >= 3 &&
+                            coverBytes[0] == 0xff.toByte() &&
+                            coverBytes[1] == 0xd8.toByte() &&
+                            coverBytes[2] == 0xff.toByte() -> "image/jpeg"
+                        else -> error("Unsupported cover image format")
+                    }
+                    val dimensions = if (isFlac) {
+                        imageDimensions(coverBytes, coverMimeType)
+                            ?: error("Cannot read cover image dimensions")
+                    } else null
                     tag.deleteArtworkField()
                     if (isFlac) {
+                        val (width, height) = requireNotNull(dimensions)
                         tag.setField(
-                            (tag as FlacTag).createArtworkField(
-                                coverBytes, 6,
-                                ImageFormats.MIME_TYPE_JPEG, "Image",
-                                1400, 1400, 24, 0
+                            tag.createArtworkField(
+                                coverBytes, 3,
+                                coverMimeType, "Cover",
+                                width, height, 24, 0
                             )
                         )
                     } else {
                         val artwork = ArtworkFactory.getNew()
-                        artwork.mimeType = "image/jpeg"
+                        artwork.mimeType = coverMimeType
                         artwork.binaryData = coverBytes
-                        artwork.pictureType = 6
+                        artwork.pictureType = 3
                         artwork.description = "Cover"
                         tag.setField(artwork)
                     }
@@ -121,5 +125,49 @@ object SongMate {
             Timber.tag("SongMate").e(e, "writeTags failed for $filePath")
             null
         }
+    }
+
+    private fun imageDimensions(bytes: ByteArray, mimeType: String): Pair<Int, Int>? {
+        fun uint16(offset: Int): Int =
+            ((bytes[offset].toInt() and 0xff) shl 8) or (bytes[offset + 1].toInt() and 0xff)
+
+        if (mimeType == "image/png") {
+            if (bytes.size < 24) return null
+            fun uint32(offset: Int): Int =
+                (uint16(offset) shl 16) or uint16(offset + 2)
+            return (uint32(16) to uint32(20)).takeIf { it.first > 0 && it.second > 0 }
+        }
+
+        // JPEG dimensions are stored in the first start-of-frame marker.
+        var offset = 2
+        while (offset + 9 < bytes.size) {
+            if (bytes[offset] != 0xff.toByte()) {
+                offset++
+                continue
+            }
+            val marker = bytes[offset + 1].toInt() and 0xff
+            if (marker == 0xff) {
+                offset++
+                continue
+            }
+            if (marker == 0xd9 || marker == 0xda) break
+            if (marker == 0xd8 || marker == 0x01 || marker in 0xd0..0xd7) {
+                offset += 2
+                continue
+            }
+            val length = uint16(offset + 2)
+            if (length < 2 || offset + 2 + length > bytes.size) break
+            if (marker in listOf(
+                    0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,
+                    0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
+                ) && length >= 7
+            ) {
+                val height = uint16(offset + 5)
+                val width = uint16(offset + 7)
+                return (width to height).takeIf { it.first > 0 && it.second > 0 }
+            }
+            offset += 2 + length
+        }
+        return null
     }
 }
