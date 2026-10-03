@@ -13,6 +13,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.ljyh.mei.BuildConfig
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.constants.AppleMusicWebTokenKey
 import com.ljyh.mei.constants.AppleMusicWebTokenRefreshAtKey
@@ -42,6 +43,7 @@ import okhttp3.Callback
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.text.Normalizer
@@ -79,6 +81,10 @@ data class AppleMusicCoverDiagnostic(
     val square: MotionArtworkClip?,
     val portrait: MotionArtworkClip?
 )
+
+internal inline fun appleMatchLog(message: () -> String) {
+    if (BuildConfig.DEBUG) Timber.tag("AppleAlbumMatch").d(message())
+}
 
 internal fun normalized(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
     .lowercase().replace(Regex("[\\p{P}\\p{Z}\\p{S}]"), "")
@@ -170,8 +176,9 @@ class DynamicCoverRepository @Inject constructor(
         write = ::persistAlbumMatches,
         search = { album, artist, artworkUrl ->
             val candidates = searchAppleAlbums(album, artist)
-            matchAppleAlbum(candidates, album, artist)?.id
-                ?: matchAppleAlbumByArtwork(candidates, artist, artworkUrl)?.id
+            val textMatch = matchAppleAlbum(candidates, album, artist)
+            appleMatchLog { "text result=${textMatch?.id ?: "none"} candidates=${candidates.size} album='$album' artist='$artist'" }
+            textMatch?.id ?: matchAppleAlbumByArtwork(candidates, artist, artworkUrl)?.id
         },
     )
     private val albumMotionMutex = Mutex()
@@ -184,16 +191,37 @@ class DynamicCoverRepository @Inject constructor(
     }
 
     suspend fun resolve(song: MediaMetadata, englishTitlesOnly: Boolean = false): DynamicCover? = withContext(Dispatchers.IO) {
-        if (!song.coverUrl.startsWith("http")) return@withContext null
+        if (!song.coverUrl.startsWith("http")) {
+            appleMatchLog { "skip song=${song.id} reason=no-http-cover" }
+            return@withContext null
+        }
         val now = System.currentTimeMillis()
         val key = song.id to englishTitlesOnly
         synchronized(memory) {
             memory[key]?.takeIf { it.first > now }
-        }?.let { return@withContext it.second }
+        }?.let {
+            appleMatchLog { "song-cache hit song=${song.id} source=${it.second?.source ?: "none"}" }
+            return@withContext it.second
+        }
 
-        val result = (if (shouldSearchAppleMusic(song, englishTitlesOnly)) {
-            optional { appleCover(song) }
-        } else null) ?: optional { neteaseCover(song) }
+        val searchApple = shouldSearchAppleMusic(song, englishTitlesOnly)
+        appleMatchLog {
+            "resolve song=${song.id} title='${song.title}' album='${song.album.title}' " +
+                "artist='${song.artists.firstOrNull()?.name.orEmpty()}' " +
+                "englishTitlesOnly=$englishTitlesOnly searchApple=$searchApple"
+        }
+        val appleResult = if (searchApple) {
+            try {
+                appleCover(song)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                appleMatchLog { "Apple lookup failed song=${song.id} error=${error.javaClass.simpleName}: ${error.message?.take(120)}" }
+                null
+            }
+        } else null
+        val result = appleResult ?: optional { neteaseCover(song) }
+        appleMatchLog { "resolve result song=${song.id} source=${result?.source ?: "none"}" }
         synchronized(memory) {
             val validUntil = when (result?.source) {
                 DynamicCover.Source.NETEASE -> {
@@ -290,8 +318,12 @@ class DynamicCoverRepository @Inject constructor(
 
     private suspend fun appleCover(song: MediaMetadata): DynamicCover? {
         val id = albumMatchCache.get(song.album.title, song.artists.firstOrNull()?.name.orEmpty(), song.coverUrl)
-            ?: return null
+            ?: run {
+                appleMatchLog { "album match none song=${song.id}" }
+                return null
+            }
         val motion = cachedAlbumMotion(id)
+        appleMatchLog { "motion albumId=$id square=${motion.square != null} portrait=${motion.portrait != null}" }
         val primary = motion.square ?: motion.portrait ?: return null
         return DynamicCover(song.id, primary.url, DynamicCover.Source.APPLE_MUSIC,
             "dynamic:apple:$id", primary.palette, primary.previewUrl, motion.portrait)
@@ -346,7 +378,8 @@ class DynamicCoverRepository @Inject constructor(
         }
         val candidates = searchAppleAlbums(album, artist)
         val match = matchAppleAlbum(candidates, album, artist)
-            ?: return AppleMusicCoverDiagnostic(query, candidates, null, null, null)
+        appleMatchLog { "diagnostic text result=${match?.id ?: "none"} album='$album' artist='$artist'" }
+        if (match == null) return AppleMusicCoverDiagnostic(query, candidates, null, null, null)
         val motion = fetchAlbumMotion(match.id)
         return AppleMusicCoverDiagnostic(query, candidates, match, motion.square, motion.portrait)
     }
@@ -357,8 +390,20 @@ class DynamicCoverRepository @Inject constructor(
         val eligible = candidates.filter { candidate ->
             candidate.artworkUrl != null && artistMatchesForArtwork(candidate.artist, artist)
         }
+        appleMatchLog {
+            "artwork fallback candidates=${candidates.size} eligible=${eligible.size} " +
+                "noArtwork=${candidates.count { it.artworkUrl == null }} " +
+                "artistMismatch=${candidates.count { !artistMatchesForArtwork(it.artist, artist) }}"
+        }
         if (eligible.isEmpty()) return@coroutineScope null
-        val sourceHash = artworkHash(artworkUrl)
+        val sourceHash = try {
+            artworkHash(artworkUrl)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            appleMatchLog { "artwork source fetch failed error=${error.javaClass.simpleName}" }
+            throw error
+        }
         var failed = false
         val hashes = eligible.map { candidate ->
             async(Dispatchers.IO) {
@@ -366,13 +411,21 @@ class DynamicCoverRepository @Inject constructor(
                     candidate.id to artworkHash(candidate.artworkUrl!!)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: Exception) {
+                } catch (error: Exception) {
+                    appleMatchLog { "artwork fetch failed candidate=${candidate.id} error=${error.javaClass.simpleName}" }
                     candidate.id to null
                 }
             }
         }.awaitAll().onEach { if (it.second == null) failed = true }
             .mapNotNull { (id, hash) -> hash?.let { id to it } }.toMap()
+        appleMatchLog {
+            "artwork distances=" + eligible.joinToString { candidate ->
+                val hash = hashes[candidate.id]
+                "${candidate.id}:${hash?.let { ArtworkSimilarity.distance(sourceHash, it) } ?: "unavailable"}"
+            } + " threshold=8"
+        }
         val match = rankedArtworkMatches(eligible, artist, sourceHash, hashes).firstOrNull()
+        appleMatchLog { "artwork result=${match?.id ?: "none"} failedDownloads=$failed" }
         if (match == null && failed) throw IOException("Artwork comparison incomplete")
         match
     }
@@ -404,6 +457,7 @@ class DynamicCoverRepository @Inject constructor(
     }
 
     private suspend fun searchAppleAlbums(album: String, artist: String): List<AppleAlbumCandidate> {
+        val startedAt = System.nanoTime()
         val searchUrl = "https://amp-api.music.apple.com/v1/catalog/cn/search".toHttpUrl()
             .newBuilder()
             .addQueryParameter("term", "$album $artist".trim())
@@ -413,7 +467,7 @@ class DynamicCoverRepository @Inject constructor(
             .build()
         val albums = appleGet(searchUrl.toString()).optJSONObject("results")
             ?.optJSONObject("albums")?.optJSONArray("data")
-        return buildList {
+        val candidates = buildList {
             if (albums != null) for (i in 0 until albums.length()) {
                 val item = albums.optJSONObject(i) ?: continue
                 val attrs = item.optJSONObject("attributes") ?: continue
@@ -428,6 +482,20 @@ class DynamicCoverRepository @Inject constructor(
                 ))
             }
         }
+        appleMatchLog {
+            "search term='$album $artist' returned=${candidates.size} " +
+                "elapsedMs=${(System.nanoTime() - startedAt) / 1_000_000} " +
+                "normalizedAlbum='${normalized(album)}' normalizedArtist='${normalized(artist)}'"
+        }
+        candidates.forEachIndexed { index, candidate ->
+            appleMatchLog {
+                "candidate[$index] id=${candidate.id} album='${candidate.name}' " +
+                    "artist='${candidate.artist}' albumExact=${normalized(candidate.name) == normalized(album)} " +
+                    "artistContains=${normalized(candidate.artist).contains(normalized(artist))} " +
+                    "artwork=${candidate.artworkUrl != null}"
+            }
+        }
+        return candidates
     }
 
     private suspend fun fetchAlbumMotion(id: String): AlbumMotionEntry {

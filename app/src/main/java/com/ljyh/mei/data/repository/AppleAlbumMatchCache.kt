@@ -27,7 +27,10 @@ internal class AppleAlbumMatchCache(
     suspend fun get(album: String, artist: String, artworkUrl: String): String? {
         val albumKey = normalized(album)
         val artistKey = normalized(artist)
-        if (albumKey.isBlank() || artistKey.isBlank()) return null
+        if (albumKey.isBlank() || artistKey.isBlank()) {
+            appleMatchLog { "cache skip reason=blank-normalized-key album='$album' artist='$artist'" }
+            return null
+        }
         // Version the key so old negative results do not suppress the new image fallback.
         val key = "v2\u0000$albumKey\u0000$artistKey"
         var owner = false
@@ -43,13 +46,20 @@ internal class AppleAlbumMatchCache(
                 loaded = true
             }
             val currentTime = now()
-            entries[key]?.takeIf { it.validUntil > currentTime }?.let { return it.id }
+            entries[key]?.takeIf { it.validUntil > currentTime }?.let {
+                appleMatchLog { "cache hit album='$album' artist='$artist' id=${it.id ?: "none"} ttlMs=${it.validUntil - currentTime}" }
+                return it.id
+            }
             inFlight[key] ?: CompletableDeferred<String?>().also {
                 inFlight[key] = it
                 owner = true
             }
         }
-        if (!owner) return pending.await()
+        if (!owner) {
+            appleMatchLog { "cache join in-flight album='$album' artist='$artist'" }
+            return pending.await()
+        }
+        appleMatchLog { "cache miss album='$album' artist='$artist'; starting search" }
         try {
             val id = search(album, artist, artworkUrl)
             mutex.withLock {
@@ -70,8 +80,10 @@ internal class AppleAlbumMatchCache(
                 }
                 inFlight.remove(key)?.complete(id)
             }
+            appleMatchLog { "cache stored album='$album' artist='$artist' id=${id ?: "none"}" }
             return id
         } catch (failure: Throwable) {
+            appleMatchLog { "cache search failed album='$album' artist='$artist' error=${failure.javaClass.simpleName}" }
             withContext(NonCancellable) {
                 mutex.withLock { inFlight.remove(key)?.completeExceptionally(failure) }
             }
