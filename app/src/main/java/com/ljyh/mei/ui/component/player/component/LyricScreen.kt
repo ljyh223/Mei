@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AccompanimentLyricTextBoldKey
@@ -57,6 +59,7 @@ import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.playback.SmoothPlaybackPosition
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.rememberEnumPreference
@@ -94,7 +97,22 @@ fun LyricScreen(
     val playbackPosition = remember(playerConnection.player) {
         mutableIntStateOf(playerConnection.player.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
     }
+    val playbackClock = remember(playerConnection.player) { SmoothPlaybackPosition() }
     val currentPosition = remember(playbackPosition) { { playbackPosition.intValue } }
+    DisposableEffect(playerConnection.player, playbackClock) {
+        val player = playerConnection.player
+        val listener = object : Player.Listener {
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int,
+            ) {
+                playbackClock.reset()
+            }
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
     val initialLineIndex = remember(lyricData.lyricLine) {
         val position = playerConnection.player.currentPosition
         lyricData.lyricLine.lines.indexOfLast { it.start.toLong() <= position }.coerceAtLeast(0)
@@ -147,14 +165,19 @@ fun LyricScreen(
 
     LaunchedEffect(playerConnection.player) {
         while (isActive) {
-            withFrameNanos {
+            withFrameNanos { frameTimeNanos ->
                 val duration = playerConnection.player.duration
                     .takeIf { it > 0L }
                     ?.coerceAtMost(Int.MAX_VALUE.toLong())
                     ?: Int.MAX_VALUE.toLong()
-                playbackPosition.intValue = playerConnection.player.currentPosition
-                    .coerceIn(0L, duration)
-                    .toInt()
+                val player = playerConnection.player
+                playbackPosition.intValue = playbackClock.sample(
+                    rawPositionMs = player.currentPosition,
+                    frameTimeNanos = frameTimeNanos,
+                    isPlaying = player.isPlaying,
+                    speed = player.playbackParameters.speed,
+                    durationMs = duration,
+                )
             }
         }
     }
@@ -204,6 +227,7 @@ fun LyricScreen(
                         lyrics = lyricData.lyricLine,
                         currentPosition = currentPosition,
                         onLineClicked = { line ->
+                            playbackClock.reset()
                             playbackPosition.intValue = line.start
                             playerConnection.player.seekTo(line.start.toLong())
                             onToggleControls(true)
