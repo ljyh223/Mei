@@ -24,6 +24,7 @@ import android.widget.LinearLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -312,6 +313,20 @@ internal class DesktopLyricsController(
             visibility = View.GONE
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
+                val playbackClock = remember(player) { SmoothPlaybackPosition() }
+                DisposableEffect(player, playbackClock) {
+                    val listener = object : Player.Listener {
+                        override fun onPositionDiscontinuity(
+                            oldPosition: Player.PositionInfo,
+                            newPosition: Player.PositionInfo,
+                            reason: Int,
+                        ) {
+                            playbackClock.reset()
+                        }
+                    }
+                    player.addListener(listener)
+                    onDispose { player.removeListener(listener) }
+                }
                 val line = karaokeLineState.value
                 if (line != null) {
                     var position by remember(line) {
@@ -319,12 +334,18 @@ internal class DesktopLyricsController(
                     }
                     LaunchedEffect(line) {
                         while (isActive) {
-                            withFrameNanos {
+                            withFrameNanos { frameTimeNanos ->
                                 val duration = player.duration
                                     .takeIf { it > 0L }
                                     ?.coerceAtMost(Int.MAX_VALUE.toLong())
                                     ?: Int.MAX_VALUE.toLong()
-                                position = player.currentPosition.coerceIn(0L, duration).toInt()
+                                position = playbackClock.sample(
+                                    rawPositionMs = player.currentPosition,
+                                    frameTimeNanos = frameTimeNanos,
+                                    isPlaying = player.isPlaying,
+                                    speed = player.playbackParameters.speed,
+                                    durationMs = duration,
+                                )
                             }
                         }
                     }
