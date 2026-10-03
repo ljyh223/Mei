@@ -100,7 +100,7 @@ class SongMateTest {
     @Test
     fun pngCoverKeepsItsActualMimeType() = runBlocking {
         val cover = resourceBytes("cover.png")
-        for (extension in listOf("mp3", "flac")) {
+        for (extension in listOf("mp3", "flac", "m4a")) {
             val file = sample(extension)
             val status = SongMate.writeTagsWithCoverBytes(
                 title, artist, album, cover, file.absolutePath, lyrics,
@@ -109,7 +109,7 @@ class SongMateTest {
             val artwork = AudioFileIO.read(file).tag.firstArtwork
             assertArrayEquals("$extension cover", cover, artwork?.binaryData)
             assertEquals("$extension MIME", "image/png", artwork?.mimeType)
-            assertEquals("$extension picture type", 3, artwork?.pictureType)
+            if (extension != "m4a") assertEquals("$extension picture type", 3, artwork?.pictureType)
             if (extension == "flac") {
                 assertEquals(16, artwork?.width)
                 assertEquals(16, artwork?.height)

@@ -2,10 +2,6 @@ package com.ljyh.mei.utils
 
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.Paint
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import coil3.ImageLoader
@@ -13,13 +9,16 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.ljyh.mei.playback.DownloadWorker
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.ByteArrayOutputStream
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
-import androidx.core.graphics.createBitmap
+import kotlin.coroutines.coroutineContext
 
 fun String.smallImage(): String {
     if (this.startsWith("/")) return this
@@ -55,66 +54,42 @@ class CoilImageLoader {
 }
 
 object ImageUtils {
+    private const val MAX_COVER_BYTES = 8L * 1024 * 1024
     private val httpClient = DownloadWorker.getDownloadClient().newBuilder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
+        .callTimeout(20, TimeUnit.SECONDS)
         .build()
 
-    suspend fun downloadImageBytes(imageUrl: String): ByteArray? = withContext(Dispatchers.IO) {
+    suspend fun downloadImageBytes(imageUrl: String): ByteArray? =
+        downloadImageBytes(imageUrl, httpClient)
+
+    internal suspend fun downloadImageBytes(
+        imageUrl: String,
+        client: OkHttpClient,
+    ): ByteArray? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(imageUrl)
             .build()
-
-        try {
-            val result = httpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val bytes = response.body.bytes()
-                    if (bytes[1].toInt() == 80) {
-                        pngToJpg(bytes)
-                    } else {
-                        bytes
-                    }
-                } else {
-                    null
-                }
-            }
-            result
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+        val call = client.newCall(request)
+        val cancellation = coroutineContext[Job]?.invokeOnCompletion { cause ->
+            if (cause is CancellationException) call.cancel()
         }
-    }
-
-
-    fun pngToJpg(pngBytes: ByteArray): ByteArray? {
-        return try {
-            // 将PNG字节数组解码为Bitmap
-            val bitmap = BitmapFactory.decodeByteArray(pngBytes, 0, pngBytes.size)
-            if (bitmap != null) {
-                // 创建一个空白的JPEG格式的Bitmap
-                val jpegBitmap =
-                    createBitmap(bitmap.width, bitmap.height, Bitmap.Config.RGB_565)
-
-                // 将PNG内容绘制到JPEG Bitmap上
-                val canvas = Canvas(jpegBitmap)
-                canvas.drawColor(android.graphics.Color.WHITE) // 设置背景为白色
-                val zero = 0
-                canvas.drawBitmap(bitmap, zero.toFloat(), zero.toFloat(), Paint())
-
-                // 将JPEG Bitmap压缩为字节数组
-                val outputStream = ByteArrayOutputStream()
-                jpegBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                outputStream.toByteArray()
-            } else {
-                // 解码失败
-                ByteArray(0)
+        try {
+            call.execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                val source = response.body.source()
+                source.request(MAX_COVER_BYTES + 1)
+                if (source.buffer.size > MAX_COVER_BYTES) null else source.buffer.readByteArray()
             }
-        } catch (e: java.lang.Exception) {
-            e.printStackTrace()
-            // 处理异常
-            ByteArray(0)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            coroutineContext.ensureActive()
+            Timber.w(e, "Cover download failed")
+            null
+        } finally {
+            cancellation?.dispose()
         }
     }
 }
-
-

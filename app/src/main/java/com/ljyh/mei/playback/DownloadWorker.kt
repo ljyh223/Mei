@@ -98,6 +98,7 @@ class DownloadWorker(
     }
 
     private val okHttpClient = getDownloadClient()
+    private val coverCache = DownloadCoverCache(fetch = { url -> ImageUtils.downloadImageBytes(url) })
     private val lyricProvider: DownloadLyricProvider by lazy {
         EntryPointAccessors.fromApplication(
             applicationContext,
@@ -254,28 +255,24 @@ class DownloadWorker(
 
         try {
             coroutineScope {
-            var resolvedLyric: String? = null
-            val lyricDeferred = async(Dispatchers.IO) {
-                lyricProvider.getEmbeddedLyric(songId)
-            }
-            val coverDeferred = async(Dispatchers.IO) {
-                if (task.songCover.isNotBlank()) {
-                    ImageUtils.downloadImageBytes(task.songCover)
-                } else null
-            }
+            val metadata = downloadWithMetadata(
+                downloadAudio = {
+                    downloadFile(task.url, tempFile) { progress ->
+                        updateTask(db, songId, DownloadStatus.DOWNLOADING, progress)
+                    }
+                },
+                fetchLyric = { lyricProvider.getEmbeddedLyric(songId) },
+                fetchCover = {
+                    task.songCover.takeIf(String::isNotBlank)?.let { coverCache.get(it) }
+                },
+            )
 
-            val success = downloadFile(task.url, tempFile) { progress ->
-                updateTask(db, songId, DownloadStatus.DOWNLOADING, progress)
-            }
-
-            if (success && tempFile.exists()) {
+            if (metadata != null && tempFile.exists()) {
                 try {
-                    val lyric = lyricDeferred.await()
-                    resolvedLyric = lyric
-                    val coverBytes = coverDeferred.await()
+                    val lyric = metadata.lyric
                     val tagStatus = SongMate.writeTagsWithCoverBytes(
                         task.songTitle, task.songArtist, task.songAlbum,
-                        coverBytes, tempFile.absolutePath, lyric
+                        metadata.coverBytes, tempFile.absolutePath, lyric
                     )
                     if (lyric != null && tagStatus?.hasLyric != true) {
                         Timber.w("Lyric tag verification failed for ${task.songTitle}")
@@ -297,7 +294,9 @@ class DownloadWorker(
                 }
 
                 if (mediaStoreUri != null) {
-                    if (saveSeparateLyrics) saveLyricSidecar(songId, task, relativePath, resolvedLyric)
+                    if (saveSeparateLyrics) saveLyricSidecar(
+                        songId, task, relativePath, metadata.lyric, lyricWasResolved = true,
+                    )
                     saveDownloadedSong(
                         db = db,
                         songId = songId,
@@ -334,6 +333,7 @@ class DownloadWorker(
         task: DownloadTask,
         relativePath: String,
         resolvedLyric: String? = null,
+        lyricWasResolved: Boolean = false,
     ) = withContext(Dispatchers.IO) {
         if (!DownloadFileNames.isSafeRelativePath(relativePath)) {
             Timber.w("Skipping lyric sidecar: invalid music directory")
@@ -344,23 +344,25 @@ class DownloadWorker(
             return@withContext
         }
         try {
-            val lyric = (resolvedLyric ?: lyricProvider.getEmbeddedLyric(songId))
-                ?.takeIf(String::isNotBlank)
+            val lyric = lyricForSidecar(lyricWasResolved, resolvedLyric) {
+                lyricProvider.getEmbeddedLyric(songId)
+            }
+            val usableLyric = lyric?.takeIf(String::isNotBlank)
                 ?: return@withContext
-            val fileName = lyricSidecarFileName(task.songTitle, task.songArtist, lyric)
+            val fileName = lyricSidecarFileName(task.songTitle, task.songArtist, usableLyric)
             if (Build.VERSION.SDK_INT >= 30) {
                 val directory = File(Environment.getExternalStorageDirectory(), relativePath)
                 if (!directory.isDirectory && !directory.mkdirs()) error("Cannot create $directory")
                 val temporary = File.createTempFile(".mei-lyric-", ".tmp", directory)
                 try {
-                    temporary.writeText(lyric, Charsets.UTF_8)
+                    temporary.writeText(usableLyric, Charsets.UTF_8)
                     val destination = File(directory, fileName)
                     if (!temporary.renameTo(destination)) error("Cannot save $destination")
                 } finally {
                     temporary.delete()
                 }
             } else {
-                Android10LyricTree.write(applicationContext, relativePath, fileName, lyric)
+                Android10LyricTree.write(applicationContext, relativePath, fileName, usableLyric)
             }
         } catch (e: CancellationException) {
             throw e
