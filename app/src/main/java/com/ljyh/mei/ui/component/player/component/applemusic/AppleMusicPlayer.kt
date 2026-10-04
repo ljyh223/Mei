@@ -474,7 +474,7 @@ fun AppleMusicPlayer(
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .fillMaxWidth()
-                                .height(portraitArtworkHeight + 88.dp),
+                                .height(portraitArtworkHeight + 64.dp),
                         )
                     }
                     Box(

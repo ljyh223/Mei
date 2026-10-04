@@ -90,8 +90,11 @@ internal fun PortraitMotionBlur(frame: ImageBitmap, modifier: Modifier = Modifie
             .drawWithCache {
                 val mask = Brush.verticalGradient(
                     0f to Color.Transparent,
-                    0.54f to Color.Transparent,
-                    0.77f to Color.White.copy(alpha = 0.82f),
+                    0.55f to Color.Transparent,
+                    0.65f to Color.White.copy(alpha = 0.04f),
+                    0.73f to Color.White.copy(alpha = 0.16f),
+                    0.82f to Color.White.copy(alpha = 0.48f),
+                    0.90f to Color.White.copy(alpha = 0.56f),
                     1f to Color.Transparent,
                 )
                 onDrawWithContent {
@@ -99,7 +102,7 @@ internal fun PortraitMotionBlur(frame: ImageBitmap, modifier: Modifier = Modifie
                     drawRect(mask, blendMode = BlendMode.DstIn)
                 }
             }
-            .blur(28.dp),
+            .blur(18.dp),
     )
 }
 
