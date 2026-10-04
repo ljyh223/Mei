@@ -642,10 +642,10 @@ fun AppleMusicPlayer(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(
-                                                start = PlayerHorizontalPadding + if (portraitAlpha > 0.5f) 12.dp else 0.dp,
-                                                end = PlayerHorizontalPadding + if (portraitAlpha > 0.5f) 7.dp else 0.dp,
+                                                start = PlayerHorizontalPadding + 12.dp,
+                                                end = PlayerHorizontalPadding + 7.dp,
                                             )
-                                            .padding(bottom = if (portraitAlpha > 0.5f) 28.dp else 12.dp)
+                                            .padding(bottom = 28.dp)
                                     )
                                 }
                             }

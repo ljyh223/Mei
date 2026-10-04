@@ -62,7 +62,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + if (portraitMotionStyle) 14.dp else 8.dp)
+                    .padding(horizontal = PlayerHorizontalPadding + 14.dp)
             )
         } else {
             PlayerProgressSlider(
@@ -76,7 +76,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + if (portraitMotionStyle) 14.dp else 8.dp)
+                    .padding(horizontal = PlayerHorizontalPadding + 14.dp)
             )
         }
 
@@ -110,7 +110,8 @@ fun PlayerControlsSection(
                 onMoreClick = onMoreClick
             )
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(if (portraitMotionStyle) 52.dp else 16.dp))
+            // Keep the entire control stack anchored when motion artwork arrives mid-song.
+            Spacer(Modifier.height(52.dp))
         } else {
             // 紧凑模式底部留白少一点
             Spacer(Modifier.height(16.dp))
