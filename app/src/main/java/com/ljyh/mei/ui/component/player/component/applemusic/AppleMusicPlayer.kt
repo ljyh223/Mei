@@ -240,8 +240,9 @@ fun AppleMusicPlayer(
 
         val normalStart = (maxWidthPx - normalSize) / 2
 
-        // Let the artwork reach the title before blending into the control area.
-        val portraitArtworkHeight = maxHeight * 0.70f
+        // Apple's tall clip is 3:4. Keep its full width instead of widening a taller container
+        // and then center-cropping away the lettering and logos at the sides.
+        val portraitArtworkHeight = minOf(screenWidth * (4f / 3f), maxHeight * 0.66f)
 
         // C. Header (Top Left Small)
         val headerSize = with(density) { 46.dp.toPx() }
@@ -461,11 +462,21 @@ fun AppleMusicPlayer(
                         },
                         onFrameSample = portraitBackdropState::accept,
                         bottomFadeColor = motionBackgroundColor,
+                        fitVideoWidth = true,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .fillMaxWidth()
                             .height(portraitArtworkHeight),
                     )
+                    portraitBackdropState.frame?.let { frame ->
+                        PortraitMotionBlur(
+                            frame = frame,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxWidth()
+                                .height(portraitArtworkHeight + 88.dp),
+                        )
+                    }
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
@@ -626,12 +637,13 @@ fun AppleMusicPlayer(
                                         },
                                         titleColor = playerForegroundColor,
                                         subTitleColor = playerSecondaryColor,
+                                        subTitleStyle = if (portraitAlpha > 0.5f) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
                                         iconColor = playerForegroundColor,
                                         needShadow = false,
                                         titleFontWeight = if (portraitAlpha > 0.5f) androidx.compose.ui.text.font.FontWeight.Normal else androidx.compose.ui.text.font.FontWeight.Bold,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = PlayerHorizontalPadding)
+                                            .padding(horizontal = PlayerHorizontalPadding + if (portraitAlpha > 0.5f) 12.dp else 0.dp)
                                             .padding(bottom = 12.dp)
                                     )
                                 }

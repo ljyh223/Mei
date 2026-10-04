@@ -1,17 +1,19 @@
 package com.ljyh.mei.ui.component.player.component.applemusic
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -85,35 +87,40 @@ fun Title(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val actionButtonColors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = iconColor.copy(alpha = 0.14f),
-                contentColor = iconColor,
-            )
-
-            FilledTonalIconButton(
+            IconButton(
                 onClick = onLikeClick,
                 modifier = Modifier.size(48.dp),
-                colors = actionButtonColors,
             ) {
-                Icon(
-                    imageVector = if (isLiked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                    contentDescription = "Like",
-                    tint = iconColor.copy(alpha = if (isLiked) 1f else 0.8f),
-                    modifier = Modifier.size(22.dp),
-                )
+                Box(
+                    modifier = Modifier.size(36.dp)
+                        .background(iconColor.copy(alpha = 0.32f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (isLiked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                        contentDescription = "喜欢",
+                        tint = iconColor,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
 
-            FilledTonalIconButton(
+            IconButton(
                 onClick = onMoreClick,
                 modifier = Modifier.size(48.dp),
-                colors = actionButtonColors,
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = "More",
-                    tint = iconColor.copy(alpha = 0.8f),
-                    modifier = Modifier.size(22.dp),
-                )
+                Box(
+                    modifier = Modifier.size(36.dp)
+                        .background(iconColor.copy(alpha = 0.32f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.MoreVert,
+                        contentDescription = "更多",
+                        tint = iconColor,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         }
     }

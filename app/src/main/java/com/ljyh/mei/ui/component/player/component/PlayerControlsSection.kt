@@ -62,7 +62,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+                    .padding(horizontal = PlayerHorizontalPadding + if (portraitMotionStyle) 14.dp else 8.dp)
             )
         } else {
             PlayerProgressSlider(
@@ -76,7 +76,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + 8.dp)
+                    .padding(horizontal = PlayerHorizontalPadding + if (portraitMotionStyle) 14.dp else 8.dp)
             )
         }
 
@@ -110,7 +110,7 @@ fun PlayerControlsSection(
                 onMoreClick = onMoreClick
             )
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(if (portraitMotionStyle) 40.dp else 16.dp))
         } else {
             // 紧凑模式底部留白少一点
             Spacer(Modifier.height(16.dp))

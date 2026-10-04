@@ -55,6 +55,7 @@ fun DynamicCoverView(
     onPlaybackError: (PlaybackException) -> Unit = {},
     onFrameSample: ((Bitmap) -> Unit)? = null,
     bottomFadeColor: Color? = null,
+    fitVideoWidth: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -108,32 +109,17 @@ fun DynamicCoverView(
     }
     LaunchedEffect(player, textureView, playing, firstFrame, failed, onFrameSample != null) {
         val view = textureView
-        if (player != null && view != null && playing && firstFrame && !failed && onFrameSample != null) {
-            while (isActive) {
-                // Collapse the last three rows into one horizontal color strip. This keeps the
-                // video's edge colors without projecting unrelated shapes into the controls.
+        if (player != null && view != null && firstFrame && !failed && onFrameSample != null) {
+            do {
                 if (view.isAvailable) {
                     runCatching {
-                        view.getBitmap(16, 16)?.let { snapshot ->
-                            val pixels = IntArray(16 * 3)
-                            snapshot.getPixels(pixels, 0, 16, 0, 13, 16, 3)
-                            snapshot.recycle()
-                            val edge = IntArray(16) { x ->
-                                val a = pixels[x]
-                                val b = pixels[16 + x]
-                                val c = pixels[32 + x]
-                                android.graphics.Color.rgb(
-                                    (android.graphics.Color.red(a) + android.graphics.Color.red(b) + android.graphics.Color.red(c)) / 3,
-                                    (android.graphics.Color.green(a) + android.graphics.Color.green(b) + android.graphics.Color.green(c)) / 3,
-                                    (android.graphics.Color.blue(a) + android.graphics.Color.blue(b) + android.graphics.Color.blue(c)) / 3
-                                )
-                            }
-                            Bitmap.createBitmap(edge, 16, 1, Bitmap.Config.ARGB_8888)
-                        }
+                        // A small frame supplies both the edge color and the soft transition.
+                        view.getBitmap(32, 48)
                     }.getOrNull()?.let { currentFrameSample?.invoke(it) }
                 }
-                delay(33)
-            }
+                if (!playing) break
+                delay(66)
+            } while (isActive)
         }
     }
     val background = remember(cover?.palette?.bgColor) {
@@ -166,7 +152,8 @@ fun DynamicCoverView(
                     },
                     update = { frame ->
                         (frame.getChildAt(0) as CenterCropTextureView).setVideoDimensions(
-                            videoDimensions.first, videoDimensions.second, videoDimensions.third
+                            videoDimensions.first, videoDimensions.second, videoDimensions.third,
+                            fitVideoWidth,
                         )
                         (frame.getChildAt(1) as BottomFadeView).fadeColor = bottomFadeColor?.toArgb()
                     },
@@ -214,11 +201,13 @@ private class CenterCropTextureView(context: Context) : TextureView(context) {
     private var videoWidth = 0
     private var videoHeight = 0
     private var pixelRatio = 1f
+    private var fitWidth = false
 
-    fun setVideoDimensions(width: Int, height: Int, ratio: Float) {
+    fun setVideoDimensions(width: Int, height: Int, ratio: Float, fitWidth: Boolean) {
         videoWidth = width
         videoHeight = height
         pixelRatio = ratio
+        this.fitWidth = fitWidth
         updateTransform()
     }
 
@@ -234,6 +223,14 @@ private class CenterCropTextureView(context: Context) : TextureView(context) {
         }
         val videoRatio = videoWidth * pixelRatio / videoHeight
         val viewRatio = width.toFloat() / height
+        if (fitWidth) {
+            // TextureView initially stretches the decoded frame to its bounds. Correct only its
+            // height, anchored at the top, so the video keeps its aspect ratio and both sides.
+            setTransform(Matrix().apply {
+                setScale(1f, viewRatio / videoRatio, width / 2f, 0f)
+            })
+            return
+        }
         val scaleX = if (videoRatio > viewRatio) videoRatio / viewRatio else 1f
         val scaleY = if (videoRatio < viewRatio) viewRatio / videoRatio else 1f
         setTransform(Matrix().apply { setScale(scaleX, scaleY, width / 2f, height / 2f) })

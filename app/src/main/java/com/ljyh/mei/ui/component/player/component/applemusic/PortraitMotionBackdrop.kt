@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.component.player.component.applemusic
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,10 +10,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 
 internal fun averageMotionColor(pixels: IntArray): Color {
     if (pixels.isEmpty()) return Color.Transparent
@@ -56,13 +66,41 @@ internal fun motionControlsColor(paletteColor: Color, edgeColor: Color?): Color 
 internal class PortraitMotionBackdropState {
     var edgeColor by mutableStateOf<Color?>(null)
         private set
+    var frame by mutableStateOf<ImageBitmap?>(null)
+        private set
 
     fun accept(bitmap: Bitmap) {
-        val pixels = IntArray(bitmap.width * bitmap.height)
-        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        bitmap.recycle()
+        val rows = minOf(3, bitmap.height)
+        val pixels = IntArray(bitmap.width * rows)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, bitmap.height - rows, bitmap.width, rows)
         edgeColor = averageMotionColor(pixels)
+        frame = bitmap.asImageBitmap()
     }
+}
+
+/** A blurred copy of the current video softly takes over where its sharp lower edge fades. */
+@Composable
+internal fun PortraitMotionBlur(frame: ImageBitmap, modifier: Modifier = Modifier) {
+    Image(
+        bitmap = frame,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithCache {
+                val mask = Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.54f to Color.Transparent,
+                    0.77f to Color.White.copy(alpha = 0.82f),
+                    1f to Color.Transparent,
+                )
+                onDrawWithContent {
+                    drawContent()
+                    drawRect(mask, blendMode = BlendMode.DstIn)
+                }
+            }
+            .blur(28.dp),
+    )
 }
 
 @Composable
