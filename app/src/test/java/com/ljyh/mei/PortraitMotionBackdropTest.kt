@@ -16,9 +16,16 @@ class PortraitMotionBackdropTest {
     }
 
     @Test
-    fun `light palette is darkened enough for white controls`() {
+    fun `light palette is toned toward motion player gray`() {
         val color = motionControlsColor(Color.White, null)
-        assertTrue(color.luminance() <= 0.18f)
+        assertTrue(color.luminance() in 0.35f..0.38f)
+    }
+
+    @Test
+    fun `bright artwork keeps a medium control background with a dark video edge`() {
+        val color = motionControlsColor(Color.White, Color(0xff223060))
+        assertTrue(color.luminance() in 0.32f..0.38f)
+        assertTrue(color.blue > color.red)
     }
 
     @Test

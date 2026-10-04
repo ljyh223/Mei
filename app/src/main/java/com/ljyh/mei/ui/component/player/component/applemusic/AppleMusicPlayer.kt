@@ -468,13 +468,11 @@ fun AppleMusicPlayer(
                             .fillMaxWidth()
                             .height(portraitArtworkHeight),
                     )
-                    portraitBackdropState.frame?.let { frame ->
-                        PortraitMotionBlur(
-                            frame = frame,
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .fillMaxWidth()
-                                .height(portraitArtworkHeight + 64.dp),
+                    portraitBackdropState.edgeColor?.let { color ->
+                        PortraitMotionColorWash(
+                            color = color,
+                            artworkHeight = portraitArtworkHeight,
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                     Box(
@@ -643,8 +641,11 @@ fun AppleMusicPlayer(
                                         titleFontWeight = if (portraitAlpha > 0.5f) androidx.compose.ui.text.font.FontWeight.Normal else androidx.compose.ui.text.font.FontWeight.Bold,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = PlayerHorizontalPadding + if (portraitAlpha > 0.5f) 12.dp else 0.dp)
-                                            .padding(bottom = 12.dp)
+                                            .padding(
+                                                start = PlayerHorizontalPadding + if (portraitAlpha > 0.5f) 12.dp else 0.dp,
+                                                end = PlayerHorizontalPadding + if (portraitAlpha > 0.5f) 7.dp else 0.dp,
+                                            )
+                                            .padding(bottom = if (portraitAlpha > 0.5f) 28.dp else 12.dp)
                                     )
                                 }
                             }

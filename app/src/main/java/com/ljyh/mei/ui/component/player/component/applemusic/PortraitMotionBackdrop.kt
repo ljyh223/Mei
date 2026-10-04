@@ -1,7 +1,6 @@
 package com.ljyh.mei.ui.component.player.component.applemusic
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,19 +9,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 
 internal fun averageMotionColor(pixels: IntArray): Color {
     if (pixels.isEmpty()) return Color.Transparent
@@ -43,17 +37,17 @@ internal fun averageMotionColor(pixels: IntArray): Color {
 
 /** Keep the controls connected to the video while retaining contrast for white labels. */
 internal fun motionControlsColor(paletteColor: Color, edgeColor: Color?): Color {
-    val sampledColor = edgeColor?.let { lerp(paletteColor, it, 0.65f) } ?: paletteColor
+    val edgeWeight = if (paletteColor.luminance() > 0.6f) 0.2f else 0.45f
+    val sampledColor = edgeColor?.let { lerp(paletteColor, it, edgeWeight) } ?: paletteColor
     val brightness = sampledColor.luminance()
-    if (brightness <= 0.18f) return sampledColor
+    if (brightness <= 0.38f) return sampledColor
 
-    // A light previewFrame palette often describes the artwork, not the darker area behind
-    // Apple's white playback controls. Preserve the hue and lower only its brightness.
+    // Keep light artwork palettes near the medium gray used behind Apple's motion controls.
     var low = 0f
     var high = 1f
     repeat(8) {
         val fraction = (low + high) / 2f
-        if (lerp(Color.Black, sampledColor, fraction).luminance() > 0.18f) {
+        if (lerp(Color.Black, sampledColor, fraction).luminance() > 0.38f) {
             high = fraction
         } else {
             low = fraction
@@ -66,44 +60,32 @@ internal fun motionControlsColor(paletteColor: Color, edgeColor: Color?): Color 
 internal class PortraitMotionBackdropState {
     var edgeColor by mutableStateOf<Color?>(null)
         private set
-    var frame by mutableStateOf<ImageBitmap?>(null)
-        private set
 
     fun accept(bitmap: Bitmap) {
         val rows = minOf(3, bitmap.height)
         val pixels = IntArray(bitmap.width * rows)
         bitmap.getPixels(pixels, 0, bitmap.width, 0, bitmap.height - rows, bitmap.width, rows)
         edgeColor = averageMotionColor(pixels)
-        frame = bitmap.asImageBitmap()
+        bitmap.recycle()
     }
 }
 
-/** A blurred copy of the current video softly takes over where its sharp lower edge fades. */
+/** Diffuse the video's sampled edge color without scaling a frame into a visible blue shape. */
 @Composable
-internal fun PortraitMotionBlur(frame: ImageBitmap, modifier: Modifier = Modifier) {
-    Image(
-        bitmap = frame,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = modifier
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-            .drawWithCache {
-                val mask = Brush.verticalGradient(
-                    0f to Color.Transparent,
-                    0.55f to Color.Transparent,
-                    0.65f to Color.White.copy(alpha = 0.04f),
-                    0.73f to Color.White.copy(alpha = 0.16f),
-                    0.82f to Color.White.copy(alpha = 0.48f),
-                    0.90f to Color.White.copy(alpha = 0.56f),
-                    1f to Color.Transparent,
-                )
-                onDrawWithContent {
-                    drawContent()
-                    drawRect(mask, blendMode = BlendMode.DstIn)
-                }
-            }
-            .blur(18.dp),
-    )
+internal fun PortraitMotionColorWash(color: Color, artworkHeight: Dp, modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    Box(modifier.drawBehind {
+        val center = Offset(size.width / 2f, with(density) { artworkHeight.toPx() })
+        drawRect(
+            brush = Brush.radialGradient(
+                0f to color.copy(alpha = 0.70f),
+                0.38f to color.copy(alpha = 0.34f),
+                1f to Color.Transparent,
+                center = center,
+                radius = size.width * 0.52f,
+            ),
+        )
+    })
 }
 
 @Composable
