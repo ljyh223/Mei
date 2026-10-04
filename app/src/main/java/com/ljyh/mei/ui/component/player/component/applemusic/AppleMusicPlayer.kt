@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.component.player.component.applemusic
 
+import android.app.Activity
 import android.content.res.Configuration
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -43,6 +44,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -55,7 +58,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +66,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -179,20 +182,25 @@ fun AppleMusicPlayer(
     val portraitBackdropState = remember(portraitCover?.cacheKey, portraitCover?.url) {
         PortraitMotionBackdropState()
     }
-    val motionBackgroundColor = portraitBackdropState.edgeColor?.let {
-        lerp(portraitBackgroundColor, it, 0.45f)
-    } ?: portraitBackgroundColor
-    val fallbackPortraitTextColor = if (portraitBackgroundColor.luminance() > 0.179f) {
-        Color.Black
-    } else {
-        Color.White
+    val motionBackgroundColor = motionControlsColor(portraitBackgroundColor, portraitBackdropState.edgeColor)
+    val playerForegroundColor = Color.White
+    val playerSecondaryColor = Color.White.copy(alpha = 0.7f + 0.12f * portraitAlpha)
+
+    val activity = context as? Activity
+    DisposableEffect(activity, isSystemInDarkTheme) {
+        onDispose {
+            activity?.let {
+                WindowCompat.getInsetsController(it.window, it.window.decorView)
+                    .isAppearanceLightStatusBars = !isSystemInDarkTheme
+            }
+        }
     }
-    val portraitPrimaryColor = portraitCover?.palette?.textColor1.asPaletteColor()
-        ?: fallbackPortraitTextColor
-    val portraitSecondaryColor = portraitCover?.palette?.textColor2.asPaletteColor()
-        ?: portraitPrimaryColor.copy(alpha = 0.7f)
-    val playerForegroundColor = lerp(Color.White, portraitPrimaryColor, portraitAlpha)
-    val playerSecondaryColor = lerp(Color.White.copy(alpha = 0.7f), portraitSecondaryColor, portraitAlpha)
+    SideEffect {
+        activity?.let {
+            WindowCompat.getInsetsController(it.window, it.window.decorView)
+                .isAppearanceLightStatusBars = portraitAlpha <= 0.5f && !isSystemInDarkTheme
+        }
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val screenWidth = maxWidth
@@ -232,11 +240,8 @@ fun AppleMusicPlayer(
 
         val normalStart = (maxWidthPx - normalSize) / 2
 
-        // Keep motion artwork above the controls; the lower region uses this clip's palette.
-        val portraitArtworkHeight = minOf(
-            maxHeight * 0.62f,
-            (maxHeight - bottomControlsHeightDp).coerceAtLeast(0.dp),
-        )
+        // Let the artwork reach the title before blending into the control area.
+        val portraitArtworkHeight = maxHeight * 0.70f
 
         // C. Header (Top Left Small)
         val headerSize = with(density) { 46.dp.toPx() }
@@ -623,6 +628,7 @@ fun AppleMusicPlayer(
                                         subTitleColor = playerSecondaryColor,
                                         iconColor = playerForegroundColor,
                                         needShadow = false,
+                                        titleFontWeight = if (portraitAlpha > 0.5f) androidx.compose.ui.text.font.FontWeight.Normal else androidx.compose.ui.text.font.FontWeight.Bold,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = PlayerHorizontalPadding)
@@ -649,6 +655,7 @@ fun AppleMusicPlayer(
                                         }
                                     },
                                     onMoreClick = { overlayHandler.showMoreAction() },
+                                    portraitMotionStyle = portraitAlpha > 0.5f,
                                     isCompact = isCompactHeight || isLandscape
                                 )
                             }

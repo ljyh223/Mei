@@ -47,6 +47,8 @@ fun FluidProgressSlider(
     position: Long,
     duration: Long,
     onPositionChange: (Long) -> Unit,
+    showMusicQuality: Boolean = true,
+    showRemainingTime: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val foreground = LocalPlayerForegroundColor.current
@@ -205,17 +207,20 @@ fun FluidProgressSlider(
             )
 
             // 中间：音质 (复用你原本的逻辑)
-            Text(
-                text = musicQuality.explanation,
-                style = commonTextStyle.copy(fontSize = 10.sp),
-                color = foreground.copy(alpha = 0.6f),
-            )
+            if (showMusicQuality) {
+                Text(
+                    text = musicQuality.explanation,
+                    style = commonTextStyle.copy(fontSize = 10.sp),
+                    color = foreground.copy(alpha = 0.6f),
+                )
+            }
 
-            // 右侧：剩余时间 (Apple Music 风格通常显示剩余时间，即 "-03:45")
-            // 这里为了兼容性，我先显示总时长，如果你想改剩余时间，可以改为:
-            // "-" + makeTimeString(duration - sliderPosition.toLong())
+            // The portrait motion player shows remaining time; other layouts retain total time.
             Text(
-                text = if (duration > 0) makeTimeString(duration) else "-:--",
+                text = if (duration > 0) {
+                    if (showRemainingTime) "-" + makeTimeString((duration - sliderPosition.toLong()).coerceAtLeast(0L))
+                    else makeTimeString(duration)
+                } else "-:--",
                 style = commonTextStyle,
                 color = foreground.copy(alpha = 0.6f),
             )

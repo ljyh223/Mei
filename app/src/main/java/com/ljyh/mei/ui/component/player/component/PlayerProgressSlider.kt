@@ -54,6 +54,8 @@ fun PlayerProgressSlider(
     duration: Long,
     isPlaying: Boolean, // 新增：需要根据播放状态控制波浪滚动
     onPositionChange: (Long) -> Unit,
+    showMusicQuality: Boolean = true,
+    showRemainingTime: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val foreground = LocalPlayerForegroundColor.current
@@ -227,17 +229,22 @@ fun PlayerProgressSlider(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Text(
-                text = musicQuality.explanation,
-                style = timeTextStyle,
-                color = foreground.copy(alpha = 0.8f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (showMusicQuality) {
+                Text(
+                    text = musicQuality.explanation,
+                    style = timeTextStyle,
+                    color = foreground.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
 
             Text(
-                text = if (duration > 0) makeTimeString(duration) else "-:--",
+                text = if (duration > 0) {
+                    if (showRemainingTime) "-" + makeTimeString((duration - sliderPosition.toLong()).coerceAtLeast(0L))
+                    else makeTimeString(duration)
+                } else "-:--",
                 style = timeTextStyle,
                 color = foreground.copy(alpha = 0.6f),
                 maxLines = 1,

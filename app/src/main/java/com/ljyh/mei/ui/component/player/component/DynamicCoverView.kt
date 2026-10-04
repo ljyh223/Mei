@@ -178,7 +178,7 @@ fun DynamicCoverView(
             Box(
                 Modifier.fillMaxSize().background(
                     Brush.verticalGradient(
-                        0.55f to Color.Transparent,
+                        0.72f to Color.Transparent,
                         1f to bottomFadeColor,
                     )
                 )
@@ -203,10 +203,10 @@ private class BottomFadeView(context: Context) : View(context) {
         super.onDraw(canvas)
         val color = fadeColor ?: return
         paint.shader = LinearGradient(
-            0f, height * 0.55f, 0f, height.toFloat(),
+            0f, height * 0.72f, 0f, height.toFloat(),
             color and 0x00ffffff, color, Shader.TileMode.CLAMP
         )
-        canvas.drawRect(0f, height * 0.55f, width.toFloat(), height.toFloat(), paint)
+        canvas.drawRect(0f, height * 0.72f, width.toFloat(), height.toFloat(), paint)
     }
 }
 

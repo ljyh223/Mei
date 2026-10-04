@@ -40,6 +40,7 @@ fun Title(
     titleColor: Color = Color.White,
     subTitleColor: Color = Color.White.copy(alpha = 0.7f),
     iconColor: Color = Color.White,
+    titleFontWeight: FontWeight = FontWeight.Bold,
 ) {
     val shadowStyle = if (needShadow) Shadow(
         color = Color.Black.copy(alpha = 0.5f),
@@ -62,7 +63,7 @@ fun Title(
                 text = title,
                 style = titleStyle.copy(
                     shadow = shadowStyle,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = titleFontWeight
                 ),
                 color = titleColor,
                 maxLines = 1,
@@ -91,7 +92,7 @@ fun Title(
 
             FilledTonalIconButton(
                 onClick = onLikeClick,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(48.dp),
                 colors = actionButtonColors,
             ) {
                 Icon(
@@ -104,7 +105,7 @@ fun Title(
 
             FilledTonalIconButton(
                 onClick = onMoreClick,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(48.dp),
                 colors = actionButtonColors,
             ) {
                 Icon(

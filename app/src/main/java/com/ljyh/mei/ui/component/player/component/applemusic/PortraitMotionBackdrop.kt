@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 
 internal fun averageMotionColor(pixels: IntArray): Color {
     if (pixels.isEmpty()) return Color.Transparent
@@ -27,6 +29,27 @@ internal fun averageMotionColor(pixels: IntArray): Color {
         green / pixels.size / 255f,
         blue / pixels.size / 255f
     )
+}
+
+/** Keep the controls connected to the video while retaining contrast for white labels. */
+internal fun motionControlsColor(paletteColor: Color, edgeColor: Color?): Color {
+    val sampledColor = edgeColor?.let { lerp(paletteColor, it, 0.65f) } ?: paletteColor
+    val brightness = sampledColor.luminance()
+    if (brightness <= 0.18f) return sampledColor
+
+    // A light previewFrame palette often describes the artwork, not the darker area behind
+    // Apple's white playback controls. Preserve the hue and lower only its brightness.
+    var low = 0f
+    var high = 1f
+    repeat(8) {
+        val fraction = (low + high) / 2f
+        if (lerp(Color.Black, sampledColor, fraction).luminance() > 0.18f) {
+            high = fraction
+        } else {
+            low = fraction
+        }
+    }
+    return lerp(Color.Black, sampledColor, low)
 }
 
 /** Holds the video edge color; only readers of [edgeColor] recompose. */
@@ -47,8 +70,8 @@ internal fun PortraitMotionTopScrim() {
     Box(
         Modifier.fillMaxSize().background(
             Brush.verticalGradient(
-                0f to Color.Black.copy(alpha = 0.22f),
-                0.16f to Color.Transparent,
+                0f to Color.Black.copy(alpha = 0.56f),
+                0.2f to Color.Transparent,
                 1f to Color.Transparent,
             )
         )
