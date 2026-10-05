@@ -33,6 +33,7 @@ import com.ljyh.mei.ui.screen.setting.AppearanceSettings
 import com.ljyh.mei.ui.screen.setting.LyricsSettingsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
+import com.ljyh.mei.ui.screen.main.findmusic.AudioMatchScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSetting
 import com.ljyh.mei.ui.screen.setting.DownloadManageScreen
 import com.ljyh.mei.ui.screen.setting.DownloadSetting
@@ -60,6 +61,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.FindMusic.route) {
         FindMusicScreen(scrollBehavior = scrollBehavior)
+    }
+
+    composable(Screen.AudioMatch.route) {
+        AudioMatchScreen(scrollBehavior = scrollBehavior)
     }
 
     composable(Screen.Test.route) {

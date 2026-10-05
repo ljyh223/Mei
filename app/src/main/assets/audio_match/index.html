@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"></head>
+<body>
+<script src="afp.wasm.js"></script>
+<script src="afp.js"></script>
+<script>
+  window.generateMeiFingerprint = function (encodedSamples) {
+    try {
+      const binary = atob(encodedSamples);
+      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+      if (bytes.byteLength !== 24000 * Float32Array.BYTES_PER_ELEMENT) {
+        throw new Error('Expected exactly three seconds of 8 kHz audio');
+      }
+      GenerateFP(new Float32Array(bytes.buffer))
+        .then(fingerprint => MeiFingerprint.onResult(fingerprint))
+        .catch(error => MeiFingerprint.onError(String(error)));
+    } catch (error) {
+      MeiFingerprint.onError(String(error));
+    }
+  };
+</script>
+</body>
+</html>

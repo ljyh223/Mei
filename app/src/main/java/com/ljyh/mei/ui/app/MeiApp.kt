@@ -290,6 +290,10 @@ fun MeiApp(
                         onNavigateUp = { navController.navigateUp() },
                         onBackToMain = { navController.backToMain() },
                         onOpenSettings = { navController.navigate(Screen.Setting.route) },
+                        onOpenAudioMatch = {
+                            onActiveChange(false)
+                            Screen.AudioMatch.navigate(navController)
+                        },
                         isTopLevelRoute = route in topLevelScreens,
                         scrollBehavior = searchBarScrollBehavior,
                         focusRequester = searchBarFocusRequester,

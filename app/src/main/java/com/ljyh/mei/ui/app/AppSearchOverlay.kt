@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -20,11 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.R
 import com.ljyh.mei.ui.component.IconButton as CombinedClickableIconButton
 import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
@@ -42,6 +41,7 @@ fun BoxScope.AppSearchOverlay(
     onNavigateUp: () -> Unit,
     onBackToMain: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAudioMatch: () -> Unit,
     isTopLevelRoute: Boolean,
     scrollBehavior: TopAppBarScrollBehavior,
     focusRequester: FocusRequester,
@@ -100,10 +100,10 @@ fun BoxScope.AppSearchOverlay(
                                 Icon(Icons.Rounded.Close, contentDescription = null)
                             }
                         }
-                        IconButton(onClick = { submitSearch(query.text, 1) }) {
+                        IconButton(onClick = onOpenAudioMatch) {
                             Icon(
-                                painter = painterResource(R.drawable.cloud),
-                                contentDescription = "neteasecloud",
+                                imageVector = Icons.Rounded.GraphicEq,
+                                contentDescription = "听歌识曲",
                             )
                         }
                     }
