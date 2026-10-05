@@ -11,7 +11,9 @@ import com.ljyh.mei.data.model.ListenDataReportResponse
 import com.ljyh.mei.data.model.api.GetAlbumList
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
+import com.ljyh.mei.data.model.auth.QrLoginKeyResponse
 import com.ljyh.mei.data.model.weapi.UserSubcount
+import com.ljyh.mei.data.network.QrLoginClient
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.EApiService
@@ -21,7 +23,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 
-class UserRepository(private val apiService: ApiService,private val eApiService: EApiService, private val weApiService: WeApiService) {
+class UserRepository(
+    private val apiService: ApiService,
+    private val eApiService: EApiService,
+    private val weApiService: WeApiService,
+    private val qrLoginClient: QrLoginClient,
+) {
+    suspend fun createQrLoginKey(): Resource<QrLoginKeyResponse> = withContext(Dispatchers.IO) {
+        safeApiCall { qrLoginClient.createQrLoginKey() }
+    }
+
+    suspend fun checkQrLogin(unikey: String) = withContext(Dispatchers.IO) {
+        safeApiCall { qrLoginClient.checkQrLogin(unikey) }
+    }
+
     suspend fun getUserAccount(): Resource<UserAccount> {
         return withContext(Dispatchers.IO) {
             safeApiCall { apiService.getAccountDetail() }
