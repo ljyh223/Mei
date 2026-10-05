@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +66,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
@@ -101,10 +103,7 @@ import com.kyant.backdrop.Backdrop
 
 
 private val PlayerBackgroundSeamOverlap = 1.dp
-
-private fun String?.asPaletteColor(): Color? = this?.takeIf(String::isNotBlank)?.let { hex ->
-    runCatching { Color(android.graphics.Color.parseColor("#$hex")) }.getOrNull()
-}
+private val ExpandedControlsBottomLift = 24.dp
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -178,11 +177,12 @@ fun AppleMusicPlayer(
             colorScheme.surfaceContainer
         }
     }
-    val portraitBackgroundColor = portraitCover?.palette?.bgColor.asPaletteColor() ?: backgroundColor
     val portraitBackdropState = remember(portraitCover?.cacheKey, portraitCover?.url) {
         PortraitMotionBackdropState()
     }
-    val motionBackgroundColor = motionControlsColor(portraitBackgroundColor, portraitBackdropState.edgeColor)
+    DisposableEffect(portraitBackdropState) {
+        onDispose { portraitBackdropState.bind(null) }
+    }
     val playerForegroundColor = Color.White
     val playerSecondaryColor = Color.White.copy(alpha = 0.7f + 0.12f * portraitAlpha)
 
@@ -242,7 +242,7 @@ fun AppleMusicPlayer(
 
         // Apple's tall clip is 3:4. Keep its full width instead of widening a taller container
         // and then center-cropping away the lettering and logos at the sides.
-        val portraitArtworkHeight = minOf(screenWidth * (4f / 3f), maxHeight * 0.66f)
+        val portraitArtworkHeight = minOf(screenWidth * (4f / 3f), maxHeight * 0.77f)
 
         // C. Header (Top Left Small)
         val headerSize = with(density) { 46.dp.toPx() }
@@ -451,7 +451,7 @@ fun AppleMusicPlayer(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer { alpha = portraitAlpha }
-                        .background(motionBackgroundColor),
+                        .background(backgroundColor),
                 ) {
                     DynamicCoverView(
                         imageUrl = mediaMetadata!!.coverUrl,
@@ -461,28 +461,22 @@ fun AppleMusicPlayer(
                             mediaMetadata?.let(stateContainer.playerViewModel::fallbackDynamicCover)
                         },
                         onFrameSample = portraitBackdropState::accept,
-                        bottomFadeColor = motionBackgroundColor,
+                        onPreviewSample = portraitBackdropState::acceptPreview,
                         fitVideoWidth = true,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .fillMaxWidth()
                             .height(portraitArtworkHeight),
                     )
-                    portraitBackdropState.edgeColor?.let { color ->
-                        PortraitMotionColorWash(
-                            color = color,
-                            artworkHeight = portraitArtworkHeight,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .height(portraitArtworkHeight),
-                    ) {
-                        PortraitMotionTopScrim()
-                    }
+                    AndroidView(
+                        factory = { PortraitMotionBackdropView(it) },
+                        update = { view ->
+                            portraitBackdropState.bind(view)
+                            view.videoBottomPx = with(density) { portraitArtworkHeight.toPx() }
+                            view.controlColor = (portraitBackdropState.edgeColor ?: backgroundColor).toArgb()
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
                     Box(modifier = Modifier.fillMaxSize().then(backgroundTap))
                 }
             }
@@ -604,6 +598,7 @@ fun AppleMusicPlayer(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
+                        .padding(bottom = ExpandedControlsBottomLift)
                         .background(Color.Transparent)
                         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                 ) {
@@ -635,17 +630,12 @@ fun AppleMusicPlayer(
                                         },
                                         titleColor = playerForegroundColor,
                                         subTitleColor = playerSecondaryColor,
-                                        subTitleStyle = if (portraitAlpha > 0.5f) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
                                         iconColor = playerForegroundColor,
                                         needShadow = false,
-                                        titleFontWeight = if (portraitAlpha > 0.5f) androidx.compose.ui.text.font.FontWeight.Normal else androidx.compose.ui.text.font.FontWeight.Bold,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(
-                                                start = PlayerHorizontalPadding + 12.dp,
-                                                end = PlayerHorizontalPadding + 7.dp,
-                                            )
-                                            .padding(bottom = 28.dp)
+                                            .padding(horizontal = PlayerHorizontalPadding)
+                                            .padding(bottom = 16.dp)
                                     )
                                 }
                             }
