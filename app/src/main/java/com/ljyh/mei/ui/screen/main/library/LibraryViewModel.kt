@@ -16,11 +16,13 @@ import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -138,12 +140,30 @@ class LibraryViewModel @Inject constructor(
 
     private var loadedUid: String? = null
     private var libraryLoadJob: Job? = null
+    private var accountLoadJob: Job? = null
 
-    fun getUserAccount() {
-        if (account.value is Resource.Success) return
-        viewModelScope.launch {
+    fun getUserAccount(force: Boolean = false) {
+        if (!force && account.value is Resource.Success) return
+        accountLoadJob?.cancel()
+        if (force) {
+            libraryLoadJob?.cancel()
+            libraryLoadJob = null
+            loadedUid = null
+            fallbackProfile.value = null
+            _userDetail.value = Resource.Loading
+            _userVipInfo.value = Resource.Loading
+            _photoAlbum.value = Resource.Loading
+            _albumList.value = Resource.Loading
+            _weekListenRealtime.value = Resource.Loading
+            _monthListenRealtime.value = Resource.Loading
+            _weekListenReport.value = Resource.Loading
+        }
+        accountLoadJob = viewModelScope.launch {
             _account.value = Resource.Loading
-            _account.value = repository.getUserAccount()
+            val result = repository.getUserAccount()
+            if (currentCoroutineContext().isActive) {
+                _account.value = result
+            }
         }
     }
 

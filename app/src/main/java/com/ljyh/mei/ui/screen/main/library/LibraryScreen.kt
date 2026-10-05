@@ -78,7 +78,7 @@ fun LibraryScreen(
         }
     }
     LaunchedEffect(cookie) {
-        if (cookie.isNotEmpty()) viewModel.getUserAccount()
+        if (cookie.isNotEmpty()) viewModel.getUserAccount(force = true)
     }
     LaunchedEffect(account) {
         (account as? Resource.Success)
@@ -103,7 +103,7 @@ fun LibraryScreen(
         when {
             cookie.isNotEmpty() && libraryUiState is LibraryUiState.Error -> LibraryErrorState(
                 message = (libraryUiState as LibraryUiState.Error).message,
-                onRetry = { viewModel.getUserAccount() },
+                onRetry = { viewModel.getUserAccount(force = true) },
             )
             cookie.isNotEmpty() && userId.isEmpty() -> LibraryLoadingState()
             userId.isEmpty() -> EmptyLoginState(navController)
@@ -111,7 +111,7 @@ fun LibraryScreen(
             libraryUiState is LibraryUiState.Error -> LibraryErrorState(
                 message = (libraryUiState as LibraryUiState.Error).message,
                 onRetry = {
-                    viewModel.getUserAccount()
+                    viewModel.getUserAccount(force = true)
                     viewModel.loadLibrary(profileSeed)
                 },
             )
@@ -204,7 +204,7 @@ fun EmptyLoginState(navController: NavController) {
         Button(
             onClick = { Screen.ContentSettings.navigate(navController) }
         ) {
-            Text("去填写 Cookie 以同步数据")
+            Text("登录网易云音乐以同步数据")
         }
     }
 }

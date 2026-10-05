@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Cookie
+import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,17 +21,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.QqTimeout
 import com.ljyh.mei.constants.QqTimeoutKey
+import com.ljyh.mei.data.model.auth.QrLoginUiState
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.ShareViewModel
 import com.ljyh.mei.ui.component.EditTextPreference
@@ -55,23 +58,56 @@ fun ContentsSetting(
         CookieKey,
         defaultValue = ""
     )
-    var userName by remember { mutableStateOf("") }
+    var showQrLogin by rememberSaveable { mutableStateOf(false) }
     val userAccount by viewModel.userAccount.collectAsState()
+    val qrLoginState by viewModel.qrLoginState.collectAsState()
 
-    userName = when (val result = userAccount) {
-        is Resource.Success -> {
-            if(result.data.code == 200 && result.data.profile != null){
-                Toast.makeText(context, "看上去还不错哦", Toast.LENGTH_SHORT).show()
-                result.data.profile.nickname
-            }else{
-                Toast.makeText(context, "cookie 可能存在错误", Toast.LENGTH_SHORT).show()
-                "error"
-            }
+    val userName = when (val result = userAccount) {
+        is Resource.Success -> if (result.data.code == 200 && result.data.profile != null) {
+            result.data.profile.nickname
+        } else {
+            "error"
         }
 
         is Resource.Error -> "error"
         Resource.Loading -> "~~~"
     }
+
+    LaunchedEffect(userAccount, qrLoginState) {
+        val result = userAccount
+        if (result is Resource.Success && qrLoginState !is QrLoginUiState.Success) {
+            val valid = result.data.code == 200 && result.data.profile != null
+            Toast.makeText(
+                context,
+                if (valid) "看上去还不错哦" else "cookie 可能存在错误",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    LaunchedEffect(qrLoginState) {
+        if (qrLoginState is QrLoginUiState.Success) {
+            val nickname = (qrLoginState as QrLoginUiState.Success).nickname
+            Toast.makeText(
+                context,
+                nickname?.takeIf(String::isNotBlank)?.let { "登录成功，欢迎回来，$it" } ?: "登录成功",
+                Toast.LENGTH_SHORT,
+            ).show()
+            showQrLogin = false
+        }
+    }
+
+    if (showQrLogin) {
+        QrLoginDialog(
+            state = qrLoginState,
+            onRefresh = viewModel::refreshQrLogin,
+            onDismiss = {
+                viewModel.stopQrLogin()
+                showQrLogin = false
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -107,6 +143,16 @@ fun ContentsSetting(
                 icon = { Icon(Icons.Rounded.Cookie, "网易云Cookie: MUSIC_U") },
                 value = cookie,
                 onValueChange = onCookie
+            )
+
+            PreferenceEntry(
+                title = { Text("扫码登录") },
+                description = "使用网易云音乐 App 扫码",
+                icon = { Icon(Icons.Rounded.QrCode2, "扫码登录") },
+                onClick = {
+                    showQrLogin = true
+                    viewModel.startQrLogin()
+                },
             )
 
             PreferenceEntry(
