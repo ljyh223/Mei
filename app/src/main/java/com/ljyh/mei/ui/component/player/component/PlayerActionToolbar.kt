@@ -51,6 +51,7 @@ import com.ljyh.mei.utils.rememberPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import timber.log.Timber
+import kotlin.time.Duration.Companion.seconds
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalAnimationApi::class)
@@ -99,7 +100,7 @@ fun PlayerActionToolbar(
                 } else {
                     sleepTimer.triggerTime - System.currentTimeMillis()
                 }
-                delay(1000L)
+                delay(1.seconds)
             }
         }
     }

@@ -228,7 +228,7 @@ private fun OptimizedSongItem(
         // 右侧时长对比
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = formatSeconds(song.interval.toLong()),
+                text = formatSeconds(song.interval),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isDurationMatch) FontWeight.Bold else FontWeight.Normal,
                 color = if (isDurationMatch) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant

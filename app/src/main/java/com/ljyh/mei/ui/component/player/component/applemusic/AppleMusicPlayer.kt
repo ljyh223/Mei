@@ -240,7 +240,7 @@ fun AppleMusicPlayer(
         // B. Normal Expanded
         val topSafeArea = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }
 
-        val bottomControlsHeightDp = if (isCompactHeight || isLandscape) 220.dp else 300.dp
+        val bottomControlsHeightDp = if (isCompactHeight || isLandscape) 190.dp else 270.dp
         val bottomControlsHeight = with(density) { bottomControlsHeightDp.toPx() }
 
         // --- 动态计算封面大小 ---

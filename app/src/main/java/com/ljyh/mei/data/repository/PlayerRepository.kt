@@ -155,7 +155,7 @@ class PlayerRepository(
 
                 val result = amllClient.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-                        val lyricContent = response.body?.string()
+                        val lyricContent = response.body.string()
                         if (!lyricContent.isNullOrEmpty() && lyricContent != "歌词不存在") {
                             Resource.Success(lyricContent)
                         } else {

@@ -39,7 +39,7 @@ fun PlayerControlsSection(
     isCompact: Boolean = false // 新增参数
 ) {
     // 紧凑模式下间距减半
-    val spacerHeight = if (isCompact) 8.dp else 24.dp
+    val spacerHeight = if (isCompact) 8.dp else 16.dp
 
     val (progressBarStyle, _) = rememberEnumPreference(
         key = ProgressBarStyleKey,
@@ -62,7 +62,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + 14.dp)
+                    .padding(horizontal = PlayerHorizontalPadding)
             )
         } else {
             PlayerProgressSlider(
@@ -76,7 +76,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding + 14.dp)
+                    .padding(horizontal = PlayerHorizontalPadding)
             )
         }
 
@@ -110,8 +110,6 @@ fun PlayerControlsSection(
                 onMoreClick = onMoreClick
             )
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
-            // Keep the entire control stack anchored when motion artwork arrives mid-song.
-            Spacer(Modifier.height(52.dp))
         } else {
             // 紧凑模式底部留白少一点
             Spacer(Modifier.height(16.dp))

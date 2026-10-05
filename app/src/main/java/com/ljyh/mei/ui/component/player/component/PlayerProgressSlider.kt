@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.MusicQuality
@@ -222,33 +223,45 @@ fun PlayerProgressSlider(
             )
 
             Text(
+                modifier = Modifier.weight(1f),
                 text = makeTimeString(sliderPosition.toLong()),
                 style = timeTextStyle,
                 color = foreground.copy(alpha = 0.9f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Start
             )
 
+            // 中间：音质 (复用你原本的逻辑)
             if (showMusicQuality) {
                 Text(
+                    modifier = Modifier.weight(1f),
                     text = musicQuality.explanation,
                     style = timeTextStyle,
-                    color = foreground.copy(alpha = 0.8f),
+                    color = foreground.copy(alpha = 0.8f), // Fluid 保留原来的 0.6f
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
+            } else {
+                Spacer(Modifier.weight(1f))
             }
-
-
             Text(
+                modifier = Modifier.weight(1f),
                 text = if (duration > 0) {
-                    if (showRemainingTime) "-" + makeTimeString((duration - sliderPosition.toLong()).coerceAtLeast(0L))
-                    else makeTimeString(duration)
+                    if (showRemainingTime) {
+                        "-" + makeTimeString(
+                            (duration - sliderPosition.toLong()).coerceAtLeast(0L)
+                        )
+                    } else {
+                        makeTimeString(duration)
+                    }
                 } else "-:--",
                 style = timeTextStyle,
                 color = foreground.copy(alpha = 0.6f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End
             )
         }
     }

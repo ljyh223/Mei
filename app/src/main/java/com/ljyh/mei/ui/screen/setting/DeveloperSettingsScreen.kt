@@ -76,6 +76,8 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
 import kotlinx.coroutines.delay
+import androidx.core.graphics.toColorInt
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -218,7 +220,7 @@ private fun DiagnosticResult(
             // Release the previous decoder before preparing the next preview.
             activePreview = null
             if (target != null) {
-                delay(150)
+                delay(150.milliseconds)
                 activePreview = target
             }
         }
@@ -358,7 +360,7 @@ private fun ClipResult(
                 var retryAttempt by remember(clip.url, active) { mutableIntStateOf(0) }
                 LaunchedEffect(playbackError, retryAttempt, active) {
                     if (active && playbackError != null && retryAttempt == 0) {
-                        delay(700)
+                        delay(700.milliseconds)
                         retryAttempt = 1
                         playbackError = null
                     }
@@ -487,4 +489,4 @@ private fun PalettePreview(palette: CoverPalette) {
 }
 
 private fun String?.asAppleColor(): Color? = this?.takeIf { it.matches(Regex("[0-9a-fA-F]{6}")) }
-    ?.let { Color(android.graphics.Color.parseColor("#$it")) }
+    ?.let { Color("#$it".toColorInt()) }

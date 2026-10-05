@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ljyh.mei.constants.MusicQuality
@@ -127,21 +130,7 @@ fun FluidProgressSlider(
                     activeTrackColor = Color.Transparent,
                     inactiveTrackColor = Color.Transparent
                 ),
-
-                // 自定义 Thumb (圆球)
-                thumb = {
-                    // 绘制一个白色的圆
-                    Canvas(modifier = Modifier.size(thumbRadius * 2)) {
-                        drawCircle(
-                            color = foreground,
-                            radius = thumbRadius.toPx(),
-                            // 可以加一点阴影让它更有立体感
-                            // shadow = Shadow(...)
-                        )
-                    }
-                },
-
-                // 自定义 Track (轨道)
+                thumb = {},
                 track = { sliderState ->
                     Canvas(
                         modifier = Modifier
@@ -187,9 +176,9 @@ fun FluidProgressSlider(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 6.dp) // Apple Music 的文字离进度条有一点距离
+                .padding(top = 4.dp) // Apple Music 的文字离进度条有一点距离
         ) {
-            val commonTextStyle = MaterialTheme.typography.labelSmall.copy(
+            val timeTextStyle = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Medium, // 字重稍微粗一点点
                 fontSize = 12.sp,
                 shadow = Shadow(
@@ -201,28 +190,45 @@ fun FluidProgressSlider(
 
             // 左侧：当前时间
             Text(
+                modifier = Modifier.weight(1f),
                 text = makeTimeString(sliderPosition.toLong()),
-                style = commonTextStyle,
+                style = timeTextStyle,
                 color = foreground.copy(alpha = 0.9f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Start
             )
 
-            // 中间：音质 (复用你原本的逻辑)
+                // 中间：音质 (复用你原本的逻辑)
             if (showMusicQuality) {
                 Text(
+                    modifier = Modifier.weight(1f),
                     text = musicQuality.explanation,
-                    style = commonTextStyle.copy(fontSize = 10.sp),
-                    color = foreground.copy(alpha = 0.6f),
+                    style = timeTextStyle,
+                    color = foreground.copy(alpha = 0.8f), // Fluid 保留原来的 0.6f
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
+            } else {
+                Spacer(Modifier.weight(1f))
             }
-
-            // The portrait motion player shows remaining time; other layouts retain total time.
             Text(
+                modifier = Modifier.weight(1f),
                 text = if (duration > 0) {
-                    if (showRemainingTime) "-" + makeTimeString((duration - sliderPosition.toLong()).coerceAtLeast(0L))
-                    else makeTimeString(duration)
+                    if (showRemainingTime) {
+                        "-" + makeTimeString(
+                            (duration - sliderPosition.toLong()).coerceAtLeast(0L)
+                        )
+                    } else {
+                        makeTimeString(duration)
+                    }
                 } else "-:--",
-                style = commonTextStyle,
+                style = timeTextStyle,
                 color = foreground.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End
             )
         }
     }

@@ -176,7 +176,7 @@ fun com.ljyh.mei.data.model.weapi.Data.toMediaMetadata() = MediaMetadata(
             .setMediaType(MEDIA_TYPE_MUSIC)
             .setArtworkUri(al.picUrl.toUri())
             .setExtras(Bundle().apply {
-                putLong("duration", this@toMediaItem.dt.toLong())
+                putLong("duration", this@toMediaItem.dt)
                 putStringArrayList("artist_list", ArrayList(ar.map { it.name ?: "" }))
             })
             .build()

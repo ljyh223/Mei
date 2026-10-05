@@ -95,7 +95,8 @@ fun RecommendCard(
                     Brush.verticalGradient(
                         listOf(
                             Color.Transparent,
-                            baseColor.copy(alpha = 0.86f),
+                            baseColor.copy(alpha = 0.85f),
+                            baseColor.copy(alpha = 0.95f),
                             baseColor
                         )
                     )

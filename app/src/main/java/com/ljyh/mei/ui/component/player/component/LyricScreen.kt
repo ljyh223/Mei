@@ -62,6 +62,7 @@ import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.playback.SmoothPlaybackPosition
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
+import com.ljyh.mei.ui.theme.SFPro
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
 import com.ljyh.mei.utils.setClipboard
@@ -75,10 +76,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.time.Duration.Companion.milliseconds
 
-private val lyricFontFamily = FontFamily(
-    Font(R.font.sf_pro, weight = FontWeight.Normal),
-    Font(R.font.sf_pro, weight = FontWeight.Bold),
-)
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -181,13 +178,13 @@ fun LyricScreen(
             }
         }
     }
-
+    val sf = SFPro()
     val baseTextStyle = LocalTextStyle.current
     val normalStyle = remember(baseTextStyle, normalLyricTextSize, normalLyricTextBold) {
         baseTextStyle.copy(
             fontSize = normalLyricTextSize.text.sp,
             lineHeight = TextUnit.Unspecified,
-            fontFamily = lyricFontFamily,
+            fontFamily = sf,
             fontWeight = if (normalLyricTextBold) FontWeight.Bold else FontWeight.Normal,
             textMotion = TextMotion.Animated,
         )
@@ -198,7 +195,7 @@ fun LyricScreen(
         baseTextStyle.copy(
             fontSize = accompanimentLyricTextSize.text.sp,
             lineHeight = TextUnit.Unspecified,
-            fontFamily = lyricFontFamily,
+            fontFamily = sf,
             fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
             textMotion = TextMotion.Animated,
         )
@@ -296,7 +293,7 @@ private fun LyricSourceBadge(
             .clip(RoundedCornerShape(4.dp))
             .background(Color.White.copy(alpha = 0.2f))
             .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .padding(horizontal = 2.dp, vertical = 2.dp)
             .combinedClickable(
                 onClick = { onClick(source) },
                 onLongClick = { onLongClick(source) }

@@ -565,7 +565,7 @@ class DownloadWorker(
 
             if (!response.isSuccessful) return@withContext false
 
-            val body = response.body ?: return@withContext false
+            val body = response.body
             val totalBytes = body.contentLength()
             var downloadedBytes = 0L
 
