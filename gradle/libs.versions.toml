@@ -47,6 +47,9 @@ zoomable="2.15.0"
 cloudy = "0.7.1"
 material3WindowSizeClass = "1.4.0"
 zxing = "3.5.4"
+espressoCore = "3.5.1"
+appcompat = "1.6.1"
+material = "1.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -119,8 +122,12 @@ zoomable = { module = "net.engawapg.lib:zoomable", version.ref = "zoomable" }
 compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 androidx-compose-material3-window-size-class1 = { group = "androidx.compose.material3", name = "material3-window-size-class", version.ref = "material3WindowSizeClass" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
