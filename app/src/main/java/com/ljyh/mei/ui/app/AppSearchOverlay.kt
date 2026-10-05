@@ -19,7 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.R
@@ -27,6 +29,8 @@ import com.ljyh.mei.ui.component.IconButton as CombinedClickableIconButton
 import com.ljyh.mei.ui.component.SearchBar
 import com.ljyh.mei.ui.component.TabletNavigationRailWidth
 import com.ljyh.mei.ui.screen.search.SearchScreen
+import com.ljyh.mei.ui.screen.search.recordSearchHistory
+import kotlinx.coroutines.launch
 
 @Composable
 fun BoxScope.AppSearchOverlay(
@@ -42,6 +46,15 @@ fun BoxScope.AppSearchOverlay(
     scrollBehavior: TopAppBarScrollBehavior,
     focusRequester: FocusRequester,
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val submitSearch: (String, Int) -> Unit = { searchQuery, type ->
+        if (searchQuery.isNotBlank()) {
+            coroutineScope.launch { context.recordSearchHistory(searchQuery) }
+        }
+        onSubmit(searchQuery, type)
+    }
+
     AnimatedVisibility(
         visible = shellState.showSearchBar,
         enter = fadeIn(),
@@ -50,7 +63,7 @@ fun BoxScope.AppSearchOverlay(
         SearchBar(
             query = query,
             onQueryChange = onQueryChange,
-            onSearch = { if (it.isNotEmpty()) onSubmit(it, 1) },
+            onSearch = { if (it.isNotEmpty()) submitSearch(it, 1) },
             active = shellState.isSearchActive,
             onActiveChange = onActiveChange,
             scrollBehavior = scrollBehavior,
@@ -87,7 +100,7 @@ fun BoxScope.AppSearchOverlay(
                                 Icon(Icons.Rounded.Close, contentDescription = null)
                             }
                         }
-                        IconButton(onClick = { onSubmit(query.text, 1) }) {
+                        IconButton(onClick = { submitSearch(query.text, 1) }) {
                             Icon(
                                 painter = painterResource(R.drawable.cloud),
                                 contentDescription = "neteasecloud",
@@ -113,7 +126,7 @@ fun BoxScope.AppSearchOverlay(
             SearchScreen(
                 query = query.text,
                 onQueryChange = onQueryChange,
-                onSearch = onSubmit,
+                onSearch = submitSearch,
                 onDismiss = { onActiveChange(false) },
             )
         }
