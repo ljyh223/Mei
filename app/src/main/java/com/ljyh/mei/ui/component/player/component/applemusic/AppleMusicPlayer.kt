@@ -3,13 +3,16 @@ package com.ljyh.mei.ui.component.player.component.applemusic
 import android.app.Activity
 import android.content.res.Configuration
 import android.os.Build
+import android.view.animation.DecelerateInterpolator
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -104,6 +107,12 @@ import com.kyant.backdrop.Backdrop
 
 private val PlayerBackgroundSeamOverlap = 1.dp
 private val ExpandedControlsBottomLift = 24.dp
+private val ExpandedArtworkTitleSpacing = 12.dp
+private const val ApplePausedArtworkScale = 0.85f
+private val AppleCoverPlaybackInterpolator = DecelerateInterpolator(1.2f)
+private val AppleCoverPlaybackEasing = Easing { fraction ->
+    AppleCoverPlaybackInterpolator.getInterpolation(fraction)
+}
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -156,6 +165,15 @@ fun AppleMusicPlayer(
         label = "Fraction",
         transitionSpec = { PlayerMotionSpec.LyricModeSpring }
     ) { if (it) 1f else 0f }
+    val playingCoverScale by animateFloatAsState(
+        targetValue = when {
+            !isPlaying -> 1f
+            isDragging -> 0.95f / ApplePausedArtworkScale
+            else -> 1f / ApplePausedArtworkScale
+        },
+        animationSpec = PlayerMotionSpec.tween(300, easing = AppleCoverPlaybackEasing),
+        label = "PlayingCoverScale",
+    )
 
     val sheetProgress = state.progress
     val expandedUiAlpha = PlayerMotionSpec.ExpandedUiReveal.transform(sheetProgress)
@@ -259,10 +277,16 @@ fun AppleMusicPlayer(
         // Keep the cover on the same continuous progress as the sheet. Forcing this to zero when
         // the collapsed anchor settles creates a visible second shrink on the final frame.
         val coverProgress = sheetProgress
+        val expandedCoverFraction = coverProgress * (1f - lyricAnimFraction)
+        val expandedCoverLift = if (isCompactHeight || isLandscape) 0f else {
+            with(density) { ExpandedArtworkTitleSpacing.toPx() }
+        }
         val finalSize = lerp(miniSize, targetSize, coverProgress)
-        val finalTop = lerp(miniTop, targetTop, coverProgress)
+        val finalTop = lerp(miniTop, targetTop, coverProgress) -
+            expandedCoverLift * expandedCoverFraction
         val finalStart = lerp(miniStart, targetStart, coverProgress)
         val finalRadius = lerp(miniRadius, targetRadius, coverProgress)
+        val coverScale = 1f + (playingCoverScale - 1f) * expandedCoverFraction
         val backgroundExpansion =
             PlayerMotionSpec.PlayerBackgroundExpansion.transform(sheetProgress)
         val effectiveBottomMargin =
@@ -375,6 +399,8 @@ fun AppleMusicPlayer(
                                 alpha = state.revealProgress * (1f - portraitAlpha)
                                 translationX = finalStart
                                 translationY = finalTop
+                                scaleX = coverScale
+                                scaleY = coverScale
                                 shadowElevation = mShadowElevation.toPx()
                                 shape = RoundedCornerShape(finalRadius)
                                 clip = true
