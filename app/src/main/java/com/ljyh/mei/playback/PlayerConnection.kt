@@ -16,6 +16,7 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.LoopPlaybackKey
+import com.ljyh.mei.data.model.createPlaceholder
 import com.ljyh.mei.data.model.metadata
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.model.toMediaMetadata
@@ -24,7 +25,6 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.getCurrentQueueIndex
 import com.ljyh.mei.extensions.getQueueWindows
-import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.utils.dataStore
@@ -73,7 +73,7 @@ class PlayerConnection(
     val isFMMode = MutableStateFlow(service.isFmMode())
 
     // 这里 repeatMode 我们存储对应的 PlayMode 枚举值(int)，用于 UI 显示
-    val repeatMode = MutableStateFlow(PlayMode.SHUFFLE_MODE_ALL.mode)
+    val repeatMode = MutableStateFlow(PlayMode.REPEAT_MODE_ALL.mode)
     // 同时也暴露原始的 shuffle 状态
     val shuffleModeEnabled = MutableStateFlow(false)
 
@@ -104,17 +104,23 @@ class PlayerConnection(
     fun isPlaying(id: String): Boolean {
         return mediaMetadata.value?.id.toString() == id && isPlaying.value
     }
-    fun onTrackClicked( trackId: String, buildQueue: () ->  ListQueue?) {
-        val foundIndex = player.mediaItems.indexOfFirst { it.mediaId == trackId }
-        if (foundIndex != -1) {
-            player.seekToDefaultPosition(foundIndex)
-            player.play()
-        } else {
-            buildQueue()?.let {
-                playQueue(it)
-            }
-
+    fun onTrackClicked(trackId: String, buildQueue: () -> ListQueue?) {
+        // A restored queue has song IDs but no source-list identity. Reusing it just because the
+        // ID is present preserves its old shuffle order and can ignore the list the user tapped.
+        val selectedQueue = buildQueue()?.startingAt(trackId)
+        if (selectedQueue != null) {
+            playQueue(selectedQueue, startInShuffleMode = false)
+            return
         }
+        // A partial or loading list can still play the exact tapped song. It must not fall back
+        // to a restored queue whose source and shuffle order are unknown.
+        playQueue(
+            ListQueue(
+                id = "track_$trackId",
+                items = listOf(trackId to createPlaceholder(trackId)),
+            ),
+            startInShuffleMode = false,
+        )
     }
 
     fun fmStart(firstSongId: String? = null) {
@@ -125,10 +131,8 @@ class PlayerConnection(
     }
 
 
-    fun playQueue(queue: ListQueue) {
-        // 判断当前 UI 上的模式是否是随机模式
-        val startInShuffle = repeatMode.value == PlayMode.SHUFFLE_MODE_ALL.mode
-        service.queueManager.playQueue(queue, startInShuffleMode = startInShuffle)
+    fun playQueue(queue: ListQueue, startInShuffleMode: Boolean = player.shuffleModeEnabled) {
+        service.queueManager.playQueue(queue, startInShuffleMode = startInShuffleMode)
     }
     fun playNext(item: MediaItem) = playNext(listOf(item))
 

@@ -20,6 +20,13 @@ class ListQueue(
     override val loadedCount: Int = items.size
     override val preloadItem: String? = null
 
+    /** Use the song tapped in the visible list, even if the caller supplied a stale index. */
+    fun startingAt(trackId: String): ListQueue? {
+        val index = items.indexOfFirst { it.first == trackId }
+        if (index < 0) return null
+        return ListQueue(id, title, items, startIndex = index)
+    }
+
     private val _state = MutableStateFlow<Queue.QueueState>(Queue.QueueState.Idle)
     override val state: StateFlow<Queue.QueueState> = _state
 

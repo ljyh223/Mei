@@ -302,7 +302,7 @@ class MusicService : MediaLibraryService(),
                 }
 
                 if (playerWasEmpty) {
-                    val savedShuffleMode = !queueManager.isFmMode && (preferences[IsShuffleModeKey] ?: true)
+                    val savedShuffleMode = !queueManager.isFmMode && (preferences[IsShuffleModeKey] ?: false)
                     val savedRepeatMode = if (queueManager.isFmMode) Player.REPEAT_MODE_ALL
                         else preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL
                     player.repeatMode = savedRepeatMode
