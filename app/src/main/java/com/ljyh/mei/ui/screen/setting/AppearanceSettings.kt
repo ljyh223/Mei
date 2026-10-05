@@ -196,7 +196,7 @@ fun AppearanceSettings(
             )
             SwitchPreference(
                 title = { Text("动态封面") },
-                description = "播放时自动加载，优先 Apple Music，其次网易云",
+                description = "播放时自动加载，优先 Apple Music，其次网易云；省电模式或未充电且电量低于 20% 时暂停",
                 icon = { Icon(Icons.Rounded.MusicVideo, null) },
                 checked = dynamicCover,
                 onCheckedChange = onDynamicCoverChange

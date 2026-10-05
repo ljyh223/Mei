@@ -12,6 +12,7 @@ import com.ljyh.mei.constants.DynamicCoverKey
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.data.repository.DynamicCoverRepository
 import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.canUseBatteryIntensiveFeatures
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -33,7 +34,8 @@ class AppContext : Application(), SingletonImageLoader.Factory {
         instance = this
         startupScope.launch {
             try {
-                if (dataStore.data.first()[DynamicCoverKey] == true) {
+                if (dataStore.data.first()[DynamicCoverKey] == true &&
+                    canUseBatteryIntensiveFeatures()) {
                     dynamicCoverRepository.warmWebToken()
                 }
             } catch (cancelled: CancellationException) {

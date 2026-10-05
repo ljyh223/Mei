@@ -58,6 +58,7 @@ val AccompanimentLyricTextSizeKey = stringPreferencesKey("accompanimentLyricText
 val AccompanimentLyricTextBoldKey = booleanPreferencesKey("accompanimentLyricTextBold")
 
 val LoopPlaybackKey = booleanPreferencesKey("loopPlayback")
+val KeepPlayerScreenOnKey = booleanPreferencesKey("keepPlayerScreenOn")
 val NoAudioSourceKey = booleanPreferencesKey("noAudioSource")
 val IsShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val RepeatModeKey = intPreferencesKey("repeatMode")

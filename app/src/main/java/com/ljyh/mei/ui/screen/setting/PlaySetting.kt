@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ljyh.mei.constants.LoopPlaybackKey
+import com.ljyh.mei.constants.KeepPlayerScreenOnKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.NoAudioSourceKey
@@ -53,6 +55,10 @@ fun PlaySetting(
     val (loopPlayback, onLoopPlaybackChange) = rememberPreference(
         key = LoopPlaybackKey,
         defaultValue = true
+    )
+    val (keepPlayerScreenOn, onKeepPlayerScreenOnChange) = rememberPreference(
+        key = KeepPlayerScreenOnKey,
+        defaultValue = false
     )
 
     val (noAudioSource, onNoAudioSourceChange) = rememberPreference(
@@ -102,6 +108,13 @@ fun PlaySetting(
                 icon = { Icon(Icons.Rounded.Loop, null) },
                 checked = loopPlayback,
                 onCheckedChange = onLoopPlaybackChange
+            )
+            SwitchPreference(
+                title = { Text("播放界面保持常亮") },
+                description = "展开播放界面时阻止自动熄屏；省电模式或未充电且电量低于 20% 时暂停",
+                icon = { Icon(Icons.Rounded.LightMode, null) },
+                checked = keepPlayerScreenOn,
+                onCheckedChange = onKeepPlayerScreenOnChange
             )
             SwitchPreference(
                 title = { Text("无音频源时下一首歌曲") },
