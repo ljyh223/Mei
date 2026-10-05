@@ -126,6 +126,7 @@ dependencies {
     implementation(libs.kmpalette.core)
     implementation(libs.kmpalette.extensions.network)
     implementation (libs.compose.colorful.sliders)
+    implementation(libs.side.colorpicker)
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)

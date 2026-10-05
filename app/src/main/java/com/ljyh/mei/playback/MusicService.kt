@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -39,9 +40,13 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
+import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
 import coil3.ImageLoader
 import com.google.common.util.concurrent.Futures
@@ -50,6 +55,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.IsShuffleModeKey
+import com.ljyh.mei.constants.DesktopLyricsEnabledKey
 import com.ljyh.mei.constants.LastPlaybackQueueKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
@@ -81,6 +87,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -105,6 +114,8 @@ class MusicService : MediaLibraryService(),
     private val parametricEqualizerProcessor = ParametricEqualizerProcessor()
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
+    private val desktopLyricsToggleCommand = SessionCommand(DESKTOP_LYRICS_TOGGLE_ACTION, Bundle.EMPTY)
+    @Volatile private var desktopLyricsEnabled = false
 
     lateinit var sleepTimer: SleepTimer
     private val serviceJob = SupervisorJob()
@@ -250,6 +261,7 @@ class MusicService : MediaLibraryService(),
             }
         }
         mediaSession = MediaLibrarySession.Builder(this, sessionPlayer, LibrarySessionCallback())
+            .setMediaButtonPreferences(listOf(desktopLyricsButton(enabled = false)))
             .setSessionActivity(
                 PendingIntent.getActivity(
                     this,
@@ -260,6 +272,16 @@ class MusicService : MediaLibraryService(),
             )
             .setBitmapLoader(CoilBitmapLoader(this, singletonImageLoader))
             .build()
+
+        scope.launch {
+            dataStore.data
+                .map { it[DesktopLyricsEnabledKey] ?: false }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    desktopLyricsEnabled = enabled
+                    updateDesktopLyricsNotificationButton()
+                }
+        }
 
 
         // The manager must exist before restored items publish timeline events.
@@ -404,7 +426,64 @@ class MusicService : MediaLibraryService(),
     }
 
 
-    class LibrarySessionCallback : MediaLibrarySession.Callback
+    private fun desktopLyricsButton(enabled: Boolean) =
+        CommandButton.Builder(
+            if (enabled) CommandButton.ICON_SUBTITLES else CommandButton.ICON_SUBTITLES_OFF,
+        )
+            .setDisplayName(if (enabled) "关闭桌面歌词" else "显示桌面歌词")
+            .setSessionCommand(desktopLyricsToggleCommand)
+            .setSlots(CommandButton.SLOT_FORWARD_SECONDARY, CommandButton.SLOT_OVERFLOW)
+            .build()
+
+    private fun updateDesktopLyricsNotificationButton() {
+        if (::mediaSession.isInitialized) {
+            mediaSession.setMediaButtonPreferences(listOf(desktopLyricsButton(desktopLyricsEnabled)))
+        }
+    }
+
+    private inner class LibrarySessionCallback : MediaLibrarySession.Callback {
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+        ): MediaSession.ConnectionResult {
+            val defaultSessionCommands = if (controller.isTrusted) {
+                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+            } else {
+                MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_SESSION_AND_LIBRARY_COMMANDS
+            }
+            val defaultPlayerCommands = if (controller.isTrusted) {
+                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+            } else {
+                MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_PLAYER_COMMANDS
+            }
+            val availableSessionCommands = SessionCommands.Builder()
+                .addSessionCommands(defaultSessionCommands.commands)
+                .add(desktopLyricsToggleCommand)
+                .build()
+            return MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+                .setAvailableSessionCommands(availableSessionCommands)
+                .setAvailablePlayerCommands(defaultPlayerCommands)
+                .setMediaButtonPreferences(listOf(desktopLyricsButton(desktopLyricsEnabled)))
+                .build()
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle,
+        ): com.google.common.util.concurrent.ListenableFuture<SessionResult> {
+            if (customCommand.customAction != DESKTOP_LYRICS_TOGGLE_ACTION) {
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
+            }
+            scope.launch {
+                desktopLyricsEnabled = !(dataStore.data.first()[DesktopLyricsEnabledKey] ?: false)
+                dataStore.edit { it[DesktopLyricsEnabledKey] = desktopLyricsEnabled }
+                updateDesktopLyricsNotificationButton()
+            }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
+    }
 
     fun playNext(items: List<MediaItem>) {
         scope.launch {
@@ -581,6 +660,7 @@ class MusicService : MediaLibraryService(),
     }
 
     companion object {
+        private const val DESKTOP_LYRICS_TOGGLE_ACTION = "com.ljyh.mei.action.TOGGLE_DESKTOP_LYRICS"
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
         private const val PLAYLIST_PRELOAD_DURATION_US = 5_000_000L

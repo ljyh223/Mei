@@ -10,7 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.FormatBold
-import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
 import androidx.compose.material.icons.rounded.Language
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.rounded.LinearScale
 import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.rounded.Subtitles
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Timer
@@ -32,8 +30,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ljyh.mei.constants.AccompanimentLyricTextBoldKey
-import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
@@ -43,9 +39,6 @@ import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.DynamicCoverKey
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
-import com.ljyh.mei.constants.LyricTextSize
-import com.ljyh.mei.constants.NormalLyricTextBoldKey
-import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
@@ -58,9 +51,11 @@ import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.PreferenceEntry
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
@@ -76,26 +71,6 @@ fun AppearanceSettings(
         DynamicThemeKey,
         defaultValue = true
     )
-    val (normalLyricTextSize, onNormalLyricTextSizeChange) = rememberEnumPreference(
-        NormalLyricTextSizeKey,
-        defaultValue = LyricTextSize.Size34
-    )
-    val (normalLyricTextBold, onNormalLyricTextBoldChange) = rememberPreference(
-        NormalLyricTextBoldKey,
-        defaultValue = true
-    )
-
-    val (accompanimentLyricTextSize, onAccompanimentLyricTextSizeChange) = rememberEnumPreference(
-        AccompanimentLyricTextSizeKey,
-        defaultValue = LyricTextSize.Size20
-    )
-
-    val (accompanimentLyricTextBold, onAccompanimentLyricTextBoldChange) = rememberPreference(
-        AccompanimentLyricTextBoldKey,
-        defaultValue = true
-    )
-
-
 
     val (originalCover, onOriginalCover) = rememberPreference(
         OriginalCoverKey,
@@ -151,7 +126,7 @@ fun AppearanceSettings(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("内容设置") },
+                title = { Text("外观设置") },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -304,44 +279,13 @@ fun AppearanceSettings(
                 onCheckedChange = onMeshPlayingChange
             )
 
-            PreferenceGroupTitle(
-                title = "LYRIC"
+            PreferenceGroupTitle(title = "LYRIC")
+            PreferenceEntry(
+                title = { Text("歌词设置") },
+                description = "歌词外观与桌面歌词",
+                icon = { Icon(Icons.Rounded.Palette, null) },
+                onClick = { Screen.LyricsSettings.navigate(navController) }
             )
-
-            SwitchPreference(
-                title = { Text("主歌词字体加粗") },
-                icon = { Icon(Icons.Rounded.FormatBold, null) },
-                checked = normalLyricTextBold,
-                onCheckedChange = onNormalLyricTextBoldChange
-            )
-
-
-            EnumListPreference(
-                title = { Text("主歌词字体大小") },
-                icon = { Icon(Icons.Rounded.FormatSize, null) },
-                selectedValue = normalLyricTextSize,
-                onValueSelected = onNormalLyricTextSizeChange,
-                valueText = { it.text.toString() }
-            )
-
-
-            SwitchPreference(
-                title = { Text("翻译歌词字体加粗") },
-                icon = { Icon(Icons.Rounded.FormatBold, null) },
-                checked = accompanimentLyricTextBold,
-                onCheckedChange = onAccompanimentLyricTextBoldChange
-            )
-
-
-            EnumListPreference(
-                title = { Text("翻译歌词字体大小") },
-                icon = { Icon(Icons.Rounded.FormatSize, null) },
-                selectedValue = accompanimentLyricTextSize,
-                onValueSelected = onAccompanimentLyricTextSizeChange,
-                valueText = { it.text.toString() }
-            )
-
-
 
             PreferenceGroupTitle(
                 title = "DEBUG"

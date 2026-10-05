@@ -1,9 +1,5 @@
 package com.ljyh.mei.ui.screen.setting
 
-import android.content.Intent
-import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -17,7 +13,6 @@ import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Equalizer
-import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,24 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.ljyh.mei.constants.DesktopLyricsEnabledKey
-import com.ljyh.mei.constants.DesktopLyricsBackgroundKey
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.NoAudioSourceKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
+import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceEntry
 import com.ljyh.mei.ui.component.PreferenceGroupTitle
 import com.ljyh.mei.ui.component.SwitchPreference
@@ -53,7 +38,6 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.rememberEnumPreference
 import com.ljyh.mei.utils.rememberPreference
-import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,39 +46,6 @@ fun PlaySetting(
 ){
 
     val navController = LocalNavController.current
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val (desktopLyricsEnabled, onDesktopLyricsChange) = rememberPreference(
-        key = DesktopLyricsEnabledKey,
-        defaultValue = false
-    )
-    val (desktopLyricsBackground, onDesktopLyricsBackgroundChange) = rememberPreference(
-        key = DesktopLyricsBackgroundKey,
-        defaultValue = true
-    )
-    var overlayPermissionGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
-    var waitingForOverlayPermission by remember { mutableStateOf(false) }
-    val overlayPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) {
-        overlayPermissionGranted = Settings.canDrawOverlays(context)
-        if (waitingForOverlayPermission && overlayPermissionGranted) onDesktopLyricsChange(true)
-        waitingForOverlayPermission = false
-    }
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                overlayPermissionGranted = Settings.canDrawOverlays(context)
-                if (waitingForOverlayPermission && overlayPermissionGranted) {
-                    onDesktopLyricsChange(true)
-                    waitingForOverlayPermission = false
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
     val (musicQuality, onMusicQualityChange) = rememberEnumPreference(
         key = MusicQualityKey,
         defaultValue = MusicQuality.EXHIGH,
@@ -145,36 +96,6 @@ fun PlaySetting(
                 description = "参数均衡器、频响曲线与预设",
                 icon = { Icon(Icons.Rounded.Equalizer, null) },
                 onClick = { Screen.Equalizer.navigate(navController) }
-            )
-            SwitchPreference(
-                title = { Text("桌面歌词") },
-                description = if (overlayPermissionGranted) "可拖动，点击关闭按钮可退出" else "开启需授予悬浮窗权限",
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
-                checked = desktopLyricsEnabled && overlayPermissionGranted,
-                onCheckedChange = { enabled ->
-                    if (!enabled) {
-                        onDesktopLyricsChange(false)
-                    } else if (Settings.canDrawOverlays(context)) {
-                        overlayPermissionGranted = true
-                        onDesktopLyricsChange(true)
-                    } else {
-                        waitingForOverlayPermission = true
-                        overlayPermissionLauncher.launch(
-                            Intent(
-                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                "package:${context.packageName}".toUri()
-                            )
-                        )
-                    }
-                }
-            )
-            SwitchPreference(
-                title = { Text("桌面歌词背景") },
-                description = "关闭后只显示歌词与播放按钮",
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
-                checked = desktopLyricsBackground,
-                onCheckedChange = onDesktopLyricsBackgroundChange,
-                isEnabled = desktopLyricsEnabled && overlayPermissionGranted,
             )
             SwitchPreference(
                 title = { Text("循环播放") },

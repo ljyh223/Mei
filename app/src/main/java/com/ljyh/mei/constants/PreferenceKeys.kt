@@ -25,7 +25,6 @@ val UserAvatarUrlKey = stringPreferencesKey("userAvatarUrl")
 val UserPhotoKey = stringPreferencesKey("userPhoto")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val DesktopLyricsEnabledKey = booleanPreferencesKey("desktopLyricsEnabled")
-val DesktopLyricsBackgroundKey = booleanPreferencesKey("desktopLyricsBackground")
 val DesktopLyricsLockedKey = booleanPreferencesKey("desktopLyricsLocked")
 val DesktopLyricsTextColorKey = stringPreferencesKey("desktopLyricsTextColor")
 val DesktopLyricsTranslationColorKey = stringPreferencesKey("desktopLyricsTranslationColor")
@@ -39,7 +38,7 @@ const val DefaultDesktopLyricsTextColor = "#FFFFFFFF"
 const val DefaultDesktopLyricsTranslationColor = "#FFCECED3"
 const val DefaultDesktopLyricsFontSize = 18
 const val DefaultDesktopLyricsTranslationFontSize = 13
-const val DefaultDesktopLyricsControlsHideDelay = 5
+const val DefaultDesktopLyricsControlsHideDelay = 12
 
 
 val CookieKey = stringPreferencesKey("cookie")

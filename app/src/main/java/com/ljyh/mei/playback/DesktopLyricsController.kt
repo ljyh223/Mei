@@ -2,7 +2,6 @@ package com.ljyh.mei.playback
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.hardware.display.DisplayManager
 import android.graphics.Color
@@ -22,6 +21,7 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.ImageButton
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.DisposableEffect
@@ -55,16 +55,26 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
-import com.ljyh.mei.constants.DesktopLyricsBackgroundKey
+import com.ljyh.mei.constants.DesktopLyricsControlsHideDelayKey
 import com.ljyh.mei.constants.DesktopLyricsEnabledKey
+import com.ljyh.mei.constants.DesktopLyricsFontSizeKey
+import com.ljyh.mei.constants.DesktopLyricsLockedKey
+import com.ljyh.mei.constants.DesktopLyricsTextColorKey
+import com.ljyh.mei.constants.DesktopLyricsTranslationColorKey
+import com.ljyh.mei.constants.DesktopLyricsTranslationFontSizeKey
 import com.ljyh.mei.constants.DesktopLyricsXKey
 import com.ljyh.mei.constants.DesktopLyricsYKey
+import com.ljyh.mei.constants.DefaultDesktopLyricsControlsHideDelay
+import com.ljyh.mei.constants.DefaultDesktopLyricsFontSize
+import com.ljyh.mei.constants.DefaultDesktopLyricsTextColor
+import com.ljyh.mei.constants.DefaultDesktopLyricsTranslationColor
+import com.ljyh.mei.constants.DefaultDesktopLyricsTranslationFontSize
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.utils.dataStore
 import com.ljyh.mei.utils.lyric.LyricManager
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeAlignment
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLineText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -77,6 +87,16 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.math.abs
 import kotlin.math.roundToInt
+
+private data class OverlaySettings(
+    val enabled: Boolean,
+    val locked: Boolean,
+    val textColor: String,
+    val translationColor: String,
+    val fontSize: Int,
+    val translationFontSize: Int,
+    val controlsHideDelay: Int,
+)
 
 /** The overlay lives with the media service, so lyrics continue after the activity closes. */
 internal class DesktopLyricsController(
@@ -105,38 +125,74 @@ internal class DesktopLyricsController(
     private var karaokeText: ComposeView? = null
     private var primaryText: TextView? = null
     private var translationText: TextView? = null
+    private var controls: LinearLayout? = null
+    private var previousButton: ImageButton? = null
     private var playPauseButton: ImageButton? = null
     private var nextButton: ImageButton? = null
+    private var lockButton: ImageButton? = null
+    private var controlsHideJob: Job? = null
     private var params: WindowManager.LayoutParams? = null
     private var overlayLifecycle: OverlayLifecycleOwner? = null
     private var ticker: Job? = null
     private var currentSongId: String? = null
     private var lastLine: DesktopLyricLine? = null
     private val karaokeLineState = mutableStateOf<KaraokeLine?>(null)
+    private val karaokeFontSizeState = mutableIntStateOf(DefaultDesktopLyricsFontSize)
+    private val karaokeActiveColorState = mutableStateOf(ComposeColor.White)
     private var lastPlaying: Boolean? = null
-    private var showBackground = true
+    private var locked = false
+    private var controlsVisible = true
+    private var controlsHideDelaySeconds = DefaultDesktopLyricsControlsHideDelay
+    private var lyricsFontSize = DefaultDesktopLyricsFontSize
+    private var translationFontSize = DefaultDesktopLyricsTranslationFontSize
+    private var lyricsColor = Color.WHITE
+    private var translationColor = Color.rgb(206, 206, 211)
+    private var overlayEnabled = false
     private var savedX: Int? = null
     private var savedY: Int? = null
 
     fun start() {
         scope.launch {
             val preferences = context.dataStore.data
-            preferences.map {
-                (it[DesktopLyricsEnabledKey] ?: false) to
-                    (it[DesktopLyricsBackgroundKey] ?: true)
+            preferences.map { values ->
+                OverlaySettings(
+                    enabled = values[DesktopLyricsEnabledKey] ?: false,
+                    locked = values[DesktopLyricsLockedKey] ?: false,
+                    textColor = values[DesktopLyricsTextColorKey] ?: DefaultDesktopLyricsTextColor,
+                    translationColor = values[DesktopLyricsTranslationColorKey]
+                        ?: DefaultDesktopLyricsTranslationColor,
+                    fontSize = values[DesktopLyricsFontSizeKey] ?: DefaultDesktopLyricsFontSize,
+                    translationFontSize = values[DesktopLyricsTranslationFontSizeKey]
+                        ?: DefaultDesktopLyricsTranslationFontSize,
+                    controlsHideDelay = values[DesktopLyricsControlsHideDelayKey]
+                        ?: DefaultDesktopLyricsControlsHideDelay,
+                )
             }
                 .distinctUntilChanged()
-                .collect { (enabled, background) ->
-                    showBackground = background
-                    window?.background = windowBackground()
-                    ticker?.cancel()
-                    ticker = null
-                    if (enabled) {
+                .collect { settings ->
+                    val wasEnabled = overlayEnabled
+                    val wasLocked = locked
+                    locked = settings.locked
+                    if (wasLocked && !locked) controlsVisible = true
+                    lyricsFontSize = settings.fontSize
+                    translationFontSize = settings.translationFontSize
+                    lyricsColor = parseColor(settings.textColor, Color.WHITE)
+                    translationColor = parseColor(
+                        settings.translationColor,
+                        Color.rgb(206, 206, 211),
+                    )
+                    controlsHideDelaySeconds = settings.controlsHideDelay.coerceIn(0, 30)
+                    karaokeFontSizeState.intValue = lyricsFontSize
+                    karaokeActiveColorState.value = ComposeColor(lyricsColor)
+
+                    if (settings.enabled && !wasEnabled) {
+                        overlayEnabled = true
+                        controlsVisible = true
                         val snapshot = preferences.first()
                         savedX = snapshot[DesktopLyricsXKey]
                         savedY = snapshot[DesktopLyricsYKey]
                         ticker = launch {
-                            while (true) {
+                            while (isActive) {
                                 try {
                                     refresh()
                                 } catch (error: RuntimeException) {
@@ -147,8 +203,13 @@ internal class DesktopLyricsController(
                                 delay(180)
                             }
                         }
-                    } else {
+                    } else if (!settings.enabled) {
+                        overlayEnabled = false
+                        ticker?.cancel()
+                        ticker = null
                         hide()
+                    } else {
+                        applyOverlaySettings(lockChanged = wasLocked != locked)
                     }
                 }
         }
@@ -157,6 +218,7 @@ internal class DesktopLyricsController(
     fun close() {
         ticker?.cancel()
         ticker = null
+        controlsHideJob?.cancel()
         hide()
     }
 
@@ -194,7 +256,7 @@ internal class DesktopLyricsController(
             }
             translationText?.apply {
                 text = line.translation.orEmpty()
-                visibility = if (line.translation == null) View.GONE else View.VISIBLE
+                visibility = if (line.translation == null) View.INVISIBLE else View.VISIBLE
             }
             lastLine = line
         }
@@ -217,6 +279,7 @@ internal class DesktopLyricsController(
     }
 
     private fun show() {
+        controlsVisible = true
         val content = makeWindow()
         val lifecycle = OverlayLifecycleOwner()
         content.setViewTreeLifecycleOwner(lifecycle)
@@ -225,18 +288,18 @@ internal class DesktopLyricsController(
         lastLine = null
         lastPlaying = null
         val bounds = screenBounds()
-        val width = (bounds.width() - dp(32)).coerceAtMost(dp(460)).coerceAtLeast(dp(180))
         val layout = WindowManager.LayoutParams(
-            width,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            overlayWidth(),
+            overlayHeight(),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = savedX ?: (bounds.width() - width) / 2
+            x = savedX ?: (bounds.width() - dp(300)) / 2
             y = savedY ?: (bounds.height() * 0.18f).roundToInt()
+            if (locked) flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         }
 
         try {
@@ -244,6 +307,7 @@ internal class DesktopLyricsController(
             window = content
             params = layout
             overlayLifecycle = lifecycle
+            applyOverlaySettings(lockChanged = true)
         } catch (error: RuntimeException) {
             lifecycle.destroy()
             Timber.w(error, "Could not show desktop lyrics overlay")
@@ -252,6 +316,8 @@ internal class DesktopLyricsController(
     }
 
     private fun hide() {
+        controlsHideJob?.cancel()
+        controlsHideJob = null
         overlayLifecycle?.destroy()
         overlayLifecycle = null
         window?.let { view ->
@@ -266,8 +332,11 @@ internal class DesktopLyricsController(
         karaokeLineState.value = null
         primaryText = null
         translationText = null
+        controls = null
+        previousButton = null
         playPauseButton = null
         nextButton = null
+        lockButton = null
         params = null
         lastLine = null
         lastPlaying = null
@@ -277,7 +346,7 @@ internal class DesktopLyricsController(
         val view = window ?: return
         val layout = params ?: return
         val bounds = screenBounds()
-        val width = (bounds.width() - dp(32)).coerceAtMost(dp(460)).coerceAtLeast(dp(180))
+        val width = view.width.takeIf { it > 0 } ?: dp(300)
         val x = layout.x.coerceIn(0, (bounds.width() - width).coerceAtLeast(0))
         val topInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             windowManager.currentWindowMetrics.windowInsets
@@ -293,8 +362,7 @@ internal class DesktopLyricsController(
         }
         val maxY = (bounds.height() - bottomInset - view.height).coerceAtLeast(topInset)
         val y = layout.y.coerceIn(topInset, maxY)
-        if (!force && layout.width == width && layout.x == x && layout.y == y) return
-        layout.width = width
+        if (!force && layout.x == x && layout.y == y) return
         layout.x = x
         layout.y = y
         try {
@@ -307,8 +375,8 @@ internal class DesktopLyricsController(
 
     @SuppressLint("ClickableViewAccessibility")
     private fun makeWindow(): LinearLayout {
-        val main = lyricText(18f, Color.WHITE)
-        val translation = lyricText(13f, Color.rgb(206, 206, 211))
+        val main = lyricText(lyricsFontSize.toFloat(), lyricsColor, Gravity.BOTTOM)
+        val translation = lyricText(translationFontSize.toFloat(), translationColor, Gravity.TOP)
         val karaoke = ComposeView(windowContext).apply {
             visibility = View.GONE
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -328,6 +396,8 @@ internal class DesktopLyricsController(
                     onDispose { player.removeListener(listener) }
                 }
                 val line = karaokeLineState.value
+                val fontSize by karaokeFontSizeState
+                val activeColor by karaokeActiveColorState
                 if (line != null) {
                     var position by remember(line) {
                         mutableIntStateOf(player.currentPosition.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
@@ -349,23 +419,29 @@ internal class DesktopLyricsController(
                             }
                         }
                     }
-                    val lyricStyle = remember {
+                    val lyricStyle = remember(fontSize, activeColor) {
                         TextStyle(
-                            fontSize = 18.sp,
+                            fontSize = fontSize.sp,
                             lineHeight = TextUnit.Unspecified,
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
+                            color = activeColor,
                             textMotion = TextMotion.Animated,
                             shadow = Shadow(ComposeColor.Black, Offset(0f, 1f), 4f),
                         )
                     }
                     KaraokeLineText(
-                        line = line,
+                        // This API has start/end alignment only. Normalize TTML alignment
+                        // metadata so consecutive lines don't jump between sides.
+                        line = when (line) {
+                            is KaraokeLine.MainKaraokeLine -> line.copy(alignment = KaraokeAlignment.Unspecified)
+                            is KaraokeLine.AccompanimentKaraokeLine -> line.copy(alignment = KaraokeAlignment.Unspecified)
+                        },
                         currentTimeProvider = { position },
                         modifier = Modifier.fillMaxWidth(),
                         normalLineTextStyle = lyricStyle,
                         accompanimentLineTextStyle = lyricStyle,
-                        activeColor = ComposeColor.White,
+                        activeColor = activeColor,
                         blendMode = BlendMode.SrcOver,
                         showTranslation = false,
                         showPhonetic = false,
@@ -376,15 +452,21 @@ internal class DesktopLyricsController(
         karaokeText = karaoke
         primaryText = main
         translationText = translation
+        val lyricAreaView = FrameLayout(windowContext).apply {
+            addView(karaoke, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+            addView(main, FrameLayout.LayoutParams(-1, -1))
+        }
 
-        val controls = LinearLayout(windowContext).apply {
+        val controlsRow = LinearLayout(windowContext).apply {
             gravity = Gravity.CENTER
             orientation = LinearLayout.HORIZONTAL
-            addView(controlButton(R.drawable.desktop_lyric_previous, "上一首") {
+            val previous = controlButton(R.drawable.desktop_lyric_previous, "上一首") {
                 if (player.hasPreviousMediaItem()) player.seekToPreviousMediaItem()
                 else player.seekTo(0)
                 if (!player.playWhenReady) player.play()
-            })
+            }
+            previousButton = previous
+            addView(previous)
             val playPause = controlButton(
                 R.drawable.desktop_lyric_pause,
                 "暂停",
@@ -407,27 +489,33 @@ internal class DesktopLyricsController(
             }
             nextButton = next
             addView(next)
+            val lock = controlButton(
+                if (locked) R.drawable.desktop_lyric_unlock else R.drawable.desktop_lyric_lock,
+                if (locked) "解锁桌面歌词" else "锁定桌面歌词",
+            ) {
+                setLocked(!locked)
+            }
+            lockButton = lock
+            addView(lock)
             addView(controlButton(R.drawable.desktop_lyric_close, "关闭桌面歌词") {
                 dismissByUser()
             })
         }
+        controls = controlsRow
 
         return LinearLayout(windowContext).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(20), dp(12), dp(20), dp(12))
-            minimumHeight = dp(56)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
             this.background = windowBackground()
-            contentDescription = "桌面歌词，拖动可移动，点击返回 Mei"
-            addView(karaoke, LinearLayout.LayoutParams(-1, -2))
-            addView(main, LinearLayout.LayoutParams(-1, -2))
-            addView(translation, LinearLayout.LayoutParams(-1, -2))
-            addView(controls, LinearLayout.LayoutParams(-1, dp(48)))
-            setOnClickListener {
-                context.startActivity(Intent(context, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                })
-            }
+            contentDescription = "桌面歌词"
+            addView(controlsRow, LinearLayout.LayoutParams(-2, dp(48)))
+            addView(lyricAreaView, LinearLayout.LayoutParams(-1, lyricAreaHeightPx()))
+            addView(translation, LinearLayout.LayoutParams(-1, translationAreaHeightPx()))
+            setOnClickListener { revealControls() }
+            main.setOnClickListener { revealControls() }
+            translation.setOnClickListener { revealControls() }
+            karaoke.setOnClickListener { revealControls() }
 
             val slop = ViewConfiguration.get(context).scaledTouchSlop
             var downX = 0f
@@ -435,7 +523,7 @@ internal class DesktopLyricsController(
             var originX = 0
             var originY = 0
             var dragging = false
-            setOnTouchListener { view, event ->
+            val overlayTouchListener = View.OnTouchListener { view, event ->
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
                         downX = event.rawX
@@ -448,7 +536,7 @@ internal class DesktopLyricsController(
                     MotionEvent.ACTION_MOVE -> {
                         val dx = event.rawX - downX
                         val dy = event.rawY - downY
-                        if (abs(dx) > slop || abs(dy) > slop) dragging = true
+                        if (!locked && (abs(dx) > slop || abs(dy) > slop)) dragging = true
                         if (dragging) {
                             params?.let { layout ->
                                 layout.x = originX + dx.roundToInt()
@@ -472,14 +560,23 @@ internal class DesktopLyricsController(
                                     }
                                 }
                             }
+                            scheduleControlsHide()
                         } else {
                             view.performClick()
                         }
                         true
                     }
+                    MotionEvent.ACTION_CANCEL -> {
+                        dragging = false
+                        true
+                    }
                     else -> false
                 }
             }
+            setOnTouchListener(overlayTouchListener)
+            karaoke.setOnTouchListener(overlayTouchListener)
+            main.setOnTouchListener(overlayTouchListener)
+            translation.setOnTouchListener(overlayTouchListener)
         }
     }
 
@@ -487,8 +584,7 @@ internal class DesktopLyricsController(
         ImageButton(windowContext).apply {
             setImageResource(icon)
             contentDescription = label
-            scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-            setPadding(dp(12), dp(12), dp(12), dp(12))
+            scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
             background = RippleDrawable(
                 ColorStateList.valueOf(Color.argb(65, 255, 255, 255)),
                 null,
@@ -497,9 +593,115 @@ internal class DesktopLyricsController(
                     setColor(Color.WHITE)
                 },
             )
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            imageTintList = ColorStateList.valueOf(Color.WHITE)
             layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
-            setOnClickListener { action() }
+            setOnClickListener {
+                action()
+                scheduleControlsHide()
+            }
         }
+
+    private fun applyOverlaySettings(lockChanged: Boolean) {
+        if (lockChanged) applyLockState()
+        primaryText?.apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, lyricsFontSize.toFloat())
+            setTextColor(lyricsColor)
+        }
+        translationText?.apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, translationFontSize.toFloat())
+            setTextColor(translationColor)
+        }
+        karaokeFontSizeState.intValue = lyricsFontSize
+        karaokeActiveColorState.value = ComposeColor(lyricsColor)
+        val view = window ?: return
+        view.background = windowBackground()
+        view.setPadding(dp(16), dp(8), dp(16), dp(8))
+        controls?.visibility = when {
+            locked -> View.GONE
+            controlsVisible -> View.VISIBLE
+            else -> View.INVISIBLE
+        }
+        (primaryText?.parent as? FrameLayout)?.layoutParams =
+            LinearLayout.LayoutParams(-1, lyricAreaHeightPx())
+        translationText?.layoutParams = LinearLayout.LayoutParams(-1, translationAreaHeightPx())
+        view.requestLayout()
+        applyFixedGeometry()
+        updateBounds(force = true)
+        scheduleControlsHide()
+    }
+
+    private fun applyLockState() {
+        if (locked) {
+            controlsVisible = false
+            controlsHideJob?.cancel()
+            controlsHideJob = null
+        }
+        controls?.visibility = when {
+            locked -> View.GONE
+            controlsVisible -> View.VISIBLE
+            else -> View.INVISIBLE
+        }
+        window?.let { view ->
+            val layout = params ?: return@let
+            layout.flags = if (locked) {
+                layout.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            } else {
+                layout.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+            }
+            runCatching { windowManager.updateViewLayout(view, layout) }
+                .onFailure { Timber.w(it, "Could not update desktop lyrics touch behavior") }
+        }
+    }
+
+    private fun setLocked(value: Boolean) {
+        locked = value
+        applyLockState()
+        window?.requestLayout()
+        updateBounds(force = true)
+        scope.launch {
+            context.dataStore.edit { it[DesktopLyricsLockedKey] = value }
+        }
+        if (!locked) revealControls()
+        else {
+            controlsVisible = false
+            controlsHideJob?.cancel()
+            window?.background = null
+        }
+        applyFixedGeometry()
+    }
+
+    private fun revealControls() {
+        if (locked) return
+        controlsVisible = true
+        controls?.visibility = View.VISIBLE
+        window?.apply {
+            background = windowBackground()
+            requestLayout()
+        }
+        applyLockState()
+        updateBounds(force = true)
+        scheduleControlsHide()
+    }
+
+    private fun scheduleControlsHide() {
+        controlsHideJob?.cancel()
+        controlsHideJob = null
+        if (!controlsVisible || controlsHideDelaySeconds == 0 || window == null) return
+        controlsHideJob = scope.launch {
+            delay(controlsHideDelaySeconds * 1_000L)
+            controlsVisible = false
+            controls?.visibility = View.INVISIBLE
+            window?.apply {
+                background = null
+                requestLayout()
+            }
+            updateBounds(force = true)
+        }
+    }
+
+    private fun parseColor(value: String, fallback: Int): Int =
+        runCatching { Color.parseColor(value) }.getOrDefault(fallback)
 
     private fun dismissByUser() {
         ticker?.cancel()
@@ -510,7 +712,7 @@ internal class DesktopLyricsController(
         }
     }
 
-    private fun windowBackground() = if (showBackground) {
+    private fun windowBackground() = if (controlsVisible && !locked) {
         GradientDrawable().apply {
             setColor(Color.argb(230, 27, 27, 31))
             cornerRadius = dp(16).toFloat()
@@ -520,13 +722,40 @@ internal class DesktopLyricsController(
         null
     }
 
-    private fun lyricText(sizeSp: Float, colorValue: Int) = TextView(windowContext).apply {
+    private fun lyricText(sizeSp: Float, colorValue: Int, verticalGravity: Int) = TextView(windowContext).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
         setTextColor(colorValue)
-        gravity = Gravity.CENTER
+        gravity = Gravity.CENTER_HORIZONTAL or verticalGravity
+        includeFontPadding = false
+        maxWidth = overlayWidth() - dp(32)
         maxLines = 2
         ellipsize = TextUtils.TruncateAt.END
         setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+    }
+
+    private fun overlayWidth(): Int = minOf(dp(420), (screenBounds().width() - dp(32)).coerceAtLeast(dp(1)))
+
+    private fun lyricAreaHeightPx(): Int = dp(maxOf(64, (lyricsFontSize * fontScale() * 2.8f).roundToInt()))
+
+    private fun translationAreaHeightPx(): Int =
+        dp(maxOf(36, (translationFontSize * fontScale() * 2.4f).roundToInt()))
+
+    private fun overlayHeight(): Int =
+        dp(16 + (if (locked) 0 else 48)) + lyricAreaHeightPx() + translationAreaHeightPx()
+
+    private fun fontScale(): Float = windowContext.resources.configuration.fontScale
+
+    private fun applyFixedGeometry() {
+        val view = window ?: return
+        val layout = params ?: return
+        val width = overlayWidth()
+        val height = overlayHeight()
+        if (layout.width != width || layout.height != height) {
+            layout.width = width
+            layout.height = height
+            runCatching { windowManager.updateViewLayout(view, layout) }
+                .onFailure { Timber.w(it, "Could not resize desktop lyrics overlay") }
+        }
     }
 
     private fun screenBounds(): Rect =
