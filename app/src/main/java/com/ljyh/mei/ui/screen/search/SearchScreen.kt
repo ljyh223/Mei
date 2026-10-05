@@ -46,7 +46,8 @@ import com.ljyh.mei.ui.component.SearchBarIconOffsetX
 import kotlinx.coroutines.flow.drop
 import timber.log.Timber
 
-
+// TODO: 搜索历史功能
+// TODO: 听歌识曲功能
 @Composable
 fun SearchScreen(
     query: String,
