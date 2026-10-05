@@ -1,5 +1,6 @@
 package com.ljyh.mei.di
 
+import android.content.Context
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.QQMusicUApiService
 import com.ljyh.mei.data.network.QrLoginClient
@@ -18,6 +19,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -57,8 +59,13 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun providePlayerRepository(qqMusicUApiService: QQMusicUApiService,apiService: ApiService,weApiService: WeApiService): PlayerRepository {
-        return PlayerRepository(qqMusicUApiService,apiService,weApiService)
+    fun providePlayerRepository(
+        @ApplicationContext context: Context,
+        qqMusicUApiService: QQMusicUApiService,
+        apiService: ApiService,
+        weApiService: WeApiService,
+    ): PlayerRepository {
+        return PlayerRepository(qqMusicUApiService, apiService, weApiService, context)
     }
 
     @Singleton

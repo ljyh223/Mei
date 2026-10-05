@@ -1,5 +1,8 @@
 package com.ljyh.mei.data.repository
 
+import android.content.Context
+import com.ljyh.mei.constants.DefaultTtmlLyricsBaseUrl
+import com.ljyh.mei.constants.TtmlLyricsBaseUrlKey
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.Tracks
 import com.ljyh.mei.data.model.api.GetIntelligence
@@ -18,12 +21,15 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
+import com.ljyh.mei.utils.dataStore
 import android.util.Base64
 import com.ljyh.mei.data.model.api.CheckSongLike
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okio.IOException
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
@@ -31,7 +37,8 @@ import java.util.concurrent.TimeUnit
 class PlayerRepository(
     private val qqMusicUApiService: QQMusicUApiService,
     private val apiService: ApiService,
-    private val weApiService: WeApiService
+    private val weApiService: WeApiService,
+    private val context: Context,
 ) {
 
     suspend fun searchNew(keyword: String): Resource<SearchResult> {
@@ -150,7 +157,13 @@ class PlayerRepository(
     suspend fun getAMLLyric(id: String): Resource<String> {
         return withContext(Dispatchers.IO) {
             try {
-                val url = "https://amlldb.bikonoo.com/ncm-lyrics/$id.ttml"
+                val configuredBaseUrl = context.dataStore.data.first()[TtmlLyricsBaseUrlKey]
+                    ?.trim()
+                    ?.trimEnd('/')
+                    ?.takeIf(String::isNotBlank)
+                    ?: DefaultTtmlLyricsBaseUrl
+                val url = "$configuredBaseUrl/ncm-lyrics/$id.ttml".toHttpUrlOrNull()
+                    ?: return@withContext Resource.Error("TTML 歌词服务地址无效")
                 val request = Request.Builder().url(url).build()
 
                 val result = amllClient.newCall(request).execute().use { response ->

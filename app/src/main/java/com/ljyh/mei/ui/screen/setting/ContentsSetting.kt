@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Cookie
+import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.TipsAndUpdates
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.CookieKey
+import com.ljyh.mei.constants.DefaultTtmlLyricsBaseUrl
 import com.ljyh.mei.constants.QqTimeout
 import com.ljyh.mei.constants.QqTimeoutKey
+import com.ljyh.mei.constants.TtmlLyricsBaseUrlKey
 import com.ljyh.mei.data.model.auth.QrLoginUiState
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.ShareViewModel
@@ -45,6 +48,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.rememberPreference
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,6 +149,12 @@ fun ContentsSetting(
                 onValueChange = onCookie
             )
 
+            val (ttmlLyricsBaseUrl, onTtmlLyricsBaseUrlChange) = rememberPreference(
+                TtmlLyricsBaseUrlKey,
+                defaultValue = DefaultTtmlLyricsBaseUrl,
+            )
+
+
             PreferenceEntry(
                 title = { Text("扫码登录") },
                 description = "使用网易云音乐 App 扫码",
@@ -172,16 +182,31 @@ fun ContentsSetting(
                 QqTimeoutKey,
                 defaultValue = QqTimeout.Sec8.name
             )
-            val currentTimeout = try { QqTimeout.valueOf(qqTimeout) } catch (_: Exception) { QqTimeout.Sec8 }
+            val currentTimeout = try {
+                QqTimeout.valueOf(qqTimeout)
+            } catch (_: Exception) {
+                QqTimeout.Sec8
+            }
 
             ListPreference(
-                title = { Text("QQ 超时") },
+                title = { Text("QQ音乐获取歌词超时") },
                 description = null,
-                icon = { Icon(Icons.Rounded.TipsAndUpdates, "QQ 超时") },
+                icon = { Icon(Icons.Rounded.TipsAndUpdates, "QQ音乐获取歌词超时") },
                 selectedValue = currentTimeout,
                 values = QqTimeout.entries.toList(),
                 valueText = { it.label },
                 onValueSelected = { onQqTimeoutChange(it.name) }
+            )
+            EditTextPreference(
+                title = { Text("TTML 歌词服务根地址") },
+                icon = { Icon(Icons.Rounded.Lyrics, "TTML 歌词服务根地址") },
+                value = ttmlLyricsBaseUrl,
+                onValueChange = onTtmlLyricsBaseUrlChange,
+                isInputValid = { input ->
+                    input.trim().trimEnd('/').toHttpUrlOrNull()?.let {
+                        it.query == null && it.fragment == null
+                    } == true
+                },
             )
         }
     }

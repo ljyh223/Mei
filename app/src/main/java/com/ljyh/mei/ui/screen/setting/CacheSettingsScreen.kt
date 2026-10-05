@@ -51,6 +51,7 @@ import com.ljyh.mei.utils.cache.CacheCategory
 import com.ljyh.mei.utils.cache.CacheUsage
 import com.ljyh.mei.utils.cache.StorageCacheManager
 import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.ui.component.IconButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -126,15 +127,28 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
             TopAppBar(
                 title = { Text("缓存设置") },
                 navigationIcon = {
-                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            contentDescription = null
+                        )
                     }
                 },
                 actions = {
                     androidx.compose.material3.IconButton(onClick = {
                         scope.launch {
                             loadFailed = false
-                            runCatching { withContext(Dispatchers.IO) { StorageCacheManager.usage(context) } }
+                            runCatching {
+                                withContext(Dispatchers.IO) {
+                                    StorageCacheManager.usage(
+                                        context
+                                    )
+                                }
+                            }
                                 .onSuccess { usage = it }
                                 .onFailure {
                                     loadFailed = true
@@ -163,13 +177,28 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     ?: if (loadFailed) "读取失败" else "正在计算…",
                 icon = { Icon(Icons.Rounded.Storage, contentDescription = null) },
             )
-            CacheRow("图片", usage?.imageBytes, busy, loadFailed, { pendingClear = CacheCategory.IMAGE }) {
+            CacheRow(
+                "图片",
+                usage?.imageBytes,
+                busy,
+                loadFailed,
+                { pendingClear = CacheCategory.IMAGE }) {
                 Icon(Icons.Rounded.Image, contentDescription = null)
             }
-            CacheRow("音乐", usage?.musicBytes, busy, loadFailed, { pendingClear = CacheCategory.MUSIC }) {
+            CacheRow(
+                "音乐",
+                usage?.musicBytes,
+                busy,
+                loadFailed,
+                { pendingClear = CacheCategory.MUSIC }) {
                 Icon(Icons.Rounded.LibraryMusic, contentDescription = null)
             }
-            CacheRow("其他", usage?.otherBytes, busy, loadFailed, { pendingClear = CacheCategory.OTHER }) {
+            CacheRow(
+                "其他",
+                usage?.otherBytes,
+                busy,
+                loadFailed,
+                { pendingClear = CacheCategory.OTHER }) {
                 Icon(Icons.Rounded.Cached, contentDescription = null)
             }
             PreferenceGroupTitle("缓存上限")

@@ -26,8 +26,20 @@ val UserPhotoKey = stringPreferencesKey("userPhoto")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val DesktopLyricsEnabledKey = booleanPreferencesKey("desktopLyricsEnabled")
 val DesktopLyricsBackgroundKey = booleanPreferencesKey("desktopLyricsBackground")
+val DesktopLyricsLockedKey = booleanPreferencesKey("desktopLyricsLocked")
+val DesktopLyricsTextColorKey = stringPreferencesKey("desktopLyricsTextColor")
+val DesktopLyricsTranslationColorKey = stringPreferencesKey("desktopLyricsTranslationColor")
+val DesktopLyricsFontSizeKey = intPreferencesKey("desktopLyricsFontSize")
+val DesktopLyricsTranslationFontSizeKey = intPreferencesKey("desktopLyricsTranslationFontSize")
+val DesktopLyricsControlsHideDelayKey = intPreferencesKey("desktopLyricsControlsHideDelay")
 val DesktopLyricsXKey = intPreferencesKey("desktopLyricsX")
 val DesktopLyricsYKey = intPreferencesKey("desktopLyricsY")
+
+const val DefaultDesktopLyricsTextColor = "#FFFFFFFF"
+const val DefaultDesktopLyricsTranslationColor = "#FFCECED3"
+const val DefaultDesktopLyricsFontSize = 18
+const val DefaultDesktopLyricsTranslationFontSize = 13
+const val DefaultDesktopLyricsControlsHideDelay = 5
 
 
 val CookieKey = stringPreferencesKey("cookie")
@@ -88,6 +100,9 @@ val DownloadPathKey = stringPreferencesKey("downloadPath")
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 val EmbedOriginalTtmlKey = booleanPreferencesKey("embedOriginalTtml")
 val QqTimeoutKey = stringPreferencesKey("qq_timeout")
+val TtmlLyricsBaseUrlKey = stringPreferencesKey("ttmlLyricsBaseUrl")
+
+const val DefaultTtmlLyricsBaseUrl = "https://amlldb.bikonoo.com"
 
 enum class QqTimeout(val seconds: Int, val label: String) {
     Sec3(3, "3秒"),

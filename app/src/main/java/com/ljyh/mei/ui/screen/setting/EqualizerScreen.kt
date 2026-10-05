@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -87,6 +86,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.utils.dataStore
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -117,10 +117,16 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
     LaunchedEffect(context) {
         launch {
             context.dataStore.data.map { prefs ->
-                Triple(prefs[ParametricEqualizerProfileKey], prefs[EqualizerEnabledKey], prefs[EqualizerBandLevelsKey])
+                Triple(
+                    prefs[ParametricEqualizerProfileKey],
+                    prefs[EqualizerEnabledKey],
+                    prefs[EqualizerBandLevelsKey]
+                )
             }.distinctUntilChanged().collectLatest { (encoded, legacyEnabled, legacyLevels) ->
                 val restored = EqualizerProfileCodec.decode(encoded)
-                    ?: if (legacyLevels != null) AudioEffectsController.legacyProfile(legacyEnabled ?: false, legacyLevels)
+                    ?: if (legacyLevels != null) AudioEffectsController.legacyProfile(
+                        legacyEnabled ?: false, legacyLevels
+                    )
                     else EqualizerProfile()
                 profile = restored
                 committedProfile.value = restored
@@ -128,7 +134,8 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
         }
         launch {
             context.dataStore.data.map { it[UserEqualizerPresetsKey].orEmpty() }
-                .distinctUntilChanged().collectLatest { customPresets = EqualizerPresets.decodeCustom(it) }
+                .distinctUntilChanged()
+                .collectLatest { customPresets = EqualizerPresets.decodeCustom(it) }
         }
     }
 
@@ -138,7 +145,9 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
         committedProfile.value = normalized
         playerConnection?.service?.previewEqualizerProfile(normalized)
         scope.launch {
-            context.dataStore.edit { it[ParametricEqualizerProfileKey] = EqualizerProfileCodec.encode(normalized) }
+            context.dataStore.edit {
+                it[ParametricEqualizerProfileKey] = EqualizerProfileCodec.encode(normalized)
+            }
         }
     }
 
@@ -158,7 +167,8 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
     }
 
     val selected = profile.filters.firstOrNull { it.id == selectedId }
-    val currentPreset = (EqualizerPresets.builtIn + customPresets).firstOrNull { it.id == profile.presetId }
+    val currentPreset =
+        (EqualizerPresets.builtIn + customPresets).firstOrNull { it.id == profile.presetId }
     val response = remember(profile) { BiquadDesign.sampleResponse(profile) }
     val peakDb = response.maxOrNull()?.toFloat() ?: 0f
     LaunchedEffect(profile.filters.map(EqFilter::id)) {
@@ -181,16 +191,24 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     }
                 },
                 navigationIcon = {
-                    com.ljyh.mei.ui.component.IconButton(
+                    IconButton(
                         onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回") }
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            contentDescription = null
+                        )
+                    }
                 },
                 actions = {
                     Switch(
                         checked = profile.enabled,
                         onCheckedChange = { commit(profile.copy(enabled = it)) },
-                        modifier = Modifier.padding(end = 16.dp).semantics { contentDescription = "启用均衡器" },
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .semantics { contentDescription = "启用均衡器" },
                     )
                 },
                 scrollBehavior = scrollBehavior,
@@ -198,13 +216,20 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
         },
     ) { paddingValues ->
         Column(
-            Modifier.padding(paddingValues)
+            Modifier
+                .padding(paddingValues)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState()),
         ) {
-            Row(Modifier.padding(horizontal = 16.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("编辑") })
-                FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("内置与我的预设") })
+                FilterChip(
+                    selected = tab == 1,
+                    onClick = { tab = 1 },
+                    label = { Text("内置与我的预设") })
             }
 
             if (tab == 0) {
@@ -215,13 +240,18 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     onSelect = { selectedId = it },
                     onFilterDrag = { id, frequency, gain, done ->
                         changeFilter(id, { filter ->
-                            filter.copy(frequencyHz = frequency, gainDb = if (filter.type.usesGain) gain else filter.gainDb)
+                            filter.copy(
+                                frequencyHz = frequency,
+                                gainDb = if (filter.type.usesGain) gain else filter.gainDb
+                            )
                         }, done)
                     },
                 )
                 if (profile.enabled && peakDb > 0.5f) {
                     Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -232,24 +262,42 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         )
                         TextButton(onClick = {
                             val reduction = ceil(peakDb * 2f) / 2f
-                            commit(profile.copy(presetId = "custom", inputGainDb =
-                                (profile.inputGainDb - reduction).coerceAtLeast(-24f)))
+                            commit(
+                                profile.copy(
+                                    presetId = "custom", inputGainDb =
+                                        (profile.inputGainDb - reduction).coerceAtLeast(-24f)
+                                )
+                            )
                         }) { Text("自动留余量") }
                     }
                 }
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        ParameterSlider("输入增益", profile.inputGainDb, -24f..12f, "dB", 1) { value, done ->
+                        ParameterSlider(
+                            "输入增益",
+                            profile.inputGainDb,
+                            -24f..12f,
+                            "dB",
+                            1
+                        ) { value, done ->
                             val next = profile.copy(presetId = "custom", inputGainDb = value)
                             if (done) commit(next) else {
                                 profile = next
                                 playerConnection?.service?.previewEqualizerProfile(next)
                             }
                         }
-                        ParameterSlider("输出增益", profile.outputGainDb, -24f..12f, "dB", 1) { value, done ->
+                        ParameterSlider(
+                            "输出增益",
+                            profile.outputGainDb,
+                            -24f..12f,
+                            "dB",
+                            1
+                        ) { value, done ->
                             val next = profile.copy(presetId = "custom", outputGainDb = value)
                             if (done) commit(next) else {
                                 profile = next
@@ -260,10 +308,15 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 }
 
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("${profile.filters.size}/${EqualizerProfile.MAX_FILTERS} · 点选节点", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${profile.filters.size}/${EqualizerProfile.MAX_FILTERS} · 点选节点",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = { showSaveDialog = true }) {
                         Icon(Icons.Rounded.Save, null)
@@ -274,11 +327,17 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         enabled = profile.filters.size < EqualizerProfile.MAX_FILTERS,
                         onClick = {
                             val id = (profile.filters.maxOfOrNull(EqFilter::id) ?: 0) + 1
-                            commit(profile.copy(
-                                enabled = true,
-                                presetId = "custom",
-                                filters = profile.filters + EqFilter(id, FilterType.PEAK, 1_000f),
-                            ))
+                            commit(
+                                profile.copy(
+                                    enabled = true,
+                                    presetId = "custom",
+                                    filters = profile.filters + EqFilter(
+                                        id,
+                                        FilterType.PEAK,
+                                        1_000f
+                                    ),
+                                )
+                            )
                             selectedId = id
                         },
                     ) { Icon(Icons.Rounded.Add, null); Text("添加") }
@@ -296,7 +355,13 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
                                 number = index + 1,
                                 selected = filter.id == selectedId,
                                 onSelect = { selectedId = filter.id },
-                                onEnabledChange = { enabled -> changeFilter(filter.id, { it.copy(enabled = enabled) }, true) },
+                                onEnabledChange = { enabled ->
+                                    changeFilter(
+                                        filter.id,
+                                        { it.copy(enabled = enabled) },
+                                        true
+                                    )
+                                },
                             )
                         }
                     }
@@ -305,32 +370,55 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
 
                 if (selected != null) {
                     Card(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
                         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("滤波器 ${profile.filters.indexOfFirst { it.id == selected.id } + 1}",
-                                    style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.weight(1f))
                                 IconButton(onClick = { deleteFilterId = selected.id }) {
-                                    Icon(Icons.Rounded.DeleteOutline, contentDescription = "移除滤波器")
+                                    Icon(
+                                        Icons.Rounded.DeleteOutline,
+                                        contentDescription = "移除滤波器"
+                                    )
                                 }
                             }
-                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 FilterType.entries.forEach { type ->
                                     FilterChip(
                                         selected = selected.type == type,
-                                        onClick = { changeFilter(selected.id, { it.copy(type = type) }, true) },
+                                        onClick = {
+                                            changeFilter(
+                                                selected.id,
+                                                { it.copy(type = type) },
+                                                true
+                                            )
+                                        },
                                         label = { Text(type.label) },
                                     )
                                 }
                             }
-                            ParameterSlider("频率", selected.frequencyHz, 20f..20_000f, "Hz", 0,
-                                logScale = true) { value, done ->
+                            ParameterSlider(
+                                "频率", selected.frequencyHz, 20f..20_000f, "Hz", 0,
+                                logScale = true
+                            ) { value, done ->
                                 changeFilter(selected.id, { it.copy(frequencyHz = value) }, done)
                             }
                             if (selected.type.usesGain) {
-                                ParameterSlider("增益", selected.gainDb, -24f..24f, "dB", 1) { value, done ->
+                                ParameterSlider(
+                                    "增益",
+                                    selected.gainDb,
+                                    -24f..24f,
+                                    "dB",
+                                    1
+                                ) { value, done ->
                                     changeFilter(selected.id, { it.copy(gainDb = value) }, done)
                                 }
                             }
@@ -361,16 +449,23 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },
             title = { Text("保存当前调音") },
-            text = { OutlinedTextField(value = name, onValueChange = { name = it.take(40) },
-                label = { Text("预设名称") }, singleLine = true) },
+            text = {
+                OutlinedTextField(
+                    value = name, onValueChange = { name = it.take(40) },
+                    label = { Text("预设名称") }, singleLine = true
+                )
+            },
             confirmButton = {
                 TextButton(enabled = name.isNotBlank(), onClick = {
                     val id = "user_${System.currentTimeMillis()}"
                     val preset = EqualizerPreset(id, name.trim(), profile.copy(presetId = id))
                     customPresets = customPresets + preset
-                    scope.launch { context.dataStore.edit {
-                        it[UserEqualizerPresetsKey] = EqualizerPresets.encodeCustom(customPresets)
-                    } }
+                    scope.launch {
+                        context.dataStore.edit {
+                            it[UserEqualizerPresetsKey] =
+                                EqualizerPresets.encodeCustom(customPresets)
+                        }
+                    }
                     commit(profile.copy(presetId = id))
                     showSaveDialog = false
                 }) { Text("保存") }
@@ -383,11 +478,17 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
             onDismissRequest = { deleteFilterId = null },
             title = { Text("移除滤波器？") },
             text = { Text("此滤波器的参数将被删除。") },
-            confirmButton = { TextButton(onClick = {
-                commit(profile.copy(presetId = "custom", filters = profile.filters.filterNot { it.id == id }))
-                selectedId = profile.filters.firstOrNull { it.id != id }?.id ?: -1
-                deleteFilterId = null
-            }) { Text("移除") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    commit(
+                        profile.copy(
+                            presetId = "custom",
+                            filters = profile.filters.filterNot { it.id == id })
+                    )
+                    selectedId = profile.filters.firstOrNull { it.id != id }?.id ?: -1
+                    deleteFilterId = null
+                }) { Text("移除") }
+            },
             dismissButton = { TextButton(onClick = { deleteFilterId = null }) { Text("取消") } },
         )
     }
@@ -395,37 +496,55 @@ fun EqualizerScreen(scrollBehavior: TopAppBarScrollBehavior) {
         AlertDialog(
             onDismissRequest = { deletePresetId = null },
             title = { Text("删除我的预设？") },
-            confirmButton = { TextButton(onClick = {
-                customPresets = customPresets.filterNot { it.id == id }
-                scope.launch { context.dataStore.edit {
-                    it[UserEqualizerPresetsKey] = EqualizerPresets.encodeCustom(customPresets)
-                } }
-                if (profile.presetId == id) commit(profile.copy(presetId = "custom"))
-                deletePresetId = null
-            }) { Text("删除") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    customPresets = customPresets.filterNot { it.id == id }
+                    scope.launch {
+                        context.dataStore.edit {
+                            it[UserEqualizerPresetsKey] =
+                                EqualizerPresets.encodeCustom(customPresets)
+                        }
+                    }
+                    if (profile.presetId == id) commit(profile.copy(presetId = "custom"))
+                    deletePresetId = null
+                }) { Text("删除") }
+            },
             dismissButton = { TextButton(onClick = { deletePresetId = null }) { Text("取消") } },
         )
     }
 }
 
 @Composable
-private fun FilterCard(filter: EqFilter, number: Int, selected: Boolean, onSelect: () -> Unit, onEnabledChange: (Boolean) -> Unit) {
+private fun FilterCard(
+    filter: EqFilter,
+    number: Int,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onEnabledChange: (Boolean) -> Unit
+) {
     Card(
-        modifier = Modifier.width(132.dp).clickable(onClick = onSelect),
+        modifier = Modifier
+            .width(132.dp)
+            .clickable(onClick = onSelect),
         colors = CardDefaults.cardColors(containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Column(Modifier.padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("$number", style = MaterialTheme.typography.titleLarge,
+                Text(
+                    "$number", style = MaterialTheme.typography.titleLarge,
                     color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f))
-                Switch(checked = filter.enabled, onCheckedChange = onEnabledChange,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = filter.enabled, onCheckedChange = onEnabledChange,
                     modifier = Modifier.semantics { contentDescription = "滤波器 $number 开关" })
             }
             Spacer(Modifier.height(2.dp))
             Text(filter.type.label, style = MaterialTheme.typography.titleMedium)
-            Text(formatHz(filter.frequencyHz), style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                formatHz(filter.frequencyHz), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -438,20 +557,36 @@ private fun PresetList(
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         presets.forEach { preset ->
             Card(
-                modifier = Modifier.fillMaxWidth().clickable { onSelect(preset) },
-                colors = CardDefaults.cardColors(containerColor = if (preset.id == selectedId)
-                    MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(preset) },
+                colors = CardDefaults.cardColors(
+                    containerColor = if (preset.id == selectedId)
+                        MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer
+                ),
             ) {
-                Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Column(Modifier.weight(1f)) {
-                        Text(preset.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
-                        Text("${preset.profile.filters.size} 个滤波器  ·  ${formatDb(preset.profile.inputGainDb)} 输入",
+                        Text(
+                            preset.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            "${preset.profile.filters.size} 个滤波器  ·  ${formatDb(preset.profile.inputGainDb)} 输入",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     if (preset.id.startsWith("user_")) {
                         IconButton(onClick = { onDelete(preset.id) }) {
-                            Icon(Icons.Rounded.DeleteOutline, contentDescription = "删除 ${preset.name}")
+                            Icon(
+                                Icons.Rounded.DeleteOutline,
+                                contentDescription = "删除 ${preset.name}"
+                            )
                         }
                     }
                 }
@@ -463,8 +598,13 @@ private fun PresetList(
 
 @Composable
 private fun ParameterSlider(
-    label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String, decimals: Int,
-    logScale: Boolean = false, onChange: (Float, Boolean) -> Unit,
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    unit: String,
+    decimals: Int,
+    logScale: Boolean = false,
+    onChange: (Float, Boolean) -> Unit,
 ) {
     var showExactInput by remember { mutableStateOf(false) }
     var lastDraggedValue by remember { mutableFloatStateOf(value) }
@@ -476,13 +616,15 @@ private fun ParameterSlider(
     }
     val position = if (logScale) {
         ((log10(value.coerceAtLeast(20f)) - log10(range.start)) /
-            (log10(range.endInclusive) - log10(range.start))).coerceIn(0f, 1f)
+                (log10(range.endInclusive) - log10(range.start))).coerceIn(0f, 1f)
     } else value.coerceIn(range.start, range.endInclusive)
     Slider(
         value = position,
         onValueChange = { raw ->
-            val actual = if (logScale) 10f.pow(log10(range.start) +
-                raw * (log10(range.endInclusive) - log10(range.start))) else raw
+            val actual = if (logScale) 10f.pow(
+                log10(range.start) +
+                        raw * (log10(range.endInclusive) - log10(range.start))
+            ) else raw
             lastDraggedValue = if (logScale) actual.roundToInt().toFloat() else actual
             onChange(lastDraggedValue, false)
         },
@@ -496,18 +638,32 @@ private fun ParameterSlider(
         AlertDialog(
             onDismissRequest = { showExactInput = false },
             title = { Text("设置$label") },
-            text = { OutlinedTextField(
-                value = text, onValueChange = { text = it }, label = { Text("$label（$unit）") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true,
-                supportingText = {
-                    Text(if (unit == "Q") "0.1–12 · Q 越高，影响的频率范围越窄"
-                        else "${formatNumber(range.start, decimals)} – ${formatNumber(range.endInclusive, decimals)} $unit")
-                },
-            ) },
-            confirmButton = { TextButton(
-                enabled = parsed != null && parsed.isFinite() && parsed in range,
-                onClick = { parsed?.let { onChange(it, true) }; showExactInput = false },
-            ) { Text("确定") } },
+            text = {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("$label（$unit）") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    supportingText = {
+                        Text(
+                            if (unit == "Q") "0.1–12 · Q 越高，影响的频率范围越窄"
+                            else "${
+                                formatNumber(
+                                    range.start,
+                                    decimals
+                                )
+                            } – ${formatNumber(range.endInclusive, decimals)} $unit"
+                        )
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = parsed != null && parsed.isFinite() && parsed in range,
+                    onClick = { parsed?.let { onChange(it, true) }; showExactInput = false },
+                ) { Text("确定") }
+            },
             dismissButton = { TextButton(onClick = { showExactInput = false }) { Text("取消") } },
         )
     }
@@ -523,7 +679,8 @@ private fun EqualizerGraph(
     val grid = MaterialTheme.colorScheme.outlineVariant
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val surface = MaterialTheme.colorScheme.surface
-    val frequencies = listOf(31.5, 63.0, 125.0, 250.0, 500.0, 1_000.0, 2_000.0, 4_000.0, 8_000.0, 16_000.0)
+    val frequencies =
+        listOf(31.5, 63.0, 125.0, 250.0, 500.0, 1_000.0, 2_000.0, 4_000.0, 8_000.0, 16_000.0)
     val gains = listOf(24, 12, 0, -12, -24)
     val left = 42.dp
     val right = 12.dp
@@ -538,28 +695,51 @@ private fun EqualizerGraph(
     val currentOnFilterDrag by rememberUpdatedState(onFilterDrag)
 
     Canvas(
-        modifier = Modifier.fillMaxWidth().height(236.dp)
-            .semantics { contentDescription = "频响曲线，先选择节点再拖动，或使用下方数值按钮精确调整" }
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(236.dp)
+            .semantics {
+                contentDescription = "频响曲线，先选择节点再拖动，或使用下方数值按钮精确调整"
+            }
             .pointerInput(Unit) {
-                val l = left.toPx(); val r = right.toPx(); val t = top.toPx(); val b = bottom.toPx()
+                val l = left.toPx();
+                val r = right.toPx();
+                val t = top.toPx();
+                val b = bottom.toPx()
                 val plotW = (size.width - l - r).coerceAtLeast(1f)
                 val plotH = (size.height - t - b).coerceAtLeast(1f)
                 detectTapGestures { offset ->
                     val nearest = currentProfile.filters.minByOrNull { filter ->
-                        val px = l + (log10(filter.frequencyHz.coerceIn(20f, 20_000f)) - log10(20f)) / 3f * plotW
-                        val py = t + (24f - if (filter.type.usesGain) filter.gainDb else 0f) / 48f * plotH
+                        val px = l + (log10(
+                            filter.frequencyHz.coerceIn(
+                                20f,
+                                20_000f
+                            )
+                        ) - log10(20f)) / 3f * plotW
+                        val py =
+                            t + (24f - if (filter.type.usesGain) filter.gainDb else 0f) / 48f * plotH
                         (px - offset.x) * (px - offset.x) + (py - offset.y) * (py - offset.y)
                     }
                     if (nearest != null) {
-                        val px = l + (log10(nearest.frequencyHz.coerceIn(20f, 20_000f)) - log10(20f)) / 3f * plotW
-                        val py = t + (24f - if (nearest.type.usesGain) nearest.gainDb else 0f) / 48f * plotH
+                        val px = l + (log10(
+                            nearest.frequencyHz.coerceIn(
+                                20f,
+                                20_000f
+                            )
+                        ) - log10(20f)) / 3f * plotW
+                        val py =
+                            t + (24f - if (nearest.type.usesGain) nearest.gainDb else 0f) / 48f * plotH
                         if ((px - offset.x) * (px - offset.x) + (py - offset.y) * (py - offset.y) <=
-                            34.dp.toPx() * 34.dp.toPx()) currentOnSelect(nearest.id)
+                            34.dp.toPx() * 34.dp.toPx()
+                        ) currentOnSelect(nearest.id)
                     }
                 }
             }
             .pointerInput(Unit) {
-                val l = left.toPx(); val r = right.toPx(); val t = top.toPx(); val b = bottom.toPx()
+                val l = left.toPx();
+                val r = right.toPx();
+                val t = top.toPx();
+                val b = bottom.toPx()
                 val plotW = (size.width - l - r).coerceAtLeast(1f)
                 val plotH = (size.height - t - b).coerceAtLeast(1f)
                 fun x(f: Float) = l + ((log10(f.coerceIn(20f, 20_000f)) - log10(20f)) / 3f) * plotW
@@ -583,25 +763,41 @@ private fun EqualizerGraph(
                     },
                     onDrag = { change, _ ->
                         if (dragId >= 0) {
-                            draggedFrequency = 10f.pow(1.30103f +
-                                ((change.position.x - l) / plotW).coerceIn(0f, 1f) * 3f).coerceIn(20f, 20_000f)
-                            draggedGain = (24f - ((change.position.y - t) / plotH) * 48f).coerceIn(-24f, 24f)
+                            draggedFrequency = 10f.pow(
+                                1.30103f +
+                                        ((change.position.x - l) / plotW).coerceIn(0f, 1f) * 3f
+                            ).coerceIn(20f, 20_000f)
+                            draggedGain =
+                                (24f - ((change.position.y - t) / plotH) * 48f).coerceIn(-24f, 24f)
                             currentOnFilterDrag(dragId, draggedFrequency, draggedGain, false)
                             change.consume()
                         }
                     },
                     onDragEnd = {
-                        if (dragId >= 0) currentOnFilterDrag(dragId, draggedFrequency, draggedGain, true)
+                        if (dragId >= 0) currentOnFilterDrag(
+                            dragId,
+                            draggedFrequency,
+                            draggedGain,
+                            true
+                        )
                         dragId = -1
                     },
                     onDragCancel = {
-                        if (dragId >= 0) currentOnFilterDrag(dragId, draggedFrequency, draggedGain, true)
+                        if (dragId >= 0) currentOnFilterDrag(
+                            dragId,
+                            draggedFrequency,
+                            draggedGain,
+                            true
+                        )
                         dragId = -1
                     },
                 )
             },
     ) {
-        val l = left.toPx(); val r = right.toPx(); val t = top.toPx(); val b = bottom.toPx()
+        val l = left.toPx();
+        val r = right.toPx();
+        val t = top.toPx();
+        val b = bottom.toPx()
         val plotW = size.width - l - r
         val plotH = size.height - t - b
         fun x(f: Double) = l + ((log10(f) - log10(20.0)) / 3.0 * plotW).toFloat()
@@ -612,35 +808,62 @@ private fun EqualizerGraph(
         frequencies.forEach { f ->
             val px = x(f)
             drawLine(grid, Offset(px, t), Offset(px, t + plotH), 1.dp.toPx())
-            drawContext.canvas.nativeCanvas.drawText(if (f >= 1_000) "${(f / 1_000).toInt()}k" else f.toInt().toString(),
-                px, size.height - 7.dp.toPx(), paint)
+            drawContext.canvas.nativeCanvas.drawText(
+                if (f >= 1_000) "${(f / 1_000).toInt()}k" else f.toInt().toString(),
+                px, size.height - 7.dp.toPx(), paint
+            )
         }
         gains.forEach { gain ->
             val py = y(gain.toDouble())
-            drawLine(grid, Offset(l, py), Offset(l + plotW, py), if (gain == 0) 1.5.dp.toPx() else 1.dp.toPx())
-            drawContext.canvas.nativeCanvas.drawText(if (gain > 0) "+$gain" else "$gain", l / 2, py + 4.dp.toPx(), paint)
+            drawLine(
+                grid,
+                Offset(l, py),
+                Offset(l + plotW, py),
+                if (gain == 0) 1.5.dp.toPx() else 1.dp.toPx()
+            )
+            drawContext.canvas.nativeCanvas.drawText(
+                if (gain > 0) "+$gain" else "$gain",
+                l / 2,
+                py + 4.dp.toPx(),
+                paint
+            )
         }
         val curve = Path()
         response.forEachIndexed { index, gain ->
-            val frequency = 20.0 * 1_000.0.pow(index.toDouble() / (response.size - 1).coerceAtLeast(1))
+            val frequency =
+                20.0 * 1_000.0.pow(index.toDouble() / (response.size - 1).coerceAtLeast(1))
             val point = Offset(x(frequency), y(gain))
             if (index == 0) curve.moveTo(point.x, point.y) else curve.lineTo(point.x, point.y)
         }
-        drawPath(curve, if (profile.enabled) accent else textColor,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+        drawPath(
+            curve, if (profile.enabled) accent else textColor,
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        )
         profile.filters.forEachIndexed { index, filter ->
-            val center = Offset(x(filter.frequencyHz.toDouble()), y(if (filter.type.usesGain) filter.gainDb.toDouble() else 0.0))
+            val center = Offset(
+                x(filter.frequencyHz.toDouble()),
+                y(if (filter.type.usesGain) filter.gainDb.toDouble() else 0.0)
+            )
             val nodeColor = if (filter.enabled && profile.enabled) accent else textColor
-            if (filter.id == selectedId) drawCircle(nodeColor.copy(alpha = 0.18f), 21.dp.toPx(), center)
+            if (filter.id == selectedId) drawCircle(
+                nodeColor.copy(alpha = 0.18f),
+                21.dp.toPx(),
+                center
+            )
             drawCircle(surface, 12.dp.toPx(), center)
             drawCircle(nodeColor, 12.dp.toPx(), center, style = Stroke(2.dp.toPx()))
-            drawContext.canvas.nativeCanvas.drawText((index + 1).toString(), center.x, center.y + 4.dp.toPx(),
-                Paint(paint).apply { color = nodeColor.toArgb(); textSize = 12.dp.toPx(); isFakeBoldText = true })
+            drawContext.canvas.nativeCanvas.drawText(
+                (index + 1).toString(), center.x, center.y + 4.dp.toPx(),
+                Paint(paint).apply {
+                    color = nodeColor.toArgb(); textSize = 12.dp.toPx(); isFakeBoldText = true
+                })
         }
     }
 }
 
-private fun formatNumber(value: Float, digits: Int) = String.format(Locale.US, "%.${digits}f", value)
+private fun formatNumber(value: Float, digits: Int) =
+    String.format(Locale.US, "%.${digits}f", value)
+
 private fun formatDb(value: Float) = String.format(Locale.US, "%+.1f dB", value)
 private fun formatHz(value: Float) = if (value < 1_000f) "${value.roundToInt()} Hz"
-    else String.format(Locale.US, "%.1f kHz", value / 1_000f)
+else String.format(Locale.US, "%.1f kHz", value / 1_000f)
