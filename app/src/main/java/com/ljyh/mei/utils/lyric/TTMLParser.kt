@@ -28,7 +28,6 @@ class TTMLParser(
     // Workaround for AMLL and other tools not strictly following the spec
     private fun preformattingTTML(content: String): String =
         content
-            .replace("  ", "")
             .replace(" </span><span", "</span> <span")
             .replace(",</span><span", ",</span> <span")
 

@@ -79,9 +79,14 @@ internal fun selectEmbeddedLyric(
     if (netEase?.pureMusic == true) return PURE_MUSIC_LYRIC
 
     val validTtml = ttml?.trim()?.takeIf { TTMLParser().canParse(it) }
+    if (validTtml != null && embedOriginalTtml) return validTtml
+
+    // Audio tags and ordinary .lrc readers work best with the source's line-synced LRC.
+    // The word-synced formats below are flattened only when no usable LRC exists.
+    netEase?.toPlainEmbeddedLrc()?.let { return it }
+
     if (validTtml != null) {
-        if (embedOriginalTtml) return validTtml
-        runCatching { EnhancedLrcEncoder.encode(TTMLParser().parse(validTtml)) }
+        runCatching { DownloadLrcEncoder.encode(TTMLParser().parse(validTtml)) }
             .getOrNull()
             ?.let { return it }
     }
@@ -93,18 +98,17 @@ internal fun selectEmbeddedLyric(
         val translation = sequenceOf(netEase.ytlrc?.lyric, netEase.tlyric?.lyric)
             .mapNotNull { it?.withoutContributorMetadata() }
             .firstOrNull(lrcTimeline::containsMatchIn)
-        runCatching { EnhancedLrcEncoder.encode(YRCParser.parse(yrc, translation)) }
+        runCatching { DownloadLrcEncoder.encode(YRCParser.parse(yrc, translation)) }
             .getOrNull()
             ?.let { return it }
     }
 
     if (qq?.isQrc == true && QRCParser.canParse(qq.content)) {
-        runCatching { EnhancedLrcEncoder.encode(QRCParser.parse(qq.content, qq.translation)) }
+        runCatching { DownloadLrcEncoder.encode(QRCParser.parse(qq.content, qq.translation)) }
             .getOrNull()
             ?.let { return it }
     }
 
-    netEase?.toPlainEmbeddedLrc()?.let { return it }
     if (qq != null && !qq.isQrc) {
         val main = qq.content.withoutContributorMetadata().takeIf(lrcTimeline::containsMatchIn)
         val translation = qq.translation
@@ -123,9 +127,9 @@ private fun Lyric.toPlainEmbeddedLrc(): String? {
         .withoutContributorMetadata()
         .takeIf(lrcTimeline::containsMatchIn)
         ?: return null
-    val translation = tlyric?.lyric
-        ?.withoutContributorMetadata()
-        ?.takeIf(lrcTimeline::containsMatchIn)
+    val translation = sequenceOf(tlyric?.lyric, ytlrc?.lyric)
+        .mapNotNull { it?.withoutContributorMetadata() }
+        .firstOrNull(lrcTimeline::containsMatchIn)
     return joinLyricBlocks(main, translation)
 }
 

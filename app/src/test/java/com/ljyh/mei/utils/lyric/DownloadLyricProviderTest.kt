@@ -18,7 +18,7 @@ class DownloadLyricProviderTest {
     }
 
     @Test
-    fun `yrc is preferred and keeps word timing with ytlrc translation`() {
+    fun `source lrc is preferred over word-synced lyrics`() {
         val yrc = "[1000,2000](1000,500,0)逐(1500,500,0)字"
         val ytlrc = "[00:01.000]translation"
 
@@ -30,18 +30,18 @@ class DownloadLyricProviderTest {
         ).toEmbeddedLyric()
 
         assertEquals(
-            "[00:01.000]<00:01.000>逐<00:01.500>字<00:02.000>\n$ytlrc",
+            "[00:01.00]line lyric\n[00:01.00]fallback translation",
             embedded
         )
     }
 
     @Test
-    fun `tlyric is used when ytlrc is unavailable`() {
-        val yrc = "[1000,2000](1000,1000,0)word"
+    fun `yrc falls back to readable lrc with translation`() {
+        val yrc = "[1000,2000](1000,500,0)Down (1500,500,0)for"
         val translation = "[00:01.00]翻译"
 
         assertEquals(
-            "[00:01.000]<00:01.000>word<00:02.000>\n[00:01.000]翻译",
+            "[00:01.000]Down for\n[00:01.000]翻译",
             lyric(yrc = yrc, tlyric = translation).toEmbeddedLyric()
         )
     }
@@ -57,15 +57,25 @@ class DownloadLyricProviderTest {
     }
 
     @Test
-    fun `ttml is converted to enhanced lrc by default`() {
+    fun `ttml is converted to readable lrc by default`() {
         assertEquals(
-            "[00:01.000]<00:01.000>Hello<00:01.500>world<00:02.000>",
+            "[00:01.000]Hello world",
             selectEmbeddedLyric(null, ttml(), null, embedOriginalTtml = false)
         )
     }
 
     @Test
-    fun `qrc is always converted to enhanced lrc`() {
+    fun `ttml fallback keeps words and translation together`() {
+        val ttml = """<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttm="http://www.w3.org/ns/ttml#metadata"><body><div><p begin="00:00.201" end="00:03.000"><span begin="00:00.201" end="00:00.425">Down </span><span begin="00:00.425" end="00:00.745">for </span><span begin="00:00.745" end="00:03.000">one night</span><span ttm:role="x-translation">陪我一夜就好</span></p></div></body></tt>"""
+
+        assertEquals(
+            "[00:00.201]Down for one night\n[00:00.201]陪我一夜就好",
+            selectEmbeddedLyric(null, ttml, null, embedOriginalTtml = false),
+        )
+    }
+
+    @Test
+    fun `qrc is converted to readable lrc even when original ttml is enabled`() {
         val qrc = QqLyricPayload(
             content = "[1000,2000]逐(1000,500)字(1500,500)",
             translation = "[00:01.000]translation",
@@ -73,8 +83,29 @@ class DownloadLyricProviderTest {
         )
 
         assertEquals(
-            "[00:01.000]<00:01.000>逐<00:01.500>字<00:02.000>\n[00:01.000]translation",
+            "[00:01.000]逐字\n[00:01.000]translation",
             selectEmbeddedLyric(null, null, qrc, embedOriginalTtml = true)
+        )
+    }
+
+    @Test
+    fun `source lrc is preferred to ttml when original ttml is disabled`() {
+        val source = lyric(lrc = "[00:01.00]Down for one night")
+
+        assertEquals(
+            "[00:01.00]Down for one night",
+            selectEmbeddedLyric(source, ttml(), null, embedOriginalTtml = false),
+        )
+    }
+
+    @Test
+    fun `plain lrc keeps ytlrc translation when tlyric is absent`() {
+        assertEquals(
+            "[00:01.00]Down for one night\n[00:01.000]陪我一夜就好",
+            lyric(
+                lrc = "[00:01.00]Down for one night",
+                ytlrc = "[00:01.000]陪我一夜就好",
+            ).toEmbeddedLyric(),
         )
     }
 
@@ -106,7 +137,7 @@ class DownloadLyricProviderTest {
         assertNull(lyric(lrc = metadata).toEmbeddedLyric())
     }
 
-    private fun ttml() = """<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="00:01.000" end="00:02.000"><span begin="00:01.000" end="00:01.500">Hello</span><span begin="00:01.500" end="00:02.000">world</span></p></div></body></tt>"""
+    private fun ttml() = """<tt xmlns="http://www.w3.org/ns/ttml"><body><div><p begin="00:01.000" end="00:02.000"><span begin="00:01.000" end="00:01.500">Hello  </span><span begin="00:01.500" end="00:02.000">world</span></p></div></body></tt>"""
 
     private fun lyric(
         lrc: String = "",

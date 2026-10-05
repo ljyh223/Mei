@@ -105,8 +105,8 @@ fun DownloadSetting(
             )
 
             SwitchPreference(
-                title = { Text("原样嵌入 TTML 歌词") },
-                description = "关闭时将 TTML 转换为兼容性更好的增强型 LRC",
+                title = { Text("保留原始 TTML 歌词") },
+                description = "有 TTML 时原样嵌入并保存 .ttml；关闭时使用普通 LRC",
                 icon = { Icon(Icons.Rounded.Lyrics, null) },
                 checked = embedOriginalTtml,
                 onCheckedChange = onEmbedOriginalTtmlChange

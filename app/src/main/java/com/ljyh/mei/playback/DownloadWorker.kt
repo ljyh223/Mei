@@ -180,7 +180,7 @@ class DownloadWorker(
         saveSeparateLyrics: Boolean,
     ) {
         val task = db.downloadDao().getBySongId(songId)
-        if (task == null || task.url.isBlank() || task.status == DownloadStatus.PAUSED) {
+        if (task == null || task.status == DownloadStatus.PAUSED) {
             failedCount.incrementAndGet()
             updateTask(db, songId, DownloadStatus.FAILED, 0)
             return
@@ -192,8 +192,7 @@ class DownloadWorker(
                 try {
                     applicationContext.contentResolver.openInputStream(
                         existingSong.path.toUri()
-                    )?.close()
-                    true
+                    )?.use { true } ?: false
                 } catch (_: Exception) { false }
             } else {
                 File(existingSong.path).exists()
@@ -213,6 +212,13 @@ class DownloadWorker(
                 completedCount.incrementAndGet()
                 return
             }
+        }
+
+        // A local song needs only lyric/tag repair; its audio URL is irrelevant.
+        if (task.url.isBlank()) {
+            failedCount.incrementAndGet()
+            updateTask(db, songId, DownloadStatus.FAILED, 0)
+            return
         }
 
         updateTask(db, songId, DownloadStatus.DOWNLOADING, 0)
@@ -406,7 +412,7 @@ class DownloadWorker(
     ) = withContext(Dispatchers.IO) {
         val contentUri = path.takeIf { it.startsWith("content://") }?.toUri()
         val workingFile = if (contentUri != null) {
-            val suffix = task.fileType.ifBlank { "mp3" }
+            val suffix = task.fileType.ifBlank { existingAudioExtension(contentUri) }
             File(tempDir, "repair-$songId.$suffix").also { file ->
                 val input = applicationContext.contentResolver.openInputStream(contentUri)
                     ?: error("Unable to open downloaded song for tag repair: $contentUri")
@@ -459,6 +465,33 @@ class DownloadWorker(
             }
         } finally {
             if (contentUri != null) workingFile.delete()
+        }
+    }
+
+    private fun existingAudioExtension(uri: Uri): String {
+        val displayName = runCatching {
+            applicationContext.contentResolver.query(
+                uri,
+                arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+                if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+            }
+        }.getOrNull()
+        displayName?.substringAfterLast('.', "")?.lowercase()
+            ?.takeIf { it in setOf("mp3", "flac", "m4a", "mp4", "aac", "ogg", "wav", "opus") }
+            ?.let { return it }
+        return when (runCatching { applicationContext.contentResolver.getType(uri) }.getOrNull()) {
+            "audio/flac" -> "flac"
+            "audio/mp4" -> "m4a"
+            "audio/aac" -> "aac"
+            "audio/ogg" -> "ogg"
+            "audio/wav", "audio/x-wav" -> "wav"
+            "audio/opus" -> "opus"
+            else -> "mp3"
         }
     }
 

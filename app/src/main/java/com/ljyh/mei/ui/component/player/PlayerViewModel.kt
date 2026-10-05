@@ -266,6 +266,31 @@ class PlayerViewModel @Inject constructor(
         saveSeparateLyrics: Boolean = false,
     ) {
         viewModelScope.launch {
+            val songId = metadata.id.toString()
+            val downloadPath = AppContext.instance.dataStore[DownloadPathKey]
+                ?: com.ljyh.mei.utils.DownloadManager.getDefaultDownloadPath()
+            if (songId in com.ljyh.mei.utils.DownloadManager.existingLocalSongIds(context, listOf(songId))) {
+                com.ljyh.mei.utils.DownloadManager.enqueue(
+                    context = context,
+                    songs = listOf(
+                        com.ljyh.mei.playback.SongDownloadInfo(
+                            songId = songId,
+                            url = null,
+                            songTitle = metadata.title,
+                            songArtist = metadata.artists.map { it.name },
+                            songAlbum = metadata.album.title,
+                            songCover = metadata.coverUrl,
+                            duration = metadata.duration,
+                        )
+                    ),
+                    playlistName = "单曲下载",
+                    downloadPath = downloadPath,
+                    saveSeparateLyrics = saveSeparateLyrics,
+                )
+                android.widget.Toast.makeText(context, "已添加到歌词修复队列", android.widget.Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
             val quality = try {
                 val saved = AppContext.instance.dataStore[DownloadQualityKey]
                 if (saved != null) com.ljyh.mei.constants.DownloadQuality.valueOf(saved).toMusicQuality()
@@ -275,7 +300,7 @@ class PlayerViewModel @Inject constructor(
             }
 
             val result = playlistRepository.getSongUrlV1(
-                ids = listOf(metadata.id.toString()),
+                ids = listOf(songId),
                 quality = quality
             )
 
@@ -283,14 +308,11 @@ class PlayerViewModel @Inject constructor(
                 val songData = result.data.data.firstOrNull()
                 val url = songData?.url
                 if (url != null) {
-                    val downloadPath = AppContext.instance.dataStore[DownloadPathKey]
-                        ?: com.ljyh.mei.utils.DownloadManager.getDefaultDownloadPath()
-
                     com.ljyh.mei.utils.DownloadManager.enqueue(
                         context = context,
                         songs = listOf(
                             com.ljyh.mei.playback.SongDownloadInfo(
-                                songId = metadata.id.toString(),
+                                songId = songId,
                                 url = url,
                                 songTitle = metadata.title,
                                 songArtist = metadata.artists.map { it.name },

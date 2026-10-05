@@ -1,6 +1,7 @@
 package com.ljyh.mei.utils
 
 import android.content.Context
+import androidx.core.net.toUri
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -140,9 +141,35 @@ object DownloadManager {
         val db = AppDatabase.getDatabase(AppContext.instance)
         val song = kotlinx.coroutines.runBlocking { db.songDao().getSong(songId).first() }
         val path = song?.path ?: return false
-        if (path.startsWith("content://")) return true
-        return File(path).exists()
+        if (path.startsWith("content://")) {
+            return runCatching {
+                AppContext.instance.contentResolver.openInputStream(path.toUri())?.use { true } ?: false
+            }.getOrDefault(false)
+        }
+        return File(path).isFile
     }
+
+    /** Existing app-library files can have their lyrics repaired without an audio URL. */
+    suspend fun existingLocalSongIds(context: Context, songIds: Collection<String>): Set<String> =
+        withContext(Dispatchers.IO) {
+            if (songIds.isEmpty()) return@withContext emptySet()
+            val wanted = songIds.toHashSet()
+            AppDatabase.getDatabase(context).songDao().getLocalSongs().first()
+                .asSequence()
+                .filter { it.id in wanted }
+                .filter { song ->
+                    val path = song.path ?: return@filter false
+                    if (path.startsWith("content://")) {
+                        runCatching {
+                            context.contentResolver.openInputStream(path.toUri())?.use { true } ?: false
+                        }.getOrDefault(false)
+                    } else {
+                        File(path).isFile
+                    }
+                }
+                .map { it.id }
+                .toSet()
+        }
 
     suspend fun isSongDownloading(songId: String): Boolean {
         val db = AppDatabase.getDatabase(AppContext.instance)

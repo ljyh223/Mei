@@ -146,7 +146,11 @@ fun AlbumDetailScreen(
     fun doDownload(tracks: List<MediaMetadata>, saveSeparateLyrics: Boolean) {
         scope.launch {
             val songIds = tracks.map { it.id.toString() }
-            val result = viewModel.resolveSongUrls(songIds, downloadQuality.toMusicQuality())
+            val localIds = DownloadManager.existingLocalSongIds(context, songIds)
+            val remoteIds = songIds.filterNot { it in localIds }
+            val result = if (remoteIds.isNotEmpty()) {
+                viewModel.resolveSongUrls(remoteIds, downloadQuality.toMusicQuality())
+            } else null
             val urlMap = if (result is Resource.Success) {
                 result.data.data.associate { it.id.toString() to (it.url to it.encodeType) }
             } else {
@@ -154,10 +158,15 @@ fun AlbumDetailScreen(
             }
 
             val downloadInfos = tracks.mapNotNull { track ->
-                val (url, encodeType) = urlMap[track.id.toString()] ?: return@mapNotNull null
-                if (url != null) {
+                val songId = track.id.toString()
+                val (url, encodeType) = if (songId in localIds) {
+                    null to ""
+                } else {
+                    urlMap[songId] ?: return@mapNotNull null
+                }
+                if (url != null || songId in localIds) {
                     SongDownloadInfo(
-                        songId = track.id.toString(),
+                        songId = songId,
                         url = url,
                         songTitle = track.title,
                         songArtist = track.artists.map { it.name },
