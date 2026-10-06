@@ -20,6 +20,7 @@ import java.nio.ByteOrder
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.time.Duration.Companion.milliseconds
 
 class WasmAudioFingerprinter @Inject constructor(
     @param:ApplicationContext private val context: Context,
@@ -38,7 +39,7 @@ class WasmAudioFingerprinter @Inject constructor(
         return withContext(Dispatchers.Main.immediate) {
             val webView = WebView(context)
             try {
-                withTimeout(30_000) {
+                withTimeout(30_000.milliseconds) {
                     suspendCancellableCoroutine { continuation ->
                         val bridge = FingerprintBridge(
                             onResult = { fingerprint ->
