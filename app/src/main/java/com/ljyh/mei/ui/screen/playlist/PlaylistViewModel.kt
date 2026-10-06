@@ -19,6 +19,7 @@ import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.data.network.safeApiCall
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.repository.LikeRepository
@@ -82,6 +83,57 @@ class PlaylistViewModel @Inject constructor(
             _playlistDetail.value = repository.getPlaylistDetail(id)
             localPlaylistRepository.touchPlaylist(id, System.currentTimeMillis())
         }
+    }
+
+    suspend fun loadTracksForReorder(playlistId: Long): Resource<List<PlaylistOrderItem>> {
+        val detail = (_playlistDetail.value as? Resource.Success)?.data
+            ?: return Resource.Error("歌单尚未加载完成")
+        val currentUserId = AppContext.instance.dataStore[UserIdKey] ?: ""
+        if (detail.id != playlistId || currentUserId.isEmpty() ||
+            detail.creatorUserId.toString() != currentUserId) {
+            return Resource.Error("只能调整自己创建的歌单")
+        }
+        return safeApiCall {
+            val visibleIds = detail.trackIds.filterNot { it in _removedTrackIds.value }
+            val tracksById = detail.tracks.associateBy { it.id }.toMutableMap()
+            visibleIds.filterNot(tracksById::containsKey).chunked(200).forEach { ids ->
+                repository.getSongDetails(ids.map(Long::toString)).forEach { track ->
+                    tracksById[track.id] = track
+                }
+            }
+            visibleIds.map { id -> PlaylistOrderItem(id, tracksById[id]) }
+        }
+    }
+
+    suspend fun saveTrackOrder(
+        playlistId: Long,
+        items: List<PlaylistOrderItem>,
+    ): Resource<BaseResponse> {
+        val detail = (_playlistDetail.value as? Resource.Success)?.data
+            ?: return Resource.Error("歌单尚未加载完成")
+        val currentUserId = AppContext.instance.dataStore[UserIdKey] ?: ""
+        val ids = items.map(PlaylistOrderItem::id)
+        val removedIds = _removedTrackIds.value
+        val expectedIds = detail.trackIds.filterNot { it in removedIds }
+        if (detail.id != playlistId || currentUserId.isEmpty() ||
+            detail.creatorUserId.toString() != currentUserId) {
+            return Resource.Error("只能调整自己创建的歌单")
+        }
+        if (ids.size != expectedIds.size || ids.toSet() != expectedIds.toSet()) {
+            return Resource.Error("歌单歌曲已变化，请重新打开排序")
+        }
+        val result = repository.updatePlaylistTrackOrder(playlistId.toString(), ids)
+        if (result is Resource.Success && result.data.code == 200) {
+            val tracksById = (detail.tracks + items.mapNotNull(PlaylistOrderItem::track))
+                .associateBy { it.id }
+            _playlistDetail.value = Resource.Success(detail.copy(
+                trackIds = ids,
+                tracks = ids.mapNotNull(tracksById::get),
+                count = (detail.count - removedIds.size).coerceAtLeast(0),
+            ))
+            _removedTrackIds.value = emptySet()
+        }
+        return result
     }
 
     // 分页加载，不是根据歌单id加载，而是根据歌曲id加载

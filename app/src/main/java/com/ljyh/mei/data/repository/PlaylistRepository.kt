@@ -21,6 +21,7 @@ import com.ljyh.mei.data.model.api.GetSongUrl
 import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
+import com.ljyh.mei.data.model.api.UpdatePlaylistTrackOrder
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.weapi.HighQualityPlaylist
 import com.ljyh.mei.data.network.api.ApiService
@@ -98,6 +99,13 @@ class PlaylistRepository(
             }
         }
     }
+
+    suspend fun updatePlaylistTrackOrder(pid: String, ids: List<Long>): Resource<BaseResponse> =
+        withContext(Dispatchers.IO) {
+            safeApiCall {
+                apiService.updatePlaylistTrackOrder(UpdatePlaylistTrackOrder(pid, ids))
+            }
+        }
 
 
     suspend fun getEveryDayRecommendSongs(): Resource<List<MediaMetadata>> {

@@ -41,7 +41,9 @@ fun Track(
     isTablet: Boolean = false,
     isPlaying: Boolean = false,
     onClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onMoreClick: () -> Unit,
+    moreButtonModifier: Modifier = Modifier,
+    moreContentDescription: String = "更多",
 ) {
     TrackContent(
         track = track,
@@ -51,6 +53,8 @@ fun Track(
         isLoading = false,
         onClick = onClick,
         onMoreClick = onMoreClick,
+        moreButtonModifier = moreButtonModifier,
+        moreContentDescription = moreContentDescription,
     )
 }
 
@@ -67,6 +71,8 @@ fun TrackPlaceholder(
         isLoading = true,
         onClick = {},
         onMoreClick = {},
+        moreButtonModifier = Modifier,
+        moreContentDescription = "更多",
     )
 }
 
@@ -79,6 +85,8 @@ private fun TrackContent(
     isLoading: Boolean,
     onClick: () -> Unit,
     onMoreClick: () -> Unit,
+    moreButtonModifier: Modifier,
+    moreContentDescription: String,
 ) {
     Row(
         modifier = Modifier
@@ -175,11 +183,11 @@ private fun TrackContent(
         IconButton(
             onClick = onMoreClick,
             enabled = !isLoading,
-            modifier = Modifier.padding(start = 8.dp).size(32.dp)
+            modifier = Modifier.padding(start = 8.dp).size(48.dp).then(moreButtonModifier)
         ) {
             Icon(
                 imageVector = Icons.Filled.MoreVert,
-                contentDescription = "更多",
+                contentDescription = moreContentDescription,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp).skeleton(isLoading, CircleShape)
             )

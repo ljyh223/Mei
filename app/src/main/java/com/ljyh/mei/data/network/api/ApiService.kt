@@ -38,6 +38,7 @@ import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
 import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.api.ManipulateTrack
+import com.ljyh.mei.data.model.api.UpdatePlaylistTrackOrder
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.api.SearchSuggest
@@ -85,6 +86,8 @@ class ApiService(private val http: NeteaseHttp) {
     suspend fun like(body: Like): LikeResult =
         http.post(base, "/api/radio/like", body)
     suspend fun manipulateTracks(body: ManipulateTrack): ManipulateTrackResult =
+        http.post(base, "/api/playlist/manipulate/tracks", body)
+    suspend fun updatePlaylistTrackOrder(body: UpdatePlaylistTrackOrder): BaseResponse =
         http.post(base, "/api/playlist/manipulate/tracks", body)
     suspend fun createPlaylist(body: CreatePlaylist): CreatePlaylistResult =
         http.post(base, "/api/playlist/create", body)

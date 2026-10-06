@@ -84,6 +84,10 @@ fun CommonSongListScreen(
     isPlaylistSearchActive: Boolean = false,
     onPlaylistSearchQueryChange: ((String) -> Unit)? = null,
     onPlaylistSearchActiveChange: (Boolean) -> Unit = {},
+    reorderItems: List<PlaylistOrderItem>? = null,
+    reorderSaving: Boolean = false,
+    onMoveTrack: (Int, Int) -> Unit = { _, _ -> },
+    onReorderFinished: () -> Unit = {},
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -265,6 +269,10 @@ fun CommonSongListScreen(
                                     onTrackClick = onTrackClick,
                                     onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
                                     onTrackDownload = onTrackDownload,
+                                    reorderItems = reorderItems.takeIf { !isPlaylistSearchActive },
+                                    reorderSaving = reorderSaving,
+                                    onMoveTrack = onMoveTrack,
+                                    onReorderFinished = onReorderFinished,
                                     emptyMessage = playlistSearchQuery.takeIf { it.isNotBlank() }
                                         ?.let { "未找到匹配的歌曲" },
                                     isLoading = isLoading,
@@ -300,6 +308,10 @@ fun CommonSongListScreen(
                             onTrackClick = onTrackClick,
                             onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
                             onTrackDownload = onTrackDownload,
+                            reorderItems = reorderItems.takeIf { !isPlaylistSearchActive },
+                            reorderSaving = reorderSaving,
+                            onMoveTrack = onMoveTrack,
+                            onReorderFinished = onReorderFinished,
                             emptyMessage = playlistSearchQuery.takeIf { it.isNotBlank() }
                                 ?.let { "未找到匹配的歌曲" },
                             // 手机端需要考虑底部播放器的高度

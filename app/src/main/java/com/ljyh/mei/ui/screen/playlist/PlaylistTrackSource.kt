@@ -16,28 +16,17 @@ class PlaylistTrackSource(
         val offset = params.key ?: 0
 
         return try {
-            val data: List<MediaMetadata>
-
-            if (offset < firstData.size) {
-                // ★第一页，直接返回服务器提供的 tracks（数量不固定）
-                data = firstData.subList(offset, firstData.size)
-            } else {
-                // ★后续页，从 trackIds 分页取 ID
-                val end = minOf(offset + pageSize, ids.size)
-
-                if (offset >= end) {
-                    data = emptyList()
-                } else {
-                    data = repository.getSongDetails(ids.subList(offset, end))
+            val end = minOf(offset + pageSize, ids.size)
+            val pageIds = ids.subList(offset.coerceAtMost(end), end)
+            val tracksById = firstData.associateBy { it.id.toString() }.toMutableMap()
+            val missingIds = pageIds.filterNot(tracksById::containsKey)
+            if (missingIds.isNotEmpty()) {
+                repository.getSongDetails(missingIds).forEach { track ->
+                    tracksById[track.id.toString()] = track
                 }
             }
-
-            // ★下一页起点：offset + 当前取出的数量（不是固定 20）
-            val nextKey = if (data.isEmpty() || offset + data.size >= ids.size) {
-                null
-            } else {
-                offset + data.size
-            }
+            val data = pageIds.mapNotNull(tracksById::get)
+            val nextKey = end.takeIf { it < ids.size }
 
             LoadResult.Page(
                 data = data,
