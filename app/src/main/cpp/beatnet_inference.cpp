@@ -141,7 +141,7 @@ void Predict(const float* weights, const float* features, float* activations) {
 }  // namespace
 
 extern "C" JNIEXPORT jfloatArray JNICALL
-Java_com_ljyh_mei_playback_BeatNetRuntime_predict(
+Java_com_ljyh_mei_playback_transition_BeatNetRuntime_predict(
     JNIEnv* environment, jobject, jobject modelBuffer, jfloatArray featureArray) {
   if (modelBuffer == nullptr || featureArray == nullptr ||
       environment->GetDirectBufferCapacity(modelBuffer) != kModelFloats * sizeof(float) ||

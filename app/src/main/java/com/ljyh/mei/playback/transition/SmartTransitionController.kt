@@ -296,6 +296,8 @@ internal class SmartTransitionController(
                 if (analysisAttempt == key) beatPlan = result
             } catch (error: CancellationException) {
                 throw error
+            } catch (error: LinkageError) {
+                Timber.tag("SmartTransition").w(error, "BeatNet native linkage unavailable; using audio envelope")
             } catch (error: Exception) {
                 Timber.tag("SmartTransition").w(error, "BeatNet analysis unavailable; using audio envelope")
             } finally {
