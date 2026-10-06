@@ -18,9 +18,6 @@
 
 Mei 是一款使用 **Jetpack Compose** 开发的 **网易云音乐第三方客户端**。
 
-好久不见，最近会整合代码，并带来一些新UI，比如将applemusic-like-lyric那样的效果迁移到本项目中(已经实现，不过一些gpu处理器会出现bug，希望大家能够针对贡献一些pr)
-
-** v1.54** 还有一些bug(比如进入全屏播放器有闪烁，player bar 消失，流体玻璃的适配等问题)，会在近期发布修复版本
 <table>
   <tr>
     <td><img src="./screenshot/2026-05-01/player1.jpg" width="200"></td>
@@ -42,6 +39,8 @@ Mei 是一款使用 **Jetpack Compose** 开发的 **网易云音乐第三方客�
 * 历史播放记录(本地存储)
 * 专辑详情页
 * 自选背景 & 个人中心 UI 迭代
+* 动态封面
+* 歌词单独保存
 
 ---
 
@@ -133,7 +132,11 @@ screenshot
 </table>
 
 ---
-
+## TODO
+- [x] 解灰(beta)
+- [x] 听歌识曲(beta)
+- [x] 智能过度(beta)
+- [ ] USB 独占(等设备中)
 
 ## 写在最后
 
