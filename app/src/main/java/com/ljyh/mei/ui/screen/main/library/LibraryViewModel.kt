@@ -2,13 +2,13 @@ package com.ljyh.mei.ui.screen.main.library
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.data.model.AlbumPhoto
-import com.ljyh.mei.data.model.UserAccountSummary
-import com.ljyh.mei.data.model.UserAlbumList
-import com.ljyh.mei.data.model.UserDetail
-import com.ljyh.mei.data.model.UserVipInfo
-import com.ljyh.mei.data.model.ListenDataRealtimeResponse
-import com.ljyh.mei.data.model.ListenDataReportResponse
+import com.ljyh.mei.data.model.response.AlbumPhoto
+import com.ljyh.mei.data.model.domain.UserAccountSummary
+import com.ljyh.mei.data.model.response.UserAlbumList
+import com.ljyh.mei.data.model.response.UserDetail
+import com.ljyh.mei.data.model.response.UserVipInfo
+import com.ljyh.mei.data.model.response.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.response.ListenDataReportResponse
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
@@ -139,11 +139,19 @@ class LibraryViewModel @Inject constructor(
     )
 
     private var loadedUid: String? = null
+    private var observedCookie: String? = null
     private var libraryLoadJob: Job? = null
     private var accountLoadJob: Job? = null
 
+    fun onCookieAvailable(cookie: String) {
+        if (cookie.isBlank()) return
+        val cookieChanged = observedCookie != null && observedCookie != cookie
+        observedCookie = cookie
+        getUserAccount(force = cookieChanged)
+    }
+
     fun getUserAccount(force: Boolean = false) {
-        if (!force && account.value is Resource.Success) return
+        if (!force && (account.value is Resource.Success || accountLoadJob?.isActive == true)) return
         accountLoadJob?.cancel()
         if (force) {
             libraryLoadJob?.cancel()
@@ -163,6 +171,18 @@ class LibraryViewModel @Inject constructor(
             val result = repository.getUserAccount()
             if (currentCoroutineContext().isActive) {
                 _account.value = result
+                if (force) {
+                    (result as? Resource.Success)?.data?.profile?.let { profile ->
+                        loadLibrary(
+                            LibraryProfileUi(
+                                userId = profile.userId.toString(),
+                                nickname = profile.nickname,
+                                avatarUrl = profile.avatarUrl,
+                                signature = profile.signature,
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -171,21 +191,31 @@ class LibraryViewModel @Inject constructor(
         fallbackProfile.value = profile
         val uid = profile.userId
         if (uid.isBlank() || (loadedUid == uid && libraryLoadJob?.isActive == true)) return
+        val userChanged = loadedUid != uid
         loadedUid = uid
         libraryLoadJob?.cancel()
-        _userDetail.value = Resource.Loading
-        _userVipInfo.value = Resource.Loading
-        _photoAlbum.value = Resource.Loading
-        _albumList.value = Resource.Loading
-        _weekListenRealtime.value = Resource.Loading
-        _monthListenRealtime.value = Resource.Loading
-        _weekListenReport.value = Resource.Loading
+        if (userChanged) {
+            _userDetail.value = Resource.Loading
+            _userVipInfo.value = Resource.Loading
+            _photoAlbum.value = Resource.Loading
+            _albumList.value = Resource.Loading
+            _weekListenRealtime.value = Resource.Loading
+            _monthListenRealtime.value = Resource.Loading
+            _weekListenReport.value = Resource.Loading
+        } else if (_albumList.value is Resource.Error) {
+            _albumList.value = Resource.Loading
+        }
         libraryLoadJob = viewModelScope.launch {
             coroutineScope {
                 launch { _userDetail.value = repository.getUserDetail(uid) }
                 launch { _userVipInfo.value = repository.getUserVipInfo(uid) }
                 launch { _photoAlbum.value = repository.getPhotoAlbum(uid) }
-                launch { _albumList.value = repository.getAlbumList() }
+                launch {
+                    val result = repository.getAlbumList()
+                    if (result is Resource.Success || _albumList.value !is Resource.Success) {
+                        _albumList.value = result
+                    }
+                }
                 launch {
                     _weekListenRealtime.value =
                         repository.getListenDataRealtimeReport(type = "week")

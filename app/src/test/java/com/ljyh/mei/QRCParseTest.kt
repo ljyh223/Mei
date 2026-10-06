@@ -1,7 +1,6 @@
 package com.ljyh.mei
 
 import com.ljyh.mei.utils.lyric.QRCParser
-
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import org.junit.Assert.*

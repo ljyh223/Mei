@@ -46,7 +46,7 @@ import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
-import com.ljyh.mei.data.model.UserData
+import com.ljyh.mei.data.model.domain.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.component.AdaptiveMainNavigationRail
@@ -71,8 +71,8 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.theme.MusicTheme
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.rememberPreference
 import okhttp3.OkHttpClient
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking

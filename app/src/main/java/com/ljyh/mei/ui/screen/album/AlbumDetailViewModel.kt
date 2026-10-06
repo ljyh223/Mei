@@ -3,7 +3,7 @@ package com.ljyh.mei.ui.screen.album
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.constants.MusicQuality
-import com.ljyh.mei.data.model.AlbumContent
+import com.ljyh.mei.data.model.domain.AlbumContent
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity

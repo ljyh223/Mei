@@ -16,10 +16,10 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.LoopPlaybackKey
-import com.ljyh.mei.data.model.createPlaceholder
-import com.ljyh.mei.data.model.metadata
-import com.ljyh.mei.data.model.toMediaItem
-import com.ljyh.mei.data.model.toMediaMetadata
+import com.ljyh.mei.data.model.domain.createPlaceholder
+import com.ljyh.mei.data.model.domain.metadata
+import com.ljyh.mei.data.model.domain.toMediaItem
+import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.extensions.currentMetadata
@@ -27,9 +27,9 @@ import com.ljyh.mei.extensions.getCurrentQueueIndex
 import com.ljyh.mei.extensions.getQueueWindows
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.Queue
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
-import com.ljyh.mei.utils.reportException
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.get
+import com.ljyh.mei.utils.log.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

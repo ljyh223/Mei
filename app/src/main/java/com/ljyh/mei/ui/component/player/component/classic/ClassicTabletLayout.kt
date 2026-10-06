@@ -55,7 +55,7 @@ import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.overlay.TabletPlayerPanel
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.LyricSource
-import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 
 @Composable
 fun ClassicTabletLayout(

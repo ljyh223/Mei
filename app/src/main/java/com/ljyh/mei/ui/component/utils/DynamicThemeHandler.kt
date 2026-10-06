@@ -14,7 +14,7 @@ import com.kmpalette.rememberDominantColorState
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.ui.local.LocalDatabase
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest

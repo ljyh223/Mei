@@ -20,7 +20,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.CommonImageRadius
 import com.ljyh.mei.constants.PlaylistThumbnailSize
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.utils.smallImage
+import com.ljyh.mei.utils.image.smallImage
 
 @Composable
 fun PlaylistItem(

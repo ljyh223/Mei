@@ -7,8 +7,8 @@ import kotlinx.serialization.json.Json
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.AndroidIdKey
 import com.ljyh.mei.constants.AndroidUserAgent
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter

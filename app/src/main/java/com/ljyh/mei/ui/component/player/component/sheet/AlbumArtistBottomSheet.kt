@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.component.sheet
 
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -37,8 +36,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.utils.smallImage
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.utils.image.smallImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

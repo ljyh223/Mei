@@ -1,8 +1,8 @@
 package com.ljyh.mei.audio.match
 
 import androidx.media3.common.MediaItem
-import com.ljyh.mei.data.model.createPlaceholder
-import com.ljyh.mei.data.model.toMediaItem
+import com.ljyh.mei.data.model.domain.createPlaceholder
+import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.network.api.ApiService
 import kotlinx.coroutines.CancellationException

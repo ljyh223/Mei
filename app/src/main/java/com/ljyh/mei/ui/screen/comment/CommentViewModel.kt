@@ -7,8 +7,8 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.ljyh.mei.data.model.api.CommentSortType
-import com.ljyh.mei.data.model.CommentEntry
-import com.ljyh.mei.data.model.FloorCommentEntry
+import com.ljyh.mei.data.model.domain.CommentEntry
+import com.ljyh.mei.data.model.domain.FloorCommentEntry
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.CommentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

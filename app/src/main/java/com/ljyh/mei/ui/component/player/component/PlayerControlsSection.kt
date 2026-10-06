@@ -20,7 +20,7 @@ import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.playback.PlayerConnection
-import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 
 @OptIn(UnstableApi::class)
 @Composable

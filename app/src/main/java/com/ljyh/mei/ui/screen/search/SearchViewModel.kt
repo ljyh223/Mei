@@ -2,7 +2,7 @@ package com.ljyh.mei.ui.screen.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.data.model.SearchResults
+import com.ljyh.mei.data.model.domain.SearchResults
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

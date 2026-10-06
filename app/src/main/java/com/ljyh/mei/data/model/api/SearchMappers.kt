@@ -1,11 +1,11 @@
 package com.ljyh.mei.data.model.api
 
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.SearchAlbum
-import com.ljyh.mei.data.model.SearchArtist
-import com.ljyh.mei.data.model.SearchPlaylist
-import com.ljyh.mei.data.model.SearchResults
-import com.ljyh.mei.data.model.SearchSuggestions
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.SearchAlbum
+import com.ljyh.mei.data.model.domain.SearchArtist
+import com.ljyh.mei.data.model.domain.SearchPlaylist
+import com.ljyh.mei.data.model.domain.SearchResults
+import com.ljyh.mei.data.model.domain.SearchSuggestions
 import com.ljyh.mei.utils.netease.NeteaseUtils.getResourceLink
 
 internal fun SearchResult.toDomain(): SearchResults = SearchResults(

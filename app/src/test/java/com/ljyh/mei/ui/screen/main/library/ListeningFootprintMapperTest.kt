@@ -1,16 +1,16 @@
 package com.ljyh.mei.ui.screen.main.library
 
-import com.ljyh.mei.data.model.ListenAchievementTitle
-import com.ljyh.mei.data.model.ListenDataRealtime
-import com.ljyh.mei.data.model.ListenDataRealtimeResponse
-import com.ljyh.mei.data.model.ListenDataReport
-import com.ljyh.mei.data.model.ListenDataReportResponse
-import com.ljyh.mei.data.model.ListenDurationDetail
-import com.ljyh.mei.data.model.ListenTimeDistributionBlock
-import com.ljyh.mei.data.model.RankedArtist
-import com.ljyh.mei.data.model.RankedArtistBlock
-import com.ljyh.mei.data.model.TodayListenBlock
-import com.ljyh.mei.data.model.TopStyleBlock
+import com.ljyh.mei.data.model.response.ListenAchievementTitle
+import com.ljyh.mei.data.model.response.ListenDataRealtime
+import com.ljyh.mei.data.model.response.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.response.ListenDataReport
+import com.ljyh.mei.data.model.response.ListenDataReportResponse
+import com.ljyh.mei.data.model.response.ListenDurationDetail
+import com.ljyh.mei.data.model.response.ListenTimeDistributionBlock
+import com.ljyh.mei.data.model.response.RankedArtist
+import com.ljyh.mei.data.model.response.RankedArtistBlock
+import com.ljyh.mei.data.model.response.TodayListenBlock
+import com.ljyh.mei.data.model.response.TopStyleBlock
 import com.ljyh.mei.data.network.Resource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

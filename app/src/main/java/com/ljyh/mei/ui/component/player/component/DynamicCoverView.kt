@@ -46,7 +46,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.ljyh.mei.data.repository.DynamicCover
-import com.ljyh.mei.playback.CacheManager
+import com.ljyh.mei.playback.source.CacheManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.time.Duration.Companion.milliseconds

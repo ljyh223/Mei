@@ -11,7 +11,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.GridMenu
 import com.ljyh.mei.ui.component.GridMenuItem
 

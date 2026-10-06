@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.about
 
-
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -26,8 +25,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.BlurOn
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Lyrics
@@ -70,7 +69,7 @@ import com.ljyh.mei.constants.Github
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)

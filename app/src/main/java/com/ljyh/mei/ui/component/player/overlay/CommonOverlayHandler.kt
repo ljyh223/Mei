@@ -16,7 +16,7 @@ import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.constants.DownloadPathKey
 import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.DownloadConfirmDialog
 import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.player.component.sheet.AlbumArtistBottomSheet
@@ -33,9 +33,9 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.utils.DownloadManager
-import com.ljyh.mei.utils.rememberEnumPreference
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.download.DownloadManager
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 import timber.log.Timber
 
 /**

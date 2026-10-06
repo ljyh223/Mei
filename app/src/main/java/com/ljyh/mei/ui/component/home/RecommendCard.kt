@@ -41,7 +41,7 @@ import com.ljyh.mei.constants.RecommendCardHeight
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.ui.screen.main.home.HomeViewModel
 import com.ljyh.mei.ui.component.shimmer.skeleton
-import com.ljyh.mei.utils.largeImage
+import com.ljyh.mei.utils.image.largeImage
 
 @Composable
 fun RecommendCard(

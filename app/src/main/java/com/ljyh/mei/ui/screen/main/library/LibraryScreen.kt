@@ -31,7 +31,7 @@ import com.ljyh.mei.ui.screen.main.library.component.ImmersiveBackground
 import com.ljyh.mei.ui.screen.main.library.component.LibraryMobileLayout
 import com.ljyh.mei.ui.screen.main.library.component.LibraryTabletLayout
 import com.ljyh.mei.ui.screen.main.library.component.PhotoPickerSheet
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 
 @Composable
 fun LibraryScreen(
@@ -57,15 +57,15 @@ fun LibraryScreen(
     val accountProfile = (account as? Resource.Success)?.data?.profile
     val profileSignature = accountProfile?.signature.orEmpty()
     val profileSeed = LibraryProfileUi(
-        userId = userId,
-        nickname = userNickname,
-        avatarUrl = userAvatarUrl,
+        userId = accountProfile?.userId?.toString() ?: userId,
+        nickname = accountProfile?.nickname ?: userNickname,
+        avatarUrl = accountProfile?.avatarUrl ?: userAvatarUrl,
         signature = profileSignature,
     )
 
     // --- 数据同步逻辑 ---
     LaunchedEffect(profileSeed) {
-        if (userId.isNotEmpty()) {
+        if (profileSeed.userId.isNotEmpty()) {
             viewModel.loadLibrary(profileSeed)
         }
     }
@@ -78,7 +78,7 @@ fun LibraryScreen(
         }
     }
     LaunchedEffect(cookie) {
-        if (cookie.isNotEmpty()) viewModel.getUserAccount(force = true)
+        viewModel.onCookieAvailable(cookie)
     }
     LaunchedEffect(account) {
         (account as? Resource.Success)

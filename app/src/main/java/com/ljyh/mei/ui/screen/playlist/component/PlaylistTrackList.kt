@@ -30,11 +30,11 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.ui.component.item.TrackPlaceholder
 import com.ljyh.mei.ui.component.shimmer.skeleton
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 
 @Composable
 fun PlaylistTrackList(

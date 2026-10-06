@@ -50,7 +50,7 @@ import com.ljyh.mei.ui.component.player.component.classic.component.PlayerHeader
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.LyricSource
-import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import kotlinx.coroutines.launch
 
 

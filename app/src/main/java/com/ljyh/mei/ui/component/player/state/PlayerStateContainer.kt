@@ -15,8 +15,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.metadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.metadata
 import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
@@ -26,7 +26,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.lyric.createDefaultLyricData
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import timber.log.Timber

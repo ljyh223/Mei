@@ -7,8 +7,8 @@ import androidx.media3.common.Player.REPEAT_MODE_ALL
 import androidx.media3.common.Player.REPEAT_MODE_OFF
 import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Timeline
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.metadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.metadata
 import java.util.ArrayDeque
 
 fun Player.togglePlayPause() {

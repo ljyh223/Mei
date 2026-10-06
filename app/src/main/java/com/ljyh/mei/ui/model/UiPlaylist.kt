@@ -1,6 +1,6 @@
 package com.ljyh.mei.ui.model
 
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 
 data class UiPlaylist(
     val id: Long,

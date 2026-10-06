@@ -9,13 +9,13 @@ import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
-import com.ljyh.mei.data.model.UserAccountSummary
+import com.ljyh.mei.data.model.domain.UserAccountSummary
 import com.ljyh.mei.data.model.auth.QrLoginStatus
 import com.ljyh.mei.data.model.auth.QrLoginUiState
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.ShareRepository
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job

@@ -54,12 +54,12 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.ui.component.player.component.DynamicCoverView
 import com.ljyh.mei.utils.TimeUtils
-import com.ljyh.mei.utils.saveDynamicCoverToMovies
-import com.ljyh.mei.utils.setClipboard
+import com.ljyh.mei.download.saveDynamicCoverToMovies
+import com.ljyh.mei.utils.system.setClipboard
 import com.ljyh.mei.utils.image.saveImageToGallery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch

@@ -2,8 +2,8 @@ package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.data.model.api.GetSearch
 import com.ljyh.mei.data.model.api.GetSearchSuggest
-import com.ljyh.mei.data.model.SearchResults
-import com.ljyh.mei.data.model.SearchSuggestions
+import com.ljyh.mei.data.model.domain.SearchResults
+import com.ljyh.mei.data.model.domain.SearchSuggestions
 import com.ljyh.mei.data.model.api.toDomain
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService

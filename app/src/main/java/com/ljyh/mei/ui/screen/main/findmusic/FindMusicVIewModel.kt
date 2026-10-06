@@ -5,7 +5,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.data.model.FeaturedPlaylistPage
+import com.ljyh.mei.data.model.domain.FeaturedPlaylistPage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch

@@ -1,6 +1,6 @@
 package com.ljyh.mei.ui.model
 
-import com.ljyh.mei.data.model.UserAlbumList
+import com.ljyh.mei.data.model.response.UserAlbumList
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity
 

@@ -4,10 +4,10 @@ import com.ljyh.mei.data.model.api.CommentResourceType
 import com.ljyh.mei.data.model.api.CommentSortType
 import com.ljyh.mei.data.model.api.GetComment
 import com.ljyh.mei.data.model.api.GetFloorComment
-import com.ljyh.mei.data.model.CommentEntry
-import com.ljyh.mei.data.model.CommentPage
-import com.ljyh.mei.data.model.CommentUser
-import com.ljyh.mei.data.model.FloorCommentEntry
+import com.ljyh.mei.data.model.domain.CommentEntry
+import com.ljyh.mei.data.model.domain.CommentPage
+import com.ljyh.mei.data.model.domain.CommentUser
+import com.ljyh.mei.data.model.domain.FloorCommentEntry
 import com.ljyh.mei.data.model.weapi.Comment
 import com.ljyh.mei.data.model.weapi.FloorComment
 import com.ljyh.mei.data.network.Resource

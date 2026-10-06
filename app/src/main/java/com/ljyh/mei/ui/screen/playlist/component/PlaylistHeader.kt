@@ -40,7 +40,7 @@ import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.screen.playlist.ActionButton
-import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 
 
 @Composable

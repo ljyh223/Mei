@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.main.findmusic
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,13 +51,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
-import com.ljyh.mei.data.model.FeaturedPlaylist
+import com.ljyh.mei.data.model.domain.FeaturedPlaylist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.home.PlaylistCard as SharedPlaylistCard
+import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)

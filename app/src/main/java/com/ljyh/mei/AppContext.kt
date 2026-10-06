@@ -11,8 +11,8 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.ljyh.mei.constants.DynamicCoverKey
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.data.repository.DynamicCoverRepository
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.canUseBatteryIntensiveFeatures
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.power.canUseBatteryIntensiveFeatures
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

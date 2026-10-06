@@ -1,6 +1,6 @@
 package com.ljyh.mei.ui.screen.main.library
 
-import com.ljyh.mei.data.model.UserVipInfo
+import com.ljyh.mei.data.model.response.UserVipInfo
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

@@ -1,14 +1,13 @@
 package com.ljyh.mei.data.network.api
 
-
 import com.ljyh.mei.data.model.api.GetFloorComment
+import com.ljyh.mei.data.model.response.UserVipInfo
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.data.model.weapi.FloorComment
 import com.ljyh.mei.data.model.weapi.HighQualityPlaylist
 import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
 import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.mei.data.model.weapi.UserSubcount
-import com.ljyh.mei.data.model.UserVipInfo
 import com.ljyh.mei.data.network.NeteaseHttp
 
 class WeApiService(private val http: NeteaseHttp) {

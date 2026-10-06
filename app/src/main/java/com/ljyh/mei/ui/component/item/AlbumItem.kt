@@ -22,7 +22,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.AlbumThumbnailSize
 import com.ljyh.mei.constants.CommonImageRadius
 import com.ljyh.mei.ui.model.Album
-import com.ljyh.mei.utils.smallImage
+import com.ljyh.mei.utils.image.smallImage
 
 
 @Composable

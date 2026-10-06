@@ -2,13 +2,14 @@ package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.checkToken
-import com.ljyh.mei.data.model.AlbumContent
-import com.ljyh.mei.data.model.FeaturedPlaylistPage
-import com.ljyh.mei.data.model.MiniPlaylistDetail
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.SongUrl
-import com.ljyh.mei.data.model.toMediaMetadata
-import com.ljyh.mei.data.model.toDomain
+import com.ljyh.mei.data.model.domain.AlbumContent
+import com.ljyh.mei.data.model.domain.FeaturedPlaylistPage
+import com.ljyh.mei.data.model.response.MiniPlaylistDetail
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.response.SongUrl
+import com.ljyh.mei.data.model.domain.toMediaMetadata
+import com.ljyh.mei.data.model.domain.toDomain
+import com.ljyh.mei.data.model.response.toDomain
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylist

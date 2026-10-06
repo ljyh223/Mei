@@ -3,9 +3,9 @@ package com.ljyh.mei.data.repository
 import android.content.Context
 import com.ljyh.mei.constants.DefaultTtmlLyricsBaseUrl
 import com.ljyh.mei.constants.TtmlLyricsBaseUrlKey
-import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.toMediaMetadata
+import com.ljyh.mei.data.model.response.Lyric
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.model.api.GetIntelligence
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
@@ -24,7 +24,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.data.model.api.CheckSongLike
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first

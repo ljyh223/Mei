@@ -1,15 +1,15 @@
 package com.ljyh.mei.data.network.api
 
-import com.ljyh.mei.data.model.AlbumDetail
-import com.ljyh.mei.data.model.AlbumPhoto
-import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.PlaylistDetail
-import com.ljyh.mei.data.model.SongUrl
-import com.ljyh.mei.data.model.Tracks
-import com.ljyh.mei.data.model.UserAccount
-import com.ljyh.mei.data.model.UserDetail
-import com.ljyh.mei.data.model.UserAlbumList
-import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.response.AlbumDetail
+import com.ljyh.mei.data.model.response.AlbumPhoto
+import com.ljyh.mei.data.model.response.Lyric
+import com.ljyh.mei.data.model.response.PlaylistDetail
+import com.ljyh.mei.data.model.response.SongUrl
+import com.ljyh.mei.data.model.response.Tracks
+import com.ljyh.mei.data.model.response.UserAccount
+import com.ljyh.mei.data.model.response.UserDetail
+import com.ljyh.mei.data.model.response.UserAlbumList
+import com.ljyh.mei.data.model.response.UserPlaylist
 import com.ljyh.mei.data.model.api.ArtistAlbum
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.api.ArtistSong

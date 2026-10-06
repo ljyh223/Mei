@@ -19,8 +19,8 @@ import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
 import com.ljyh.mei.utils.cache.CacheFile
 import com.ljyh.mei.utils.cache.CacheFile.isNewDay
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext

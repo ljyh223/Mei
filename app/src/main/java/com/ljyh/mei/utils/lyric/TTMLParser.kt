@@ -1,6 +1,5 @@
 package com.ljyh.mei.utils.lyric
 
-
 import com.ljyh.mei.utils.lyric.xml.SimpleXmlParser
 import com.ljyh.mei.utils.lyric.xml.XmlElement
 import com.mocharealm.accompanist.lyrics.core.model.ISyncedLine
@@ -15,6 +14,7 @@ import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.core.parser.ILyricsParser
 import com.mocharealm.accompanist.lyrics.core.utils.PhoneticProvider
 import kotlin.collections.get
+
 class TTMLParser(
     private val fallbackPhoneticProvider: PhoneticProvider? = null,
 ) : ILyricsParser {

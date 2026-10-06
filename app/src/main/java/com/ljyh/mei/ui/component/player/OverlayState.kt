@@ -1,6 +1,6 @@
 package com.ljyh.mei.ui.component.player
 
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 
 sealed interface OverlayState {
     data object None : OverlayState

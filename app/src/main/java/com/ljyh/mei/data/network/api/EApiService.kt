@@ -1,8 +1,8 @@
 package com.ljyh.mei.data.network.api
 
-import com.ljyh.mei.data.model.AlbumPhoto
-import com.ljyh.mei.data.model.ListenDataRealtimeResponse
-import com.ljyh.mei.data.model.ListenDataReportResponse
+import com.ljyh.mei.data.model.response.AlbumPhoto
+import com.ljyh.mei.data.model.response.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.response.ListenDataReportResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum

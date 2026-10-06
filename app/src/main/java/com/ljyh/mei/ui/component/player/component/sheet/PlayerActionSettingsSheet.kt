@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.component.sheet
 
-
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -32,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.PlayerActionKey
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.PlayerAction
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)

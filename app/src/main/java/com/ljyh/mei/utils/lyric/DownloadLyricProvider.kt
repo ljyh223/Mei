@@ -2,10 +2,10 @@ package com.ljyh.mei.utils.lyric
 
 import android.content.Context
 import com.ljyh.mei.constants.EmbedOriginalTtmlKey
-import com.ljyh.mei.data.model.Lyric
+import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope

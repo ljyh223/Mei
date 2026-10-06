@@ -29,8 +29,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.ljyh.mei.data.model.CommentEntry
-import com.ljyh.mei.data.model.FloorCommentEntry
+import com.ljyh.mei.data.model.domain.CommentEntry
+import com.ljyh.mei.data.model.domain.FloorCommentEntry
 import com.ljyh.mei.data.network.Resource
 import timber.log.Timber
 

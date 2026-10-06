@@ -74,7 +74,7 @@ import com.ljyh.mei.constants.EqualizerBandLevelsKey
 import com.ljyh.mei.constants.EqualizerEnabledKey
 import com.ljyh.mei.constants.ParametricEqualizerProfileKey
 import com.ljyh.mei.constants.UserEqualizerPresetsKey
-import com.ljyh.mei.playback.AudioEffectsController
+import com.ljyh.mei.playback.equalizer.AudioEffectsController
 import com.ljyh.mei.playback.equalizer.BiquadDesign
 import com.ljyh.mei.playback.equalizer.EqFilter
 import com.ljyh.mei.playback.equalizer.EqualizerPreset
@@ -87,7 +87,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map

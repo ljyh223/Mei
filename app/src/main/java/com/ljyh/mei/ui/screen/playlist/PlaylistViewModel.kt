@@ -10,8 +10,8 @@ import androidx.paging.filter
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.MiniPlaylistDetail
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.response.MiniPlaylistDetail
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
@@ -22,8 +22,8 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.repository.LikeRepository
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.get
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

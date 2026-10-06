@@ -64,7 +64,7 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
-import com.ljyh.mei.utils.DownloadManager
+import com.ljyh.mei.download.DownloadManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

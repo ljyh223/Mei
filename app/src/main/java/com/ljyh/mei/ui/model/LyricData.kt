@@ -1,6 +1,6 @@
 package com.ljyh.mei.ui.model
 
-import com.ljyh.mei.data.model.Lyric
+import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.unblockneteasemusic.model.MusicLyrics
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 

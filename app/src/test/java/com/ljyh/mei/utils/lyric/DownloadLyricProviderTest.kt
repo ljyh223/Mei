@@ -1,6 +1,6 @@
 package com.ljyh.mei.utils.lyric
 
-import com.ljyh.mei.data.model.Lyric
+import com.ljyh.mei.data.model.response.Lyric
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

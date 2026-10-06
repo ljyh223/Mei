@@ -10,9 +10,9 @@ import com.ljyh.mei.constants.DownloadPathKey
 import com.ljyh.mei.constants.DownloadQualityKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
-import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.UserPlaylistPage
+import com.ljyh.mei.data.model.response.Lyric
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.UserPlaylistPage
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.unblockneteasemusic.model.MusicTrack
@@ -32,8 +32,8 @@ import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.model.SortOrder
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -267,12 +267,12 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             val songId = metadata.id.toString()
             val downloadPath = AppContext.instance.dataStore[DownloadPathKey]
-                ?: com.ljyh.mei.utils.DownloadManager.getDefaultDownloadPath()
-            if (songId in com.ljyh.mei.utils.DownloadManager.existingLocalSongIds(context, listOf(songId))) {
-                com.ljyh.mei.utils.DownloadManager.enqueue(
+                ?: com.ljyh.mei.download.DownloadManager.getDefaultDownloadPath()
+            if (songId in com.ljyh.mei.download.DownloadManager.existingLocalSongIds(context, listOf(songId))) {
+                com.ljyh.mei.download.DownloadManager.enqueue(
                     context = context,
                     songs = listOf(
-                        com.ljyh.mei.playback.SongDownloadInfo(
+                        com.ljyh.mei.download.SongDownloadInfo(
                             songId = songId,
                             url = null,
                             songTitle = metadata.title,
@@ -307,10 +307,10 @@ class PlayerViewModel @Inject constructor(
                 val songData = result.data.data.firstOrNull()
                 val url = songData?.url
                 if (url != null) {
-                    com.ljyh.mei.utils.DownloadManager.enqueue(
+                    com.ljyh.mei.download.DownloadManager.enqueue(
                         context = context,
                         songs = listOf(
-                            com.ljyh.mei.playback.SongDownloadInfo(
+                            com.ljyh.mei.download.SongDownloadInfo(
                                 songId = songId,
                                 url = url,
                                 songTitle = metadata.title,

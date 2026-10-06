@@ -36,7 +36,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.ThumbnailCornerRadius
-import com.ljyh.mei.utils.smallImage
+import com.ljyh.mei.utils.image.smallImage
 
 @Composable
 fun MiniPlayerBarContent(

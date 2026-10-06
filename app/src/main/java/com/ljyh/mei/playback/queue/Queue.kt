@@ -1,8 +1,8 @@
 package com.ljyh.mei.playback.queue
 
 import androidx.media3.common.MediaItem
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.metadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.metadata
 import kotlinx.coroutines.flow.StateFlow
 
 /**

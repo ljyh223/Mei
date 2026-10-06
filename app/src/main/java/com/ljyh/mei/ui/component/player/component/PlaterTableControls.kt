@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.component
 
-
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box

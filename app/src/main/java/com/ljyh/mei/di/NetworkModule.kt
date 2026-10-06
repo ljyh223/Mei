@@ -12,7 +12,7 @@ import com.ljyh.unblockneteasemusic.kuwo.KuwoMusicProvider
 import com.ljyh.unblockneteasemusic.migu.MiguMusicProvider
 import com.ljyh.unblockneteasemusic.unblock.UnblockResolver
 import com.ljyh.unblockneteasemusic.unblock.UnblockStage
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.Module
 import dagger.Provides

@@ -11,12 +11,12 @@ import androidx.lifecycle.lifecycleScope
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.constants.FirstLaunchKey
 import com.ljyh.mei.constants.UserAgent
-import com.ljyh.mei.data.model.UserData
+import com.ljyh.mei.data.model.domain.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.app.MeiApp
-import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.log.CrashHandler
 import com.ljyh.mei.utils.log.FileLoggingTree
 import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
             if (dataStore.get(FirstLaunchKey, true)) {
                 dataStore.edit { settings ->
                     settings[FirstLaunchKey] = false
-                    settings[DeviceIdKey] = com.ljyh.mei.utils.getDeviceId()
+                    settings[DeviceIdKey] = com.ljyh.mei.utils.netease.getDeviceId()
                 }
             }
         }

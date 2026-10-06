@@ -23,8 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.ArtistThumbnailSize
-import com.ljyh.mei.data.model.SearchArtist
-import com.ljyh.mei.utils.smallImage
+import com.ljyh.mei.data.model.domain.SearchArtist
+import com.ljyh.mei.utils.image.smallImage
 
 
 @Composable

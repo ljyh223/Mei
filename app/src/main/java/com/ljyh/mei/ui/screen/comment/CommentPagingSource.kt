@@ -3,7 +3,7 @@ package com.ljyh.mei.ui.screen.comment
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.ljyh.mei.data.model.api.CommentSortType
-import com.ljyh.mei.data.model.CommentEntry
+import com.ljyh.mei.data.model.domain.CommentEntry
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.CommentRepository
 import timber.log.Timber

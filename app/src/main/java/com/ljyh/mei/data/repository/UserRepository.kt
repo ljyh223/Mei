@@ -1,14 +1,14 @@
 package com.ljyh.mei.data.repository
 
-import com.ljyh.mei.data.model.AlbumPhoto
-import com.ljyh.mei.data.model.UserAccountSummary
-import com.ljyh.mei.data.model.UserDetail
-import com.ljyh.mei.data.model.UserVipInfo
-import com.ljyh.mei.data.model.UserAlbumList
-import com.ljyh.mei.data.model.UserPlaylistPage
-import com.ljyh.mei.data.model.toDomain
-import com.ljyh.mei.data.model.ListenDataRealtimeResponse
-import com.ljyh.mei.data.model.ListenDataReportResponse
+import com.ljyh.mei.data.model.response.AlbumPhoto
+import com.ljyh.mei.data.model.domain.UserAccountSummary
+import com.ljyh.mei.data.model.response.UserDetail
+import com.ljyh.mei.data.model.response.UserVipInfo
+import com.ljyh.mei.data.model.response.UserAlbumList
+import com.ljyh.mei.data.model.domain.UserPlaylistPage
+import com.ljyh.mei.data.model.domain.toDomain
+import com.ljyh.mei.data.model.response.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.response.ListenDataReportResponse
 import com.ljyh.mei.data.model.api.GetAlbumList
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.GetUserPlaylist
@@ -79,9 +79,11 @@ class UserRepository(
     suspend fun getAlbumList(): Resource<UserAlbumList> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
-                apiService.getCollectAlbumList(
+                val response = apiService.getCollectAlbumList(
                     GetAlbumList()
                 )
+                check(response.code == 200) { "收藏专辑请求失败 (${response.code})" }
+                response
             }
         }
     }

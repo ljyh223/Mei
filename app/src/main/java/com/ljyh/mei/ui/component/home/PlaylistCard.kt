@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.ui.component.shimmer.skeleton
-import com.ljyh.mei.utils.largeImage
+import com.ljyh.mei.utils.image.largeImage
 import androidx.compose.ui.unit.Dp
 
 @Composable

@@ -1,11 +1,11 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.runtime.Immutable
-import com.ljyh.mei.data.model.UserAccountSummary
-import com.ljyh.mei.data.model.UserAlbumList
-import com.ljyh.mei.data.model.UserVipInfo
-import com.ljyh.mei.data.model.ListenDataRealtimeResponse
-import com.ljyh.mei.data.model.ListenDataReportResponse
+import com.ljyh.mei.data.model.domain.UserAccountSummary
+import com.ljyh.mei.data.model.response.UserAlbumList
+import com.ljyh.mei.data.model.response.UserVipInfo
+import com.ljyh.mei.data.model.response.ListenDataRealtimeResponse
+import com.ljyh.mei.data.model.response.ListenDataReportResponse
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.model.Album
@@ -144,6 +144,13 @@ internal fun resolveLibraryUiState(
             is Resource.Error -> LibraryUiState.Error(accountResource.message)
             is Resource.Success -> LibraryUiState.Error("账户信息不可用")
             Resource.Loading -> LibraryUiState.Loading
+        }
+    }
+    if (section == LibrarySection.Albums) {
+        when (albumResource) {
+            Resource.Loading -> return LibraryUiState.Loading
+            is Resource.Error -> return LibraryUiState.Error(albumResource.message)
+            is Resource.Success -> Unit
         }
     }
     val albums = (albumResource as? Resource.Success)

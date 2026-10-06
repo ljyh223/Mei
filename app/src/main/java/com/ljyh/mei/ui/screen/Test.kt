@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen
 
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,7 +9,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-
 
 @Composable
 fun Test2(){

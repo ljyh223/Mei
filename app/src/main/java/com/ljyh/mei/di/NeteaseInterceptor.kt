@@ -4,13 +4,13 @@ import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.constants.checkToken
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.encrypt.createRandomKey
 import com.ljyh.mei.utils.encrypt.decodeEApiResponse
 import com.ljyh.mei.utils.encrypt.encryptEApi
 import com.ljyh.mei.utils.encrypt.encryptWeAPI
-import com.ljyh.mei.utils.get
-import com.ljyh.mei.utils.getDeviceId
+import com.ljyh.mei.utils.preferences.get
+import com.ljyh.mei.utils.netease.getDeviceId
 import com.ljyh.mei.utils.netease.ChineseIpUtils
 import com.ljyh.mei.utils.netease.NeteaseUtils.getWNMCID
 import okhttp3.FormBody

@@ -2,7 +2,7 @@ package com.ljyh.mei.ui.screen.playlist
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.repository.PlaylistRepository
 
 class PlaylistTrackSource(

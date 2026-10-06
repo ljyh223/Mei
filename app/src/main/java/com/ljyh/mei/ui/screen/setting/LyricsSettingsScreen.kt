@@ -81,8 +81,8 @@ import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
-import com.ljyh.mei.utils.rememberEnumPreference
-import com.ljyh.mei.utils.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberPreference
 import codes.side.colorpicker.model.HslColor
 import codes.side.colorpicker.ui.HslColorPicker
 

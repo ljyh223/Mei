@@ -29,11 +29,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ljyh.mei.constants.CommonImageRadius
-import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.playlist.PlayingImageView
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.TimeUtils.formatDuration
-import com.ljyh.mei.utils.smallImage
+import com.ljyh.mei.utils.image.smallImage
 @Composable
 fun Track(
     track: MediaMetadata,

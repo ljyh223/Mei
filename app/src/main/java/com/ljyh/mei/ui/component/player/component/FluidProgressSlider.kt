@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
-import com.ljyh.mei.utils.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)

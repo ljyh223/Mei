@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import com.ljyh.mei.utils.canUseBatteryIntensiveFeatures
+import com.ljyh.mei.utils.power.canUseBatteryIntensiveFeatures
 
 @Composable
 fun rememberBatteryIntensiveFeaturesAllowed(): Boolean {

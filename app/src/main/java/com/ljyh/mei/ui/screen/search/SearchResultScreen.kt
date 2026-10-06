@@ -25,12 +25,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.SearchAlbum
-import com.ljyh.mei.data.model.SearchPlaylist
-import com.ljyh.mei.data.model.SearchResults
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.SearchAlbum
+import com.ljyh.mei.data.model.domain.SearchPlaylist
+import com.ljyh.mei.data.model.domain.SearchResults
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.data.model.toMediaItem
+import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.item.AlbumItem

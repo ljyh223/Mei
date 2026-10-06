@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.DownloadQuality
-import com.ljyh.mei.playback.Android10LyricTree
+import com.ljyh.mei.download.Android10LyricTree
 
 @Composable
 fun DownloadConfirmDialog(

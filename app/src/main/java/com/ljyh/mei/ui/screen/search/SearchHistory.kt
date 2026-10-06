@@ -3,7 +3,7 @@ package com.ljyh.mei.ui.screen.search
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.constants.SearchHistoryKey
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import org.json.JSONArray
 
 private const val MAX_SEARCH_HISTORY = 20

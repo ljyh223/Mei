@@ -44,12 +44,12 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import coil3.compose.AsyncImage
-import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.metadata
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.metadata
 import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatDuration
-import com.ljyh.mei.utils.smallImage
+import com.ljyh.mei.utils.image.smallImage
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType

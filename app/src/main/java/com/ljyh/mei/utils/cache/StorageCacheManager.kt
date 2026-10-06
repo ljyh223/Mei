@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.media3.common.util.UnstableApi
 import coil3.SingletonImageLoader
 import com.ljyh.mei.constants.MusicQuality
-import com.ljyh.mei.playback.CacheManager
+import com.ljyh.mei.playback.source.CacheManager
 import java.io.File
 import java.nio.file.Files
 

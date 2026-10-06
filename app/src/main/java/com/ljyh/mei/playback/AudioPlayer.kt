@@ -1,6 +1,5 @@
 package com.ljyh.mei.playback
 
-
 import android.animation.Animator
 import android.animation.ValueAnimator
 import android.view.animation.LinearInterpolator

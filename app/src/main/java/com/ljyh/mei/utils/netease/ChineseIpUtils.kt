@@ -1,8 +1,7 @@
 package com.ljyh.mei.utils.netease
 
-
-import timber.log.Timber
 import java.util.Random
+import timber.log.Timber
 
 /**
  * 中国 IP 生成器

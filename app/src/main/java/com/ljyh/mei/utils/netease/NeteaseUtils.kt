@@ -4,10 +4,10 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.constants.AndroidIdKey
 import com.ljyh.mei.constants.AndroidUserAgent
-import com.ljyh.mei.utils.dataStore
+import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.encrypt.encryptId
 import com.ljyh.mei.utils.encrypt.generateRandomMac
-import com.ljyh.mei.utils.get
+import com.ljyh.mei.utils.preferences.get
 import korlibs.encoding.Base64
 import kotlin.text.buildString
 import kotlin.text.isEmpty
