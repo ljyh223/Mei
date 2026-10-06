@@ -13,6 +13,6 @@ data class SongUrl(
     data class Data(
         @SerialName("id") val id: Long = 0,
         @SerialName("url") val url: String? = null,
-        @SerialName("encodeType") val encodeType: String = "",
+        @SerialName("encodeType") val encodeType: String? = null,
     )
 }

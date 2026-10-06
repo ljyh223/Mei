@@ -38,7 +38,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -199,6 +202,7 @@ fun TextFieldDialog(
     placeholder: @Composable (() -> Unit)? = null,
     singleLine: Boolean = true,
     maxLines: Int = if (singleLine) 1 else 10,
+    sensitive: Boolean = false,
     isInputValid: (String) -> Boolean = { it.isNotEmpty() },
     onDone: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -243,8 +247,12 @@ fun TextFieldDialog(
             placeholder = placeholder,
             singleLine = singleLine,
             maxLines = maxLines,
+            visualTransformation = if (sensitive) PasswordVisualTransformation() else VisualTransformation.None,
             colors = TextFieldDefaults.colors(),
-            keyboardOptions = KeyboardOptions(imeAction = if (singleLine) ImeAction.Done else ImeAction.None),
+            keyboardOptions = KeyboardOptions(
+                imeAction = if (singleLine) ImeAction.Done else ImeAction.None,
+                keyboardType = if (sensitive) KeyboardType.Password else KeyboardType.Text,
+            ),
             keyboardActions = KeyboardActions(
                 onDone = {
                     onDone(textFieldValue.text)

@@ -34,6 +34,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DefaultTtmlLyricsBaseUrl
 import com.ljyh.mei.constants.QqTimeout
+import com.ljyh.mei.constants.QqCookieKey
 import com.ljyh.mei.constants.QqTimeoutKey
 import com.ljyh.mei.constants.TtmlLyricsBaseUrlKey
 import com.ljyh.mei.data.model.auth.QrLoginUiState
@@ -176,6 +177,18 @@ fun ContentsSetting(
                         viewModel.getUserAccount()
                     }
                 }
+            )
+
+            PreferenceGroupTitle(title = "备用音源")
+            val (qqCookie, onQqCookieChange) = rememberPreference(QqCookieKey, defaultValue = "")
+            EditTextPreference(
+                title = { Text("QQ 音乐 Cookie") },
+                icon = { Icon(Icons.Rounded.Cookie, contentDescription = null) },
+                value = qqCookie,
+                onValueChange = { onQqCookieChange(it.trim()) },
+                sensitive = true,
+                placeholder = { Text("粘贴 QQ 音乐网页的完整 Cookie") },
+                isInputValid = { true },
             )
 
             val (qqTimeout, onQqTimeoutChange) = rememberPreference(

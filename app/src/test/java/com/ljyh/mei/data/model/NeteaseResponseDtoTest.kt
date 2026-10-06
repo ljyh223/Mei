@@ -102,6 +102,16 @@ class NeteaseResponseDtoTest {
     }
 
     @Test
+    fun decodesUnavailablePlaybackUrlWithNullQualityMetadata() {
+        val response = json.decodeFromString<SongUrl>(
+            """{"code":200,"data":[{"id":185697,"url":null,"encodeType":null,"level":null,"br":0}]}"""
+        )
+
+        assertEquals(185697L, response.data.single().id)
+        assertNull(response.data.single().url)
+    }
+
+    @Test
     fun decodesCommentPagesAndFloorRepliesWithConsumedFields() {
         val page = json.decodeFromString<Comment>(
             """{"code":200,"data":{"comments":[{"commentId":9,"content":"hello","time":123,"timeStr":"just now","liked":true,"likedCount":2,"ipLocation":{"location":"Shanghai","ip":"hidden"},"showFloorComment":{"replyCount":4,"unused":1},"user":{"avatarUrl":"avatar","nickname":"listener","unused":true},"unused":true}],"hasMore":true,"totalCount":88,"unused":true}}"""

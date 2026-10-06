@@ -550,8 +550,8 @@ class MusicService : MediaLibraryService(),
                     Timber.tag("ResolvingDataSource").d("Fully cached on disk: $cacheKey")
                     return@runBlocking dataSpec.buildUpon().setKey(cacheKey).build()
                 }
-                val uri = mediaUriProvider.resolveMediaUri(mediaId, quality)
-                dataSpec.buildUpon().setUri(uri).setKey(cacheKey).build()
+                val resolved = mediaUriProvider.resolveMedia(mediaId, quality)
+                dataSpec.buildUpon().setUri(resolved.uri).setKey(resolved.cacheKey).build()
             }
         }
     }

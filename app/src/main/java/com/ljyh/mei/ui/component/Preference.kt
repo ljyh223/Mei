@@ -196,6 +196,8 @@ fun EditTextPreference(
     value: String,
     onValueChange: (String) -> Unit,
     singleLine: Boolean = true,
+    sensitive: Boolean = false,
+    placeholder: @Composable (() -> Unit)? = null,
     isInputValid: (String) -> Boolean = { it.isNotEmpty() },
     isEnabled: Boolean = true,
 ) {
@@ -210,6 +212,8 @@ fun EditTextPreference(
                 selection = TextRange(value.length)
             ),
             singleLine = singleLine,
+            sensitive = sensitive,
+            placeholder = placeholder,
             isInputValid = isInputValid,
             onDone = onValueChange,
             onDismiss = { showDialog = false }
@@ -219,7 +223,9 @@ fun EditTextPreference(
     PreferenceEntry(
         modifier = modifier,
         title = title,
-        description = value,
+        description = if (sensitive) {
+            if (value.isBlank()) "未设置" else "已设置"
+        } else value,
         icon = icon,
         onClick = { showDialog = true },
         isEnabled = isEnabled

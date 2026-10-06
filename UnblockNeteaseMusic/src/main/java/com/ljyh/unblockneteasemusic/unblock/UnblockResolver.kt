@@ -11,6 +11,7 @@ class UnblockResolver(
     catalogs: List<MusicCatalogProvider>,
     audioProviders: List<PlayableAudioProvider>,
     private val matcher: TrackMatcher = DefaultTrackMatcher,
+    private val onEvent: (UnblockEvent) -> Unit = {},
 ) {
     private val sources = catalogs.mapNotNull { catalog ->
         audioProviders.firstOrNull { it.sourceId == catalog.sourceId }
@@ -18,32 +19,71 @@ class UnblockResolver(
     }
 
     suspend fun resolve(target: MusicTrack): PlayableAudio? {
+        fun emit(event: UnblockEvent) = onEvent(event.copy(targetId = target.id.value))
+        val artistNames = target.artists.map { it.name }.filter(String::isNotBlank)
+        val query = listOf(stripCoverTag(target.title), artistNames.take(2).joinToString(" / "))
+            .filter(String::isNotBlank).joinToString(" - ")
         for ((catalog, audio) in sources) {
             if (catalog.sourceId == target.id.source) continue
+            emit(UnblockEvent(UnblockStage.SEARCH_STARTED, catalog.sourceId))
             val candidates = try {
-                catalog.search(target.title, limit = 20)
+                catalog.search(query, limit = 5)
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                emit(UnblockEvent(UnblockStage.SEARCH_FAILED, catalog.sourceId, errorType = error.javaClass.simpleName))
                 continue
             }
-            for (candidate in candidates
+            emit(UnblockEvent(UnblockStage.SEARCH_FINISHED, catalog.sourceId, count = candidates.size))
+            val matches = candidates
                 .map { it to matcher.score(target, it) }
                 .filter { it.second >= matcher.minimumScore }
                 .sortedByDescending { it.second }
-                .map { it.first }) {
+                .take(3)
+                .map { it.first }
+            emit(UnblockEvent(UnblockStage.MATCHED, catalog.sourceId, count = matches.size))
+            for (candidate in matches) {
                 try {
-                    audio.resolve(candidate)?.let { return it }
+                    val playable = audio.resolve(candidate)
+                    if (playable == null) {
+                        emit(UnblockEvent(UnblockStage.URL_UNAVAILABLE, catalog.sourceId, candidateId = candidate.id.value))
+                        continue
+                    }
+                    if (matcher.score(target, playable.track) < matcher.minimumScore) {
+                        emit(UnblockEvent(UnblockStage.DURATION_REJECTED, catalog.sourceId, candidateId = candidate.id.value))
+                        continue
+                    }
+                    emit(UnblockEvent(UnblockStage.SELECTED, catalog.sourceId, candidateId = candidate.id.value))
+                    return playable
                 } catch (cancelled: CancellationException) {
                     throw cancelled
-                } catch (_: Exception) {
-                    // Continue with another matching track or source.
+                } catch (error: Exception) {
+                    emit(UnblockEvent(
+                        UnblockStage.URL_FAILED, catalog.sourceId,
+                        candidateId = candidate.id.value, errorType = error.javaClass.simpleName,
+                    ))
                 }
             }
         }
+        emit(UnblockEvent(UnblockStage.EXHAUSTED))
         return null
     }
 }
+
+enum class UnblockStage {
+    SEARCH_STARTED, SEARCH_FINISHED, SEARCH_FAILED, MATCHED,
+    URL_UNAVAILABLE, URL_FAILED, DURATION_REJECTED, SELECTED, EXHAUSTED,
+}
+
+/** Trace metadata only; credentials and signed playback URLs are never included. */
+data class UnblockEvent(
+    val stage: UnblockStage,
+    val sourceId: String? = null,
+    val count: Int? = null,
+    val candidateId: String? = null,
+    val errorType: String? = null,
+    val targetId: String? = null,
+)
 
 interface TrackMatcher {
     val minimumScore: Double
@@ -54,8 +94,8 @@ object DefaultTrackMatcher : TrackMatcher {
     override val minimumScore: Double = 0.8
 
     override fun score(target: MusicTrack, candidate: MusicTrack): Double {
-        val targetTitle = normalize(target.title)
-        val candidateTitle = normalize(candidate.title)
+        val targetTitle = normalizeTitle(target.title)
+        val candidateTitle = normalizeTitle(candidate.title)
         if (targetTitle.isEmpty() || targetTitle != candidateTitle) return 0.0
 
         val targetArtists = target.artists.map { normalize(it.name) }.filter(String::isNotEmpty).toSet()
@@ -69,5 +109,12 @@ object DefaultTrackMatcher : TrackMatcher {
     }
 
     private fun normalize(value: String): String =
-        value.lowercase().replace(Regex("[\\s\\p{Punct}]+"), "")
+        value.lowercase().replace(Regex("[\\s\\p{P}\\p{S}]+"), "")
+
+    private fun normalizeTitle(value: String): String = normalize(stripCoverTag(value))
+
 }
+
+private fun stripCoverTag(value: String): String = value.replace(
+    Regex("[（(]\\s*(?:cover|翻自)[:：\\s][^）)]+[）)]", RegexOption.IGNORE_CASE), ""
+).trim()

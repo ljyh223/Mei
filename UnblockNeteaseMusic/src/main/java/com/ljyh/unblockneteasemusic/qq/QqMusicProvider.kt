@@ -5,9 +5,12 @@ import com.ljyh.unblockneteasemusic.model.MusicAlbum
 import com.ljyh.unblockneteasemusic.model.MusicArtist
 import com.ljyh.unblockneteasemusic.model.MusicLyrics
 import com.ljyh.unblockneteasemusic.model.MusicTrack
+import com.ljyh.unblockneteasemusic.model.PlayableAudio
 import com.ljyh.unblockneteasemusic.model.TrackId
 import com.ljyh.unblockneteasemusic.provider.MusicCatalogProvider
 import com.ljyh.unblockneteasemusic.provider.MusicLyricProvider
+import com.ljyh.unblockneteasemusic.provider.PlayableAudioProvider
+import com.ljyh.unblockneteasemusic.provider.canReadAudio
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
@@ -15,25 +18,50 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.header
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 import java.util.Base64
+import kotlinx.coroutines.CancellationException
+import kotlin.random.Random
 
-class QqMusicProvider internal constructor(private val client: HttpClient) :
-    MusicCatalogProvider, MusicLyricProvider, AutoCloseable {
-    constructor() : this(defaultClient())
+class QqMusicProvider internal constructor(
+    private val client: HttpClient,
+    private val cookieProvider: suspend () -> String? = { null },
+) :
+    MusicCatalogProvider, MusicLyricProvider, PlayableAudioProvider, AutoCloseable {
+    constructor(cookieProvider: suspend () -> String? = { null }) : this(defaultClient(), cookieProvider)
     override val sourceId: String = SOURCE_ID
 
     override suspend fun search(query: String, limit: Int): List<MusicTrack> {
-        val response = client.post(ENDPOINT) {
-            contentType(ContentType.Application.Json)
-            setBody(SearchRequest(request = SearchCall(param = SearchParams(query, pageSize = limit))))
-        }.body<SearchResponse>()
-        return response.request?.data?.body?.songs.orEmpty().map { song ->
+        val cookie = cookieProvider()
+        val liteSongs = try {
+            client.post(ENDPOINT) {
+                cookie?.takeIf(String::isNotBlank)?.let { header(HttpHeaders.Cookie, it) }
+                contentType(ContentType.Application.Json)
+                setBody(SearchRequest(request = SearchCall(param = SearchParams(query, pageSize = limit))))
+            }.body<SearchResponse>().request?.data?.body?.songs.orEmpty()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val songs = if (liteSongs.isNotEmpty()) liteSongs else client.get(ENDPOINT) {
+            cookie?.takeIf(String::isNotBlank)?.let { header(HttpHeaders.Cookie, it) }
+            parameter("data", wireJson.encodeToString(
+                DesktopSearchRequest(DesktopSearchCall(param = DesktopSearchParams(
+                    pageSize = limit, query = query,
+                )))
+            ))
+        }.body<DesktopSearchResponse>().search?.data?.body?.song?.list.orEmpty()
+        return songs.map { song ->
             MusicTrack(
                 id = TrackId(SOURCE_ID, song.id.toString()),
                 title = song.title.ifBlank { song.name },
@@ -49,14 +77,49 @@ class QqMusicProvider internal constructor(private val client: HttpClient) :
                 },
                 durationMs = song.interval * 1_000,
                 displayTitle = song.name.ifBlank { song.title },
+                playbackId = song.mid.takeIf(String::isNotBlank),
             )
         }
+    }
+
+    override suspend fun resolve(track: MusicTrack): PlayableAudio? {
+        require(track.id.source == SOURCE_ID) { "Track is not from QQ Music" }
+        val mid = track.playbackId?.takeIf(String::isNotBlank) ?: return null
+        val cookie = cookieProvider().orEmpty()
+        val uin = Regex("(?:^|;\\s*)uin=o?(\\d+)").find(cookie)?.groupValues?.get(1) ?: "0"
+        val formats = if (cookie.isBlank()) listOf("M500$mid.mp3", null)
+            else listOf("M800$mid.mp3", "M500$mid.mp3", null)
+        for (filename in formats) {
+            try {
+                val response = client.post(ENDPOINT) {
+                    cookie.takeIf(String::isNotBlank)?.let { header(HttpHeaders.Cookie, it) }
+                    contentType(ContentType.Application.Json)
+                    setBody(VkeyRequest(VkeyCall(param = VkeyParams(
+                        guid = Random.nextInt(10_000_000).toString(),
+                        filename = filename?.let(::listOf),
+                        songmid = listOf(mid),
+                        uin = uin,
+                    ))))
+                }.body<VkeyResponse>()
+                val data = response.payload?.data ?: continue
+                val path = data.midurlinfo.firstOrNull()?.purl?.takeIf(String::isNotBlank) ?: continue
+                val url = if (path.startsWith("http://") || path.startsWith("https://")) path
+                    else (data.sip.firstOrNull() ?: continue) + path
+                if (client.canReadAudio(url)) return PlayableAudio(url, track, mimeType = "audio/mpeg")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Try the next format.
+            }
+        }
+        return null
     }
 
     override suspend fun lyrics(request: LyricRequest): MusicLyrics? {
         require(request.track.id.source == SOURCE_ID) { "Track is not from QQ Music" }
         val track = request.track
         val response = client.post(ENDPOINT) {
+            cookieProvider()?.takeIf(String::isNotBlank)?.let { header(HttpHeaders.Cookie, it) }
             contentType(ContentType.Application.Json)
             setBody(
                 LyricRequestDto(
@@ -85,6 +148,7 @@ class QqMusicProvider internal constructor(private val client: HttpClient) :
     companion object {
         const val SOURCE_ID = "qq"
         private const val ENDPOINT = "https://u.y.qq.com/cgi-bin/musicu.fcg"
+        private val wireJson = Json { encodeDefaults = true }
 
         private fun defaultClient(): HttpClient = HttpClient(OkHttp) {
             expectSuccess = true

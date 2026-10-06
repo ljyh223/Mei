@@ -151,7 +151,7 @@ fun AlbumDetailScreen(
                 viewModel.resolveSongUrls(remoteIds, downloadQuality.toMusicQuality())
             } else null
             val urlMap = if (result is Resource.Success) {
-                result.data.data.associate { it.id.toString() to (it.url to it.encodeType) }
+                result.data.data.associate { it.id.toString() to (it.url to it.encodeType.orEmpty()) }
             } else {
                 emptyMap()
             }

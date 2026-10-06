@@ -43,6 +43,7 @@ const val DefaultDesktopLyricsControlsHideDelay = 12
 
 
 val CookieKey = stringPreferencesKey("cookie")
+val QqCookieKey = stringPreferencesKey("qq_music_cookie")
 val MusicQualityKey = stringPreferencesKey("musicQuality")
 val ImageCacheLimitMbKey = intPreferencesKey("imageCacheLimitMb")
 val MusicCacheLimitMbKey = intPreferencesKey("musicCacheLimitMb")

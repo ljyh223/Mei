@@ -48,15 +48,74 @@ internal data class SearchPayload(val data: SearchData? = null)
 internal data class SearchData(val body: SearchBody? = null)
 @Serializable
 internal data class SearchBody(@SerialName("item_song") val songs: List<SongDto> = emptyList())
+
+@Serializable
+internal data class DesktopSearchRequest(val search: DesktopSearchCall)
+@Serializable
+internal data class DesktopSearchCall(
+    val method: String = "DoSearchForQQMusicDesktop",
+    val module: String = "music.search.SearchCgiService",
+    val param: DesktopSearchParams,
+)
+@Serializable
+internal data class DesktopSearchParams(
+    @SerialName("num_per_page") val pageSize: Int,
+    @SerialName("page_num") val pageNumber: Int = 1,
+    val query: String,
+    @SerialName("search_type") val searchType: Int = 0,
+)
+@Serializable
+internal data class DesktopSearchResponse(val search: DesktopSearchPayload? = null)
+@Serializable
+internal data class DesktopSearchPayload(val data: DesktopSearchData? = null)
+@Serializable
+internal data class DesktopSearchData(val body: DesktopSearchBody? = null)
+@Serializable
+internal data class DesktopSearchBody(val song: DesktopSearchSongs? = null)
+@Serializable
+internal data class DesktopSearchSongs(val list: List<SongDto> = emptyList())
 @Serializable
 internal data class SongDto(
     val id: Long,
+    val mid: String = "",
     val name: String = "",
     val title: String = "",
     val interval: Long = 0,
     val singer: List<ArtistDto> = emptyList(),
     val album: AlbumDto? = null,
 )
+
+@Serializable
+internal data class VkeyRequest(
+    @SerialName("req_0") val call: VkeyCall,
+)
+@Serializable
+internal data class VkeyCall(
+    val module: String = "vkey.GetVkeyServer",
+    val method: String = "CgiGetVkey",
+    val param: VkeyParams,
+)
+@Serializable
+internal data class VkeyParams(
+    val guid: String,
+    val loginflag: Int = 1,
+    val filename: List<String>? = null,
+    val songmid: List<String>,
+    val songtype: List<Int> = listOf(0),
+    val uin: String = "0",
+    val platform: String = "20",
+)
+@Serializable
+internal data class VkeyResponse(@SerialName("req_0") val payload: VkeyPayload? = null)
+@Serializable
+internal data class VkeyPayload(val data: VkeyData? = null)
+@Serializable
+internal data class VkeyData(
+    val sip: List<String> = emptyList(),
+    val midurlinfo: List<VkeyUrl> = emptyList(),
+)
+@Serializable
+internal data class VkeyUrl(val purl: String = "")
 @Serializable
 internal data class ArtistDto(val id: Long = 0, val name: String = "")
 @Serializable

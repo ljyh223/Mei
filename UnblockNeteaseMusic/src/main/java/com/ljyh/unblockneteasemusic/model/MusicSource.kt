@@ -15,6 +15,8 @@ data class MusicTrack(
     val album: MusicAlbum?,
     val durationMs: Long,
     val displayTitle: String = title,
+    /** Provider-specific playback identifier when it differs from the catalog/lyric ID. */
+    val playbackId: String? = null,
 )
 data class LyricRequest(val track: MusicTrack, val preferWordSynced: Boolean = true)
 data class MusicLyrics(
