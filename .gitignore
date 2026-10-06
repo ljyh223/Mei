@@ -18,6 +18,7 @@ local.properties
 *.zip
 /app/release
 /app/debug
+/server/
 *.log
 /.VSCodeCounterapplemusic-like-lyrics/
 tempapplemusic-like-lyrics/
