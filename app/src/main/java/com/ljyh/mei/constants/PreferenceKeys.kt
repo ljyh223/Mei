@@ -61,6 +61,9 @@ val AccompanimentLyricTextBoldKey = booleanPreferencesKey("accompanimentLyricTex
 val LoopPlaybackKey = booleanPreferencesKey("loopPlayback")
 val KeepPlayerScreenOnKey = booleanPreferencesKey("keepPlayerScreenOn")
 val NoAudioSourceKey = booleanPreferencesKey("noAudioSource")
+val SmartTransitionEnabledKey = booleanPreferencesKey("smartTransition.enabled")
+val SmartTransitionModeKey = stringPreferencesKey("smartTransition.mode")
+val SmartTransitionDurationKey = intPreferencesKey("smartTransition.durationSeconds")
 val IsShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val RepeatModeKey = intPreferencesKey("repeatMode")
 val LastPlaybackQueueKey = stringPreferencesKey("lastPlaybackQueue")
@@ -131,6 +134,8 @@ enum class LyricTextAlignment {
 
 
 // standard, exhigh, lossless, hires, jyeffect(高清环绕声), sky(沉浸环绕声), jymaster(超清母带) 进行音质判断
+enum class SmartTransitionMode { Smart, Fixed }
+
 enum class MusicQuality(val text: String, val explanation:String) {
     STANDARD("standard", "标准"),
     EXHIGH("exhigh","极高"),

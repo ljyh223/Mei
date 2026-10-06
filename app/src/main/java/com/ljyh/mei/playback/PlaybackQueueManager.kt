@@ -6,7 +6,6 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import com.ljyh.mei.data.model.PLACEHOLDER_URI
 import com.ljyh.mei.data.model.createPlaceholder
 import com.ljyh.mei.data.model.toMediaItem
@@ -22,7 +21,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 class PlaybackQueueManager(
-    private val player: ExoPlayer,
+    private val player: Player,
     private val apiService: ApiService,
     private val weApiService: WeApiService,
     private val scope: CoroutineScope

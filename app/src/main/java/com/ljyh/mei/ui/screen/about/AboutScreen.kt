@@ -193,6 +193,13 @@ fun AboutScreen() {
                             subtitle = "精美歌词组件渲染",
                             onClick = { openUrl(context, "https://github.com/6xingyv/accompanist-lyrics-ui") }
                         )
+                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                        AboutActionItem(
+                            icon = Icons.Rounded.LibraryMusic,
+                            title = "BeatNet",
+                            subtitle = "智能过渡的节拍分析模型 · CC BY 4.0",
+                            onClick = { openUrl(context, "$Github/blob/main/THIRD_PARTY_NOTICES") }
+                        )
                     }
                 }
             }

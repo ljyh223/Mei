@@ -4,14 +4,14 @@ package com.ljyh.mei.playback
 import android.animation.Animator
 import android.animation.ValueAnimator
 import android.view.animation.LinearInterpolator
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.Player
 
 /**
  * Controls ExoPlayer volume fades. It intentionally does not inherit MediaPlayer: creating an
  * unused platform player allocated native audio resources and made the two player lifecycles
  * appear coupled.
  */
-class AudioPlayer(private val exoPlayer: ExoPlayer) {
+class AudioPlayer(private val exoPlayer: Player) {
 
     private var volume = 1F
 
@@ -45,6 +45,7 @@ class AudioPlayer(private val exoPlayer: ExoPlayer) {
             }
 
             override fun onAnimationEnd(animation: Animator) {
+                if (!isPauseSmoothing) return
                 exoPlayer.volume = 0F
                 exoPlayer.pause()
                 isPauseSmoothing = false
@@ -76,6 +77,7 @@ class AudioPlayer(private val exoPlayer: ExoPlayer) {
             }
 
             override fun onAnimationEnd(animation: Animator) {
+                if (!isStartSmoothing) return
                 exoPlayer.volume = 1F
                 isStartSmoothing = false
             }
@@ -123,6 +125,11 @@ class AudioPlayer(private val exoPlayer: ExoPlayer) {
     }
 
     fun release() {
+        pauseSmoothValueAnimator.cancel()
+        startSmoothValueAnimator.cancel()
+    }
+
+    fun cancelFade() {
         pauseSmoothValueAnimator.cancel()
         startSmoothValueAnimator.cancel()
     }

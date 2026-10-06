@@ -91,6 +91,9 @@ cookie: MUSIC_U=xxxxx;
 * 提供精美歌词组件 [accompanist-lyrics-ui](https://github.com/6xingyv/accompanist-lyrics-ui.git)
 * 提供qrc解密算法 [qrcDecrypt](https://github.com/TLittlePrince/qrcDecrypt)
 * 提供流体玻璃效果 [AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass)
+* 智能过渡使用 [BeatNet](https://github.com/mjhydri/BeatNet) 模型识别节拍与小节强拍；模型署名和转换说明见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES)
+
+Mei 的应用代码沿用 [Apache License 2.0](LICENSE)。
 
 
 

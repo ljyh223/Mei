@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,6 +29,10 @@ import com.ljyh.mei.constants.KeepPlayerScreenOnKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.NoAudioSourceKey
+import com.ljyh.mei.constants.SmartTransitionDurationKey
+import com.ljyh.mei.constants.SmartTransitionEnabledKey
+import com.ljyh.mei.constants.SmartTransitionMode
+import com.ljyh.mei.constants.SmartTransitionModeKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
@@ -64,6 +69,15 @@ fun PlaySetting(
     val (noAudioSource, onNoAudioSourceChange) = rememberPreference(
         NoAudioSourceKey,
         defaultValue = false
+    )
+    val (transitionEnabled, onTransitionEnabledChange) = rememberPreference(
+        SmartTransitionEnabledKey, defaultValue = false,
+    )
+    val (transitionMode, onTransitionModeChange) = rememberEnumPreference(
+        SmartTransitionModeKey, defaultValue = SmartTransitionMode.Smart,
+    )
+    val (transitionSeconds, onTransitionSecondsChange) = rememberPreference(
+        SmartTransitionDurationKey, defaultValue = 6,
     )
 
 
@@ -109,6 +123,31 @@ fun PlaySetting(
                 checked = loopPlayback,
                 onCheckedChange = onLoopPlaybackChange
             )
+            SwitchPreference(
+                title = { Text("歌曲过渡") },
+                description = "根据音乐节奏衔接歌曲；同专辑歌曲保持原有间隔",
+                icon = { Icon(Icons.Rounded.GraphicEq, null) },
+                checked = transitionEnabled,
+                onCheckedChange = onTransitionEnabledChange,
+            )
+            if (transitionEnabled) {
+                EnumListPreference(
+                    title = { Text("过渡方式") },
+                    icon = { Icon(Icons.Rounded.GraphicEq, null) },
+                    selectedValue = transitionMode,
+                    valueText = { if (it == SmartTransitionMode.Smart) "智能过渡" else "固定时长淡化" },
+                    onValueSelected = onTransitionModeChange,
+                )
+                if (transitionMode == SmartTransitionMode.Fixed) {
+                    ListPreference(
+                        title = { Text("淡化时长") },
+                        selectedValue = transitionSeconds,
+                        values = listOf(4, 6, 8, 10),
+                        valueText = { "$it 秒" },
+                        onValueSelected = onTransitionSecondsChange,
+                    )
+                }
+            }
             SwitchPreference(
                 title = { Text("播放界面保持常亮") },
                 description = "展开播放界面时阻止自动熄屏；省电模式或未充电且电量低于 20% 时暂停",

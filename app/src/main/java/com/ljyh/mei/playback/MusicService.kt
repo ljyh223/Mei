@@ -107,11 +107,16 @@ class MusicService : MediaLibraryService(),
     Player.Listener,
     PlaybackStatsListener.Callback {
 
-    lateinit var player: ExoPlayer
+    lateinit var player: TransitionDeckPlayer
     private lateinit var audioPlayer: AudioPlayer
     private lateinit var audioEffectsController: AudioEffectsController
+    private lateinit var standbyAudioEffectsController: AudioEffectsController
+    private lateinit var transitionController: SmartTransitionController
     private lateinit var desktopLyricsController: DesktopLyricsController
     private val parametricEqualizerProcessor = ParametricEqualizerProcessor()
+    private val standbyEqualizerProcessor = ParametricEqualizerProcessor()
+    private val firstTransitionProbe = TransitionAudioProbe()
+    private val secondTransitionProbe = TransitionAudioProbe()
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
     private val desktopLyricsToggleCommand = SessionCommand(DESKTOP_LYRICS_TOGGLE_ACTION, Bundle.EMPTY)
@@ -165,38 +170,26 @@ class MusicService : MediaLibraryService(),
             )
         )
 
-        player = ExoPlayer.Builder(this)
-            // 媒体源工厂
-            .setMediaSourceFactory(baseMediaSourceFactory)
-            //渲染器工厂
-            .setRenderersFactory(createRenderersFactory())
-            //处理音频焦点变化和音频播放行为
-            .setHandleAudioBecomingNoisy(true)
-            //设置音频的唤醒模式，保证设备在网络连接上不进入休眠状态。
-            //它并不会阻止屏幕变暗或关闭；它主要是为了防止CPU进入睡眠状态以及确保网络连接的活跃，从而避免播放中断。
-            .setWakeMode(C.WAKE_MODE_NETWORK)
-            //音频属性
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    //音频焦点变化 比如来电话了
-                    .setUsage(C.USAGE_MEDIA)
-                    //AUDIO_CONTENT_TYPE_MUSIC 表明内容类型是音乐。这有助于系统选择合适的音频处理方式和路由（比如通过扬声器还是耳机输出）。
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .build(), true
-            )
-            //快进快退时间
-            .setSeekBackIncrementMs(5000)
-            .setSeekForwardIncrementMs(5000)
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
-            .apply {
-                // This app plays an ExoPlayer playlist, so use its integrated preloading. The
-                // buffered source remains inside the same playlist and needs no manual handoff.
-                setPreloadConfiguration(
-                    ExoPlayer.PreloadConfiguration(PLAYLIST_PRELOAD_DURATION_US)
-                )
-                //添加监听器
+        fun buildDeck(processor: ParametricEqualizerProcessor, probe: TransitionAudioProbe, focused: Boolean) =
+            ExoPlayer.Builder(this)
+                .setMediaSourceFactory(baseMediaSourceFactory)
+                .setRenderersFactory(createRenderersFactory(processor, probe))
+                .setHandleAudioBecomingNoisy(focused)
+                .setWakeMode(C.WAKE_MODE_NETWORK)
+                .setAudioAttributes(audioAttributes, focused)
+                .setSeekBackIncrementMs(5000)
+                .setSeekForwardIncrementMs(5000)
+                .build().apply {
+                    setPreloadConfiguration(ExoPlayer.PreloadConfiguration(PLAYLIST_PRELOAD_DURATION_US))
+                }
+        val firstDeck = buildDeck(parametricEqualizerProcessor, firstTransitionProbe, true)
+        val secondDeck = buildDeck(standbyEqualizerProcessor, secondTransitionProbe, false)
+        player = TransitionDeckPlayer(firstDeck, secondDeck, audioAttributes).apply {
                 addListener(this@MusicService)
-                //睡眠定时
                 sleepTimer = SleepTimer(scope, this)
                 addListener(sleepTimer)
                 addListener(object : Player.Listener {
@@ -238,8 +231,19 @@ class MusicService : MediaLibraryService(),
         desktopLyricsController = DesktopLyricsController(this, player, lyricManager, scope)
         desktopLyricsController.start()
         audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor)
+        standbyAudioEffectsController = AudioEffectsController(this, scope, standbyEqualizerProcessor)
 
         audioPlayer = AudioPlayer(player)
+        transitionController = SmartTransitionController(
+            this, player,
+            mapOf(firstDeck to firstTransitionProbe, secondDeck to secondTransitionProbe),
+            scope, audioPlayer::cancelFade,
+            { !sleepTimer.pauseWhenSongEnd },
+            { mediaId ->
+                val quality = dataStore[MusicQualityKey]?.lowercase(getDefault()) ?: MusicQuality.EXHIGH.text
+                mediaUriProvider.resolveMediaUri(mediaId, quality)
+            },
+        )
         val singletonImageLoader = ImageLoader(this)
         val sessionPlayer = object : ForwardingSimpleBasePlayer(player) {
             override fun handleSeek(
@@ -391,7 +395,7 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onEvents(player: Player, events: Player.Events) {
-        if (events.containsAny(
+        if (!transitionController.isTransitioning && events.containsAny(
                 Player.EVENT_PLAYBACK_STATE_CHANGED,
                 Player.EVENT_PLAY_WHEN_READY_CHANGED
             )
@@ -503,6 +507,7 @@ class MusicService : MediaLibraryService(),
 
     fun previewEqualizerProfile(profile: EqualizerProfile) {
         parametricEqualizerProcessor.setProfile(profile)
+        standbyEqualizerProcessor.setProfile(profile)
     }
 
     override fun onDestroy() {
@@ -510,12 +515,14 @@ class MusicService : MediaLibraryService(),
         if (!restoringQueue) {
             runBlocking { savePlaybackQueue() }
         }
+        transitionController.release()
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)
         queueManager.release()
         audioPlayer.release()
         audioEffectsController.release()
+        standbyAudioEffectsController.release()
         desktopLyricsController.close()
         player.release()
         CacheManager.release()
@@ -549,7 +556,10 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    private fun createRenderersFactory() =
+    private fun createRenderersFactory(
+        equalizer: ParametricEqualizerProcessor,
+        probe: TransitionAudioProbe,
+    ) =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
                 context: Context,
@@ -561,7 +571,7 @@ class MusicService : MediaLibraryService(),
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
-                        arrayOf(parametricEqualizerProcessor),
+                        arrayOf(equalizer, probe),
                         SilenceSkippingAudioProcessor(2_000_000, 0.01f, 2_000_000, 0, 256),
                         SonicAudioProcessor()
                     )
