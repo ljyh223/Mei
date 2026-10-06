@@ -6,6 +6,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.source.ShuffleOrder
 import com.ljyh.mei.data.model.domain.PLACEHOLDER_URI
 import com.ljyh.mei.data.model.domain.createPlaceholder
 import com.ljyh.mei.data.model.domain.toMediaItem
@@ -13,12 +14,25 @@ import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.playback.queue.Queue
+import com.ljyh.mei.playback.transition.TransitionDeckPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
+
+internal fun prioritizeInsertedShuffleItems(
+    order: List<Int>,
+    currentIndex: Int,
+    insertIndex: Int,
+    count: Int,
+): List<Int> {
+    val nextOrder = order.filterNot { it in insertIndex until insertIndex + count }.toMutableList()
+    val afterCurrent = nextOrder.indexOf(currentIndex).takeIf { it >= 0 }?.plus(1) ?: 0
+    nextOrder.addAll(afterCurrent, (insertIndex until insertIndex + count).toList())
+    return nextOrder
+}
 
 class PlaybackQueueManager(
     private val player: Player,
@@ -361,15 +375,40 @@ class PlaybackQueueManager(
     /**
      * 在下一首播放 (插队)
      */
+    @OptIn(UnstableApi::class)
     fun playNext(items: List<MediaItem>) {
         scope.launch(Dispatchers.Main) {
+            if (items.isEmpty()) return@launch
+            val wasEmpty = player.mediaItemCount == 0
+            val currentIndex = player.currentMediaItemIndex
             val insertIndex =
-                if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1
+                if (wasEmpty) 0 else currentIndex + 1
             player.addMediaItems(insertIndex, items)
+
+            if (player.shuffleModeEnabled && !wasEmpty) {
+                val active = (player as? TransitionDeckPlayer)?.active
+                if (active != null) {
+                    val shuffleOrder = active.shuffleOrder
+                    val order = mutableListOf<Int>()
+                    var index = shuffleOrder.firstIndex
+                    while (index != C.INDEX_UNSET && order.size < active.mediaItemCount) {
+                        order += index
+                        index = shuffleOrder.getNextIndex(index)
+                    }
+                    if (order.size == active.mediaItemCount) {
+                        active.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder(
+                            prioritizeInsertedShuffleItems(order, currentIndex, insertIndex, items.size)
+                                .toIntArray(),
+                            System.nanoTime(),
+                        ))
+                    }
+                }
+            }
 
             if (player.playbackState == Player.STATE_IDLE) {
                 player.prepare()
             }
+            if (wasEmpty) player.play()
         }
     }
 

@@ -4,16 +4,19 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.TrackActionMenu
+import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
 import com.ljyh.mei.utils.system.setClipboard
 
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun PlaylistActionOverlay(
     overlay: OverlayState,
@@ -26,6 +29,7 @@ fun PlaylistActionOverlay(
     viewModel: PlaylistViewModel
 ) {
     val context = LocalContext.current
+    val playerConnection = LocalPlayerConnection.current
 
     when (overlay) {
         is OverlayState.AddToPlaylist -> {
@@ -62,6 +66,14 @@ fun PlaylistActionOverlay(
                 onAddToPlaylist = {
                     viewModel.getAllMePlaylist()
                     onUpdateOverlay(OverlayState.AddToPlaylist(overlay.track.id))
+                },
+                onPlayNext = {
+                    if (playerConnection == null) {
+                        Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
+                    } else {
+                        playerConnection.playNext(overlay.track.toMediaItem())
+                        Toast.makeText(context, "已添加到下一首", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 onDownloadTrack = onDownloadTrack?.let { { it(overlay.track) } },
                 onDelete = {

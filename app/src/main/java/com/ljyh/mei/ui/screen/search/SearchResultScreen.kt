@@ -19,6 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -37,6 +40,7 @@ import com.ljyh.mei.ui.component.item.AlbumItem
 import com.ljyh.mei.ui.component.item.ArtistItem
 import com.ljyh.mei.ui.component.item.PlaylistItem
 import com.ljyh.mei.ui.component.item.Track
+import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -60,6 +64,7 @@ fun SearchResultScreen(
 
     val playerConnection = LocalPlayerConnection.current
     val navController = LocalNavController.current
+    var menuTrack by remember { mutableStateOf<MediaMetadata?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -102,11 +107,13 @@ fun SearchResultScreen(
                                 position = 0
                             )
                         )
-                    }
+                    },
+                    onSongMoreClick = { menuTrack = it },
                 )
             }
         }
     }
+    BasicTrackActionMenu(menuTrack) { menuTrack = null }
 }
 
 // --- 抽离出来的子组件，使主代码更整洁 ---
@@ -162,7 +169,8 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
     data: SearchResults,
     type: SearchType,
     navController: NavController,
-    onSongClick: (List<MediaMetadata>, Int) -> Unit
+    onSongClick: (List<MediaMetadata>, Int) -> Unit,
+    onSongMoreClick: (MediaMetadata) -> Unit,
 ) {
     when (type) {
         SearchType.Song -> {
@@ -176,7 +184,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
                         val index = songs.indexOfFirst { it.id == song.id }
                         onSongClick(songs, maxOf(0, index))
                     },
-                    onMoreClick = { }
+                    onMoreClick = { onSongMoreClick(song) }
                 )
             }
         }

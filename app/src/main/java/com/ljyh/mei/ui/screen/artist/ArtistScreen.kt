@@ -63,11 +63,13 @@ import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.domain.toMediaItem
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.ui.component.item.TrackPlaceholder
+import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.local.LocalNavController
@@ -86,6 +88,7 @@ fun ArtistScreen(
 ) {
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    var menuTrack by remember { mutableStateOf<MediaMetadata?>(null) }
 
     val artistDetail by viewModel.artistDetail.collectAsState()
     val artistAlbums by viewModel.artistAlbums.collectAsState()
@@ -194,7 +197,7 @@ fun ArtistScreen(
                                     }
                                 )
                             },
-                            onMoreClick = {}
+                            onMoreClick = { menuTrack = song.toMediaMetadata() }
                         )
                     }
                 }
@@ -252,6 +255,7 @@ fun ArtistScreen(
             }
         }
     }
+    BasicTrackActionMenu(menuTrack) { menuTrack = null }
 }
 
 

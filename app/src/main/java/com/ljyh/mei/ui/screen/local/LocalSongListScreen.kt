@@ -45,7 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +68,7 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
+import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -85,6 +88,7 @@ fun LocalSongListScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    var menuTrack by remember { mutableStateOf<MediaMetadata?>(null) }
     val db = AppDatabase.getDatabase(context)
 
     val songs by when (filterType) {
@@ -186,7 +190,7 @@ fun LocalSongListScreen(
                                     )
                                 }
                             },
-                            onMoreClick = {}
+                            onMoreClick = { menuTrack = it }
                         )
                     }
                 } else {
@@ -213,7 +217,7 @@ fun LocalSongListScreen(
                                 )
                             }
                         },
-                        onMoreClick = {},
+                        onMoreClick = { menuTrack = it },
                         contentPadding = PaddingValues(
                             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
                                 .calculateBottomPadding()
@@ -223,6 +227,7 @@ fun LocalSongListScreen(
             }
         }
     }
+    BasicTrackActionMenu(menuTrack) { menuTrack = null }
 }
 
 @Composable
