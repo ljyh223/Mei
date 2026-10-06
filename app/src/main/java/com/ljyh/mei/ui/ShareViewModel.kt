@@ -28,6 +28,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -47,16 +48,20 @@ class ShareViewModel @Inject constructor(
     private var qrLoginJob: Job? = null
 
     fun getUserAccount(){
+        _userAccount.value = Resource.Loading
         viewModelScope.launch {
-            _userAccount.value = Resource.Loading
             _userAccount.value = userRepository.getUserAccount()
         }
     }
 
+    fun ensureQrLoginStarted() {
+        if (_qrLoginState.value == QrLoginUiState.Idle) startQrLogin()
+    }
+
     fun startQrLogin() {
         qrLoginJob?.cancel()
+        _qrLoginState.value = QrLoginUiState.Loading
         qrLoginJob = viewModelScope.launch {
-            _qrLoginState.value = QrLoginUiState.Loading
             val keyResult = userRepository.createQrLoginKey()
             if (!currentCoroutineContext().isActive) return@launch
             when (keyResult) {
@@ -95,7 +100,12 @@ class ShareViewModel @Inject constructor(
 
     private suspend fun pollQrLogin(unikey: String, loginUrl: String) {
         var consecutiveNetworkErrors = 0
+        val startedAtNanos = System.nanoTime()
         while (currentCoroutineContext().isActive) {
+            if (System.nanoTime() - startedAtNanos >= QR_LOGIN_MAX_DURATION_NANOS) {
+                _qrLoginState.value = QrLoginUiState.Expired(loginUrl)
+                return
+            }
             delay(QR_POLL_INTERVAL_MS)
             val result = userRepository.checkQrLogin(unikey)
             if (!currentCoroutineContext().isActive) return
@@ -147,7 +157,14 @@ class ShareViewModel @Inject constructor(
                             return
                         }
 
-                        QrLoginStatus.Unknown -> Unit
+                        QrLoginStatus.Unknown -> {
+                            _qrLoginState.value = QrLoginUiState.Error(
+                                check.message?.takeIf(String::isNotBlank)
+                                    ?: "二维码登录失败（${check.code}），请刷新二维码",
+                                loginUrl,
+                            )
+                            return
+                        }
                     }
                 }
             }
@@ -167,6 +184,7 @@ class ShareViewModel @Inject constructor(
     private companion object {
         const val QR_POLL_INTERVAL_MS = 1_200L
         const val MAX_CONSECUTIVE_NETWORK_ERRORS = 15
+        val QR_LOGIN_MAX_DURATION_NANOS = TimeUnit.MINUTES.toNanos(3)
 
         fun buildQrLoginUrl(unikey: String): String {
             val encodedKey = URLEncoder.encode(unikey, StandardCharsets.UTF_8.toString())

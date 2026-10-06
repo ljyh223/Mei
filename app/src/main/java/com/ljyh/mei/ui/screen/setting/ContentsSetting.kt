@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -64,6 +65,7 @@ fun ContentsSetting(
         defaultValue = ""
     )
     var showQrLogin by rememberSaveable { mutableStateOf(false) }
+    var showCookieCheckResult by remember { mutableStateOf(false) }
     val userAccount by viewModel.userAccount.collectAsState()
     val qrLoginState by viewModel.qrLoginState.collectAsState()
 
@@ -71,22 +73,32 @@ fun ContentsSetting(
         is Resource.Success -> if (result.data.code == 200 && result.data.profile != null) {
             result.data.profile.nickname
         } else {
-            "error"
+            "Cookie 无效"
         }
 
-        is Resource.Error -> "error"
-        Resource.Loading -> "~~~"
+        is Resource.Error -> "验证失败"
+        Resource.Loading -> if (showCookieCheckResult) "验证中…" else "尚未验证"
     }
 
-    LaunchedEffect(userAccount, qrLoginState) {
-        val result = userAccount
-        if (result is Resource.Success && qrLoginState !is QrLoginUiState.Success) {
-            val valid = result.data.code == 200 && result.data.profile != null
-            Toast.makeText(
-                context,
-                if (valid) "看上去还不错哦" else "cookie 可能存在错误",
-                Toast.LENGTH_SHORT,
-            ).show()
+    LaunchedEffect(showQrLogin) {
+        if (showQrLogin) viewModel.ensureQrLoginStarted()
+    }
+
+    LaunchedEffect(userAccount, showCookieCheckResult) {
+        if (showCookieCheckResult) {
+            val message = when (val result = userAccount) {
+                is Resource.Success -> if (result.data.code == 200 && result.data.profile != null) {
+                    "Cookie 有效"
+                } else {
+                    "Cookie 无效"
+                }
+                is Resource.Error -> "验证失败：${result.message}"
+                Resource.Loading -> null
+            }
+            if (message != null) {
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                showCookieCheckResult = false
+            }
         }
     }
 
@@ -147,7 +159,8 @@ fun ContentsSetting(
                 title = { Text("网易云Cookie: MUSIC_U") },
                 icon = { Icon(Icons.Rounded.Cookie, "网易云Cookie: MUSIC_U") },
                 value = cookie,
-                onValueChange = onCookie
+                onValueChange = onCookie,
+                sensitive = true,
             )
 
             val (ttmlLyricsBaseUrl, onTtmlLyricsBaseUrlChange) = rememberPreference(
@@ -161,8 +174,8 @@ fun ContentsSetting(
                 description = "使用网易云音乐 App 扫码",
                 icon = { Icon(Icons.Rounded.QrCode2, "扫码登录") },
                 onClick = {
+                    showCookieCheckResult = false
                     showQrLogin = true
-                    viewModel.startQrLogin()
                 },
             )
 
@@ -174,6 +187,7 @@ fun ContentsSetting(
                     if (cookie == "") {
                         Toast.makeText(context, "还没有填写cookie", Toast.LENGTH_SHORT).show()
                     } else {
+                        showCookieCheckResult = true
                         viewModel.getUserAccount()
                     }
                 }
