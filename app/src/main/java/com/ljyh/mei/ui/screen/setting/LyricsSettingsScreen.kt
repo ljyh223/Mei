@@ -5,20 +5,25 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Lyrics
@@ -38,9 +43,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.Role
 import androidx.core.graphics.ColorUtils
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +86,19 @@ import com.ljyh.mei.utils.rememberPreference
 import codes.side.colorpicker.model.HslColor
 import codes.side.colorpicker.ui.HslColorPicker
 
+private data class DesktopLyricColorPreset(val name: String, val hex: String)
+
+private val desktopLyricColorPresets = listOf(
+    DesktopLyricColorPreset("白色", DefaultDesktopLyricsTextColor),
+    DesktopLyricColorPreset("浅灰", DefaultDesktopLyricsTranslationColor),
+    DesktopLyricColorPreset("米白", "#FFFFE9C7"),
+    DesktopLyricColorPreset("金黄", "#FFFFD166"),
+    DesktopLyricColorPreset("薄荷", "#FFB8F2D0"),
+    DesktopLyricColorPreset("浅蓝", "#FFADD8FF"),
+    DesktopLyricColorPreset("淡紫", "#FFD7C6FF"),
+    DesktopLyricColorPreset("深灰", "#FF30343B"),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
@@ -109,6 +129,7 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
     var permissionGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     var waitingForPermission by remember { mutableStateOf(false) }
     var colorTarget by remember { mutableStateOf<String?>(null) }
+    var showCustomColorPicker by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         permissionGranted = Settings.canDrawOverlays(context)
         if (waitingForPermission && permissionGranted) onEnabled(true)
@@ -201,7 +222,10 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 onCheckedChange = onLocked,
                 isEnabled = desktopOptionsEnabled,
             )
-            ColorPreference("桌面歌词颜色", mainColor, desktopOptionsEnabled) { colorTarget = "main" }
+            ColorPreference("桌面歌词颜色", mainColor, desktopOptionsEnabled) {
+                colorTarget = "main"
+                showCustomColorPicker = false
+            }
             ListPreference(
                 title = { Text("桌面歌词字体大小") },
                 icon = { Icon(Icons.Rounded.FormatSize, null) },
@@ -211,7 +235,10 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 onValueSelected = onDesktopTextSize,
                 isEnabled = desktopOptionsEnabled,
             )
-            ColorPreference("翻译歌词颜色", translationColor, desktopOptionsEnabled) { colorTarget = "translation" }
+            ColorPreference("翻译歌词颜色", translationColor, desktopOptionsEnabled) {
+                colorTarget = "translation"
+                showCustomColorPicker = false
+            }
             ListPreference(
                 title = { Text("翻译歌词字体大小") },
                 icon = { Icon(Icons.Rounded.FormatSize, null) },
@@ -236,10 +263,24 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
 
     colorTarget?.let { target ->
         val currentValue = if (target == "main") mainColor else translationColor
-        ColorPickerDialog(currentValue, onDismiss = { colorTarget = null }) { selected ->
-            val hex = "#%08X".format(selected.toArgb())
-            if (target == "main") onMainColor(hex) else onTranslationColor(hex)
-            colorTarget = null
+        if (showCustomColorPicker) {
+            ColorPickerDialog(currentValue, onDismiss = { showCustomColorPicker = false }) { selected ->
+                val hex = "#%08X".format(selected.toArgb())
+                if (target == "main") onMainColor(hex) else onTranslationColor(hex)
+                colorTarget = null
+                showCustomColorPicker = false
+            }
+        } else {
+            ColorPresetDialog(
+                title = if (target == "main") "桌面歌词颜色" else "翻译歌词颜色",
+                currentValue = currentValue,
+                onDismiss = { colorTarget = null },
+                onCustom = { showCustomColorPicker = true },
+                onPresetSelected = { hex ->
+                    if (target == "main") onMainColor(hex) else onTranslationColor(hex)
+                    colorTarget = null
+                },
+            )
         }
     }
 }
@@ -247,15 +288,84 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
 @Composable
 private fun ColorPreference(title: String, value: String, enabled: Boolean, onClick: () -> Unit) {
     val color = remember(value) { runCatching { Color(android.graphics.Color.parseColor(value)) }.getOrDefault(Color.White) }
+    val presetName = desktopLyricColorPresets.firstOrNull { it.hex.equals(value, ignoreCase = true) }?.name
     com.ljyh.mei.ui.component.PreferenceEntry(
         title = { Text(title) },
-        description = value.uppercase(),
+        description = presetName ?: "自定义颜色",
         icon = {
-            Box(Modifier.size(34.dp).background(color, CircleShape))
+            Box(
+                Modifier.size(34.dp)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                    .padding(2.dp)
+                    .background(color, CircleShape),
+            )
         },
-        trailingContent = { Text("自定义", color = MaterialTheme.colorScheme.primary) },
+        trailingContent = { Text("更改", color = MaterialTheme.colorScheme.primary) },
         onClick = onClick,
         isEnabled = enabled,
+    )
+}
+
+@Composable
+private fun ColorPresetDialog(
+    title: String,
+    currentValue: String,
+    onDismiss: () -> Unit,
+    onCustom: () -> Unit,
+    onPresetSelected: (String) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                maxItemsInEachRow = 4,
+            ) {
+                desktopLyricColorPresets.forEach { preset ->
+                    val selected = preset.hex.equals(currentValue, ignoreCase = true)
+                    val argb = android.graphics.Color.parseColor(preset.hex)
+                    val color = Color(argb)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(64.dp)
+                            .selectable(
+                                selected = selected,
+                                role = Role.RadioButton,
+                                onClick = { onPresetSelected(preset.hex) },
+                            )
+                            .padding(vertical = 4.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(46.dp)
+                                .border(
+                                    if (selected) 2.dp else 1.dp,
+                                    if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant,
+                                    CircleShape,
+                                )
+                                .padding(4.dp)
+                                .background(color, CircleShape),
+                        ) {
+                            if (selected) {
+                                Icon(
+                                    Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    tint = if (ColorUtils.calculateLuminance(argb) > 0.5) Color.Black else Color.White,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                        Text(preset.name, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onCustom) { Text("自定义颜色") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
     )
 }
 
