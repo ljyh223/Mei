@@ -9,29 +9,27 @@ import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
 import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.mei.data.model.weapi.UserSubcount
 import com.ljyh.mei.data.model.UserVipInfo
-import retrofit2.http.Body
-import retrofit2.http.Headers
-import retrofit2.http.POST
+import com.ljyh.mei.data.network.NeteaseHttp
 
-interface WeApiService {
+class WeApiService(private val http: NeteaseHttp) {
+    private val base = "https://music.163.com"
 
     // weapi 其实也是api开头的，但是为了拦截器区分，所以使用weapi开头
-    @POST("/weapi/v3/discovery/recommend/songs")
-    suspend fun getEveryDayRecommendSongs(@Body body:Map<String,String> = mapOf()): EveryDaySongs
+    suspend fun getEveryDayRecommendSongs(body: Map<String, String> = mapOf()): EveryDaySongs =
+        http.post(base, "/weapi/v3/discovery/recommend/songs", body)
 
-    @POST("/weapi/subcount")
-    suspend fun getUserSubcount(@Body body: Map<String,String> = mapOf()) : UserSubcount
+    suspend fun getUserSubcount(body: Map<String, String> = mapOf()): UserSubcount =
+        http.post(base, "/weapi/subcount", body)
 
-    @Headers("X-Netease-Crypto: weapi")
-    @POST("/api/music-vip-membership/front/vip/info")
-    suspend fun getUserVipInfo(@Body body: Map<String, String>): UserVipInfo
+    suspend fun getUserVipInfo(body: Map<String, String>): UserVipInfo =
+        http.post(base, "/api/music-vip-membership/front/vip/info", body, cryptoMode = "weapi")
 
-    @POST("/api/playlist/highquality/list")
-    suspend fun getHighQualityPlaylist(@Body body: HighQualityPlaylist): HighQualityPlaylistResult
+    suspend fun getHighQualityPlaylist(body: HighQualityPlaylist): HighQualityPlaylistResult =
+        http.post(base, "/api/playlist/highquality/list", body)
 
-    @POST("/weapi/v1/radio/get")
-    suspend fun getRadio(@Body body: Map<String,String> = mapOf()): Radio
+    suspend fun getRadio(body: Map<String, String> = mapOf()): Radio =
+        http.post(base, "/weapi/v1/radio/get", body)
 
-    @POST("/weapi/resource/comment/floor/get")
-    suspend fun getFloorComment(@Body body: GetFloorComment): FloorComment
+    suspend fun getFloorComment(body: GetFloorComment): FloorComment =
+        http.post(base, "/weapi/resource/comment/floor/get", body)
 }

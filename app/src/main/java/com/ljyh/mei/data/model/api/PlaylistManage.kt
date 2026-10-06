@@ -1,11 +1,13 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
-
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
  * 创建歌单请求参数
  */
+@Serializable
 data class CreatePlaylist(
     val name: String,
     val privacy: String = "0", // 0 普通歌单, 10 隐私歌单
@@ -15,6 +17,7 @@ data class CreatePlaylist(
 /**
  * 收藏/取消收藏歌单请求参数
  */
+@Serializable
 data class SubscribePlaylist(
     val id: String,
     val checkToken: String? = null
@@ -23,6 +26,7 @@ data class SubscribePlaylist(
 /**
  * 删除歌单请求参数
  */
+@Serializable
 data class DeletePlaylist(
     val ids: String // 歌单ID，格式: "[12345]"
 )
@@ -30,108 +34,110 @@ data class DeletePlaylist(
 /**
  * 收藏/取消收藏歌单响应结果
  */
+@Serializable
 data class SubscribePlaylistResult(
     val code: Int,
     val message: String
 )
 
-
+@Serializable
 class CreatePlaylistResult(
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
-    @SerializedName("playlist")
+    @SerialName("playlist")
     val playlist: Playlist,
-    @SerializedName("id")
+    @SerialName("id")
     val id: Long
 ) {
+    @Serializable
     data class Playlist(
-        @SerializedName("subscribers")
-        val subscribers: List<Any>,
-        @SerializedName("subscribed")
-        val subscribed: Any,
-        @SerializedName("creator")
-        val creator: Any,
-        @SerializedName("artists")
-        val artists: Any,
-        @SerializedName("tracks")
-        val tracks: Any,
-        @SerializedName("top")
+        @SerialName("subscribers")
+        val subscribers: List<JsonElement>,
+        @SerialName("subscribed")
+        val subscribed: JsonElement,
+        @SerialName("creator")
+        val creator: JsonElement,
+        @SerialName("artists")
+        val artists: JsonElement,
+        @SerialName("tracks")
+        val tracks: JsonElement,
+        @SerialName("top")
         val top: Boolean,
-        @SerializedName("updateFrequency")
-        val updateFrequency: Any,
-        @SerializedName("backgroundCoverId")
+        @SerialName("updateFrequency")
+        val updateFrequency: JsonElement,
+        @SerialName("backgroundCoverId")
         val backgroundCoverId: Int,
-        @SerializedName("backgroundCoverUrl")
-        val backgroundCoverUrl: Any,
-        @SerializedName("titleImage")
+        @SerialName("backgroundCoverUrl")
+        val backgroundCoverUrl: JsonElement,
+        @SerialName("titleImage")
         val titleImage: Int,
-        @SerializedName("titleImageUrl")
-        val titleImageUrl: Any,
-        @SerializedName("englishTitle")
-        val englishTitle: Any,
-        @SerializedName("opRecommend")
+        @SerialName("titleImageUrl")
+        val titleImageUrl: JsonElement,
+        @SerialName("englishTitle")
+        val englishTitle: JsonElement,
+        @SerialName("opRecommend")
         val opRecommend: Boolean,
-        @SerializedName("recommendInfo")
-        val recommendInfo: Any,
-        @SerializedName("subscribedCount")
+        @SerialName("recommendInfo")
+        val recommendInfo: JsonElement,
+        @SerialName("subscribedCount")
         val subscribedCount: Int,
-        @SerializedName("cloudTrackCount")
+        @SerialName("cloudTrackCount")
         val cloudTrackCount: Int,
-        @SerializedName("userId")
+        @SerialName("userId")
         val userId: Long,
-        @SerializedName("totalDuration")
+        @SerialName("totalDuration")
         val totalDuration: Int,
-        @SerializedName("coverImgId")
+        @SerialName("coverImgId")
         val coverImgId: Long,
-        @SerializedName("privacy")
+        @SerialName("privacy")
         val privacy: Int,
-        @SerializedName("trackUpdateTime")
+        @SerialName("trackUpdateTime")
         val trackUpdateTime: Int,
-        @SerializedName("trackCount")
+        @SerialName("trackCount")
         val trackCount: Int,
-        @SerializedName("updateTime")
+        @SerialName("updateTime")
         val updateTime: Long,
-        @SerializedName("commentThreadId")
+        @SerialName("commentThreadId")
         val commentThreadId: String,
-        @SerializedName("coverImgUrl")
+        @SerialName("coverImgUrl")
         val coverImgUrl: String,
-        @SerializedName("specialType")
+        @SerialName("specialType")
         val specialType: Int,
-        @SerializedName("anonimous")
+        @SerialName("anonimous")
         val anonimous: Boolean,
-        @SerializedName("createTime")
+        @SerialName("createTime")
         val createTime: Long,
-        @SerializedName("highQuality")
+        @SerialName("highQuality")
         val highQuality: Boolean,
-        @SerializedName("newImported")
+        @SerialName("newImported")
         val newImported: Boolean,
-        @SerializedName("trackNumberUpdateTime")
+        @SerialName("trackNumberUpdateTime")
         val trackNumberUpdateTime: Int,
-        @SerializedName("playCount")
+        @SerialName("playCount")
         val playCount: Int,
-        @SerializedName("adType")
+        @SerialName("adType")
         val adType: Int,
-        @SerializedName("description")
-        val description: Any,
-        @SerializedName("tags")
-        val tags: List<Any>,
-        @SerializedName("ordered")
+        @SerialName("description")
+        val description: JsonElement,
+        @SerialName("tags")
+        val tags: List<JsonElement>,
+        @SerialName("ordered")
         val ordered: Boolean,
-        @SerializedName("status")
+        @SerialName("status")
         val status: Int,
-        @SerializedName("name")
+        @SerialName("name")
         val name: String,
-        @SerializedName("id")
+        @SerialName("id")
         val id: Long,
-        @SerializedName("coverImgId_str")
+        @SerialName("coverImgId_str")
         val coverImgIdStr: String,
-        @SerializedName("sharedUsers")
-        val sharedUsers: Any,
-        @SerializedName("shareStatus")
-        val shareStatus: Any,
-        @SerializedName("copied")
+        @SerialName("sharedUsers")
+        val sharedUsers: JsonElement,
+        @SerialName("shareStatus")
+        val shareStatus: JsonElement,
+        @SerialName("copied")
         val copied: Boolean,
-        @SerializedName("containsTracks")
+        @SerialName("containsTracks")
         val containsTracks: Boolean
     )
 }

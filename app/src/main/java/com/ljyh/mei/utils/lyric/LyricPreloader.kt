@@ -5,15 +5,15 @@ import com.ljyh.mei.constants.QqTimeout
 import com.ljyh.mei.constants.QqTimeoutKey
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.qq.u.LyricResult
-import com.ljyh.mei.data.model.qq.u.SearchResult
+import com.ljyh.unblockneteasemusic.model.MusicLyrics
+import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricSourceData
 import com.ljyh.mei.utils.dataStore
-import com.ljyh.mei.utils.encrypt.QRCUtils
+import com.ljyh.unblockneteasemusic.qq.QRCUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +33,7 @@ import kotlin.math.abs
 
 data class LyricSourceSnapshot(
     val netEase: Resource<Lyric> = Resource.Loading,
-    val qq: Resource<LyricResult> = Resource.Loading,
+    val qq: Resource<MusicLyrics> = Resource.Loading,
     val ttml: Resource<String> = Resource.Loading,
 )
 
@@ -108,7 +108,7 @@ class LyricPreloader @Inject constructor(
         }
     }
 
-    fun overrideQq(songId: String, result: Resource<LyricResult>) {
+    fun overrideQq(songId: String, result: Resource<MusicLyrics>) {
         synchronized(sessions) {
             sessions[songId]?.let { session ->
                 session.qqOverridden = true
@@ -147,7 +147,7 @@ class LyricPreloader @Inject constructor(
     private suspend fun fetchQQ(
         songId: String,
         metadata: MediaMetadata?
-    ): Resource<LyricResult> {
+    ): Resource<MusicLyrics> {
         val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
         if (localSong != null) {
             return try {
@@ -167,11 +167,11 @@ class LyricPreloader @Inject constructor(
 
         val qqSong = QQSong(
             id = songId,
-            qid = best.id.toString(),
+            qid = best.id.value,
             title = best.title,
-            artist = best.singer.joinToString(",") { it.name },
-            album = best.album.title,
-            duration = best.interval
+            artist = best.artists.joinToString(",") { it.name },
+            album = best.album?.name.orEmpty(),
+            duration = best.durationMs / 1_000
         )
         qqSongRepository.insertSong(qqSong)
 
@@ -193,13 +193,13 @@ class LyricPreloader @Inject constructor(
     ): LyricSourceData.QQMusic? {
         val result = fetchQQ(songId, metadata) as? Resource.Success ?: return null
         return try {
-            val data = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data
+            val data = result.data
             val decoded = data.copy(
-                lyric = QRCUtils.decodeLyric(data.lyric),
-                trans = QRCUtils.decodeLyric(data.trans, true),
-                roma = QRCUtils.decodeLyric(data.roma)
+                original = QRCUtils.decodeLyric(data.original),
+                translation = QRCUtils.decodeLyric(data.translation, true),
+                romanization = QRCUtils.decodeLyric(data.romanization)
             )
-            LyricSourceData.QQMusic(decoded, isQRC = data.qrcT != 0, lrcContent = null)
+            LyricSourceData.QQMusic(decoded, isQRC = data.wordSynced, lrcContent = null)
         } catch (e: Exception) {
             Timber.e(e, "QRC decoding failed while resolving QQ lyrics")
             null
@@ -215,7 +215,7 @@ class LyricPreloader @Inject constructor(
      */
     private suspend fun searchSilent(
         metadata: MediaMetadata
-    ): SearchResult.Request.Data.Body.ItemSong? {
+    ): MusicTrack? {
         val currentDurationSec = metadata.duration / 1000
         val artistName = metadata.artists.firstOrNull()?.name ?: ""
         val title = metadata.title
@@ -245,12 +245,12 @@ class LyricPreloader @Inject constructor(
     private suspend fun trySearchSilent(
         keyword: String,
         targetDurationSec: Long
-    ): SearchResult.Request.Data.Body.ItemSong? {
+    ): MusicTrack? {
         val result = repository.searchNew(keyword)
         if (result !is Resource.Success) return null
-        val songs = result.data.request.data.body.itemSong
+        val songs = result.data
         return songs.take(5).firstOrNull { song ->
-            abs(targetDurationSec - song.interval) <= 5
+            abs(targetDurationSec - song.durationMs / 1_000) <= 5
         }
     }
 

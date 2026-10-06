@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.data.model.toMediaItem
-import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.ListQueue
@@ -49,18 +48,18 @@ fun EveryDay(
 
     val uiData = remember(everyDaySongs) {
         if (everyDaySongs is Resource.Success) {
-            val data = (everyDaySongs as Resource.Success).data.data.dailySongs
+            val data = (everyDaySongs as Resource.Success).data
             UiPlaylist(
                 id = -1L,
                 title = "每日推荐",
                 count = data.size,
                 subscriberCount = -1,
-                cover = data[0].al.picUrl,
-                coverList = data.take(6).map { it.al.picUrl },
+                cover = data.firstOrNull()?.coverUrl.orEmpty(),
+                coverList = data.take(6).map { it.coverUrl },
                 creatorName = "网易云音乐",
                 isCreator = false,
                 description = "根据你的音乐口味生成，每天6:00更新",
-                tracks = data.map { it.toMediaMetadata() },
+                tracks = data,
                 playCount = -1,
                 isSubscribed = false
             )
@@ -93,8 +92,8 @@ fun EveryDay(
             pagingItems = null,
             isLoading = isLoading,
             onPlayAll = {
-                val allIds = (everyDaySongs as Resource.Success).data.data.dailySongs.map {
-                    it.id.toString() to it.toMediaMetadata().toMediaItem()
+                val allIds = (everyDaySongs as Resource.Success).data.map {
+                    it.id.toString() to it.toMediaItem()
                 }
                 playerConnection.playQueue(
                     ListQueue(
@@ -114,8 +113,8 @@ fun EveryDay(
                     buildQueue = {
                         if (everyDaySongs is Resource.Success) {
                             val allIds =
-                                (everyDaySongs as Resource.Success).data.data.dailySongs.map {
-                                    it.id.toString() to it.toMediaMetadata().toMediaItem()
+                                (everyDaySongs as Resource.Success).data.map {
+                                    it.id.toString() to it.toMediaItem()
                                 }
                             ListQueue(
                                 id = "dailySongs",

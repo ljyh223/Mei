@@ -138,7 +138,7 @@ fun SearchScreen(
             is Resource.Loading -> {}
             is Resource.Success -> {
                 Timber.tag("SearchSuggest").d("result: ${result.data}")
-                result.data.result.songs?.let { songs->
+                result.data.songs.let { songs->
                     items(
                         items = songs,
                         key = { it.id }
@@ -165,7 +165,7 @@ fun SearchScreen(
                     }
                 }
 
-                result.data.result.artists?.let { artists->
+                result.data.artists.let { artists->
                     items(
                         items = artists,
                         key = { it.id }
@@ -192,7 +192,7 @@ fun SearchScreen(
                     }
                 }
 
-                result.data.result.albums?.let { albums->
+                result.data.albums.let { albums->
                     items(
                         items = albums,
                         key = { it.id }

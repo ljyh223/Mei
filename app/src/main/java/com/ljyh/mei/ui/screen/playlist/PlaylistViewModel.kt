@@ -11,19 +11,14 @@ import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.PlaylistDetail
-import com.ljyh.mei.data.model.Tracks
+import com.ljyh.mei.data.model.MiniPlaylistDetail
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
-import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.data.model.toMediaMetadata
-import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.repository.LikeRepository
@@ -45,11 +40,10 @@ class PlaylistViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val likeRepository: LikeRepository,
     private val localPlaylistRepository: com.ljyh.mei.di.repository.LocalPlaylistRepository,
-    val apiService: ApiService
 ) : ViewModel() {
     val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
-    private val _playlistDetail = MutableStateFlow<Resource<PlaylistDetail>>(Resource.Loading)
-    val playlistDetail: StateFlow<Resource<PlaylistDetail>> = _playlistDetail
+    private val _playlistDetail = MutableStateFlow<Resource<MiniPlaylistDetail>>(Resource.Loading)
+    val playlistDetail: StateFlow<Resource<MiniPlaylistDetail>> = _playlistDetail
 
     private val _removedTrackIds = MutableStateFlow<Set<Long>>(emptySet())
     val removedTrackIds: StateFlow<Set<Long>> = _removedTrackIds
@@ -63,8 +57,8 @@ class PlaylistViewModel @Inject constructor(
     val playlist: StateFlow<List<Playlist>> = _playlist
 
 
-    private val _everyDay = MutableStateFlow<Resource<EveryDaySongs>>(Resource.Loading)
-    val everyDay: StateFlow<Resource<EveryDaySongs>> = _everyDay
+    private val _everyDay = MutableStateFlow<Resource<List<MediaMetadata>>>(Resource.Loading)
+    val everyDay: StateFlow<Resource<List<MediaMetadata>>> = _everyDay
 
     // 创建歌单状态
     private val _createPlaylist = MutableStateFlow<Resource<CreatePlaylistResult>>(Resource.Loading)
@@ -92,19 +86,18 @@ class PlaylistViewModel @Inject constructor(
 
     // 分页加载，不是根据歌单id加载，而是根据歌曲id加载
     fun getPlaylistTracks(
-        playlistDetailResource: Resource<PlaylistDetail>,
+        playlistDetailResource: Resource<MiniPlaylistDetail>,
         removedTrackIds: Set<Long> = emptySet()
     ): Flow<PagingData<MediaMetadata>> {
         return when (playlistDetailResource) {
             is Resource.Success -> {
-                val playlist = playlistDetailResource.data.playlist
+                val playlist = playlistDetailResource.data
 
                 // 【本人歌单】直接全量，不分页
                 if (playlist.name.endsWith("喜欢的音乐")) {
                     flowOf(
                         PagingData.from(
                             playlist.tracks
-                                .map { it.toMediaMetadata() }
                                 .filterNot { it.id in removedTrackIds }
                         )
                     )
@@ -113,9 +106,9 @@ class PlaylistViewModel @Inject constructor(
                         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                         pagingSourceFactory = {
                             PlaylistTrackSource(
-                                apiService = apiService,
+                                repository = repository,
                                 firstData = playlist.tracks,
-                                ids = playlist.trackIds.map { it.id.toString() }
+                                ids = playlist.trackIds.map(Long::toString)
                             )
                         }
                     ).flow.map { pagingData ->
@@ -133,7 +126,7 @@ class PlaylistViewModel @Inject constructor(
      * larger playlists.
      */
     fun searchPlaylistTracks(
-        playlistDetailResource: Resource<PlaylistDetail>,
+        playlistDetailResource: Resource<MiniPlaylistDetail>,
         query: String,
         removedTrackIds: Set<Long> = emptySet()
     ): Flow<PagingData<MediaMetadata>> {
@@ -141,22 +134,20 @@ class PlaylistViewModel @Inject constructor(
             return getPlaylistTracks(playlistDetailResource, removedTrackIds)
         }
 
-        val playlist = playlistDetailResource.data.playlist
+        val playlist = playlistDetailResource.data
         return kotlinx.coroutines.flow.flow {
             val tracksById = playlist.tracks.associateBy { it.id }.toMutableMap()
             playlist.trackIds
-                .map { it.id }
                 .filterNot(tracksById::containsKey)
                 .chunked(200)
                 .forEach { ids ->
-                    apiService.getSongDetail(GetSongDetails(ids.joinToString(","))).songs.forEach { track ->
+                    repository.getSongDetails(ids.map(Long::toString)).forEach { track ->
                         tracksById[track.id] = track
                     }
                 }
 
             val matchingTracks = playlist.trackIds
-                .mapNotNull { tracksById[it.id] }
-                .map { it.toMediaMetadata() }
+                .mapNotNull(tracksById::get)
                 .filterNot { it.id in removedTrackIds }
                 .filter { it.matchesPlaylistSearch(query) }
             emit(PagingData.from(matchingTracks))
@@ -216,7 +207,7 @@ class PlaylistViewModel @Inject constructor(
             if (userId.isNotEmpty()) {
                 when (val result = userRepository.getUserPlaylist(userId, 100)) {
                     is Resource.Success -> {
-                        val playlistsToInsert = result.data.playlist.map {
+                        val playlistsToInsert = result.data.playlists.map {
                             val existing = localPlaylistRepository.getPlaylist(it.id.toString())
                             Playlist(
                                 id = it.id.toString(),
@@ -297,8 +288,8 @@ class PlaylistViewModel @Inject constructor(
     suspend fun resolveSongUrls(ids: List<String>, quality: MusicQuality) =
         repository.getSongUrlV1(ids, quality)
 
-    suspend fun getSongDetails(ids: List<String>): Tracks =
-        apiService.getSongDetail(GetSongDetails(c = ids.joinToString(",")))
+    suspend fun getSongDetails(ids: List<String>): List<MediaMetadata> =
+        repository.getSongDetails(ids)
 
 
 

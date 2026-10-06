@@ -1,9 +1,5 @@
 package com.ljyh.mei.di
 
-import com.google.common.reflect.TypeToken
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonObject
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DeviceIdKey
@@ -25,15 +21,15 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import timber.log.Timber
 import kotlin.apply
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 
 class NeteaseInterceptor : Interceptor {
 
-    private val gson by lazy {
-        GsonBuilder()
-            .registerTypeAdapter(Map::class.java, DynamicMapDeserializer())
-            .disableHtmlEscaping()
-            .create()
-    }
+    private val json = Json { encodeDefaults = true; explicitNulls = false }
 
     // 缓存随机值
     private val cachedNuid: String by lazy { createRandomKey(32) }
@@ -171,32 +167,17 @@ class NeteaseInterceptor : Interceptor {
 
         when (cryptoMode) {
             "eapi" -> {
-                val bodyMap: MutableMap<String, Any> =
-                    if (rawBody.isNotEmpty()) {
-                        try {
-                            val jsonObject = gson.fromJson(rawBody, JsonObject::class.java)
-                            jsonObject.entrySet().associateTo(mutableMapOf()) { (k, v) ->
-                                k to when {
-                                    v.isJsonPrimitive && v.asJsonPrimitive.isString -> v.asString
-                                    v.isJsonPrimitive && v.asJsonPrimitive.isNumber -> v.asNumber
-                                    v.isJsonPrimitive && v.asJsonPrimitive.isBoolean -> v.asBoolean
-                                    else -> v
-                                }
-                            }
-                        } catch (e: Exception) {
-                            mutableMapOf()
-                        }
-                    } else {
-                        mutableMapOf()
-                    }
+                val bodyMap = runCatching {
+                    json.parseToJsonElement(rawBody).jsonObject.toMutableMap()
+                }.getOrDefault(mutableMapOf())
 
-                bodyMap["header"] = gson.toJson(headerObj)
+                bodyMap["header"] = JsonPrimitive(json.encodeToString(headerObj))
                 if(rawBody.contains("checkToken") && (cryptoMode == "api" || cryptoMode == "eapi")){
                     builder.addHeader("X-antiCheatToken", checkToken)
                 }
                 // bodyMap["e_r"] = true // 可选，如果遇到 buffer 问题可开启
 
-                val newBodyJson = gson.toJson(bodyMap)
+                val newBodyJson = JsonObject(bodyMap).toString()
                 val apiPath = url.replace("https://interface.music.163.com", "").replace("eapi", "api")
 
                 val encryptedData = encryptEApi(apiPath, newBodyJson)
@@ -214,8 +195,10 @@ class NeteaseInterceptor : Interceptor {
                 val formBodyBuilder = FormBody.Builder()
                 if (rawBody.isNotEmpty()) {
                     try {
-                        val map = gson.fromJson(rawBody, Map::class.java)
-                        for ((k, v) in map) formBodyBuilder.add(k.toString(), v.toString())
+                        val map = json.parseToJsonElement(rawBody).jsonObject
+                        for ((key, value) in map) {
+                            formBodyBuilder.add(key, (value as? JsonPrimitive)?.content ?: value.toString())
+                        }
                     } catch (e: Exception) {}
                 }
                 builder.post(formBodyBuilder.build())

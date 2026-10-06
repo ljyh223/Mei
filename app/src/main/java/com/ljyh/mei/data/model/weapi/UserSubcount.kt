@@ -1,25 +1,27 @@
 package com.ljyh.mei.data.model.weapi
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class UserSubcount(
-    @SerializedName("artistCount")
+    @SerialName("artistCount")
     val artistCount: Int,
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
-    @SerializedName("createDjRadioCount")
+    @SerialName("createDjRadioCount")
     val createDjRadioCount: Int,
-    @SerializedName("createdPlaylistCount")
+    @SerialName("createdPlaylistCount")
     val createdPlaylistCount: Int,
-    @SerializedName("djRadioCount")
+    @SerialName("djRadioCount")
     val djRadioCount: Int,
-    @SerializedName("mvCount")
+    @SerialName("mvCount")
     val mvCount: Int,
-    @SerializedName("newProgramCount")
+    @SerialName("newProgramCount")
     val newProgramCount: Int,
-    @SerializedName("programCount")
+    @SerialName("programCount")
     val programCount: Int,
-    @SerializedName("subPlaylistCount")
+    @SerialName("subPlaylistCount")
     val subPlaylistCount: Int
 )
-
 

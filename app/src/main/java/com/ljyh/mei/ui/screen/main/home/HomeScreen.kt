@@ -49,8 +49,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.google.gson.Gson
-import com.google.gson.JsonObject
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.constants.PlaylistCardSizeTablet
 import com.ljyh.mei.constants.RecommendCardHeight
@@ -181,7 +186,7 @@ private fun HomeBlockItem(
     playerViewModel: PlayerViewModel,
     device: com.ljyh.mei.ui.component.utils.DeviceInfo
 ) {
-    val gson = remember { Gson() }
+    val json = remember { Json { ignoreUnknownKeys = true } }
     val playerConnection = LocalPlayerConnection.current ?: return
 
     val playlistCardSize = if (device.isTablet) PlaylistCardSizeTablet else PlaylistCardSize
@@ -222,8 +227,8 @@ private fun HomeBlockItem(
 
 
             if (intelligenceFirstSong is Resource.Success) {
-                (intelligenceFirstSong as Resource.Success).data.songs.firstOrNull()
-                    ?.toMediaMetadata()?.toMediaItem()?.let {
+                (intelligenceFirstSong as Resource.Success).data.firstOrNull()
+                    ?.toMediaItem()?.let {
                     items.add(0, it)
                 }
             }
@@ -254,11 +259,12 @@ private fun HomeBlockItem(
         // --- 每日推荐 ---
         "PAGE_RECOMMEND_DAILY_RECOMMEND" -> {
             val resources = remember(blockData) {
-                blockData.get("resources").asJsonArray.map {
-                    gson.fromJson(
-                        it.asJsonObject,
-                        HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
-                    )
+                blockData["resources"]?.jsonArray.orEmpty().mapNotNull {
+                    runCatching {
+                        json.decodeFromJsonElement<HomePageResourceShow.Data.Block.DslData.BlockResource.Resource>(it)
+                    }.onFailure { error ->
+                        Timber.tag("HomeBlock").w(error, "Failed to decode ${block.positionCode} card")
+                    }.getOrNull()
                 }
             }
 
@@ -268,7 +274,7 @@ private fun HomeBlockItem(
             ) { resource ->
 
                 if (resource.resourceType == "star" && intelligenceFirstSong !is Resource.Success) {
-                    resource.extInfo.songId?.let { songId ->
+                    resource.extInfo.songIdText?.let { songId ->
                         Timber.tag("IntelligenceList").d("Getting song detail for $songId")
                         playerViewModel.getSongDetail(songId)
                     }
@@ -279,7 +285,7 @@ private fun HomeBlockItem(
                     title = resource.singleLineTitle,
                     extInfo = CardExtInfo(
                         icon = resource.iconDesc?.image,
-                        text = resource.subTitle
+                        text = resource.subTitle.orEmpty()
                     ),
                     cardWidth = recommendCardWidth,
                     cardHeight = recommendCardHeight,
@@ -289,7 +295,7 @@ private fun HomeBlockItem(
                         "dailySongs" -> Screen.EveryDay.navigate(navController)
                         "star" -> {
                             val playlistId = resource.resourceId
-                            resource.extInfo.songId?.let { songId ->
+                            resource.extInfo.songIdText?.let { songId ->
                                 playerViewModel.intelligenceList(songId, playlistId, songId)
                             }
 
@@ -316,10 +322,11 @@ private fun HomeBlockItem(
                         "similarArtist" -> {
                             // 从喜欢的艺人听起
                             // val ids = resourceId // 需要解析 json， 跳转艺人界面
-                            val artistIds =
-                                gson.fromJson(resource.resourceId, Array<String>::class.java)
-                            Screen.Artist.navigate(navController) {
-                                addPath(artistIds[0])
+                            val artistIds = runCatching {
+                                json.decodeFromString<List<String>>(resource.resourceId)
+                            }.getOrDefault(emptyList())
+                            artistIds.firstOrNull()?.let { artistId ->
+                                Screen.Artist.navigate(navController) { addPath(artistId) }
                             }
                         }
 
@@ -343,20 +350,21 @@ private fun HomeBlockItem(
             -> {
             // 将这些相似的逻辑合并处理，减少代码重复
             val title = if (block.positionCode == "PAGE_RECOMMEND_RADAR")
-                (blockData.get("title")?.asString ?: "雷达歌单")
-            else blockData.get("title").asString
+                (blockData["title"]?.jsonPrimitive?.content ?: "雷达歌单")
+            else blockData["title"]?.jsonPrimitive?.content.orEmpty()
 
             // 处理数据源字段差异
             val resourceArray = if (block.positionCode == "PAGE_RECOMMEND_RADAR")
-                (blockData.get("resources") ?: blockData.get("blockResource")).asJsonArray
-            else blockData.get("resources").asJsonArray
+                (blockData["resources"] ?: blockData["blockResource"])?.jsonArray.orEmpty()
+            else blockData["resources"]?.jsonArray.orEmpty()
 
             val resources = remember(resourceArray) {
-                resourceArray.map {
-                    gson.fromJson(
-                        it.asJsonObject,
-                        HomePageResourceShow.Data.Block.DslData.BlockResource.Resource::class.java
-                    )
+                resourceArray.mapNotNull {
+                    runCatching {
+                        json.decodeFromJsonElement<HomePageResourceShow.Data.Block.DslData.BlockResource.Resource>(it)
+                    }.onFailure { error ->
+                        Timber.tag("HomeBlock").w(error, "Failed to decode ${block.positionCode} card")
+                    }.getOrNull()
                 }.let { list ->
                     // 如果是我的歌单，去掉最后一个（通常是添加按钮或其他）
                     if (block.positionCode == "PAGE_RECOMMEND_MY_SHEET") list.dropLast(1) else list
@@ -383,15 +391,16 @@ private fun HomeBlockItem(
         // --- 私人推荐歌曲 / 相似歌曲 (三行滑动) ---
         "PAGE_RECOMMEND_PRIVATE_RCMD_SONG",
         "PAGE_RECOMMEND_RED_SIMILAR_SONG" -> {
-            val title = blockData.get("header").asJsonObject.get("title").asString
-            val itemsArray = blockData.get("content").asJsonObject.get("items").asJsonArray
+            val title = blockData["header"]?.jsonObject?.get("title")?.jsonPrimitive?.content.orEmpty()
+            val itemsArray = blockData["content"]?.jsonObject?.get("items")?.jsonArray.orEmpty()
 
             val songsBlocks = remember(itemsArray) {
-                itemsArray.map {
-                    gson.fromJson(
-                        it.asJsonObject,
-                        HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item::class.java
-                    )
+                itemsArray.mapNotNull {
+                    runCatching {
+                        json.decodeFromJsonElement<HomePageResourceShow.Data.Block.DslData.HomeCommon.Content.Item>(it)
+                    }.onFailure { error ->
+                        Timber.tag("HomeBlock").w(error, "Failed to decode ${block.positionCode} song group")
+                    }.getOrNull()
                 }
             }
 
@@ -586,25 +595,10 @@ private fun SongRow(
 
 // 辅助函数保持不变
 fun selectSpecialField(jsonObject: JsonObject): JsonObject? {
-    // 1. 优先直接查找当前层级的 blockResource
-    if (jsonObject.has("blockResource") && jsonObject.get("blockResource").isJsonObject) {
-        return jsonObject.getAsJsonObject("blockResource")
-    }
-
-    // 2. 寻找键名最长 且 值为 JsonObject 的字段
-    // 关键修复：添加 .filter { it.value.isJsonObject }
-    val longestEntry = jsonObject.entrySet()
-        .filter { it.value.isJsonObject } // <--- 过滤掉 boolean, string, array 等非对象类型
+    (jsonObject["blockResource"] as? JsonObject)?.let { return it }
+    val candidate = jsonObject.entries
+        .filter { it.value is JsonObject }
         .maxByOrNull { it.key.length }
-
-    // 如果没有找到任何 JsonObject 类型的字段，直接返回 null
-    val candidate = longestEntry?.value?.asJsonObject ?: return null
-
-    // 3. 检查找到的候选对象里面是否包裹了 blockResource (递归查找逻辑)
-    if (candidate.has("blockResource") && candidate.get("blockResource").isJsonObject) {
-        return candidate.getAsJsonObject("blockResource")
-    }
-
-    // 4. 返回这个最长 key 对应的对象
-    return candidate
+        ?.value as? JsonObject ?: return null
+    return (candidate["blockResource"] as? JsonObject) ?: candidate
 }

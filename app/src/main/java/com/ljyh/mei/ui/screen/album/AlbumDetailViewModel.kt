@@ -1,9 +1,9 @@
 package com.ljyh.mei.ui.screen.album
 
 import androidx.lifecycle.ViewModel
-    import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.constants.MusicQuality
-import com.ljyh.mei.data.model.AlbumDetail
+import com.ljyh.mei.data.model.AlbumContent
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity
@@ -21,8 +21,8 @@ class AlbumDetailViewModel @Inject constructor(
     private val repository: PlaylistRepository,
     private val albumsRepository: AlbumsRepository
 ) : ViewModel() {
-    private val _albumDetail = MutableStateFlow<Resource<AlbumDetail>>(Resource.Loading)
-    val albumDetail: StateFlow<Resource<AlbumDetail>> = _albumDetail
+    private val _albumDetail = MutableStateFlow<Resource<AlbumContent>>(Resource.Loading)
+    val albumDetail: StateFlow<Resource<AlbumContent>> = _albumDetail
 
     private val _subscribeAlbum = MutableStateFlow<Resource<BaseResponse>>(Resource.Loading)
     val subscribeAlbum: StateFlow<Resource<BaseResponse>> = _subscribeAlbum

@@ -67,7 +67,7 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
         id = al.Id,
         title = al.name?:"",
     ),
-    tns= tns?.get(0)
+    tns = tns?.firstOrNull()
 )
 
 
@@ -75,17 +75,17 @@ fun PlaylistDetail.Playlist.Track.toMediaMetadata() = MediaMetadata(
 fun AlbumDetail.Song.toMediaMetadata() = MediaMetadata(
     id = id,
     title = name,
-    coverUrl= getResourceLink(al.pic.toString()),
-    artists = ar.map {
+    coverUrl= getResourceLink(album.pictureId.toString()),
+    artists = artists.map {
         MediaMetadata.Artist(
             id = it.id,
             name = it.name,
         )
     },
-    duration = dt,
+    duration = duration,
     album = MediaMetadata.Album(
-        id = id,
-        title = name
+        id = album.id,
+        title = album.name
     )
 )
 
@@ -107,7 +107,7 @@ fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
         id = al.id,
         title = al.name
     ),
-    tns= tns?.get(0)
+    tns = tns?.firstOrNull()
 )
 
 
@@ -116,18 +116,18 @@ fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
 fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
     id = id,
     title = name,
-    coverUrl= getResourceLink(al.pic.toString()),
-    artists = ar.map {
+    coverUrl= getResourceLink(album.pictureId.toString()),
+    artists = artists.map {
         MediaMetadata.Artist(
             id = it.id,
             name = it.name,
-            alias = it.alia
+            alias = it.aliases
         )
     },
-    duration = dt,
+    duration = duration,
     album = MediaMetadata.Album(
-        id = al.id,
-        title = al.name
+        id = album.id,
+        title = album.name
     )
 )
 

@@ -3,7 +3,7 @@ package com.ljyh.mei.ui.screen.main.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.AlbumPhoto
-import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAccountSummary
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserDetail
 import com.ljyh.mei.data.model.UserVipInfo
@@ -32,8 +32,8 @@ class LibraryViewModel @Inject constructor(
     private val repository: UserRepository,
     private val localPlaylistRepository: LocalPlaylistRepository,
 ):ViewModel() {
-    private val _account = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
-    val account: StateFlow<Resource<UserAccount>> = _account
+    private val _account = MutableStateFlow<Resource<UserAccountSummary>>(Resource.Loading)
+    val account: StateFlow<Resource<UserAccountSummary>> = _account
 
     private val _userDetail = MutableStateFlow<Resource<UserDetail>>(Resource.Loading)
 
@@ -218,7 +218,7 @@ class LibraryViewModel @Inject constructor(
             is Resource.Success -> {
                 val existingPlaylists = localPlaylistRepository.getPlaylistByAuthor(uid)
                 val existingMap = existingPlaylists.associateBy { it.id }
-                val playlistsToInsert = networkResult.data.playlist.map {
+                val playlistsToInsert = networkResult.data.playlists.map {
                     val existing = existingMap[it.id.toString()]
                     Playlist(
                         id = it.id.toString(),

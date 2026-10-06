@@ -1,145 +1,23 @@
 package com.ljyh.mei.data.model.weapi
-import com.google.gson.annotations.SerializedName
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class FloorComment(
-    @SerializedName("code")
-    val code: Int,
-    @SerializedName("data")
-    val `data`: FData,
-    @SerializedName("message")
-    val message: String
+    @SerialName("code") val code: Int = 0,
+    @SerialName("data") val data: FData = FData(),
+    @SerialName("message") val message: String = "",
 )
 
-data class FData(
-    @SerializedName("bestComments")
-    val bestComments: List<Any?>,
-    @SerializedName("comments")
-    val comments: List<FComment>,
-    @SerializedName("currentComment")
-    val currentComment: Any,
-    @SerializedName("hasMore")
-    val hasMore: Boolean,
-    @SerializedName("ownerComment")
-    val ownerComment: OwnerComment,
-    @SerializedName("time")
-    val time: Long,
-    @SerializedName("totalCount")
-    val totalCount: Int
-)
+@Serializable
+data class FData(@SerialName("comments") val comments: List<FComment> = emptyList())
 
+@Serializable
 data class FComment(
-    @SerializedName("aiCommentLabel")
-    val aiCommentLabel: Any,
-    @SerializedName("beReplied")
-    val beReplied: Any,
-    @SerializedName("commentId")
-    val commentId: Long,
-    @SerializedName("commentLocationType")
-    val commentLocationType: Int,
-    @SerializedName("content")
-    val content: String,
-    @SerializedName("contentResource")
-    val contentResource: Any,
-    @SerializedName("decoration")
-    val decoration: Decoration,
-    @SerializedName("expressionUrl")
-    val expressionUrl: Any,
-    @SerializedName("favorited")
-    val favorited: Boolean,
-    @SerializedName("grade")
-    val grade: Any,
-    @SerializedName("ipLocation")
-    val ipLocation: IpLocation,
-    @SerializedName("likeAnimationMap")
-    val likeAnimationMap: Any,
-    @SerializedName("liked")
-    val liked: Boolean,
-    @SerializedName("likedCount")
-    val likedCount: Int,
-    @SerializedName("medal")
-    val medal: Any,
-    @SerializedName("needDisplayTime")
-    val needDisplayTime: Boolean,
-    @SerializedName("owner")
-    val owner: Boolean,
-    @SerializedName("parentCommentId")
-    val parentCommentId: Long,
-    @SerializedName("pendantData")
-    val pendantData: Any,
-    @SerializedName("repliedMark")
-    val repliedMark: Any,
-    @SerializedName("richContent")
-    val richContent: Any,
-    @SerializedName("showFloorComment")
-    val showFloorComment: Any,
-    @SerializedName("status")
-    val status: Int,
-    @SerializedName("time")
-    val time: Long,
-    @SerializedName("timeStr")
-    val timeStr: String,
-    @SerializedName("user")
-    val user: User,
-    @SerializedName("userBizLevels")
-    val userBizLevels: Any
+    @SerialName("content") val content: String = "",
+    @SerialName("ipLocation") val ipLocation: IpLocation = IpLocation(),
+    @SerialName("likedCount") val likedCount: Int = 0,
+    @SerialName("timeStr") val timeStr: String = "",
+    @SerialName("user") val user: User = User(),
 )
-
-data class OwnerComment(
-    @SerializedName("aiCommentLabel")
-    val aiCommentLabel: Any,
-    @SerializedName("beReplied")
-    val beReplied: List<Any?>,
-    @SerializedName("commentId")
-    val commentId: Long,
-    @SerializedName("commentLocationType")
-    val commentLocationType: Int,
-    @SerializedName("content")
-    val content: String,
-    @SerializedName("contentResource")
-    val contentResource: Any,
-    @SerializedName("decoration")
-    val decoration: Decoration,
-    @SerializedName("expressionUrl")
-    val expressionUrl: Any,
-    @SerializedName("favorited")
-    val favorited: Boolean,
-    @SerializedName("grade")
-    val grade: Any,
-    @SerializedName("ipLocation")
-    val ipLocation: IpLocation,
-    @SerializedName("likeAnimationMap")
-    val likeAnimationMap: Any,
-    @SerializedName("liked")
-    val liked: Boolean,
-    @SerializedName("likedCount")
-    val likedCount: Int,
-    @SerializedName("medal")
-    val medal: Any,
-    @SerializedName("needDisplayTime")
-    val needDisplayTime: Boolean,
-    @SerializedName("owner")
-    val owner: Boolean,
-    @SerializedName("parentCommentId")
-    val parentCommentId: Long,
-    @SerializedName("pendantData")
-    val pendantData: Any,
-    @SerializedName("repliedMark")
-    val repliedMark: Any,
-    @SerializedName("richContent")
-    val richContent: Any,
-    @SerializedName("showFloorComment")
-    val showFloorComment: Any,
-    @SerializedName("status")
-    val status: Int,
-    @SerializedName("time")
-    val time: Long,
-    @SerializedName("timeStr")
-    val timeStr: String,
-    @SerializedName("user")
-    val user: User,
-    @SerializedName("userBizLevels")
-    val userBizLevels: Any
-)
-
-

@@ -1,7 +1,9 @@
 package com.ljyh.mei.data.model.weapi
 
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.AndroidIdKey
 import com.ljyh.mei.constants.AndroidUserAgent
@@ -11,91 +13,95 @@ import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-
 /* ==========================
  * 顶层请求参数
  * ========================== */
+@Serializable
 data class GetHomePageResourceShow(
-    @SerializedName("pageCode") val pageCode: String,
-    @SerializedName("isFirstScreen") val isFirstScreen: String,
-    @SerializedName("cursor") val cursor: String,
-    @SerializedName("refresh") val refresh: String,
-    @SerializedName("widthDp") val widthDp: String,
-    @SerializedName("heightDp") val heightDp: String,
-    @SerializedName("loadedPositionCodes") val loadedPositionCodes: String,
-    @SerializedName("clientCacheBlockCode") val clientCacheBlockCode: String,
-    @SerializedName("callbackParameters") val callbackParameters: String,
-    @SerializedName("extJson") val extJson: String,
-    @SerializedName("pageStyleType") val pageStyleType: String,
-    @SerializedName("adExtJson") val adExtJson: String,
-    @SerializedName("reqTimeStamp") val reqTimeStamp: String,
-    @SerializedName("clientTime") val clientTime: String,
-    @SerializedName("ruleJson") val ruleJson: String,
-    @SerializedName("algDemoteBlockCodeOrderList") val algDemoteBlockCodeOrderList: String,
-    @SerializedName("header") val header: String,
-    @SerializedName("e_r") val eR: Boolean
+    @SerialName("pageCode") val pageCode: String,
+    @SerialName("isFirstScreen") val isFirstScreen: String,
+    @SerialName("cursor") val cursor: String,
+    @SerialName("refresh") val refresh: String,
+    @SerialName("widthDp") val widthDp: String,
+    @SerialName("heightDp") val heightDp: String,
+    @SerialName("loadedPositionCodes") val loadedPositionCodes: String,
+    @SerialName("clientCacheBlockCode") val clientCacheBlockCode: String,
+    @SerialName("callbackParameters") val callbackParameters: String,
+    @SerialName("extJson") val extJson: String,
+    @SerialName("pageStyleType") val pageStyleType: String,
+    @SerialName("adExtJson") val adExtJson: String,
+    @SerialName("reqTimeStamp") val reqTimeStamp: String,
+    @SerialName("clientTime") val clientTime: String,
+    @SerialName("ruleJson") val ruleJson: String,
+    @SerialName("algDemoteBlockCodeOrderList") val algDemoteBlockCodeOrderList: String,
+    @SerialName("header") val header: String,
+    @SerialName("e_r") val eR: Boolean
 )
 
 /* ==========================
  * AdExtJson 及其嵌套结构
  * ========================== */
+@Serializable
 data class AdExtJson(
-    @SerializedName("terminal") val terminal: String,
-    @SerializedName("network") val network: Int,
-    @SerializedName("op") val op: Int,
-    @SerializedName("dev_type") val devType: Int,
-    @SerializedName("pid") val pid: String,
-    @SerializedName("resolution") val resolution: Resolution,
-    @SerializedName("adReqId") val adReqId: String,
-    @SerializedName("memory") val memory: String,
-    @SerializedName("disk") val disk: String,
-    @SerializedName("mobilename") val mobilename: String,
-    @SerializedName("ipv4") val ipv4: String,
-    @SerializedName("ipv6") val ipv6: String,
-    @SerializedName("android_id") val androidId: String,
-    @SerializedName("manufacturer") val manufacturer: String,
-    @SerializedName("lbs") val lbs: String,
-    @SerializedName("opensdkVer") val opensdkVer: Int,
-    @SerializedName("wxApiVer") val wxApiVer: String,
-    @SerializedName("wxInstalled") val wxInstalled: Boolean,
-    @SerializedName("supportWechatCanvas") val supportWechatCanvas: Boolean,
-    @SerializedName("supportQuickApp") val supportQuickApp: Boolean,
-    @SerializedName("newAgent") val newAgent: String,
-    @SerializedName("useragent") val useragent: String,
-    @SerializedName("teenMode") val teenMode: Boolean,
-    @SerializedName("homePageType") val homePageType: Int,
-    @SerializedName("sourceFrame") val sourceFrame: String,
-    @SerializedName("subOsName") val subOsName: String,
-    @SerializedName("subOsVersion") val subOsVersion: String,
-    @SerializedName("bootMark") val bootMark: String,
-    @SerializedName("updateMark") val updateMark: String,
-    @SerializedName("vipRight") val vipRight: Boolean,
-    @SerializedName("isNativeSampling") val isNativeSampling: Boolean,
-    @SerializedName("ext") val ext: Ext
+    @SerialName("terminal") val terminal: String,
+    @SerialName("network") val network: Int,
+    @SerialName("op") val op: Int,
+    @SerialName("dev_type") val devType: Int,
+    @SerialName("pid") val pid: String,
+    @SerialName("resolution") val resolution: Resolution,
+    @SerialName("adReqId") val adReqId: String,
+    @SerialName("memory") val memory: String,
+    @SerialName("disk") val disk: String,
+    @SerialName("mobilename") val mobilename: String,
+    @SerialName("ipv4") val ipv4: String,
+    @SerialName("ipv6") val ipv6: String,
+    @SerialName("android_id") val androidId: String,
+    @SerialName("manufacturer") val manufacturer: String,
+    @SerialName("lbs") val lbs: String,
+    @SerialName("opensdkVer") val opensdkVer: Int,
+    @SerialName("wxApiVer") val wxApiVer: String,
+    @SerialName("wxInstalled") val wxInstalled: Boolean,
+    @SerialName("supportWechatCanvas") val supportWechatCanvas: Boolean,
+    @SerialName("supportQuickApp") val supportQuickApp: Boolean,
+    @SerialName("newAgent") val newAgent: String,
+    @SerialName("useragent") val useragent: String,
+    @SerialName("teenMode") val teenMode: Boolean,
+    @SerialName("homePageType") val homePageType: Int,
+    @SerialName("sourceFrame") val sourceFrame: String,
+    @SerialName("subOsName") val subOsName: String,
+    @SerialName("subOsVersion") val subOsVersion: String,
+    @SerialName("bootMark") val bootMark: String,
+    @SerialName("updateMark") val updateMark: String,
+    @SerialName("vipRight") val vipRight: Boolean,
+    @SerialName("isNativeSampling") val isNativeSampling: Boolean,
+    @SerialName("ext") val ext: Ext
 ) {
+    @Serializable
     data class Resolution(
-        @SerializedName("width") val width: Int,
-        @SerializedName("height") val height: Int
+        @SerialName("width") val width: Int,
+        @SerialName("height") val height: Int
     )
 
+    @Serializable
+
     data class Ext(
-        @SerializedName("bannerRefreshTypes") val bannerRefreshTypes: String,
-        @SerializedName("teenMode") val teenMode: Boolean,
-        @SerializedName("homePageType") val homePageType: Int,
-        @SerializedName("sourceFrame") val sourceFrame: String,
-        @SerializedName("opensdkVer") val opensdkVer: Int,
-        @SerializedName("wxApiVer") val wxApiVer: String,
-        @SerializedName("wxInstalled") val wxInstalled: Boolean,
-        @SerializedName("supportWechatCanvas") val supportWechatCanvas: Boolean,
-        @SerializedName("supportQuickApp") val supportQuickApp: Boolean,
-        @SerializedName("subOsName") val subOsName: String,
-        @SerializedName("subOsVersion") val subOsVersion: String,
-        @SerializedName("memory") val memory: String,
-        @SerializedName("disk") val disk: String,
-        @SerializedName("ipv4") val ipv4: String,
-        @SerializedName("ipv6") val ipv6: String,
-        @SerializedName("bootMark") val bootMark: String,
-        @SerializedName("updateMark") val updateMark: String
+        @SerialName("bannerRefreshTypes") val bannerRefreshTypes: String,
+        @SerialName("teenMode") val teenMode: Boolean,
+        @SerialName("homePageType") val homePageType: Int,
+        @SerialName("sourceFrame") val sourceFrame: String,
+        @SerialName("opensdkVer") val opensdkVer: Int,
+        @SerialName("wxApiVer") val wxApiVer: String,
+        @SerialName("wxInstalled") val wxInstalled: Boolean,
+        @SerialName("supportWechatCanvas") val supportWechatCanvas: Boolean,
+        @SerialName("supportQuickApp") val supportQuickApp: Boolean,
+        @SerialName("subOsName") val subOsName: String,
+        @SerialName("subOsVersion") val subOsVersion: String,
+        @SerialName("memory") val memory: String,
+        @SerialName("disk") val disk: String,
+        @SerialName("ipv4") val ipv4: String,
+        @SerialName("ipv6") val ipv6: String,
+        @SerialName("bootMark") val bootMark: String,
+        @SerialName("updateMark") val updateMark: String
     )
 }
 
@@ -110,7 +116,7 @@ private object DefaultBuilder {
     const val WIDTH_DP = "1080"
     const val HEIGHT_DP = "1920"
     const val LOADED_POSITION_CODES = ""
-    var CLIENT_CACHE_BLOCK_CODE: String = Gson().toJson(
+    var CLIENT_CACHE_BLOCK_CODE: String = Json.encodeToString(
         listOf(
             "PAGE_RECOMMEND_RADAR",
             "PAGE_RECOMMEND_SPECIAL_CLOUD_VILLAGE_PLAYLIST",
@@ -123,7 +129,7 @@ private object DefaultBuilder {
         """{"fmName":{"fmTitle":"漫游","fmLongTitle":"私人漫游"},"currentExploreHomeType":"main","homeFrameworkType":"fastPlay","latitude":"4.9E-324","homeReqSource":"home","adSceneExt":"","clientLibraAbTest":{"similarFmNameTest0422":"c","fmNameTest0422":"c"},"network":"wifi","carrier":"","forceFreshForNewUser":false,"bluetooth":false,"requestLongVideoBanner":true,"currentNewUserExploreHomeType":"main","longitude":"4.9E-324","refreshAction":"init","firstRequestPerLaunch":true,"clientMobileSize":"{\"width\":720,\"length\":1475}","noteHomeType":"note"}"""
     const val PAGE_STYLE_TYPE = "cutBlock"
     const val RULE_JSON = "{}"
-    val ALG_DEMOTE_BLOCK_CODE_ORDER_LIST = Gson().toJson(
+    val ALG_DEMOTE_BLOCK_CODE_ORDER_LIST = Json.encodeToString(
         listOf(
             "PAGE_RECOMMEND_DAILY_RECOMMEND",
             "PAGE_RECOMMEND_VIP_SMALL_CARD",
@@ -191,7 +197,7 @@ class GetHomePageResourceShowDsl(
     var callbackParameters: String = DefaultBuilder.CALLBACK_PARAMETERS
     var extJson: String = DefaultBuilder.EXT_JSON
     var pageStyleType: String = DefaultBuilder.PAGE_STYLE_TYPE
-    var adExtJson: String = Gson().toJson(buildAdExtJson { })
+    var adExtJson: String = Json.encodeToString(buildAdExtJson { })
     var reqTimeStamp: String = System.currentTimeMillis().toString()
     var clientTime: String =
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))

@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 
-    kotlin("plugin.serialization") version "2.0.0"
+    kotlin("plugin.serialization") version "2.3.20"
 
 }
 
@@ -92,6 +92,7 @@ dependencies {
     implementation(libs.androidx.core.animation)
     implementation(libs.androidx.compose.material3.window.size.class1)
     testImplementation(libs.junit)
+    testImplementation(libs.ktor.client.mock)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
@@ -105,10 +106,8 @@ dependencies {
     implementation(libs.coil.core)
     implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
-    implementation(libs.converter.gson)
+    implementation(libs.gson)
     implementation(libs.kotlinx.coroutines.guava)
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.scalars)
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.room.runtime)
@@ -135,8 +134,12 @@ dependencies {
     implementation(libs.side.colorpicker)
 
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.kotlinx.serialization.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(project(":UnblockNeteaseMusic"))
     implementation(libs.serialization.android)
 
     implementation(libs.korlibs.crypto){

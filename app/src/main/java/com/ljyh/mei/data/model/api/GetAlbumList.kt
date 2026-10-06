@@ -1,13 +1,16 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class GetAlbumList(
-    @SerializedName("limit")
+    @SerialName("limit")
     val limit: String = "25",
-    @SerializedName("offset")
+    @SerialName("offset")
     val offset: String = "0",
-    @SerializedName("total")
+    @SerialName("total")
     val total: String = "true"
 
 )

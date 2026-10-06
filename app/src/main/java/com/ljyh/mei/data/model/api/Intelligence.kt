@@ -1,6 +1,7 @@
 package com.ljyh.mei.data.model.api
-import com.google.gson.annotations.SerializedName
-
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 //songId: query.id,
 //type: 'fromPlayOne',
@@ -8,296 +9,313 @@ import com.google.gson.annotations.SerializedName
 //startMusicId: query.sid || query.id,
 //count: query.count || 1,
 
+@Serializable
 
 data class GetIntelligence(
-    @SerializedName("c")
+    @SerialName("c")
     val songId: String,
-    @SerializedName("type")
+    @SerialName("type")
     val type: String = "fromPlayOne",
-    @SerializedName("playlistId")
+    @SerialName("playlistId")
     val playlistId: String,
-    @SerializedName("startMusicId")
+    @SerialName("startMusicId")
     val startMusicId: String,
-    @SerializedName("count")
+    @SerialName("count")
     val count: Int = 1
 )
+@Serializable
 data class Intelligence(
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
-    @SerializedName("data")
+    @SerialName("data")
     val `data`: List<Data>,
-    @SerializedName("message")
+    @SerialName("message")
     val message: String
 )
 
+@Serializable
+
 data class Data(
-    @SerializedName("alg")
+    @SerialName("alg")
     val alg: String,
-    @SerializedName("id")
+    @SerialName("id")
     val id: Long,
-    @SerializedName("recommended")
+    @SerialName("recommended")
     val recommended: Boolean,
-    @SerializedName("songInfo")
+    @SerialName("songInfo")
     val songInfo: SongInfo
 )
 
+@Serializable
+
 data class SongInfo(
-    @SerializedName("a")
-    val a: Any,
-    @SerializedName("al")
+    @SerialName("a")
+    val a: JsonElement,
+    @SerialName("al")
     val al: Al,
-    @SerializedName("alia")
+    @SerialName("alia")
     val alia: List<String>,
-    @SerializedName("ar")
+    @SerialName("ar")
     val ar: List<Ar>,
-    @SerializedName("cd")
+    @SerialName("cd")
     val cd: String,
-    @SerializedName("cf")
+    @SerialName("cf")
     val cf: String,
-    @SerializedName("copyright")
+    @SerialName("copyright")
     val copyright: Int,
-    @SerializedName("cp")
+    @SerialName("cp")
     val cp: Int,
-    @SerializedName("crbt")
-    val crbt: Any,
-    @SerializedName("djId")
+    @SerialName("crbt")
+    val crbt: JsonElement,
+    @SerialName("djId")
     val djId: Int,
-    @SerializedName("dt")
+    @SerialName("dt")
     val dt: Int,
-    @SerializedName("fee")
+    @SerialName("fee")
     val fee: Int,
-    @SerializedName("ftype")
+    @SerialName("ftype")
     val ftype: Int,
-    @SerializedName("h")
+    @SerialName("h")
     val h: H,
-    @SerializedName("id")
+    @SerialName("id")
     val id: Long,
-    @SerializedName("l")
+    @SerialName("l")
     val l: L,
-    @SerializedName("m")
+    @SerialName("m")
     val m: M,
-    @SerializedName("mst")
+    @SerialName("mst")
     val mst: Int,
-    @SerializedName("mv")
+    @SerialName("mv")
     val mv: Int,
-    @SerializedName("name")
+    @SerialName("name")
     val name: String,
-    @SerializedName("no")
+    @SerialName("no")
     val no: Int,
-    @SerializedName("pc")
+    @SerialName("pc")
     val pc: Pc,
-    @SerializedName("pop")
+    @SerialName("pop")
     val pop: Int,
-    @SerializedName("privilege")
+    @SerialName("privilege")
     val privilege: Privilege,
-    @SerializedName("pst")
+    @SerialName("pst")
     val pst: Int,
-    @SerializedName("publishTime")
+    @SerialName("publishTime")
     val publishTime: Long,
-    @SerializedName("rt")
+    @SerialName("rt")
     val rt: String,
-    @SerializedName("rtUrl")
-    val rtUrl: Any,
-    @SerializedName("rtUrls")
-    val rtUrls: List<Any>,
-    @SerializedName("rtype")
+    @SerialName("rtUrl")
+    val rtUrl: JsonElement,
+    @SerialName("rtUrls")
+    val rtUrls: List<JsonElement>,
+    @SerialName("rtype")
     val rtype: Int,
-    @SerializedName("rurl")
-    val rurl: Any,
-    @SerializedName("s_id")
+    @SerialName("rurl")
+    val rurl: JsonElement,
+    @SerialName("s_id")
     val sId: Long,
-    @SerializedName("st")
+    @SerialName("st")
     val st: Int,
-    @SerializedName("t")
+    @SerialName("t")
     val t: Int,
-    @SerializedName("tns")
-    val tns: List<String>?,
-    @SerializedName("v")
+    @SerialName("tns")
+    val tns: List<String>? = null,
+    @SerialName("v")
     val v: Int
 )
 
+@Serializable
+
 data class Al(
-    @SerializedName("id")
+    @SerialName("id")
     val id: Int,
-    @SerializedName("name")
+    @SerialName("name")
     val name: String,
-    @SerializedName("pic")
+    @SerialName("pic")
     val pic: Long,
-    @SerializedName("pic_str")
+    @SerialName("pic_str")
     val picStr: String,
-    @SerializedName("picUrl")
+    @SerialName("picUrl")
     val picUrl: String,
-    @SerializedName("tns")
+    @SerialName("tns")
     val tns: List<String>
 )
 
+@Serializable
+
 data class Ar(
-    @SerializedName("alias")
-    val alias: List<Any>,
-    @SerializedName("id")
+    @SerialName("alias")
+    val alias: List<JsonElement>,
+    @SerialName("id")
     val id: Int,
-    @SerializedName("name")
+    @SerialName("name")
     val name: String,
-    @SerializedName("tns")
-    val tns: List<String>?
+    @SerialName("tns")
+    val tns: List<String>? = null
 )
+
+@Serializable
 
 data class H(
-    @SerializedName("br")
+    @SerialName("br")
     val br: Int,
-    @SerializedName("fid")
+    @SerialName("fid")
     val fid: Int,
-    @SerializedName("size")
+    @SerialName("size")
     val size: Int,
-    @SerializedName("sr")
+    @SerialName("sr")
     val sr: Int,
-    @SerializedName("vd")
+    @SerialName("vd")
     val vd: Int
 )
+
+@Serializable
 
 data class L(
-    @SerializedName("br")
+    @SerialName("br")
     val br: Int,
-    @SerializedName("fid")
+    @SerialName("fid")
     val fid: Int,
-    @SerializedName("size")
+    @SerialName("size")
     val size: Int,
-    @SerializedName("sr")
+    @SerialName("sr")
     val sr: Int,
-    @SerializedName("vd")
+    @SerialName("vd")
     val vd: Int
 )
+
+@Serializable
 
 data class M(
-    @SerializedName("br")
+    @SerialName("br")
     val br: Int,
-    @SerializedName("fid")
+    @SerialName("fid")
     val fid: Int,
-    @SerializedName("size")
+    @SerialName("size")
     val size: Int,
-    @SerializedName("sr")
+    @SerialName("sr")
     val sr: Int,
-    @SerializedName("vd")
+    @SerialName("vd")
     val vd: Int
 )
 
+@Serializable
+
 data class Pc(
-    @SerializedName("alb")
+    @SerialName("alb")
     val alb: String,
-    @SerializedName("ar")
+    @SerialName("ar")
     val ar: String,
-    @SerializedName("br")
+    @SerialName("br")
     val br: Int,
-    @SerializedName("cid")
+    @SerialName("cid")
     val cid: String,
-    @SerializedName("fn")
+    @SerialName("fn")
     val fn: String,
-    @SerializedName("nickname")
+    @SerialName("nickname")
     val nickname: String,
-    @SerializedName("sn")
+    @SerialName("sn")
     val sn: String,
-    @SerializedName("uid")
+    @SerialName("uid")
     val uid: Long
 )
 
+@Serializable
+
 data class Privilege(
-    @SerializedName("bd")
-    val bd: Any,
-    @SerializedName("chargeInfoList")
+    @SerialName("bd")
+    val bd: JsonElement,
+    @SerialName("chargeInfoList")
     val chargeInfoList: List<ChargeInfo>,
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
-    @SerializedName("cp")
+    @SerialName("cp")
     val cp: Int,
-    @SerializedName("cs")
+    @SerialName("cs")
     val cs: Boolean,
-    @SerializedName("dl")
+    @SerialName("dl")
     val dl: Int,
-    @SerializedName("dlLevel")
+    @SerialName("dlLevel")
     val dlLevel: String,
-    @SerializedName("dlLevels")
-    val dlLevels: Any,
-    @SerializedName("downloadMaxBrLevel")
+    @SerialName("dlLevels")
+    val dlLevels: JsonElement,
+    @SerialName("downloadMaxBrLevel")
     val downloadMaxBrLevel: String,
-    @SerializedName("downloadMaxbr")
+    @SerialName("downloadMaxbr")
     val downloadMaxbr: Int,
-    @SerializedName("fee")
+    @SerialName("fee")
     val fee: Int,
-    @SerializedName("fl")
+    @SerialName("fl")
     val fl: Int,
-    @SerializedName("flLevel")
+    @SerialName("flLevel")
     val flLevel: String,
-    @SerializedName("flag")
+    @SerialName("flag")
     val flag: Int,
-    @SerializedName("freeTrialPrivilege")
+    @SerialName("freeTrialPrivilege")
     val freeTrialPrivilege: FreeTrialPrivilege,
-    @SerializedName("id")
+    @SerialName("id")
     val id: Long,
-    @SerializedName("ignoreCache")
-    val ignoreCache: Any,
-    @SerializedName("maxBrLevel")
+    @SerialName("ignoreCache")
+    val ignoreCache: JsonElement,
+    @SerialName("maxBrLevel")
     val maxBrLevel: String,
-    @SerializedName("maxbr")
+    @SerialName("maxbr")
     val maxbr: Int,
-    @SerializedName("message")
-    val message: Any,
-    @SerializedName("payed")
+    @SerialName("message")
+    val message: JsonElement,
+    @SerialName("payed")
     val payed: Int,
-    @SerializedName("pl")
+    @SerialName("pl")
     val pl: Int,
-    @SerializedName("plLevel")
+    @SerialName("plLevel")
     val plLevel: String,
-    @SerializedName("plLevels")
-    val plLevels: Any,
-    @SerializedName("playMaxBrLevel")
+    @SerialName("plLevels")
+    val plLevels: JsonElement,
+    @SerialName("playMaxBrLevel")
     val playMaxBrLevel: String,
-    @SerializedName("playMaxbr")
+    @SerialName("playMaxbr")
     val playMaxbr: Int,
-    @SerializedName("preSell")
+    @SerialName("preSell")
     val preSell: Boolean,
-    @SerializedName("rightSource")
+    @SerialName("rightSource")
     val rightSource: Int,
-    @SerializedName("rscl")
-    val rscl: Any,
-    @SerializedName("sp")
+    @SerialName("rscl")
+    val rscl: JsonElement,
+    @SerialName("sp")
     val sp: Int,
-    @SerializedName("st")
+    @SerialName("st")
     val st: Int,
-    @SerializedName("subp")
+    @SerialName("subp")
     val subp: Int,
-    @SerializedName("toast")
+    @SerialName("toast")
     val toast: Boolean
 )
 
+@Serializable
+
 data class ChargeInfo(
-    @SerializedName("chargeMessage")
-    val chargeMessage: Any,
-    @SerializedName("chargeType")
+    @SerialName("chargeMessage")
+    val chargeMessage: JsonElement,
+    @SerialName("chargeType")
     val chargeType: Int,
-    @SerializedName("chargeUrl")
-    val chargeUrl: Any,
-    @SerializedName("rate")
+    @SerialName("chargeUrl")
+    val chargeUrl: JsonElement,
+    @SerialName("rate")
     val rate: Int
 )
 
+@Serializable
+
 data class FreeTrialPrivilege(
-    @SerializedName("cannotListenReason")
-    val cannotListenReason: Any,
-    @SerializedName("freeLimitTagType")
-    val freeLimitTagType: Any,
-    @SerializedName("listenType")
-    val listenType: Any,
-    @SerializedName("playReason")
-    val playReason: Any,
-    @SerializedName("resConsumable")
+    @SerialName("cannotListenReason")
+    val cannotListenReason: JsonElement,
+    @SerialName("freeLimitTagType")
+    val freeLimitTagType: JsonElement,
+    @SerialName("listenType")
+    val listenType: JsonElement,
+    @SerialName("playReason")
+    val playReason: JsonElement,
+    @SerialName("resConsumable")
     val resConsumable: Boolean,
-    @SerializedName("userConsumable")
+    @SerialName("userConsumable")
     val userConsumable: Boolean
 )
-
-
-
-
-
-
-

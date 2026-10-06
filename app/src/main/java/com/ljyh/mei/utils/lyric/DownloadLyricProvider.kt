@@ -3,7 +3,6 @@ package com.ljyh.mei.utils.lyric
 import android.content.Context
 import com.ljyh.mei.constants.EmbedOriginalTtmlKey
 import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.utils.dataStore
@@ -43,14 +42,14 @@ class DownloadLyricProvider @Inject constructor(
         lyricPreloader.resolveQqSource(songId)?.let { return it.toPayload() }
 
         val detail = repository.getSongDetail(songId) as? Resource.Success ?: return null
-        val metadata = detail.data.songs.firstOrNull()?.toMediaMetadata() ?: return null
+        val metadata = detail.data.firstOrNull() ?: return null
         return lyricPreloader.resolveQqSource(songId, metadata)?.toPayload()
     }
 
     private fun com.ljyh.mei.ui.model.LyricSourceData.QQMusic.toPayload() =
         QqLyricPayload(
-            content = lyric.lyric,
-            translation = lyric.trans.takeIf(String::isNotBlank),
+            content = lyric.original,
+            translation = lyric.translation.takeIf(String::isNotBlank),
             isQrc = isQRC
         )
 }

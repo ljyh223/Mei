@@ -2,7 +2,7 @@ package com.ljyh.mei.di
 
 import android.content.Context
 import com.ljyh.mei.data.network.api.ApiService
-import com.ljyh.mei.data.network.QQMusicUApiService
+import com.ljyh.unblockneteasemusic.qq.QqMusicProvider
 import com.ljyh.mei.data.network.QrLoginClient
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.api.WeApiService
@@ -52,8 +52,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideShareRepository(apiService: ApiService, qqMusicUApiService: QQMusicUApiService): ShareRepository {
-        return ShareRepository(apiService, qqMusicUApiService)
+    fun provideShareRepository(apiService: ApiService): ShareRepository {
+        return ShareRepository(apiService)
     }
 
 
@@ -61,11 +61,11 @@ object RepositoryModule {
     @Provides
     fun providePlayerRepository(
         @ApplicationContext context: Context,
-        qqMusicUApiService: QQMusicUApiService,
+        qqMusicProvider: QqMusicProvider,
         apiService: ApiService,
         weApiService: WeApiService,
     ): PlayerRepository {
-        return PlayerRepository(qqMusicUApiService, apiService, weApiService, context)
+        return PlayerRepository(qqMusicProvider, apiService, weApiService, context)
     }
 
     @Singleton

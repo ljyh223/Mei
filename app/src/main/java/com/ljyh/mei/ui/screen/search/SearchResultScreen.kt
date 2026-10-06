@@ -25,10 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
-import com.ljyh.mei.data.model.api.SearchResult
-import com.ljyh.mei.data.model.api.toAlbum
-import com.ljyh.mei.data.model.api.toMediaData
-import com.ljyh.mei.data.model.api.toPlaylist
+import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.SearchAlbum
+import com.ljyh.mei.data.model.SearchPlaylist
+import com.ljyh.mei.data.model.SearchResults
+import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
@@ -96,7 +97,7 @@ fun SearchResultScreen(
                             ListQueue(
                                 id = "SearchQueue-$query", // 加上 query 避免 ID 重复
                                 title = "搜索: $query",
-                                items = songs.map { s -> s.id.toString() to s.toMediaData().toMediaItem() },
+                                items = songs.map { song -> song.id.toString() to song.toMediaItem() },
                                 startIndex = index,
                                 position = 0
                             )
@@ -158,18 +159,18 @@ fun ErrorView(message: String) {
 }
 
 fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
-    data: SearchResult,
+    data: SearchResults,
     type: SearchType,
     navController: NavController,
-    onSongClick: (List<SearchResult.Result.Song>, Int) -> Unit
+    onSongClick: (List<MediaMetadata>, Int) -> Unit
 ) {
     when (type) {
         SearchType.Song -> {
-            val songs = data.result.songs ?: emptyList()
+            val songs = data.songs
             if (songs.isEmpty()) item { EmptyView() }
             items(songs) { song ->
                 Track(
-                    track = song.toMediaData(),
+                    track = song,
                     onClick = {
                         // 找到当前点击歌曲的 index
                         val index = songs.indexOfFirst { it.id == song.id }
@@ -180,7 +181,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
             }
         }
         SearchType.Artist -> {
-            val artists = data.result.artists ?: emptyList()
+            val artists = data.artists
             if (artists.isEmpty()) item { EmptyView() }
             items(artists) { artist ->
                 ArtistItem(artist = artist, onClick = {
@@ -191,10 +192,10 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
             }
         }
         SearchType.Album -> {
-            val albums = data.result.albums ?: emptyList()
+            val albums = data.albums
             if (albums.isEmpty()) item { EmptyView() }
             items(albums) { album ->
-                AlbumItem(album = album.toAlbum(), onClick = {
+                AlbumItem(album = album.toUiAlbum(), onClick = {
                     Screen.Album.navigate(navController) {
                         addPath(album.id.toString())
                     }
@@ -202,11 +203,11 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
             }
         }
         SearchType.Playlist -> {
-            val playlists = data.result.playlists ?: emptyList()
+            val playlists = data.playlists
             if (playlists.isEmpty()) item { EmptyView() }
             items(playlists) { playlist ->
                 PlaylistItem(
-                    playlist = playlist.toPlaylist(),
+                    playlist = playlist.toRoomPlaylist(),
                     onClick = {
                         Screen.PlayList.navigate(navController) {
                             addPath(playlist.id.toString())
@@ -218,6 +219,24 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
         else -> {}
     }
 }
+
+private fun SearchAlbum.toUiAlbum() = com.ljyh.mei.ui.model.Album(
+    id = id,
+    title = title,
+    cover = coverUrl,
+    size = size,
+    artist = artists.map { com.ljyh.mei.ui.model.Album.Artist(id = it.id, name = it.name) }
+)
+
+private fun SearchPlaylist.toRoomPlaylist() = Playlist(
+    id = id.toString(),
+    title = title,
+    cover = coverUrl,
+    author = creatorId.toString(),
+    authorName = creatorName,
+    authorAvatar = creatorAvatarUrl,
+    count = trackCount
+)
 
 @Composable
 fun EmptyView() {

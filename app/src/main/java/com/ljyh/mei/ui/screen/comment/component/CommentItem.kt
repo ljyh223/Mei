@@ -29,16 +29,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.ljyh.mei.data.model.weapi.CommentX
-import com.ljyh.mei.data.model.weapi.FComment
+import com.ljyh.mei.data.model.CommentEntry
+import com.ljyh.mei.data.model.FloorCommentEntry
 import com.ljyh.mei.data.network.Resource
 import timber.log.Timber
 
 @Composable
 fun CommentItem(
-    comment: CommentX,
+    comment: CommentEntry,
     isExpanded: Boolean,
-    floorComments: Resource<List<FComment>>,
+    floorComments: Resource<List<FloorCommentEntry>>,
     onToggleFloor: (Long, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -78,14 +78,14 @@ fun CommentItem(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = comment.timeStr,
+                        text = comment.timeText,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
 
-                    if (comment.ipLocation?.location?.isNotBlank() == true) {
+                    if (comment.location?.isNotBlank() == true) {
                         Text(
-                            text = "  IP: ${comment.ipLocation.location}",
+                            text = "  IP: ${comment.location}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -109,7 +109,7 @@ fun CommentItem(
                     )
                 }
 
-                val floorCount = comment.showFloorComment?.replyCount ?: 0
+                val floorCount = comment.replyCount
                 if (floorCount > 0) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
@@ -118,7 +118,7 @@ fun CommentItem(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable { onToggleFloor(comment.commentId, floorCount) }
+                            .clickable { onToggleFloor(comment.id, floorCount) }
                             .padding(horizontal = 4.dp, vertical = 2.dp)
                     )
                 }

@@ -1,7 +1,7 @@
 package com.ljyh.mei.ui.model
 
 import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.qq.u.LyricResult
+import com.ljyh.unblockneteasemusic.model.MusicLyrics
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 
 
@@ -16,7 +16,7 @@ data class LyricData(
 sealed class LyricSourceData(val source: LyricSource, val priority: Int) {
     data class NetEase(val lyric: Lyric) : LyricSourceData(LyricSource.NetEaseCloudMusic, 2)
     data class QQMusic(
-        val lyric: LyricResult.MusicMusichallSongPlayLyricInfoGetPlayLyricInfo.Data,
+        val lyric: MusicLyrics,
         val isQRC: Boolean = true,
         val lrcContent: String? = null
     ) : LyricSourceData(LyricSource.QQMusic, 1)

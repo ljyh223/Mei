@@ -2,23 +2,26 @@ package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.checkToken
-import com.ljyh.mei.data.model.AlbumDetail
-import com.ljyh.mei.data.model.PlaylistDetail
+import com.ljyh.mei.data.model.AlbumContent
+import com.ljyh.mei.data.model.FeaturedPlaylistPage
+import com.ljyh.mei.data.model.MiniPlaylistDetail
+import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.SongUrl
+import com.ljyh.mei.data.model.toMediaMetadata
+import com.ljyh.mei.data.model.toDomain
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.DeletePlaylist
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
+import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.GetSongUrl
 import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.model.api.SubscribePlaylist
-import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.data.model.weapi.HighQualityPlaylist
-import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.EApiService
@@ -32,17 +35,22 @@ class PlaylistRepository(
     private val weApiService: WeApiService,
     private val eApiService: EApiService
 ) {
-    suspend fun getPlaylistDetail(id: String): Resource<PlaylistDetail> {
+    suspend fun getPlaylistDetail(id: String): Resource<MiniPlaylistDetail> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
                 apiService.getPlaylistDetail(
                     GetPlaylistDetail(
                         id = id
                     )
-                )
+                ).toDomain()
             }
         }
     }
+
+    suspend fun getSongDetails(ids: List<String>): List<MediaMetadata> =
+        apiService.getSongDetail(
+            GetSongDetails(ids.joinToString(","))
+        ).songs.map { it.toMediaMetadata() }
 
     suspend fun getSongUrl(id: String): Resource<SongUrl> {
         return withContext(Dispatchers.IO) {
@@ -91,10 +99,12 @@ class PlaylistRepository(
     }
 
 
-    suspend fun getEveryDayRecommendSongs(): Resource<EveryDaySongs> {
+    suspend fun getEveryDayRecommendSongs(): Resource<List<MediaMetadata>> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
                 weApiService.getEveryDayRecommendSongs()
+                    .data.dailySongs
+                    .map { it.toMediaMetadata() }
             }
         }
     }
@@ -189,17 +199,17 @@ class PlaylistRepository(
     }
 
 
-    suspend fun getAlbumDetail(id: String): Resource<AlbumDetail> {
+    suspend fun getAlbumDetail(id: String): Resource<AlbumContent> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
                 apiService.getAlbumDetail(
                     id = id
-                )
+                ).toDomain()
             }
         }
     }
 
-    suspend fun getHighQualityPlaylist(cat:String, limit:Int): Resource<HighQualityPlaylistResult>{
+    suspend fun getHighQualityPlaylist(cat:String, limit:Int): Resource<FeaturedPlaylistPage>{
         return withContext(Dispatchers.IO){
             safeApiCall {
                 weApiService.getHighQualityPlaylist(
@@ -207,7 +217,7 @@ class PlaylistRepository(
                         category = cat,
                         limit = limit
                     )
-                )
+                ).toDomain()
             }
         }
     }

@@ -4,25 +4,27 @@ import android.content.Context
 import com.ljyh.mei.constants.DefaultTtmlLyricsBaseUrl
 import com.ljyh.mei.constants.TtmlLyricsBaseUrlKey
 import com.ljyh.mei.data.model.Lyric
-import com.ljyh.mei.data.model.Tracks
+import com.ljyh.mei.data.model.MediaMetadata
+import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.model.api.GetIntelligence
 import com.ljyh.mei.data.model.api.GetLyric
 import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.Intelligence
-import com.ljyh.mei.data.model.qq.u.GetLyricData
-import com.ljyh.mei.data.model.qq.u.GetSearchData
-import com.ljyh.mei.data.model.qq.u.LyricResult
-import com.ljyh.mei.data.model.qq.u.SearchResult
 import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.model.weapi.Radio
-import com.ljyh.mei.data.network.QQMusicUApiService
+import com.ljyh.unblockneteasemusic.model.LyricRequest
+import com.ljyh.unblockneteasemusic.model.MusicAlbum
+import com.ljyh.unblockneteasemusic.model.MusicArtist
+import com.ljyh.unblockneteasemusic.model.MusicLyrics
+import com.ljyh.unblockneteasemusic.model.MusicTrack
+import com.ljyh.unblockneteasemusic.model.TrackId
+import com.ljyh.unblockneteasemusic.qq.QqMusicProvider
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
 import com.ljyh.mei.utils.dataStore
-import android.util.Base64
 import com.ljyh.mei.data.model.api.CheckSongLike
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -35,27 +37,16 @@ import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class PlayerRepository(
-    private val qqMusicUApiService: QQMusicUApiService,
+    private val qqMusicProvider: QqMusicProvider,
     private val apiService: ApiService,
     private val weApiService: WeApiService,
     private val context: Context,
 ) {
 
-    suspend fun searchNew(keyword: String): Resource<SearchResult> {
+    suspend fun searchNew(keyword: String): Resource<List<MusicTrack>> {
         return withContext(Dispatchers.IO) {
-            safeApiCall {
-                qqMusicUApiService.search(
-                    GetSearchData(
-                        comm = GetSearchData.Comm(),
-                        req = GetSearchData.Req(param = GetSearchData.Req.Param(query = keyword))
-                    )
-                )
-            }
+            safeApiCall { qqMusicProvider.search(keyword) }
         }
-    }
-
-    private fun b64encode(str: String): String {
-        return Base64.encodeToString(str.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
     }
 
     suspend fun getLyricNew(
@@ -64,23 +55,11 @@ class PlayerRepository(
         artist: String,
         duration: Long,
         id: Long
-    ): Resource<LyricResult> {
+    ): Resource<MusicLyrics> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
-                qqMusicUApiService.getLyric(
-                    GetLyricData(
-                        comm = GetLyricData.Comm(),
-                        getPlayLyricInfo = GetLyricData.GetPlayLyricInfo(
-                            param = GetLyricData.GetPlayLyricInfo.GetLyric(
-                                singerName = b64encode(artist),
-                                songName = b64encode(title),
-                                albumName = b64encode(album),
-                                interval = duration,
-                                songID = id
-                            )
-                        )
-                    )
-                )
+                qqMusicProvider.lyrics(LyricRequest(qqTrack(title, album, artist, duration, id)))
+                    ?: error("QQ lyric response has no data")
             }
         }
     }
@@ -91,28 +70,24 @@ class PlayerRepository(
         artist: String,
         duration: Long,
         id: Long
-    ): Resource<LyricResult> {
+    ): Resource<MusicLyrics> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
-                qqMusicUApiService.getLyric(
-                    GetLyricData(
-                        comm = GetLyricData.Comm(),
-                        getPlayLyricInfo = GetLyricData.GetPlayLyricInfo(
-                            param = GetLyricData.GetPlayLyricInfo.GetLyric(
-                                singerName = b64encode(artist),
-                                songName = b64encode(title),
-                                albumName = b64encode(album),
-                                interval = duration,
-                                songID = id,
-                                qrc = 0,
-                                qrcT = 0
-                            )
-                        )
-                    )
-                )
+                qqMusicProvider.lyrics(
+                    LyricRequest(qqTrack(title, album, artist, duration, id), preferWordSynced = false)
+                ) ?: error("QQ lyric response has no data")
             }
         }
     }
+
+    private fun qqTrack(title: String, album: String, artist: String, durationSeconds: Long, id: Long) =
+        MusicTrack(
+            id = TrackId(QqMusicProvider.SOURCE_ID, id.toString()),
+            title = title,
+            artists = artist.split(',').map { MusicArtist(it.trim()) },
+            album = MusicAlbum(album),
+            durationMs = durationSeconds * 1_000,
+        )
 
     suspend fun getLyric(id: String): Resource<Lyric> {
         return withContext(Dispatchers.IO) {
@@ -212,12 +187,12 @@ class PlayerRepository(
         }
     }
 
-    suspend fun getSongDetail(id: String): Resource<Tracks>{
+    suspend fun getSongDetail(id: String): Resource<List<MediaMetadata>>{
         return withContext(Dispatchers.IO){
             safeApiCall {
                 apiService.getSongDetail(
                     GetSongDetails(id)
-                )
+                ).songs.map { it.toMediaMetadata() }
             }
         }
     }

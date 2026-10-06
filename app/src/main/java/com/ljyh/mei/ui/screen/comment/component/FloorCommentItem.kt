@@ -21,11 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.ljyh.mei.data.model.weapi.FComment
+import com.ljyh.mei.data.model.FloorCommentEntry
 
 @Composable
 fun FloorCommentItem(
-    comment: FComment,
+    comment: FloorCommentEntry,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -63,12 +63,12 @@ fun FloorCommentItem(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = comment.timeStr,
+                    text = comment.timeText,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )
 
-                val location = comment.ipLocation.location
+                val location = comment.location
                 if (location.isNotEmpty()) {
                     Text(
                         text = "  IP: $location",

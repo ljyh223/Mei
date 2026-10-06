@@ -1,20 +1,26 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+
+@Serializable
 
 data class BaseResponse(
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
 )
+
+@Serializable
 
 data class BaseMessageResponse(
 
     val code: Int,
-    @SerializedName("msg")
-    val msg: Any,
-    @SerializedName("message")
-    val message: Any,
-    @SerializedName("data")
-    val `data`: Any
+    @SerialName("msg")
+    val msg: JsonElement,
+    @SerialName("message")
+    val message: JsonElement,
+    @SerialName("data")
+    val `data`: JsonElement
 )
 

@@ -1,24 +1,29 @@
 package com.ljyh.mei.data.model.weapi
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+
+@Serializable
 
 data class Like(
-    @SerializedName("alg")
+    @SerialName("alg")
     val alg: String = "itembased",
-    @SerializedName("trackId")
+    @SerialName("trackId")
     val trackId: String,
-    @SerializedName("like")
+    @SerialName("like")
     val like: Boolean,
-    @SerializedName("time")
+    @SerialName("time")
     val time: String = "3"
 )
 
+@Serializable
 
 data class LikeResult(
-    @SerializedName("songs")
-    val songs: List<Any>,
-    @SerializedName("playlistId")
+    @SerialName("songs")
+    val songs: List<JsonElement>,
+    @SerialName("playlistId")
     val playlistId: Long,
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int
 )

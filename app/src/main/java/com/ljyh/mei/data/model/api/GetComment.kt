@@ -1,19 +1,22 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class GetComment(
-    @SerializedName("threadId")
+    @SerialName("threadId")
     val threadId: String,
-    @SerializedName("pageNo")
+    @SerialName("pageNo")
     val pageNo: Int = 1,
-    @SerializedName("pageSize")
+    @SerialName("pageSize")
     val pageSize: Int = 20,
-    @SerializedName("sortType")
+    @SerialName("sortType")
     val sortType: Int = 99,
-    @SerializedName("cursor")
+    @SerialName("cursor")
     val cursor: String = "",
-    @SerializedName("showInner")
+    @SerialName("showInner")
     val showInner: Boolean = true
 )
 

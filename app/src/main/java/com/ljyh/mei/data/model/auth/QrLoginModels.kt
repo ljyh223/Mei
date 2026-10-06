@@ -1,26 +1,29 @@
 package com.ljyh.mei.data.model.auth
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class QrLoginKeyResponse(
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
-    @SerializedName("unikey")
+    @SerialName("unikey")
     val unikey: String? = null,
-    @SerializedName("message")
+    @SerialName("message")
     val message: String? = null,
 )
 
+@Serializable
 data class QrLoginCheckResponse(
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
-    @SerializedName("message")
+    @SerialName("message")
     val message: String? = null,
-    @SerializedName("nickname")
+    @SerialName("nickname")
     val nickname: String? = null,
-    @SerializedName("avatarUrl")
+    @SerialName("avatarUrl")
     val avatarUrl: String? = null,
-    @SerializedName("cookie")
+    @SerialName("cookie")
     val cookie: String? = null,
 )
 

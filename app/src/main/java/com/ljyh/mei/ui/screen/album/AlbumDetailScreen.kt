@@ -26,7 +26,6 @@ import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.toMediaItem
-import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.SongDownloadInfo
 import com.ljyh.mei.playback.queue.ListQueue
@@ -110,10 +109,10 @@ fun AlbumDetailScreen(
                 subscriberCount = -1, // 专辑通常没有订阅人数，或者在 dynamicInfo 中
                 cover = album.picUrl,
                 coverList = listOf(album.picUrl),
-                creatorName = album.artists.joinToString(", ") { it.name },
+                creatorName = album.artistNames.joinToString(", "),
                 isCreator = false,
                 description = album.description,
-                tracks = songs.map { it.toMediaMetadata().copy(coverUrl = album.picUrl) },
+                tracks = songs,
                 playCount = -1,
                 isSubscribed = isSubscribeState
             )
@@ -239,7 +238,7 @@ fun AlbumDetailScreen(
             val items = detail.data.songs.map { song ->
                 Pair(
                     song.id.toString(),
-                    song.toMediaMetadata().copy(coverUrl = detail.data.album.picUrl).toMediaItem()
+                    song.toMediaItem()
                 )
             }
             return ListQueue(

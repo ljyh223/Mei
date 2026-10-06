@@ -3,7 +3,7 @@ package com.ljyh.mei.ui.screen.comment
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.ljyh.mei.data.model.api.CommentSortType
-import com.ljyh.mei.data.model.weapi.CommentX
+import com.ljyh.mei.data.model.CommentEntry
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.CommentRepository
 import timber.log.Timber
@@ -13,9 +13,9 @@ class CommentPagingSource(
     private val songId: String,
     private val sortType: CommentSortType,
     private val onTotalReceived: (Int) -> Unit = {}
-) : PagingSource<Int, CommentX>() {
+) : PagingSource<Int, CommentEntry>() {
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, CommentX> {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, CommentEntry> {
         val pageNo = params.key ?: 1
         return try {
             val cursor = when (sortType) {
@@ -37,15 +37,15 @@ class CommentPagingSource(
 
             when (result) {
                 is Resource.Success -> {
-                    val data = result.data.data
-                    if (pageNo == 1) onTotalReceived(data.totalCount)
-                    if (sortType == CommentSortType.TIME && data.comments.isNotEmpty()) {
-                        lastCursor = data.comments.last().time.toString()
+                    val page = result.data
+                    if (pageNo == 1) onTotalReceived(page.totalCount)
+                    if (sortType == CommentSortType.TIME && page.items.isNotEmpty()) {
+                        lastCursor = page.items.last().time.toString()
                     }
                     LoadResult.Page(
-                        data = data.comments,
+                        data = page.items,
                         prevKey = null,
-                        nextKey = if (data.hasMore) pageNo + 1 else null
+                        nextKey = if (page.hasMore) pageNo + 1 else null
                     )
                 }
                 is Resource.Error -> LoadResult.Error(Exception(result.message))
@@ -56,7 +56,7 @@ class CommentPagingSource(
         }
     }
 
-    override fun getRefreshKey(state: PagingState<Int, CommentX>): Int? = null
+    override fun getRefreshKey(state: PagingState<Int, CommentEntry>): Int? = null
 
     companion object {
         var lastCursor: String = "0"

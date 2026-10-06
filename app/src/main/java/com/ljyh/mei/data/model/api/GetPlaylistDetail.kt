@@ -1,12 +1,15 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class GetPlaylistDetail(
-    @SerializedName("id")
+    @SerialName("id")
     val id:String,
-    @SerializedName("n")
+    @SerialName("n")
     val n:String="5000",
-    @SerializedName("s")
+    @SerialName("s")
     val s:String="8"
 )

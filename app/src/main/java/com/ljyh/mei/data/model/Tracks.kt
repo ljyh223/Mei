@@ -1,12 +1,12 @@
 package com.ljyh.mei.data.model
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 
 data class Tracks(
-    @SerializedName("code")
+    @SerialName("code")
     val code: Int,
-    @SerializedName("privileges")
-    val privileges: List<PlaylistDetail.Privilege>,
-    @SerializedName("songs")
+    @SerialName("songs")
     val songs: List<PlaylistDetail.Playlist.Track>
 )

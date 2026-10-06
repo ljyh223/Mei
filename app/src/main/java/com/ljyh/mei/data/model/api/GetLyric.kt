@@ -1,39 +1,39 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-
-// 添加@SerializedName注解
+@Serializable
 data class GetLyric(
-    @SerializedName("id")
+    @SerialName("id")
     val id: String,
-    @SerializedName("lv")
+    @SerialName("lv")
     val lv: String = "-1",
-    @SerializedName("kv")
+    @SerialName("kv")
     val kv: String = "-1",
-    @SerializedName("tv")
+    @SerialName("tv")
     val tv: String = "-1"
 )
 
+@Serializable
+
 data class GetLyricV1(
-    @SerializedName("id")
+    @SerialName("id")
     val id: String,
-    @SerializedName("cp")
+    @SerialName("cp")
     val cp: Boolean=false,
-    @SerializedName("tv")
+    @SerialName("tv")
     val tv: Int=0,
-    @SerializedName("lv")
+    @SerialName("lv")
     val lv: Int=0,
-    @SerializedName("rv")
+    @SerialName("rv")
     val rv: Int=0,
-    @SerializedName("kv")
+    @SerialName("kv")
     val kv: Int=0,
-    @SerializedName("yv")
+    @SerialName("yv")
     val yv: Int=0,
-    @SerializedName("ytv")
+    @SerialName("ytv")
     val ytv: Int=0,
-    @SerializedName("yrv")
+    @SerialName("yrv")
     val yrv: Int=0,
 )
-
-

@@ -8,30 +8,30 @@ import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.api.GetUserPhotoAlbum
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow
-import retrofit2.http.Body
-import retrofit2.http.POST
+import com.ljyh.mei.data.network.NeteaseHttp
 
 
-interface EApiService {
-    @POST("/eapi/link/page/rcmd/resource/show")
-    suspend fun getHomePageResourceShow(@Body body: GetHomePageResourceShow): HomePageResourceShow
+class EApiService(private val http: NeteaseHttp) {
+    private val base = "https://interface.music.163.com"
+    suspend fun getHomePageResourceShow(body: GetHomePageResourceShow): HomePageResourceShow =
+        http.post(base, "/eapi/link/page/rcmd/resource/show", body)
 
-    @POST("/eapi/search/pc/complex/page/v3")
-    suspend fun search(@Body body: GetUserPhotoAlbum): AlbumPhoto
+    suspend fun search(body: GetUserPhotoAlbum): AlbumPhoto =
+        http.post(base, "/eapi/search/pc/complex/page/v3", body)
 
-    @POST("/api/playlist/subscribe")
-    suspend fun subscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+    suspend fun subscribePlaylist(body: SubscribePlaylist): BaseResponse =
+        http.post(base, "/api/playlist/subscribe", body)
 
-    @POST("/api/playlist/unsubscribe")
-    suspend fun unSubscribePlaylist(@Body body: SubscribePlaylist): BaseResponse
+    suspend fun unSubscribePlaylist(body: SubscribePlaylist): BaseResponse =
+        http.post(base, "/api/playlist/unsubscribe", body)
 
-    @POST("/eapi/content/activity/listen/data/realtime/report")
     suspend fun getListenDataRealtimeReport(
-        @Body body: Map<String, String>,
-    ): ListenDataRealtimeResponse
+        body: Map<String, String>,
+    ): ListenDataRealtimeResponse =
+        http.post(base, "/eapi/content/activity/listen/data/realtime/report", body)
 
-    @POST("/eapi/content/activity/listen/data/report")
     suspend fun getListenDataReport(
-        @Body body: Map<String, String>,
-    ): ListenDataReportResponse
+        body: Map<String, String>,
+    ): ListenDataReportResponse =
+        http.post(base, "/eapi/content/activity/listen/data/report", body)
 }

@@ -24,13 +24,13 @@ class DuetDetector @Inject constructor() {
         qq: LyricSourceData.QQMusic
     ): LyricData? {
         val netVerbatim = netease.lyric.yrc?.lyric?.takeIf { it.isNotBlank() }
-        val qqVerbatim = qq.lyric.lyric.takeIf { qq.lyric.qrcT != 0 && it.isNotBlank() }
+        val qqVerbatim = qq.lyric.original.takeIf { qq.lyric.wordSynced && it.isNotBlank() }
         val netLine = netease.lyric.lrc.lyric.takeIf { it.isNotBlank() }
         val qqLine = qq.lrcContent?.takeIf { it.isNotBlank() }
-            ?: qq.lyric.lyric.takeIf { it.isNotBlank() }
+            ?: qq.lyric.original.takeIf { it.isNotBlank() }
 
         val netTranslation = netease.lyric.tlyric?.lyric?.takeIf { it.isNotBlank() }
-        val qqTranslation = qq.lyric.trans.takeIf { it.isNotBlank() }
+        val qqTranslation = qq.lyric.translation.takeIf { it.isNotBlank() }
 
         val winner = determineWinner(netVerbatim, qqVerbatim, netLine, qqLine) ?: return null
 

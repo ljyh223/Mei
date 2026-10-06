@@ -1,6 +1,5 @@
 package com.ljyh.mei.data.network
 
-import com.google.gson.Gson
 import com.ljyh.mei.data.model.auth.QrLoginCheck
 import com.ljyh.mei.data.model.auth.QrLoginCheckResponse
 import com.ljyh.mei.data.model.auth.QrLoginKeyResponse
@@ -8,6 +7,11 @@ import com.ljyh.mei.data.model.auth.extractMusicU
 import com.ljyh.mei.utils.encrypt.encryptWeAPI
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Cookie
@@ -36,7 +40,7 @@ class QrLoginClient internal constructor(
 
     internal constructor(baseUrl: String) : this(newHttpClient(), baseUrl.trimEnd('/'))
 
-    private val gson = Gson()
+    private val json = Json { ignoreUnknownKeys = true }
     private val cookieLock = Any()
     private val cookies = linkedMapOf<String, String>()
     private var sessionGeneration = 0L
@@ -51,7 +55,7 @@ class QrLoginClient internal constructor(
             path = "/login/qrcode/unikey",
             payload = mapOf("type" to 1),
         )
-        return gson.fromJson(json, QrLoginKeyResponse::class.java)
+        return this.json.decodeFromString<QrLoginKeyResponse>(json)
     }
 
     suspend fun checkQrLogin(unikey: String): QrLoginCheck {
@@ -64,7 +68,7 @@ class QrLoginClient internal constructor(
                 "type" to 1,
             ),
         )
-        val body = gson.fromJson(json, QrLoginCheckResponse::class.java)
+        val body = this.json.decodeFromString<QrLoginCheckResponse>(json)
         val storedMusicU = synchronized(cookieLock) {
             cookies["MUSIC_U"].takeIf { generation == sessionGeneration }
         }
@@ -97,7 +101,17 @@ class QrLoginClient internal constructor(
             cookies.toMap()
         }
         val csrf = cookieSnapshot["__csrf"].orEmpty()
-        val encrypted = encryptWeAPI(gson.toJson(payload + ("csrf_token" to csrf)))
+        val requestPayload = buildJsonObject {
+            payload.forEach { (key, value) ->
+                put(key, when (value) {
+                    is Number -> JsonPrimitive(value)
+                    is Boolean -> JsonPrimitive(value)
+                    else -> JsonPrimitive(value.toString())
+                })
+            }
+            put("csrf_token", JsonPrimitive(csrf))
+        }
+        val encrypted = encryptWeAPI(requestPayload.toString())
         return Request.Builder()
             .url("$baseUrl/weapi$path")
             .header("User-Agent", USER_AGENT)

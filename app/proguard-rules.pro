@@ -79,9 +79,7 @@
 -keep public class * extends android.content.ContentProvider
 -keep public class * extends android.app.Application
 
-# Retrofit
--keep class retrofit2.** { *; }
--dontwarn retrofit2.**
+# Generic signatures and exceptions used by runtime libraries
 -keepattributes Signature
 -keepattributes Exceptions
 
@@ -129,11 +127,6 @@
 
 # OkHttp 相关规则
 -keep,allowshrinking class okhttp3.internal.publicsuffix.PublicSuffixDatabase { <init>(); }
-
-# Retrofit 相关规则
--keep,allowobfuscation interface *
--keep,allowobfuscation interface * extends *
--keep,allowobfuscation,allowshrinking class retrofit2.Response { <init>(); }
 
 # Ktor 相关规则
 -keep class io.ktor.client.engine.** implements io.ktor.client.HttpClientEngineContainer { <init>(); }

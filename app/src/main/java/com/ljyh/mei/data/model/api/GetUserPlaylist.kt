@@ -1,15 +1,17 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 
 data class GetUserPlaylist(
-    @SerializedName("uid")
+    @SerialName("uid")
     val uid: String,
-    @SerializedName("limit")
+    @SerialName("limit")
     val limit: String = "100",
-    @SerializedName("offset")
+    @SerialName("offset")
     val offset: String = "0",
-    @SerializedName("includeVideo")
+    @SerialName("includeVideo")
     val includeVideo: String = "false"
 )

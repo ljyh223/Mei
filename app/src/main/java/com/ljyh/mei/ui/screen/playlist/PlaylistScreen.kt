@@ -27,9 +27,7 @@ import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.PlaylistDetail
 import com.ljyh.mei.data.model.toMediaItem
-import com.ljyh.mei.data.model.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.SongDownloadInfo
 import com.ljyh.mei.playback.queue.ListQueue
@@ -91,7 +89,7 @@ fun PlaylistScreen(
     // 当网络数据(playlistDetail)加载成功时，同步初始状态
     LaunchedEffect(playlistDetail) {
         if (playlistDetail is Resource.Success) {
-            isSubscribed = (playlistDetail as Resource.Success).data.playlist.subscribed
+            isSubscribed = (playlistDetail as Resource.Success).data.subscribed
         }
     }
 
@@ -137,21 +135,19 @@ fun PlaylistScreen(
     // 5. 构建 UI 模型 (移除副作用和内部状态修改)
     val uiData = remember(playlistDetail, userId, removedTrackIds) {
         if (playlistDetail is Resource.Success) {
-            val data = (playlistDetail as Resource.Success).data.playlist
-            val visibleTrackCount = (data.trackCount - removedTrackIds.size).coerceAtLeast(0)
+            val data = (playlistDetail as Resource.Success).data
+            val visibleTrackCount = (data.count - removedTrackIds.size).coerceAtLeast(0)
             UiPlaylist(
-                id = data.Id,
+                id = data.id,
                 title = data.name,
                 count = visibleTrackCount,
                 subscriberCount = data.subscribedCount,
-                cover = data.coverImgUrl,
-                coverList = data.tracks.take(6).map { it.al.picUrl },
-                creatorName = data.creator.nickname,
-                isCreator = data.creator.userId.toString() == userId,
+                cover = data.cover.firstOrNull().orEmpty(),
+                coverList = data.cover,
+                creatorName = data.createUserName,
+                isCreator = data.creatorUserId.toString() == userId,
                 description = data.description,
-                tracks = data.tracks
-                    .map { it.toMediaMetadata() }
-                    .filterNot { it.id in removedTrackIds },
+                tracks = data.tracks.filterNot { it.id in removedTrackIds },
                 trackCount = visibleTrackCount,
                 playCount = data.playCount,
                 isSubscribed = data.subscribed // 注意：这里仅用于 UI 初始化，后续由 isSubscribed 状态变量控制
@@ -169,17 +165,15 @@ fun PlaylistScreen(
     fun buildListQueue(startTrackId: Long? = null): ListQueue? {
         val detail = playlistDetail
         if (detail is Resource.Success) {
-            val playlist = detail.data.playlist
+            val playlist = detail.data
             // 优化：在此处构建 map 可能会比较耗时，如果列表很大，建议放到 ViewModel 或 IO 线程处理
             // 但对于点击事件，直接处理通常也能接受
-            val mediaItemsMap = playlist.tracks.associate {
-                it.id.toString() to it.toMediaMetadata().toMediaItem()
-            }
+            val mediaItemsMap = playlist.tracks.associate { it.id.toString() to it.toMediaItem() }
             // 保持原始顺序
             val allPairs = playlist.trackIds
-                .filterNot { it.id in removedTrackIds }
+                .filterNot { it in removedTrackIds }
                 .mapNotNull { trackId ->
-                val tid = trackId.id.toString()
+                val tid = trackId.toString()
                 mediaItemsMap[tid]?.let { Pair(tid, it) }
             }
 
@@ -239,7 +233,7 @@ fun PlaylistScreen(
 
             val detail = playlistDetail
             val playlistName = if (detail is Resource.Success) {
-                detail.data.playlist.name
+                detail.data.name
             } else {
                 "未分类"
             }
@@ -259,9 +253,9 @@ fun PlaylistScreen(
     fun handleDownload() {
         val detail = playlistDetail
         if (detail !is Resource.Success) return
-        val playlist = detail.data.playlist
+        val playlist = detail.data
 
-        if (playlist.trackCount > 500) {
+        if (playlist.count > 500) {
             Toast.makeText(context, "暂不支持超过500首歌曲下载", Toast.LENGTH_SHORT).show()
             return
         }
@@ -271,7 +265,6 @@ fun PlaylistScreen(
 
         scope.launch {
             val allIds = playlist.trackIds
-                .map { it.id }
                 .filterNot { it in removedTrackIds }
             val knownTracks = playlist.tracks.associateBy { it.id }.toMutableMap()
 
@@ -280,7 +273,7 @@ fun PlaylistScreen(
                 missingIds.chunked(200).forEach { chunk ->
                     try {
                         val details = viewModel.getSongDetails(chunk)
-                        details.songs.forEach { track ->
+                        details.forEach { track ->
                             knownTracks[track.id] = track
                         }
                     } catch (_: Exception) {}
@@ -288,7 +281,7 @@ fun PlaylistScreen(
             }
 
             val allTracks = allIds.mapNotNull { id ->
-                knownTracks[id]?.toMediaMetadata()
+                knownTracks[id]
             }
 
             isPreparingDownload = false

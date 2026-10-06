@@ -128,10 +128,10 @@ fun CommentScreen(
                 ) {
                     items(
                         count = pagingItems.itemCount,
-                        key = { index -> pagingItems.peek(index)?.commentId ?: index }
+                        key = { index -> pagingItems.peek(index)?.id ?: index }
                     ) { index ->
                         val comment = pagingItems[index] ?: return@items
-                        val isExpanded = expandedCommentId == comment.commentId
+                        val isExpanded = expandedCommentId == comment.id
 
                         CommentItem(
                             comment = comment,

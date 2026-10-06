@@ -1,7 +1,7 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.runtime.Immutable
-import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAccountSummary
 import com.ljyh.mei.data.model.UserAlbumList
 import com.ljyh.mei.data.model.UserVipInfo
 import com.ljyh.mei.data.model.ListenDataRealtimeResponse
@@ -131,7 +131,7 @@ internal fun buildLibraryUiState(
 }
 
 internal fun resolveLibraryUiState(
-    accountResource: Resource<UserAccount>,
+    accountResource: Resource<UserAccountSummary>,
     profile: LibraryProfileUi?,
     playlists: List<Playlist>,
     albumResource: Resource<UserAlbumList>,

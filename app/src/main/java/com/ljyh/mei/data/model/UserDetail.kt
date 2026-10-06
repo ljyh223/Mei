@@ -1,46 +1,55 @@
 package com.ljyh.mei.data.model
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class UserDetail(
-    @SerializedName("code") val code: Int,
-    @SerializedName("level") val level: Int,
-    @SerializedName("listenSongs") val listenSongs: Int,
-    @SerializedName("profile") val profile: Profile,
+    @SerialName("code") val code: Int,
+    @SerialName("level") val level: Int,
+    @SerialName("listenSongs") val listenSongs: Int,
+    @SerialName("profile") val profile: Profile,
 ) {
+    @Serializable
     data class Profile(
-        @SerializedName("follows") val follows: Int,
-        @SerializedName("followeds") val followeds: Int,
+        @SerialName("follows") val follows: Int,
+        @SerialName("followeds") val followeds: Int,
     )
 }
 
+@Serializable
+
 data class UserVipInfo(
-    @SerializedName("message") val message: String,
-    @SerializedName("code") val code: Int,
-    @SerializedName("data") val data: Data?,
+    @SerialName("message") val message: String,
+    @SerialName("code") val code: Int,
+    @SerialName("data") val data: Data?,
 ) {
+    @Serializable
     data class Data(
-        @SerializedName("redVipLevelIcon") val redVipLevelIcon: String?,
-        @SerializedName("redVipLevel") val redVipLevel: Int,
-        @SerializedName("redVipAnnualCount") val redVipAnnualCount: Int,
-        @SerializedName("associator") val associator: Benefit?,
-        @SerializedName("musicPackage") val musicPackage: Benefit?,
-        @SerializedName("familyVip") val familyVip: Benefit?,
-        @SerializedName("redplus") val redplus: Benefit?,
-        @SerializedName("redVipDynamicIconUrl") val redVipDynamicIconUrl: String?,
-        @SerializedName("redVipDynamicIconUrl2") val redVipDynamicIconUrl2: String?,
+        @SerialName("redVipLevelIcon") val redVipLevelIcon: String?,
+        @SerialName("redVipLevel") val redVipLevel: Int,
+        @SerialName("redVipAnnualCount") val redVipAnnualCount: Int,
+        @SerialName("associator") val associator: Benefit?,
+        @SerialName("musicPackage") val musicPackage: Benefit?,
+        @SerialName("familyVip") val familyVip: Benefit?,
+        @SerialName("redplus") val redplus: Benefit?,
+        @SerialName("redVipDynamicIconUrl") val redVipDynamicIconUrl: String?,
+        @SerialName("redVipDynamicIconUrl2") val redVipDynamicIconUrl2: String?,
     )
 
+    @Serializable
+
     data class Benefit(
-        @SerializedName("vipCode") val vipCode: Int = 0,
-        @SerializedName("expireTime") val expireTime: Long = 0L,
-        @SerializedName("iconUrl") val iconUrl: String?,
-        @SerializedName("dynamicIconUrl") val dynamicIconUrl: String?,
-        @SerializedName("vipLevel") val vipLevel: Int = 0,
-        @SerializedName("isSign") val isSign: Boolean = false,
-        @SerializedName("isSignDeduct") val isSignDeduct: Boolean = false,
-        @SerializedName("isSignIap") val isSignIap: Boolean = false,
-        @SerializedName("isSignIapDeduct") val isSignIapDeduct: Boolean = false,
+        @SerialName("vipCode") val vipCode: Int = 0,
+        @SerialName("expireTime") val expireTime: Long = 0L,
+        @SerialName("iconUrl") val iconUrl: String?,
+        @SerialName("dynamicIconUrl") val dynamicIconUrl: String?,
+        @SerialName("vipLevel") val vipLevel: Int = 0,
+        @SerialName("isSign") val isSign: Boolean = false,
+        @SerialName("isSignDeduct") val isSignDeduct: Boolean = false,
+        @SerialName("isSignIap") val isSignIap: Boolean = false,
+        @SerialName("isSignIapDeduct") val isSignIapDeduct: Boolean = false,
     )
 
 }

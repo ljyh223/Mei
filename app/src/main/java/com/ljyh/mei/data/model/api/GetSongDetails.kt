@@ -1,12 +1,16 @@
 package com.ljyh.mei.data.model.api
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class GetSongDetails(
-    @SerializedName("c")
+    @SerialName("c")
     var c: String
 ){
     init {
-        c = Gson().toJson(c.split(",").map { mapOf("id" to it) })
+        c = Json.encodeToString(c.split(",").map { mapOf("id" to it) })
     }
 }

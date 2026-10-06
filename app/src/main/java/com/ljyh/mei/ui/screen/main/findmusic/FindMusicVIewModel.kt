@@ -5,7 +5,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.data.model.weapi.HighQualityPlaylistResult
+import com.ljyh.mei.data.model.FeaturedPlaylistPage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,9 +22,9 @@ class FindMusicViewModel @Inject constructor(
     private val _selectedCategory = MutableStateFlow("全部")
     val selectedCategory = _selectedCategory.asStateFlow()
 
-    private val _highQualityPlaylist = MutableStateFlow<Resource<HighQualityPlaylistResult>>(Resource.Loading)
+    private val _highQualityPlaylist = MutableStateFlow<Resource<FeaturedPlaylistPage>>(Resource.Loading)
     val highQualityPlaylist = _highQualityPlaylist.asStateFlow()
-    private val _playlistCache = mutableMapOf<String, HighQualityPlaylistResult>()
+    private val _playlistCache = mutableMapOf<String, FeaturedPlaylistPage>()
 
     init {
         // 初始化加载

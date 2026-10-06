@@ -1,11 +1,12 @@
 package com.ljyh.mei.data.repository
 
 import com.ljyh.mei.data.model.AlbumPhoto
-import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAccountSummary
 import com.ljyh.mei.data.model.UserDetail
 import com.ljyh.mei.data.model.UserVipInfo
 import com.ljyh.mei.data.model.UserAlbumList
-import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.UserPlaylistPage
+import com.ljyh.mei.data.model.toDomain
 import com.ljyh.mei.data.model.ListenDataRealtimeResponse
 import com.ljyh.mei.data.model.ListenDataReportResponse
 import com.ljyh.mei.data.model.api.GetAlbumList
@@ -37,9 +38,9 @@ class UserRepository(
         safeApiCall { qrLoginClient.checkQrLogin(unikey) }
     }
 
-    suspend fun getUserAccount(): Resource<UserAccount> {
+    suspend fun getUserAccount(): Resource<UserAccountSummary> {
         return withContext(Dispatchers.IO) {
-            safeApiCall { apiService.getAccountDetail() }
+            safeApiCall { apiService.getAccountDetail().toDomain() }
         }
     }
 
@@ -51,7 +52,7 @@ class UserRepository(
         safeApiCall { weApiService.getUserVipInfo(mapOf("userId" to uid)) }
     }
 
-    suspend fun getUserPlaylist(uid: String, limit: Int): Resource<UserPlaylist> {
+    suspend fun getUserPlaylist(uid: String, limit: Int): Resource<UserPlaylistPage> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
                 apiService.getUserPlaylist(
@@ -59,7 +60,7 @@ class UserRepository(
                         uid = uid,
                         limit = limit.toString()
                     )
-                )
+                ).toDomain()
             }
         }
     }

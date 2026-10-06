@@ -12,11 +12,10 @@ import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.Tracks
-import com.ljyh.mei.data.model.UserPlaylist
+import com.ljyh.mei.data.model.UserPlaylistPage
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.Intelligence
-import com.ljyh.mei.data.model.qq.u.SearchResult
+import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.weapi.Radio
@@ -112,14 +111,14 @@ class PlayerViewModel @Inject constructor(
             if (_dynamicCover.value == current) _dynamicCover.value = fallback
         }
     }
-    val searchResult: StateFlow<Resource<SearchResult>> = lyricManager.qqSearchResult
+    val searchResult: StateFlow<Resource<List<MusicTrack>>> = lyricManager.qqSearchResult
     val lyric: StateFlow<LyricData> = lyricManager.lyricData
 
     private val _like = MutableStateFlow<Resource<Boolean>>(Resource.Loading)
     val like: StateFlow<Resource<Boolean>> = _like
 
-    private val _networkPlaylistsState = MutableStateFlow<Resource<UserPlaylist>>(Resource.Loading)
-    val networkPlaylistsState: StateFlow<Resource<UserPlaylist>> = _networkPlaylistsState
+    private val _networkPlaylistsState = MutableStateFlow<Resource<UserPlaylistPage>>(Resource.Loading)
+    val networkPlaylistsState: StateFlow<Resource<UserPlaylistPage>> = _networkPlaylistsState
 
     private val _createPlaylist = MutableStateFlow<Resource<CreatePlaylistResult>>(Resource.Loading)
     val createPlaylist: StateFlow<Resource<CreatePlaylistResult>> = _createPlaylist
@@ -129,8 +128,8 @@ class PlayerViewModel @Inject constructor(
     val intelligenceList: StateFlow<Resource<Intelligence>> = _intelligenceList
 
 
-    private val _songDetail = MutableStateFlow<Resource<Tracks>>(Resource.Loading)
-    val songDetail: StateFlow<Resource<Tracks>> = _songDetail
+    private val _songDetail = MutableStateFlow<Resource<List<MediaMetadata>>>(Resource.Loading)
+    val songDetail: StateFlow<Resource<List<MediaMetadata>>> = _songDetail
 
 
     var mediaMetadata: MediaMetadata? = null
@@ -181,7 +180,7 @@ class PlayerViewModel @Inject constructor(
         lyricManager.searchQQSong(keyword)
     }
 
-    fun selectQQSong(song: SearchResult.Request.Data.Body.ItemSong) {
+    fun selectQQSong(song: MusicTrack) {
         lyricManager.selectQQSongForLyric(mediaMetadata ?: return, song)
     }
 
@@ -209,7 +208,7 @@ class PlayerViewModel @Inject constructor(
             _networkPlaylistsState.value = Resource.Loading
             when (val networkResult = userRepository.getUserPlaylist(uid, limit)) {
                 is Resource.Success -> {
-                    val playlistsToInsert = networkResult.data.playlist.map {
+                    val playlistsToInsert = networkResult.data.playlists.map {
                         Playlist(
                             id = it.id.toString(),
                             title = it.name,

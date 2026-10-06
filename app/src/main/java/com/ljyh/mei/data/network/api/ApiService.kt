@@ -45,130 +45,63 @@ import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.weapi.Comment
 import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.model.weapi.LikeResult
-import retrofit2.http.Body
-import retrofit2.http.POST
-import retrofit2.http.Path
+import com.ljyh.mei.data.network.NeteaseHttp
 
-interface ApiService {
-    @POST("/api/songplay/dynamic-cover")
-    suspend fun getDynamicCover(@Body body: Map<String, Long>): DynamicCoverResponse
-    /*
-    * 获取歌单详情
-    * */
-    @POST("/api/v6/playlist/detail")
-    suspend fun getPlaylistDetail(@Body body: GetPlaylistDetail): PlaylistDetail
+class ApiService(private val http: NeteaseHttp) {
+    private val base = "https://interface.music.163.com"
 
-    /*
-    * 获取歌曲详情
-    * */
-    @POST("/api/v3/song/detail")
-    suspend fun getSongDetail(@Body body: GetSongDetails): Tracks
-
-
-    /*
-    * 获取用户信息
-    * */
-    @POST("/api/nuser/account/get")
-    suspend fun getAccountDetail(): UserAccount
-
-    @POST("/api/v1/user/detail/{id}")
-    suspend fun getUserDetail(
-        @Path("id") id: String,
-        @Body body: Map<String, String> = emptyMap(),
-    ): UserDetail
-
-    /*
-    * 获取歌词
-    * */
-    @POST("/api/song/lyric")
-    suspend fun getLyric(
-        @Body body: GetLyric
-    ): Lyric
-
-
-    /*
-    * 获取歌词 新接口
-    * */
-    @POST("/api/song/lyric/v1")
-    suspend fun getLyricV1(
-        @Body body: GetLyricV1
-    ): Lyric
-
-    /*
-    * 获取用户歌单
-    * */
-    @POST("/api/user/playlist")
-    suspend fun getUserPlaylist(
-        @Body body: GetUserPlaylist
-    ): UserPlaylist
-
-    @POST("/api/song/like/check")
-    suspend fun checkSongLike(@Body body: CheckSongLike): CheckSongLikeResult
-
-    @POST("/api/album/sublist")
-    suspend fun getCollectAlbumList(@Body body: GetAlbumList): UserAlbumList
-
-    @POST("/api/v1/album/{id}")
-    suspend fun getAlbumDetail(
-        @Body body: Map<String, String> = emptyMap(),
-        @Path("id") id: String
-    ): AlbumDetail
-
-    @POST("/api/search/get/")
-    suspend fun search(
-        @Body body: GetSearch
-    ): SearchResult
-
-
-    @POST("/api/search/suggest/web/")
-    suspend fun searchSuggest(
-        @Body body: GetSearchSuggest
-    ): SearchSuggest
-
-
-    @POST("/api/song/enhance/player/url/v1")
-    suspend fun getSongUrlV1(@Body body: GetSongUrlV1): SongUrl
-
-    @POST("/api/song/enhance/player/url")
-    suspend fun getSongUrl(@Body body: GetSongUrl): SongUrl
-
-    @POST("/api/user/photo/album/get")
-    suspend fun getUserPhotoAlbum(@Body body: GetUserPhotoAlbum): AlbumPhoto
-
-    @POST("/api/radio/like")
-    suspend fun like(@Body body: Like): LikeResult
-
-    @POST("/api/playlist/manipulate/tracks")
-    suspend fun manipulateTracks(@Body body: ManipulateTrack): ManipulateTrackResult
-
-    @POST("/api/playlist/create")
-    suspend fun createPlaylist(@Body body: CreatePlaylist): CreatePlaylistResult
-
-
-
-    @POST("/api/album/sub")
-    suspend fun subscribeAlbum(@Body body: SubscribePlaylist): BaseResponse
-
-    @POST("/api/album/unsub")
-    suspend fun unsubscribeAlbum(@Body body: SubscribePlaylist): BaseResponse
-
-    @POST("/api/playlist/remove")
-    suspend fun deletePlaylist(@Body body: DeletePlaylist): BaseMessageResponse
-
-
-    @POST("/api/artist/head/info/get")
-    suspend fun getArtistDetail(@Body body: GetArtistDetail): ArtistDetail
-
-    @POST("/api/artist/albums/{id}")
-    suspend fun getArtistAlbums(@Body body: GetArtistAlbum, @Path("id") id: String): ArtistAlbum
-
-    @POST("/api/v1/artist/{id}")
-    suspend fun getArtistSongs(@Body body: GetArtistSong, @Path("id") id: String): ArtistSong
-
-    @POST("/api/playmode/intelligence/list")
-    suspend fun getIntelligenceList(@Body body: GetIntelligence): Intelligence
-
-    @POST("/api/v2/resource/comments")
-    suspend fun getComment(@Body body: GetComment): Comment
-
+    suspend fun getDynamicCover(body: Map<String, Long>): DynamicCoverResponse =
+        http.post(base, "/api/songplay/dynamic-cover", body)
+    suspend fun getPlaylistDetail(body: GetPlaylistDetail): PlaylistDetail =
+        http.post(base, "/api/v6/playlist/detail", body)
+    suspend fun getSongDetail(body: GetSongDetails): Tracks =
+        http.post(base, "/api/v3/song/detail", body)
+    suspend fun getAccountDetail(): UserAccount =
+        http.post(base, "/api/nuser/account/get", emptyMap<String, String>())
+    suspend fun getUserDetail(id: String, body: Map<String, String> = emptyMap()): UserDetail =
+        http.post(base, "/api/v1/user/detail/$id", body)
+    suspend fun getLyric(body: GetLyric): Lyric =
+        http.post(base, "/api/song/lyric", body)
+    suspend fun getLyricV1(body: GetLyricV1): Lyric =
+        http.post(base, "/api/song/lyric/v1", body)
+    suspend fun getUserPlaylist(body: GetUserPlaylist): UserPlaylist =
+        http.post(base, "/api/user/playlist", body)
+    suspend fun checkSongLike(body: CheckSongLike): CheckSongLikeResult =
+        http.post(base, "/api/song/like/check", body)
+    suspend fun getCollectAlbumList(body: GetAlbumList): UserAlbumList =
+        http.post(base, "/api/album/sublist", body)
+    suspend fun getAlbumDetail(body: Map<String, String> = emptyMap(), id: String): AlbumDetail =
+        http.post(base, "/api/v1/album/$id", body)
+    suspend fun search(body: GetSearch): SearchResult =
+        http.post(base, "/api/search/get/", body)
+    suspend fun searchSuggest(body: GetSearchSuggest): SearchSuggest =
+        http.post(base, "/api/search/suggest/web/", body)
+    suspend fun getSongUrlV1(body: GetSongUrlV1): SongUrl =
+        http.post(base, "/api/song/enhance/player/url/v1", body)
+    suspend fun getSongUrl(body: GetSongUrl): SongUrl =
+        http.post(base, "/api/song/enhance/player/url", body)
+    suspend fun getUserPhotoAlbum(body: GetUserPhotoAlbum): AlbumPhoto =
+        http.post(base, "/api/user/photo/album/get", body)
+    suspend fun like(body: Like): LikeResult =
+        http.post(base, "/api/radio/like", body)
+    suspend fun manipulateTracks(body: ManipulateTrack): ManipulateTrackResult =
+        http.post(base, "/api/playlist/manipulate/tracks", body)
+    suspend fun createPlaylist(body: CreatePlaylist): CreatePlaylistResult =
+        http.post(base, "/api/playlist/create", body)
+    suspend fun subscribeAlbum(body: SubscribePlaylist): BaseResponse =
+        http.post(base, "/api/album/sub", body)
+    suspend fun unsubscribeAlbum(body: SubscribePlaylist): BaseResponse =
+        http.post(base, "/api/album/unsub", body)
+    suspend fun deletePlaylist(body: DeletePlaylist): BaseMessageResponse =
+        http.post(base, "/api/playlist/remove", body)
+    suspend fun getArtistDetail(body: GetArtistDetail): ArtistDetail =
+        http.post(base, "/api/artist/head/info/get", body)
+    suspend fun getArtistAlbums(body: GetArtistAlbum, id: String): ArtistAlbum =
+        http.post(base, "/api/artist/albums/$id", body)
+    suspend fun getArtistSongs(body: GetArtistSong, id: String): ArtistSong =
+        http.post(base, "/api/v1/artist/$id", body)
+    suspend fun getIntelligenceList(body: GetIntelligence): Intelligence =
+        http.post(base, "/api/playmode/intelligence/list", body)
+    suspend fun getComment(body: GetComment): Comment =
+        http.post(base, "/api/v2/resource/comments", body)
 }

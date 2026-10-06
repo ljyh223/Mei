@@ -3,8 +3,6 @@ package com.ljyh.mei.data.repository
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.core.edit
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.LastHomePageData_1
 import com.ljyh.mei.constants.LastHomePageData_2
@@ -26,10 +24,14 @@ import com.ljyh.mei.utils.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.File
 
 class HomeRepository(private val eApiService: EApiService, private val apiService: ApiService) {
+    private val cacheJson = Json { ignoreUnknownKeys = true; encodeDefaults = true; explicitNulls = false }
 
     val context = AppContext.instance
     suspend fun getHomePageResourceShow(
@@ -39,24 +41,20 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
         Timber.tag("refresh").d(refresh.toString())
         if (isNewDay(getLastFetchTime(context)) || refresh) {
             Timber.tag("getHomePageResourceShow").d("新加载")
-            val page1 =
-                eApiService.getHomePageResourceShow(buildGetHomePageResourceShow(refresh = refresh.toString()))
-//            val page2 = eApiService.getHomePageResourceShow(
-//                buildGetHomePageResourceShow(refresh = refresh.toString())
-//            )
-            saveLastHomePage(context, 1, page1.data.blocks)
-//            saveLastHomePage(context, 2, page2.data.blocks)
-
-            Timber.tag("getHomePageResourceShow").d("更新缓存")
             return withContext(Dispatchers.IO) {
                 safeApiCall {
-                    page1.data.blocks
-//                    page1.data.blocks + page2.data.blocks
+                    val blocks = eApiService.getHomePageResourceShow(
+                        buildGetHomePageResourceShow(refresh = refresh.toString())
+                    ).data.blocks
+                    saveLastHomePage(context, 1, blocks)
+                    Timber.tag("getHomePageResourceShow").d("更新缓存")
+                    blocks
                 }
             }
         } else {
             Timber.tag("getHomePageResourceShow").d("加载缓存")
             val page1 = getLastHomePage(context, 1)
+            if (page1.isEmpty()) return getHomePageResourceShow(refresh = true)
 //            val page2 = getLastHomePage(context, 2)
             return Resource.Success(page1)
         }
@@ -70,7 +68,7 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
     ) {
         withContext(Dispatchers.IO) {
             val file = getFileForPage(context, page)
-            val json = Gson().toJson(newData)
+            val json = cacheJson.encodeToString(newData)
             file.writeText(json)
             context.dataStore.edit {
                 it[LastHomePageTime] = System.currentTimeMillis()
@@ -90,11 +88,7 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
                     if (json.isBlank()) {
                         return@withContext emptyList()
                     }
-                    val gson = Gson()
-                    gson.fromJson(
-                        json,
-                        object : TypeToken<List<HomePageResourceShow.Data.Block>>() {}.type
-                    )
+                    cacheJson.decodeFromString<List<HomePageResourceShow.Data.Block>>(json)
                 } catch (e: Exception) {
                     // 捕获 JSON 语法错误 (JsonSyntaxException)、IO读取错误等所有异常
                     e.printStackTrace() // 打印错误日志方便调试，不需要的话可以删掉这行

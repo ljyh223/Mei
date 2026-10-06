@@ -2,8 +2,8 @@ package com.ljyh.mei.utils.lyric
 
 import com.ljyh.mei.data.model.Lyric
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.qq.u.LyricResult
-import com.ljyh.mei.data.model.qq.u.SearchResult
+import com.ljyh.unblockneteasemusic.model.MusicLyrics
+import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.CachedLyric
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
@@ -13,7 +13,7 @@ import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.model.LyricSourceData
-import com.ljyh.mei.utils.encrypt.QRCUtils
+import com.ljyh.unblockneteasemusic.qq.QRCUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
@@ -56,8 +56,8 @@ class LyricManager @Inject constructor(
     val lyricData: StateFlow<LyricData> = _lyricData.asStateFlow()
 
     /** QQ 音乐搜索结果，供手动选歌 sheet 使用 */
-    private val _qqSearchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
-    val qqSearchResult: StateFlow<Resource<SearchResult>> = _qqSearchResult.asStateFlow()
+    private val _qqSearchResult = MutableStateFlow<Resource<List<MusicTrack>>>(Resource.Loading)
+    val qqSearchResult: StateFlow<Resource<List<MusicTrack>>> = _qqSearchResult.asStateFlow()
 
     // ==================== 当前歌曲状态 ====================
 
@@ -81,7 +81,7 @@ class LyricManager @Inject constructor(
     private val netLyricResult = MutableStateFlow<Resource<Lyric>>(Resource.Loading)
 
     /** QQ 音乐歌词拉取状态 */
-    private val qqLyricResult = MutableStateFlow<Resource<LyricResult>>(Resource.Loading)
+    private val qqLyricResult = MutableStateFlow<Resource<MusicLyrics>>(Resource.Loading)
 
     /** AM (Apple Music TTML) 歌词拉取状态 */
     private val amLyricResult = MutableStateFlow<Resource<String>>(Resource.Loading)
@@ -181,8 +181,7 @@ class LyricManager @Inject constructor(
                 qqLyricResult.value = result
                 currentSongId?.let { preloader.overrideQq(it, result) }
                 if (result is Resource.Success) {
-                    val qrcT = result.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data.qrcT
-                    if (qrcT != 0) {
+                    if (result.data.wordSynced) {
                         fetchQQLyricLrc(song)
                     }
                 }
@@ -208,7 +207,7 @@ class LyricManager @Inject constructor(
             )
             if (lrcResult is Resource.Success) {
                 val lrcContent = QRCUtils.decodeLyric(
-                    lrcResult.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo.data.lyric
+                    lrcResult.data.original
                 )
                 lrcFallbackContent = lrcContent
                 remergeLyrics()
@@ -250,7 +249,7 @@ class LyricManager @Inject constructor(
      */
     private suspend fun mergeAndApply(
         net: Resource<Lyric>,
-        qq: Resource<LyricResult>,
+        qq: Resource<MusicLyrics>,
         am: Resource<String>
     ) {
         val songIdAtStart = currentSongId
@@ -276,13 +275,13 @@ class LyricManager @Inject constructor(
 
             (am as? Resource.Success)?.let { sources.add(LyricSourceData.AM(it.data)) }
             (net as? Resource.Success)?.data?.let { sources.add(LyricSourceData.NetEase(it)) }
-            (qq as? Resource.Success)?.data?.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data?.let { data ->
+            (qq as? Resource.Success)?.data?.let { data ->
                 try {
-                    val isQRC = data.qrcT != 0
+                    val isQRC = data.wordSynced
                     val decoded = data.copy(
-                        lyric = QRCUtils.decodeLyric(data.lyric),
-                        trans = QRCUtils.decodeLyric(data.trans, true),
-                        roma = QRCUtils.decodeLyric(data.roma)
+                        original = QRCUtils.decodeLyric(data.original),
+                        translation = QRCUtils.decodeLyric(data.translation, true),
+                        romanization = QRCUtils.decodeLyric(data.romanization)
                     )
                     sources.add(LyricSourceData.QQMusic(decoded, isQRC, lrcFallbackContent))
                 } catch (e: Exception) {
@@ -376,14 +375,14 @@ class LyricManager @Inject constructor(
      *
      * 解码 QRC 加密字段，提取 lyric、trans、roma 和 isQRC 标记。
      */
-    private fun parseQQSource(qq: Resource.Success<LyricResult>): LyricSourceData.QQMusic? {
-        val data = qq.data.musicMusichallSongPlayLyricInfoGetPlayLyricInfo?.data ?: return null
+    private fun parseQQSource(qq: Resource.Success<MusicLyrics>): LyricSourceData.QQMusic? {
+        val data = qq.data
         return try {
-            val isQRC = data.qrcT != 0
+            val isQRC = data.wordSynced
             val decoded = data.copy(
-                lyric = QRCUtils.decodeLyric(data.lyric),
-                trans = QRCUtils.decodeLyric(data.trans, true),
-                roma = QRCUtils.decodeLyric(data.roma)
+                original = QRCUtils.decodeLyric(data.original),
+                translation = QRCUtils.decodeLyric(data.translation, true),
+                romanization = QRCUtils.decodeLyric(data.romanization)
             )
             LyricSourceData.QQMusic(decoded, isQRC, lrcFallbackContent)
         } catch (e: Exception) {
@@ -413,15 +412,15 @@ class LyricManager @Inject constructor(
      *
      * 插入 QQSong 映射到 Room，然后拉取歌词。
      */
-    fun selectQQSongForLyric(metadata: MediaMetadata, song: SearchResult.Request.Data.Body.ItemSong) {
+    fun selectQQSongForLyric(metadata: MediaMetadata, song: MusicTrack) {
         scope.launch {
             val qqSong = QQSong(
                 id = metadata.id.toString(),
-                qid = song.id.toString(),
+                qid = song.id.value,
                 title = song.title,
-                artist = song.singer.joinToString(",") { it.name },
-                album = song.album.title,
-                duration = song.interval
+                artist = song.artists.joinToString(",") { it.name },
+                album = song.album?.name.orEmpty(),
+                duration = song.durationMs / 1_000
             )
             qqSongRepository.insertSong(qqSong)
             fetchQQLyric(qqSong)
@@ -485,8 +484,8 @@ class LyricManager @Inject constructor(
             LyricSource.QQMusic -> {
                 val qq = sources.filterIsInstance<LyricSourceData.QQMusic>().firstOrNull()
                 val lrc = qq?.lrcContent?.takeIf { it.isNotBlank() }
-                    ?: qq?.lyric?.lyric?.takeIf { it.isNotBlank() }
-                val translation = qq?.lyric?.trans?.takeIf { it.isNotBlank() }
+                    ?: qq?.lyric?.original?.takeIf { it.isNotBlank() }
+                val translation = qq?.lyric?.translation?.takeIf { it.isNotBlank() }
                 if (lyricData.isVerbatim) {
                     Triple(lrc, translation, "QRC")
                 } else {

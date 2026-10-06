@@ -1,16 +1,19 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class GetSongUrlV1(
-    @SerializedName("ids")
+    @SerialName("ids")
     var ids: String,
-    @SerializedName("level")
+    @SerialName("level")
     //采用 standard, exhigh, lossless, hires, jyeffect(高清环绕声), sky(沉浸环绕声), jymaster(超清母带) 进行音质判断
     var level: String,
-    @SerializedName("encodeType")
+    @SerialName("encodeType")
     var encodeType: String = "flac",
-    @SerializedName("immerseType")
+    @SerialName("immerseType")
     var immerseType: String? = null
 ) {
     init {
@@ -20,11 +23,12 @@ data class GetSongUrlV1(
     }
 }
 
+@Serializable
 
 data class GetSongUrl(
-    @SerializedName("ids")
+    @SerialName("ids")
     var ids: String,
-    @SerializedName("br")
+    @SerialName("br")
     var br: Int = 999000,
 ) {
     init {

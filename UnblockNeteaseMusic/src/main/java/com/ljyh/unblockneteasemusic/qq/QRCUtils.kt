@@ -1,6 +1,5 @@
-package com.ljyh.mei.utils.encrypt
+package com.ljyh.unblockneteasemusic.qq
 
-import android.util.Log
 import java.io.ByteArrayInputStream
 import java.util.zip.InflaterInputStream
 
@@ -530,7 +529,6 @@ object QRCUtils {
 
             return lyric
         }catch (e: Exception){
-            Log.e("QRCUtils", "decodeLyric: ${e.message}")
             return ""
         }
     }

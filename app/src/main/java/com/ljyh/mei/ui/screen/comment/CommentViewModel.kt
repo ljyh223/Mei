@@ -7,8 +7,8 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.ljyh.mei.data.model.api.CommentSortType
-import com.ljyh.mei.data.model.weapi.CommentX
-import com.ljyh.mei.data.model.weapi.FComment
+import com.ljyh.mei.data.model.CommentEntry
+import com.ljyh.mei.data.model.FloorCommentEntry
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.CommentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,13 +36,13 @@ class CommentViewModel @Inject constructor(
     private val _total = MutableStateFlow(0)
     val total: StateFlow<Int> = _total
 
-    val pagingData: Flow<PagingData<CommentX>> = combine(_songId, _sortType) { songId, sort ->
+    val pagingData: Flow<PagingData<CommentEntry>> = combine(_songId, _sortType) { songId, sort ->
         songId to sort
     }.flatMapLatest { (songId, sort) ->
         createPager(songId, sort)
     }.cachedIn(viewModelScope)
 
-    private fun createPager(songId: String, sortType: CommentSortType): Flow<PagingData<CommentX>> {
+    private fun createPager(songId: String, sortType: CommentSortType): Flow<PagingData<CommentEntry>> {
         return Pager(
             config = PagingConfig(pageSize = 20, enablePlaceholders = false),
             pagingSourceFactory = {
@@ -69,8 +69,8 @@ class CommentViewModel @Inject constructor(
         _sortType.value = type
     }
 
-    private val _floorComments = MutableStateFlow<Resource<List<FComment>>>(Resource.Loading)
-    val floorComments: StateFlow<Resource<List<FComment>>> = _floorComments
+    private val _floorComments = MutableStateFlow<Resource<List<FloorCommentEntry>>>(Resource.Loading)
+    val floorComments: StateFlow<Resource<List<FloorCommentEntry>>> = _floorComments
 
     private val _expandedCommentId = MutableStateFlow<Long?>(null)
     val expandedCommentId: StateFlow<Long?> = _expandedCommentId
@@ -98,7 +98,7 @@ class CommentViewModel @Inject constructor(
                 limit = limit
             ).let { resource ->
                 when (resource) {
-                    is Resource.Success -> Resource.Success(resource.data.data.comments)
+                    is Resource.Success -> Resource.Success(resource.data)
                     is Resource.Error -> Resource.Error(resource.message)
                     Resource.Loading -> Resource.Loading
                 }

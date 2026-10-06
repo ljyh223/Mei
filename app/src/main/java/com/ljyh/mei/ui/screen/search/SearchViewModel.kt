@@ -2,7 +2,7 @@ package com.ljyh.mei.ui.screen.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.data.model.api.SearchResult
+import com.ljyh.mei.data.model.SearchResults
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.SearchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,12 +61,12 @@ class SearchViewModel @Inject constructor(
     private val _currentTab = MutableStateFlow(SearchType.Song)
     val currentTab: StateFlow<SearchType> = _currentTab.asStateFlow()
 
-    private val _searchResult = MutableStateFlow<Resource<SearchResult>>(Resource.Loading)
-    val searchResult: StateFlow<Resource<SearchResult>> = _searchResult.asStateFlow()
+    private val _searchResult = MutableStateFlow<Resource<SearchResults>>(Resource.Loading)
+    val searchResult: StateFlow<Resource<SearchResults>> = _searchResult.asStateFlow()
 
     // 缓存：Key是SearchType, Value是该Tab下的数据
     // 只有当 Query 变化时，这个 Cache 才会被清空
-    private val resultCache = mutableMapOf<SearchType, Resource<SearchResult>>()
+    private val resultCache = mutableMapOf<SearchType, Resource<SearchResults>>()
 
     /**
      * 初始化搜索或恢复状态

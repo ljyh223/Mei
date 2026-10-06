@@ -65,13 +65,13 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
     val qqSource = sources.filterIsInstance<LyricSourceData.QQMusic>().firstOrNull()
     if (qqSource != null) {
         val q = qqSource.lyric
-        if (qqSource.isQRC && q.lyric.isNotBlank()) {
+        if (qqSource.isQRC && q.original.isNotBlank()) {
             Timber.tag("LyricUtils").d("qq.lyric and qq.trans")
             return LyricData(
                 isVerbatim = true,
                 isPureMusic = isPureMusic,
                 source = LyricSource.QQMusic,
-                lyricLine = QRCParser.parse(q.lyric, q.trans)
+                lyricLine = QRCParser.parse(q.original, q.translation)
             )
         }
         // 有些情况下 QQ 有逐字但没有 trans（视为非完整逐字），上面判断要求 trans 存在
@@ -95,14 +95,14 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
     // 2) QQ 非逐字（LRC）
     if (qqSource != null) {
         val q = qqSource.lyric
-        val lrcText = qqSource.lrcContent ?: q.lyric
+        val lrcText = qqSource.lrcContent ?: q.original
         if (lrcText.isNotBlank()) {
             Timber.tag("LyricUtils").d("QQ LRC")
             return LyricData(
                 isVerbatim = false,
                 isPureMusic = isPureMusic,
                 source = LyricSource.QQMusic,
-                lyricLine = LRCParser.parse(lrcText, q.trans)
+                lyricLine = LRCParser.parse(lrcText, q.translation)
             )
         }
     }

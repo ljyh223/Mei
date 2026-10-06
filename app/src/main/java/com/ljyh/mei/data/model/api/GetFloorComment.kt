@@ -1,15 +1,18 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
 
 data class GetFloorComment(
-    @SerializedName("parentCommentId")
+    @SerialName("parentCommentId")
     val parentCommentId: Long,
-    @SerializedName("threadId")
+    @SerialName("threadId")
     val threadId: String,
-    @SerializedName("limit")
+    @SerialName("limit")
     val limit: Int = 20,
-    @SerializedName("time")
+    @SerialName("time")
     val time: Long = -1
 )
 

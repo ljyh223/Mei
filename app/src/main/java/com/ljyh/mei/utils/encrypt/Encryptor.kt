@@ -1,6 +1,8 @@
 package com.ljyh.mei.utils.encrypt
 
-import com.google.gson.JsonParser
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import korlibs.crypto.AES
 import korlibs.crypto.Padding
 import korlibs.crypto.md5
@@ -77,8 +79,8 @@ private fun ByteArray.plainJsonOrNull(): String? {
 
     val candidate = decodeToString(startIndex = index)
     return runCatching {
-        JsonParser.parseString(candidate)
-            .takeIf { it.isJsonObject || it.isJsonArray }
+        Json.parseToJsonElement(candidate)
+            .takeIf { it is JsonObject || it is JsonArray }
             ?.let { candidate }
     }.getOrNull()
 }

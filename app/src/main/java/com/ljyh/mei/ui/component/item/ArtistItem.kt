@@ -23,13 +23,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.ArtistThumbnailSize
-import com.ljyh.mei.data.model.api.SearchResult
+import com.ljyh.mei.data.model.SearchArtist
 import com.ljyh.mei.utils.smallImage
 
 
 @Composable
 fun ArtistItem(
-    artist: SearchResult.Result.Artist, onClick: () -> Unit
+    artist: SearchArtist, onClick: () -> Unit
 ) {
     val context = LocalContext.current
     Row(
@@ -41,7 +41,7 @@ fun ArtistItem(
     ) {
 
         AsyncImage(
-            model = artist.picUrl?.smallImage(),
+            model = artist.imageUrl?.smallImage(),
             contentDescription = null,
             modifier = Modifier
                 .size(ArtistThumbnailSize)
@@ -62,7 +62,7 @@ fun ArtistItem(
 
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = artist.alias.joinToString(separator = " "),
+                text = artist.aliases.joinToString(separator = " "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary,
                 maxLines = 1,

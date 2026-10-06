@@ -9,7 +9,7 @@ import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
-import com.ljyh.mei.data.model.UserAccount
+import com.ljyh.mei.data.model.UserAccountSummary
 import com.ljyh.mei.data.model.auth.QrLoginStatus
 import com.ljyh.mei.data.model.auth.QrLoginUiState
 import com.ljyh.mei.data.network.Resource
@@ -38,8 +38,8 @@ class ShareViewModel @Inject constructor(
 ) : ViewModel() {
 
 
-    private val _userAccount = MutableStateFlow<Resource<UserAccount>>(Resource.Loading)
-    val userAccount: StateFlow<Resource<UserAccount>> = _userAccount
+    private val _userAccount = MutableStateFlow<Resource<UserAccountSummary>>(Resource.Loading)
+    val userAccount: StateFlow<Resource<UserAccountSummary>> = _userAccount
 
     private val _qrLoginState = MutableStateFlow<QrLoginUiState>(QrLoginUiState.Idle)
     val qrLoginState: StateFlow<QrLoginUiState> = _qrLoginState.asStateFlow()

@@ -52,7 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
-import com.ljyh.mei.data.model.weapi.Playlists
+import com.ljyh.mei.data.model.FeaturedPlaylist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.home.PlaylistCard as SharedPlaylistCard
 import com.ljyh.mei.ui.local.LocalNavController
@@ -177,7 +177,7 @@ fun CategorySelector(
  */
 @Composable
 fun PlaylistGrid(
-    playlists: List<Playlists>,
+    playlists: List<FeaturedPlaylist>,
     listState: LazyGridState,
     onPlaylistClick: (Long) -> Unit
 ) {

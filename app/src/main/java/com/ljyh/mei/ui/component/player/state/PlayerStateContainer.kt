@@ -17,7 +17,7 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.data.model.MediaMetadata
 import com.ljyh.mei.data.model.metadata
-import com.ljyh.mei.data.model.qq.u.SearchResult
+import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.PlayerConnection
@@ -64,7 +64,7 @@ class PlayerStateContainer(
     lateinit var lyricResult: State<LyricData>
         internal set
 
-    lateinit var qqLyricSearch: State<Resource<SearchResult>>
+    lateinit var qqLyricSearch: State<Resource<List<MusicTrack>>>
         internal set
 
     lateinit var checkSongLike: State<Resource<Boolean>>

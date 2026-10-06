@@ -1,26 +1,31 @@
 package com.ljyh.mei.data.model.api
 
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+@Serializable
 
 data class GetUserPhotoAlbum(
-    @SerializedName("userId")
+    @SerialName("userId")
     val userId: String,
-    @SerializedName("page")
+    @SerialName("page")
     var page: String="",
-    @SerializedName("header")
+    @SerialName("header")
     val header: String = "{}",
-    @SerializedName("e_r")
+    @SerialName("e_r")
     val e_r: Boolean = true
 
 ) {
     init {
-        page= Gson().toJson(Page())
+        page = Json.encodeToString(Page())
     }
+    @Serializable
     data class Page(
-        @SerializedName("cursor")
+        @SerialName("cursor")
         val cursor: String? = null,
-        @SerializedName("size")
+        @SerialName("size")
         val size: Int = 10
     )
 }

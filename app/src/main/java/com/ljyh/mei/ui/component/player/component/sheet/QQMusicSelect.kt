@@ -37,7 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.MediaMetadata
-import com.ljyh.mei.data.model.qq.u.SearchResult
+import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.player.PlayerViewModel
@@ -87,7 +87,7 @@ fun QQMusicSelectSheet(
                 }
 
                 is Resource.Success -> {
-                    val songs = result.data.request.data.body.itemSong
+                    val songs = result.data
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -151,17 +151,18 @@ private fun CurrentReferenceHeader(title: String, artist: String, duration: Long
 
 @Composable
 private fun OptimizedSongItem(
-    song: SearchResult.Request.Data.Body.ItemSong,
+    song: MusicTrack,
     targetDuration: Long,
     targetTitle: String,
     onClick: () -> Unit
 ) {
     // 匹配算法优化
     val targetSec = targetDuration / 1000
-    val durationDiff = abs(targetSec - song.interval)
+    val durationSeconds = song.durationMs / 1_000
+    val durationDiff = abs(targetSec - durationSeconds)
     val isDurationMatch = durationDiff <= 3 // 3秒以内极度匹配
-    val isTitleMatch = song.name.contains(targetTitle, ignoreCase = true) || targetTitle.contains(
-        song.name,
+    val isTitleMatch = song.displayTitle.contains(targetTitle, ignoreCase = true) || targetTitle.contains(
+        song.displayTitle,
         ignoreCase = true
     )
 
@@ -177,7 +178,7 @@ private fun OptimizedSongItem(
     ) {
         // 封面图
         AsyncImage(
-            model = "https://y.qq.com/music/photo_new/T002R300x300M000${song.album.pmid}.jpg",
+            model = song.album?.coverUrl,
             contentDescription = null,
             modifier = Modifier
                 .size(52.dp)
@@ -191,7 +192,7 @@ private fun OptimizedSongItem(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = song.name,
+                    text = song.displayTitle,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isHighlyRecommended) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -217,7 +218,7 @@ private fun OptimizedSongItem(
             }
 
             Text(
-                text = "${song.singer.joinToString { it.name }} · ${song.album.name}",
+                text = "${song.artists.joinToString { it.name }} · ${song.album?.displayName.orEmpty()}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -228,14 +229,14 @@ private fun OptimizedSongItem(
         // 右侧时长对比
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = formatSeconds(song.interval),
+                text = formatSeconds(durationSeconds),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isDurationMatch) FontWeight.Bold else FontWeight.Normal,
                 color = if (isDurationMatch) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (durationDiff != 0L && durationDiff < 60) {
                 Text(
-                    text = "${if (song.interval > targetSec) "+" else "-"}${durationDiff}s",
+                    text = "${if (durationSeconds > targetSec) "+" else "-"}${durationDiff}s",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isDurationMatch) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error.copy(
                         alpha = 0.7f
