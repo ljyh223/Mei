@@ -57,6 +57,8 @@ import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
 import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
+import com.ljyh.mei.constants.SeekOnLyricTapKey
+import com.ljyh.mei.constants.ShowLyricPhoneticKey
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.playback.SmoothPlaybackPosition
 import com.ljyh.mei.ui.model.LyricData
@@ -127,6 +129,8 @@ fun LyricScreen(
         LyricTextSize.Size34
     )
     val (normalLyricTextBold, _) = rememberPreference(NormalLyricTextBoldKey, true)
+    val (showPhonetic, _) = rememberPreference(ShowLyricPhoneticKey, true)
+    val (seekOnLyricTap, _) = rememberPreference(SeekOnLyricTapKey, true)
 
     val (accompanimentLyricTextSize, _) = rememberEnumPreference(
         AccompanimentLyricTextSizeKey,
@@ -222,9 +226,11 @@ fun LyricScreen(
                         lyrics = lyricData.lyricLine,
                         currentPosition = currentPosition,
                         onLineClicked = { line ->
-                            playbackClock.reset()
-                            playbackPosition.intValue = line.start
-                            playerConnection.player.seekTo(line.start.toLong())
+                            if (seekOnLyricTap) {
+                                playbackClock.reset()
+                                playbackPosition.intValue = line.start
+                                playerConnection.player.seekTo(line.start.toLong())
+                            }
                             onToggleControls(true)
                         },
                         onLinePressed = { line ->
@@ -261,6 +267,7 @@ fun LyricScreen(
                             },
                         normalLineTextStyle = normalStyle,
                         accompanimentLineTextStyle = accompanimentStyle,
+                        showPhonetic = showPhonetic,
                         scrollAnimationSpec = if (positioningInitialLine) snap() else
                             tween(650, easing = FastOutSlowInEasing),
                     )

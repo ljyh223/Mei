@@ -55,6 +55,8 @@ val PlayerActionKey = stringPreferencesKey("playerBottomAction")
 
 val NormalLyricTextSizeKey = stringPreferencesKey("lyricTextSize")
 val NormalLyricTextBoldKey = booleanPreferencesKey("lyricTextBold")
+val ShowLyricPhoneticKey = booleanPreferencesKey("showLyricPhonetic")
+val SeekOnLyricTapKey = booleanPreferencesKey("seekOnLyricTap")
 
 val AccompanimentLyricTextSizeKey = stringPreferencesKey("accompanimentLyricTextSize")
 val AccompanimentLyricTextBoldKey = booleanPreferencesKey("accompanimentLyricTextBold")

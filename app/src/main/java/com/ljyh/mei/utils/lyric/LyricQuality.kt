@@ -24,7 +24,7 @@ internal fun LyricData.qualityScore(): Int {
             else -> false
         }
     }
-    val formatScore = if (hasWordTiming) 400 else 200
+    val formatScore = if (isVerbatim && hasWordTiming) 400 else 200
     val translationScore = if (hasTranslation) 20 else 0
     val sourceScore = when (source) {
         LyricSource.AM -> 3

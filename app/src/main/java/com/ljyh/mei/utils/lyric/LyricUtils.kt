@@ -55,7 +55,7 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
                     isVerbatim = true,
                     isPureMusic = isPureMusic,
                     source = LyricSource.NetEaseCloudMusic,
-                    lyricLine = YRCParser.parse(n.yrc.lyric, translation)
+                    lyricLine = attachPhonetics(YRCParser.parse(n.yrc.lyric, translation), n.romalrc?.lyric)
                 )
             }
         }
@@ -71,7 +71,7 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
                 isVerbatim = true,
                 isPureMusic = isPureMusic,
                 source = LyricSource.QQMusic,
-                lyricLine = QRCParser.parse(q.original, q.translation)
+                lyricLine = attachPhonetics(QRCParser.parse(q.original, q.translation), q.romanization)
             )
         }
         // 有些情况下 QQ 有逐字但没有 trans（视为非完整逐字），上面判断要求 trans 存在
@@ -87,7 +87,7 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
                 isVerbatim = false,
                 isPureMusic = isPureMusic,
                 source = LyricSource.NetEaseCloudMusic,
-                lyricLine = LRCParser.parse(n.lrc.lyric, n.tlyric?.lyric)
+                lyricLine = attachPhonetics(LRCParser.parse(n.lrc.lyric, n.tlyric?.lyric), n.romalrc?.lyric)
             )
         }
     }
@@ -102,7 +102,7 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
                 isVerbatim = false,
                 isPureMusic = isPureMusic,
                 source = LyricSource.QQMusic,
-                lyricLine = LRCParser.parse(lrcText, q.translation)
+                lyricLine = attachPhonetics(LRCParser.parse(lrcText, q.translation), q.romanization)
             )
         }
     }

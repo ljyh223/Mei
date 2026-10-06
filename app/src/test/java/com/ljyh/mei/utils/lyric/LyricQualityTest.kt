@@ -25,6 +25,21 @@ class LyricQualityTest {
     }
 
     @Test
+    fun `line lyrics with pronunciation do not outrank word synced lyrics`() {
+        val current = LyricData(
+            isVerbatim = false,
+            source = LyricSource.NetEaseCloudMusic,
+            lyricLine = attachPhonetics(
+                LRCParser.parse("[00:01.00]主歌词", "[00:01.00]翻译"),
+                "[00:01.00]zhu ge ci",
+            ),
+        )
+        val candidate = wordSynced(LyricSource.QQMusic, translation = null)
+
+        assertTrue(shouldApplyLyricUpdate(current, candidate))
+    }
+
+    @Test
     fun `same source can upgrade when translation becomes available`() {
         val current = wordSynced(LyricSource.QQMusic, translation = null)
         val candidate = wordSynced(LyricSource.QQMusic, translation = "翻译")

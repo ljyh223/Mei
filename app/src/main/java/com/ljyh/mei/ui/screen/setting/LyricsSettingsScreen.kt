@@ -73,6 +73,8 @@ import com.ljyh.mei.constants.DefaultDesktopLyricsTranslationFontSize
 import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
+import com.ljyh.mei.constants.SeekOnLyricTapKey
+import com.ljyh.mei.constants.ShowLyricPhoneticKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
@@ -107,6 +109,8 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val (mainSize, onMainSize) = rememberEnumPreference(NormalLyricTextSizeKey, LyricTextSize.Size34)
     val (mainBold, onMainBold) = rememberPreference(NormalLyricTextBoldKey, true)
+    val (showPhonetic, onShowPhonetic) = rememberPreference(ShowLyricPhoneticKey, true)
+    val (seekOnLyricTap, onSeekOnLyricTap) = rememberPreference(SeekOnLyricTapKey, true)
     val (translationSize, onTranslationSize) = rememberEnumPreference(
         AccompanimentLyricTextSizeKey, LyricTextSize.Size20,
     )
@@ -179,6 +183,20 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 selectedValue = mainSize,
                 onValueSelected = onMainSize,
                 valueText = { it.text.toString() },
+            )
+            SwitchPreference(
+                title = { Text("显示罗马音／粤语发音") },
+                description = "歌词提供发音时显示",
+                icon = { Icon(Icons.Rounded.Lyrics, null) },
+                checked = showPhonetic,
+                onCheckedChange = onShowPhonetic,
+            )
+            SwitchPreference(
+                title = { Text("点击歌词跳转进度") },
+                description = "关闭后点击歌词只显示播放控制",
+                icon = { Icon(Icons.Rounded.Lyrics, null) },
+                checked = seekOnLyricTap,
+                onCheckedChange = onSeekOnLyricTap,
             )
             SwitchPreference(
                 title = { Text("翻译歌词字体加粗") },
