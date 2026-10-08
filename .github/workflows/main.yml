@@ -91,6 +91,7 @@ jobs:
           token: ${{ github.token }}
           tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.ref_name }}
           generateReleaseNotes: true
+          prerelease: ${{ contains(github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.ref_name, '-') }}
           body: ${{ steps.release_notes.outputs.BODY }}
           # 手动触发时，如果标签已存在则跳过创建
           skipIfReleaseExists: true
