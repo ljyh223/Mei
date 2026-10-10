@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.data.model.domain.AlbumContent
+import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity
@@ -41,17 +42,32 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
-    fun subscribeAlbum(id: String) {
+    fun subscribeAlbum(album: AlbumOverview) {
         viewModelScope.launch {
             _subscribeAlbum.value = Resource.Loading
-            _subscribeAlbum.value = repository.subscribeAlbum(id)
+            val result = repository.subscribeAlbum(album.id.toString())
+            if (result is Resource.Success && result.data.code == 200) {
+                albumsRepository.insertAlbum(
+                    AlbumEntity(album.id, album.name, album.picUrl, album.publishTime, album.size),
+                    album.artistIds.zip(album.artistNames).mapNotNull { (id, name) ->
+                        id.takeIf { it > 0 }?.let { ArtistEntity(it, name, null) }
+                    },
+                )
+                _isSubscribe.value = true
+            }
+            _subscribeAlbum.value = result
         }
     }
 
     fun unSubscribeAlbum(id: String) {
         viewModelScope.launch {
             _unSubscribeAlbum.value = Resource.Loading
-            _unSubscribeAlbum.value = repository.unsubscribeAlbum(id)
+            val result = repository.unsubscribeAlbum(id)
+            if (result is Resource.Success && result.data.code == 200) {
+                albumsRepository.deleteAlbum(id.toLong())
+                _isSubscribe.value = false
+            }
+            _unSubscribeAlbum.value = result
         }
     }
 
@@ -59,18 +75,6 @@ class AlbumDetailViewModel @Inject constructor(
     fun isSubscribe(id: Long) {
         viewModelScope.launch {
             _isSubscribe.value = albumsRepository.existsAlbum(id)
-        }
-    }
-
-    fun insertAlbum(album: AlbumEntity, artists: List<ArtistEntity>){
-        viewModelScope.launch {
-            albumsRepository.insertAlbum(album, artists)
-        }
-    }
-
-    fun deleteAlbum(id:Long){
-        viewModelScope.launch {
-            albumsRepository.deleteArtistWithCleanup(id)
         }
     }
 

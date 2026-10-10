@@ -41,9 +41,13 @@ data class AlbumDetail(
         @SerialName("id") val id: Long = 0,
         @SerialName("name") val name: String = "",
         @SerialName("picUrl") val picUrl: String = "",
+        @SerialName("publishTime") val publishTime: Long = 0,
         @SerialName("size") val size: Int = 0,
     ) {
         @Serializable
-        data class Artist(@SerialName("name") val name: String = "")
+        data class Artist(
+            @SerialName("id") val id: Long = 0,
+            @SerialName("name") val name: String = "",
+        )
     }
 }

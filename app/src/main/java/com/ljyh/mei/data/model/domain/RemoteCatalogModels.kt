@@ -18,6 +18,8 @@ data class AlbumOverview(
     val description: String,
     val size: Int,
     val artistNames: List<String>,
+    val artistIds: List<Long> = emptyList(),
+    val publishTime: Long = 0,
 )
 
 fun AlbumDetail.toDomain() = AlbumContent(
@@ -28,6 +30,8 @@ fun AlbumDetail.toDomain() = AlbumContent(
         description = album.description,
         size = album.size,
         artistNames = album.artists.map { it.name },
+        artistIds = album.artists.map { it.id },
+        publishTime = album.publishTime,
     ),
     songs = songs.map { it.toMediaMetadata().copy(coverUrl = album.picUrl) },
 )

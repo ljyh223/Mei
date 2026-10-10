@@ -131,12 +131,14 @@ class NeteaseResponseDtoTest {
     @Test
     fun decodesAlbumDetailsWithCompactSongAndAlbumFields() {
         val response = json.decodeFromString<AlbumDetail>(
-            """{"code":200,"resourceState":true,"album":{"id":5,"name":"Album","picUrl":"cover","size":1,"description":"description","artists":[{"name":"Artist","unused":true}],"unused":true},"songs":[{"id":7,"name":"Song","dt":190000,"ar":[{"id":3,"name":"Artist","unused":true}],"al":{"id":5,"name":"Album","pic":500},"unused":true}],"unused":true}"""
+            """{"code":200,"resourceState":true,"album":{"id":5,"name":"Album","picUrl":"cover","publishTime":1609459200000,"size":1,"description":"description","artists":[{"id":3,"name":"Artist","unused":true}],"unused":true},"songs":[{"id":7,"name":"Song","dt":190000,"ar":[{"id":3,"name":"Artist","unused":true}],"al":{"id":5,"name":"Album","pic":500},"unused":true}],"unused":true}"""
         )
 
         val song = response.songs.single()
         assertEquals("Album", response.album.name)
         assertEquals("Artist", response.album.artists.single().name)
+        assertEquals(3L, response.toDomain().album.artistIds.single())
+        assertEquals(1609459200000L, response.toDomain().album.publishTime)
         assertEquals(500L, song.album.pictureId)
         assertEquals(190000L, song.duration)
     }
