@@ -159,6 +159,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_18_17 = object : Migration(18, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Version 17 stores likes without an account ID. Keep the union of song IDs.
+                db.execSQL("CREATE TABLE `like_v17` (`id` TEXT NOT NULL, PRIMARY KEY(`id`))")
+                db.execSQL("INSERT OR IGNORE INTO `like_v17` (`id`) SELECT `id` FROM `like`")
+                db.execSQL("DROP TABLE `like`")
+                db.execSQL("ALTER TABLE `like_v17` RENAME TO `like`")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -168,7 +178,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "app_database"
-                ).addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                ).addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_18_17)
                     .build()
                     .also { INSTANCE = it }
             }
