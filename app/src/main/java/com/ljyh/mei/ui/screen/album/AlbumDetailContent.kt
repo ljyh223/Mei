@@ -2,6 +2,8 @@ package com.ljyh.mei.ui.screen.album
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,8 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,11 +39,13 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -53,8 +56,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,10 +92,9 @@ internal fun AlbumDetailContent(
     val titleInBar by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
     val surface = MaterialTheme.colorScheme.surface
     val textColor = MaterialTheme.colorScheme.onSurface
-    val isLightSurface = surface.luminance() > 0.5f
     val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-    val topProtectionHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 96.dp
     val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
+    var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(surface)) {
         LazyColumn(
@@ -115,7 +117,7 @@ internal fun AlbumDetailContent(
             }
             if (album.description.isNotBlank()) {
                 item(key = "album_description") {
-                    AlbumDescription(album.id, album.description)
+                    AlbumDescription(album.id, album.description, onExpand = { showDescriptionSheet = true })
                 }
             }
             item(key = "album_tracks_title") {
@@ -124,7 +126,7 @@ internal fun AlbumDetailContent(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 8.dp),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
                 )
             }
             itemsIndexed(displayedSongs, key = { _, song -> song.id }) { index, song ->
@@ -146,21 +148,6 @@ internal fun AlbumDetailContent(
                     )
                 }
             }
-        }
-
-        if (!titleInBar && !isSearchActive) {
-            val scrimColor = if (isLightSurface) surface else Color.Black
-            val scrimAlpha = if (isLightSurface) 0.84f else 0.72f
-            Box(
-                Modifier.align(Alignment.TopCenter).fillMaxWidth().height(topProtectionHeight)
-                    .background(
-                        Brush.verticalGradient(
-                            0f to scrimColor.copy(alpha = scrimAlpha),
-                            0.42f to scrimColor.copy(alpha = scrimAlpha),
-                            1f to scrimColor.copy(alpha = 0f),
-                        )
-                    )
-            )
         }
 
         CenterAlignedTopAppBar(
@@ -203,12 +190,38 @@ internal fun AlbumDetailContent(
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = if (titleInBar || isSearchActive) surface else Color.Transparent,
-                navigationIconContentColor = if (titleInBar || isSearchActive || isLightSurface) textColor else Color.White,
-                actionIconContentColor = if (titleInBar || isSearchActive || isLightSurface) textColor else Color.White,
+                navigationIconContentColor = if (titleInBar || isSearchActive) textColor else Color.White,
+                actionIconContentColor = if (titleInBar || isSearchActive) textColor else Color.White,
                 titleContentColor = textColor,
             ),
             modifier = Modifier.align(Alignment.TopCenter),
         )
+    }
+
+    if (showDescriptionSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showDescriptionSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            modifier = Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.7f),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                    .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+            ) {
+                Text(
+                    text = album.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+                )
+                Text(
+                    text = album.description.trim(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -216,7 +229,7 @@ internal fun AlbumDetailContent(
 private fun AlbumHeader(album: AlbumOverview, trackCount: Int) {
     val surface = MaterialTheme.colorScheme.surface
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val heroHeight = (maxWidth * 1.08f).coerceIn(360.dp, 480.dp)
+        val heroHeight = (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
         Box(Modifier.fillMaxWidth().height(heroHeight)) {
             if (album.picUrl.isNotBlank()) {
                 AsyncImage(
@@ -284,50 +297,57 @@ private fun AlbumActions(
     onDownload: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+            .widthIn(max = 300.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Button(
             onClick = onPlayAll,
             enabled = hasSongs && canPlay,
-            modifier = Modifier.weight(1f).height(52.dp),
+            modifier = Modifier.weight(1f).height(48.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp),
         ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
+            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(6.dp))
             Text("播放全部")
         }
-        FilledTonalIconButton(onClick = onSubscribe, modifier = Modifier.size(52.dp)) {
+        FilledTonalIconButton(onClick = onSubscribe, modifier = Modifier.size(48.dp)) {
             Icon(
                 if (isSubscribed) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (isSubscribed) "取消收藏专辑" else "收藏专辑",
+                modifier = Modifier.size(20.dp),
             )
         }
-        FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(52.dp)) {
-            Icon(Icons.Default.Download, contentDescription = "下载专辑")
+        FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(48.dp)) {
+            Icon(Icons.Default.Download, contentDescription = "下载专辑", modifier = Modifier.size(20.dp))
         }
     }
 }
 
 @Composable
-private fun AlbumDescription(albumId: Long, description: String) {
-    var expanded by remember(albumId) { mutableStateOf(false) }
+private fun AlbumDescription(albumId: Long, description: String, onExpand: () -> Unit) {
     var canExpand by remember(albumId, description) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             text = description.trim(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = if (expanded) Int.MAX_VALUE else 2,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            onTextLayout = { if (!expanded) canExpand = it.hasVisualOverflow },
+            onTextLayout = { canExpand = it.hasVisualOverflow },
         )
-        if (canExpand || expanded) {
+        if (canExpand) {
             TextButton(
-                onClick = { expanded = !expanded },
+                onClick = onExpand,
+                modifier = Modifier.size(width = 48.dp, height = 48.dp),
                 contentPadding = PaddingValues(horizontal = 0.dp),
             ) {
-                Text(if (expanded) "收起介绍" else "展开介绍")
+                Text("展开")
             }
         }
     }
