@@ -75,6 +75,7 @@ fun CommonSongListScreen(
     onDownload: () -> Unit = {},
     headerActionIcon: ImageVector,
     headerActionLabel: String,
+    customHeader: (@Composable () -> Unit)? = null,
 
     // 列表操作
     onTrackClick: (MediaMetadata, Int) -> Unit,
@@ -121,7 +122,7 @@ fun CommonSongListScreen(
         }
 
         Scaffold(
-            containerColor = Color.Transparent,
+            containerColor = if (uiData.cover.isBlank()) MaterialTheme.colorScheme.surface else Color.Transparent,
             topBar = {
                 val title: @Composable () -> Unit = {
                     if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
@@ -219,7 +220,7 @@ fun CommonSongListScreen(
                         // --- 平板布局：左右并排 ---
                         Row(modifier = Modifier.fillMaxSize()) {
                             Box(modifier = Modifier.weight(0.4f).align(Alignment.CenterVertically)) {
-                                PlaylistHeader(
+                                if (customHeader != null) customHeader() else PlaylistHeader(
                                     title = uiData.title,
                                     cover = uiData.cover,
                                     coverList = uiData.coverList,
@@ -288,7 +289,7 @@ fun CommonSongListScreen(
                             lazyListState = lazyListState,
                             // 关键：把 Header 作为参数传进去
                             headerContent = {
-                                PlaylistHeader(
+                                if (customHeader != null) customHeader() else PlaylistHeader(
                                     title = uiData.title,
                                     cover = uiData.cover,
                                     coverList = uiData.coverList,
