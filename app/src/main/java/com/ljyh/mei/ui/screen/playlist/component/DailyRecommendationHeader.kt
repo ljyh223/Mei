@@ -36,34 +36,38 @@ fun DailyRecommendationHeader(
 
     Column(Modifier.fillMaxWidth()) {
         DailyCoverWall(covers, today)
-        Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = "每日推荐",
-                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = onPlayAll,
-                    enabled = !isLoading && tracks.isNotEmpty(),
-                    modifier = Modifier.height(48.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                ) {
-                    Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("播放全部")
-                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = if (isLoading) "正在获取今日歌曲" else "今天为你推荐 ${tracks.size} 首",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = if (isLoading) "正在获取今日歌曲" else "今天为你推荐 ${tracks.size} 首",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Spacer(Modifier.width(8.dp))
+            Button(
+                onClick = onPlayAll,
+                enabled = !isLoading && tracks.isNotEmpty(),
+                modifier = Modifier.height(48.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp),
+            ) {
+                Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("播放全部")
+            }
         }
     }
 }

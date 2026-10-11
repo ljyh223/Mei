@@ -53,10 +53,6 @@ android {
     }
 }
 
-configurations.all {
-    exclude("com.soywiz.korlibs.krypto","krypto-android")
-}
-
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll(
@@ -142,9 +138,7 @@ dependencies {
     implementation(project(":UnblockNeteaseMusic"))
     implementation(libs.serialization.android)
 
-    implementation(libs.korlibs.crypto){
-        exclude("com.soywiz.korlibs.krypto", "krypto-android")
-    }
+    implementation("com.google.crypto.tink:tink:1.7.0")
     implementation(libs.logging.interceptor)
     // implementation(kotlin("reflect"))
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.21")
