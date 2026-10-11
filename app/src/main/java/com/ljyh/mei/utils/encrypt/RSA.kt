@@ -1,6 +1,5 @@
 package com.ljyh.mei.utils.encrypt
 
-import korlibs.encoding.hex
 import java.math.BigInteger
 
 private const val pubKey = "010001"
@@ -9,7 +8,7 @@ private const val modulus =
 
 fun rsaEncrypt(text: String): String {
     val text = StringBuffer(text).reverse().toString()
-    val biText = BigInteger(text.toByteArray().hex, 16)
+    val biText = BigInteger(1, text.toByteArray())
     val biEx = BigInteger(pubKey, 16)
     val biMod = BigInteger(modulus, 16)
     val biRet: BigInteger = biText.modPow(biEx, biMod)

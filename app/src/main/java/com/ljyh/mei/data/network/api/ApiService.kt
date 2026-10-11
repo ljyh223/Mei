@@ -47,8 +47,9 @@ import com.ljyh.mei.data.model.weapi.Comment
 import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.model.weapi.LikeResult
 import com.ljyh.mei.data.network.NeteaseHttp
+import com.ljyh.mei.data.network.XeApiClient
 
-class ApiService(private val http: NeteaseHttp) {
+class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) {
     private val base = "https://interface.music.163.com"
 
     suspend fun getDynamicCover(body: Map<String, Long>): DynamicCoverResponse =
@@ -78,7 +79,7 @@ class ApiService(private val http: NeteaseHttp) {
     suspend fun searchSuggest(body: GetSearchSuggest): SearchSuggest =
         http.post(base, "/api/search/suggest/web/", body)
     suspend fun getSongUrlV1(body: GetSongUrlV1): SongUrl =
-        http.post(base, "/api/song/enhance/player/url/v1", body)
+        xeApi.getSongUrlV1(body)
     suspend fun getSongUrl(body: GetSongUrl): SongUrl =
         http.post(base, "/api/song/enhance/player/url", body)
     suspend fun getUserPhotoAlbum(body: GetUserPhotoAlbum): AlbumPhoto =
