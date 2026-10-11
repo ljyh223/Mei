@@ -4,13 +4,10 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.constants.AndroidIdKey
 import com.ljyh.mei.constants.AndroidUserAgent
-import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.encrypt.encryptId
-import com.ljyh.mei.utils.encrypt.generateRandomMac
+import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.get
-import korlibs.encoding.Base64
 import kotlin.text.buildString
-import kotlin.text.isEmpty
 
 object NeteaseUtils {
     private val HEX_CHARS = "0123456789abcdef"
@@ -41,10 +38,7 @@ object NeteaseUtils {
         }
     }
 
-    fun getAndroidId(): String = Base64.encode(
-        "null\t${generateRandomMac()}\t${getRandomHex()}\t${getRandomHex()}".toByteArray(),
-        url = true
-    )
+    fun getAndroidId(): String = getDeviceId()
 
     fun getResourceLink(id: String, extension: String = "jpg"): String {
         val encrypted = encryptId(id)
@@ -61,19 +55,14 @@ object NeteaseUtils {
     }
 
     suspend fun getAndroidId(context: Context): String {
-        val androidId = context.dataStore[AndroidIdKey] ?: ""
-        if (androidId.isEmpty()) {
-            val androidId = Base64.encode(
-                "null\t${generateRandomMac()}\t${getRandomHex()}\t${getRandomHex()}".toByteArray(),
-                url = true
-            )
+        val deviceId = getDeviceId(context)
+        val storedId = context.dataStore[AndroidIdKey] ?: ""
+        if (storedId != deviceId) {
             context.dataStore.edit {
-                it[AndroidIdKey] = androidId
+                it[AndroidIdKey] = deviceId
             }
-            return androidId
-        } else {
-            return androidId
         }
+        return deviceId
     }
 
     fun getWNMCID(): String {

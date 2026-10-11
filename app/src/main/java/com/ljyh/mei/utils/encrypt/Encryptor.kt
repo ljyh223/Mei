@@ -3,15 +3,16 @@ package com.ljyh.mei.utils.encrypt
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
-import korlibs.crypto.AES
-import korlibs.crypto.Padding
-import korlibs.crypto.md5
-import korlibs.encoding.hex
-import korlibs.encoding.toBase64
-import timber.log.Timber
+import java.io.ByteArrayInputStream
+import java.security.MessageDigest
+import java.util.Base64
+import java.util.zip.GZIPInputStream
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 private const val presetKey = "0CoJUm6Qyw8W8jud"
-private const val iv = "0102030405060708"
+private const val weApiIv = "0102030405060708"
 private const val eapiKey = "e82ckenh8dichen8"
 private val CHARS = "0123456789ABCDEF"
 
@@ -22,29 +23,18 @@ private val CHARS = "0123456789ABCDEF"
  * @param data 原始post请求数据
  * @return 加密后的post body
  */
-fun encryptWeAPI(
-    data: String
-): WeApi {
-    val key = createRandomKey()
+fun encryptWeAPI(data: String): WeApi = encryptWeApiWithKey(data, createRandomKey())
 
-    return WeApi(
-        params = AES.encryptAesCbc(
-            data = AES.encryptAesCbc(
-                data = data.toByteArray(),
-                key = presetKey.toByteArray(),
-                iv = iv.toByteArray(),
-                padding = Padding.PKCS7Padding
-            ).toBase64().toByteArray(),
-            key = key.toByteArray(),
-            iv = iv.toByteArray(),
-            padding = Padding.PKCS7Padding
-        ).toBase64(),
-        encSecKey = rsaEncrypt(
-            key
-        )
-
+internal fun encryptWeApiWithKey(data: String, key: String): WeApi =
+    WeApi(
+        params = Base64.getEncoder().encodeToString(
+            aesCbcEncrypt(
+                key.toByteArray(),
+                Base64.getEncoder().encode(aesCbcEncrypt(presetKey.toByteArray(), data.toByteArray()))
+            )
+        ),
+        encSecKey = rsaEncrypt(key)
     )
-}
 
 fun decryptEApi(
     data: ByteArray
@@ -52,11 +42,15 @@ fun decryptEApi(
     require(data.isNotEmpty() && data.size % AES_BLOCK_SIZE == 0) {
         "Invalid EAPI ciphertext length: ${data.size}"
     }
-    return AES.decryptAesEcb(
-        data = data,
-        key = eapiKey.toByteArray(),
-        padding = Padding.PKCS7Padding
-    ).decodeToString()
+    val decrypted = aesEcbCipher(Cipher.DECRYPT_MODE, data)
+    val payload = if (decrypted.size >= 2 &&
+        decrypted[0] == 0x1f.toByte() && decrypted[1] == 0x8b.toByte()
+    ) {
+        GZIPInputStream(ByteArrayInputStream(decrypted)).use { it.readBytes() }
+    } else {
+        decrypted
+    }
+    return payload.decodeToString()
 }
 
 fun decodeEApiResponse(data: ByteArray): String {
@@ -89,16 +83,13 @@ fun encryptEApi(
     url: String,
     data: String
 ): EApi {
-    Timber.tag("Eapi").d( "data: $data")
-    Timber.tag("Eapi").d("url: $url")
     val message = "nobody" + url + "use" + data + "md5forencrypt"
-    val digest: String = message.toByteArray().md5().hex
+    val digest = MessageDigest.getInstance("MD5").digest(message.toByteArray()).toLowerHex()
     return EApi(
-        params = AES.encryptAesEcb(
-            data = "$url-36cd479b6b5-$data-36cd479b6b5-$digest".toByteArray(),
-            key = eapiKey.toByteArray(),
-            padding = Padding.PKCS7Padding
-        ).hex
+        params = aesEcbCipher(
+            Cipher.ENCRYPT_MODE,
+            "$url-36cd479b6b5-$data-36cd479b6b5-$digest".toByteArray()
+        ).toLowerHex()
     )
 }
 
@@ -117,7 +108,8 @@ fun encryptId(id: String): String {
     for (i in idBytes.indices) {
         xored[i] = (idBytes[i].toInt() xor keyBytes[i % keyBytes.size].toInt()).toByte()
     }
-    return xored.md5().base64.replace("/", "_").replace("+", "-")
+    return Base64.getEncoder().encodeToString(MessageDigest.getInstance("MD5").digest(xored))
+        .replace("/", "_").replace("+", "-")
 
 }
 
@@ -147,6 +139,27 @@ data class EApi(
 )
 
 private const val AES_BLOCK_SIZE = 16
+private val HEX_DIGITS = "0123456789abcdef"
+private fun ByteArray.toLowerHex(): String = buildString(size * 2) {
+    for (byte in this@toLowerHex) {
+        val value = byte.toInt() and 0xff
+        append(HEX_DIGITS[value ushr 4])
+        append(HEX_DIGITS[value and 0x0f])
+    }
+}
+
+private fun aesCbcEncrypt(key: ByteArray, data: ByteArray): ByteArray =
+    Cipher.getInstance("AES/CBC/PKCS5Padding").run {
+        init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(weApiIv.toByteArray()))
+        doFinal(data)
+    }
+
+private fun aesEcbCipher(mode: Int, data: ByteArray): ByteArray =
+    Cipher.getInstance("AES/ECB/PKCS5Padding").run {
+        init(mode, SecretKeySpec(eapiKey.toByteArray(), "AES"))
+        doFinal(data)
+    }
+
 private val UTF8_BOM = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
 private val JSON_OBJECT_START = '{'.code.toByte()
 private val JSON_ARRAY_START = '['.code.toByte()

@@ -21,6 +21,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Player.EVENT_POSITION_DISCONTINUITY
 import androidx.media3.common.Player.EVENT_TIMELINE_CHANGED
+import androidx.media3.common.audio.ChannelMixingAudioProcessor
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -60,6 +61,7 @@ import com.ljyh.mei.constants.LastPlaybackQueueKey
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
 import com.ljyh.mei.constants.RepeatModeKey
+import com.ljyh.mei.constants.UsbExclusivePlaybackKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.SongEntity
 import com.ljyh.mei.data.model.domain.createPlaceholder
@@ -128,6 +130,7 @@ class MusicService : MediaLibraryService(),
     private val standbyEqualizerProcessor = ParametricEqualizerProcessor()
     private val firstTransitionProbe = TransitionAudioProbe()
     private val secondTransitionProbe = TransitionAudioProbe()
+    @Volatile private var usbExclusiveEnabled = false
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
     private val desktopLyricsToggleCommand = SessionCommand(DESKTOP_LYRICS_TOGGLE_ACTION, Bundle.EMPTY)
@@ -169,6 +172,7 @@ class MusicService : MediaLibraryService(),
     lateinit var lyricManager: LyricManager
     override fun onCreate() {
         super.onCreate()
+        usbExclusiveEnabled = runBlocking { dataStore.data.first()[UsbExclusivePlaybackKey] ?: false }
         baseMediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
             .setLoadErrorHandlingPolicy(MusicLoadErrorHandlingPolicy()) // 应用自定义错误策略
 
@@ -188,7 +192,7 @@ class MusicService : MediaLibraryService(),
         fun buildDeck(processor: ParametricEqualizerProcessor, probe: TransitionAudioProbe, focused: Boolean) =
             ExoPlayer.Builder(this)
                 .setMediaSourceFactory(baseMediaSourceFactory)
-                .setRenderersFactory(createRenderersFactory(processor, probe))
+                .setRenderersFactory(createRenderersFactory(processor, probe, audioAttributes))
                 .setHandleAudioBecomingNoisy(focused)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(audioAttributes, focused)
@@ -255,6 +259,31 @@ class MusicService : MediaLibraryService(),
                 mediaUriProvider.resolveMediaUri(mediaId, quality)
             },
         )
+        scope.launch {
+            dataStore.data.map { it[UsbExclusivePlaybackKey] ?: false }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    if (enabled == usbExclusiveEnabled) return@collect
+                    usbExclusiveEnabled = enabled
+                    UsbOutputState.status.value = UsbOutputStatus()
+                    audioPlayer.cancelFade()
+                    player.volume = 1f
+                    if (enabled) {
+                        player.active.skipSilenceEnabled = false
+                        player.playbackParameters = androidx.media3.common.PlaybackParameters.DEFAULT
+                    }
+                    reprepareCurrentTrack()
+                }
+        }
+        scope.launch {
+            var quality = dataStore.data.first()[MusicQualityKey]
+            dataStore.data.map { it[MusicQualityKey] }.distinctUntilChanged().collect { nextQuality ->
+                if (nextQuality != quality) {
+                    quality = nextQuality
+                    reprepareCurrentTrack()
+                }
+            }
+        }
         val singletonImageLoader = ImageLoader(this)
         val sessionPlayer = object : ForwardingSimpleBasePlayer(player) {
             override fun handleSeek(
@@ -413,7 +442,10 @@ class MusicService : MediaLibraryService(),
         ) {
             val isBufferingOrReady =
                 player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_READY
-            if (isBufferingOrReady && player.playWhenReady) {
+            if (usbExclusiveEnabled) {
+                audioPlayer.cancelFade()
+                player.volume = 1f
+            } else if (isBufferingOrReady && player.playWhenReady) {
                 audioPlayer.startSmooth()
             } else {
                 audioPlayer.pauseSmooth()
@@ -521,6 +553,17 @@ class MusicService : MediaLibraryService(),
         standbyEqualizerProcessor.setProfile(profile)
     }
 
+    private fun reprepareCurrentTrack() {
+        if (player.mediaItemCount == 0) return
+        val index = player.currentMediaItemIndex
+        val position = player.currentPosition.coerceAtLeast(0L)
+        val playWhenReady = player.playWhenReady
+        player.stop()
+        player.seekTo(index, position)
+        player.prepare()
+        player.playWhenReady = playWhenReady
+    }
+
     override fun onDestroy() {
         queueSaveJob?.cancel()
         if (!restoringQueue) {
@@ -570,23 +613,39 @@ class MusicService : MediaLibraryService(),
     private fun createRenderersFactory(
         equalizer: ParametricEqualizerProcessor,
         probe: TransitionAudioProbe,
+        audioAttributes: AudioAttributes,
     ) =
         object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
                 context: Context,
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean,
-            ) = DefaultAudioSink.Builder(this@MusicService)
-                // Media3 bypasses user audio processors for high-resolution float output.
-                .setEnableFloatOutput(false)
-                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                .setAudioProcessorChain(
-                    DefaultAudioSink.DefaultAudioProcessorChain(
-                        arrayOf(equalizer, probe),
-                        SilenceSkippingAudioProcessor(2_000_000, 0.01f, 2_000_000, 0, 256),
-                        SonicAudioProcessor()
-                    )
-                ).build()
+            ): androidx.media3.exoplayer.audio.AudioSink {
+                val stereoDownmix = ChannelMixingAudioProcessor().apply {
+                    for (channels in 1..8) putChannelMixingMatrix(stereoDownmixMatrix(channels))
+                }
+                val regular = DefaultAudioSink.Builder(this@MusicService)
+                    .setEnableFloatOutput(false)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setAudioProcessorChain(
+                        DefaultAudioSink.DefaultAudioProcessorChain(
+                            arrayOf(stereoDownmix, equalizer, probe),
+                            SilenceSkippingAudioProcessor(2_000_000, 0.01f, 2_000_000, 0, 256),
+                            SonicAudioProcessor()
+                        )
+                    ).build()
+                val provider = UsbExclusiveOutputProvider(
+                    this@MusicService,
+                    audioAttributes.getPlatformAudioAttributes(),
+                ) { usbExclusiveEnabled }
+                val usb = DefaultAudioSink.Builder(this@MusicService)
+                    .setEnableFloatOutput(true)
+                    .setEnableAudioTrackPlaybackParams(false)
+                    .setAudioProcessors(emptyArray())
+                    .setAudioOutputProvider(provider)
+                    .build()
+                return SwitchingAudioSink(regular, usb, provider) { usbExclusiveEnabled }
+            }
         }
 
     inner class MusicBinder : Binder() {

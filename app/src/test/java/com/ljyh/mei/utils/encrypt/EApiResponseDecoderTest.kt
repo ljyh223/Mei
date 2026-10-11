@@ -3,8 +3,26 @@ package com.ljyh.mei.utils.encrypt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Test
+import java.io.ByteArrayOutputStream
+import java.util.zip.GZIPOutputStream
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
 class EApiResponseDecoderTest {
+    @Test
+    fun decryptsGzippedEapiResponse() {
+        val response = "{\"code\":200,\"data\":[1,2]}"
+        val compressed = ByteArrayOutputStream().also { stream ->
+            GZIPOutputStream(stream).use { it.write(response.toByteArray()) }
+        }.toByteArray()
+        val encrypted = Cipher.getInstance("AES/ECB/PKCS5Padding").run {
+            init(Cipher.ENCRYPT_MODE, SecretKeySpec("e82ckenh8dichen8".toByteArray(), "AES"))
+            doFinal(compressed)
+        }
+
+        assertEquals(response, decodeEApiResponse(encrypted))
+    }
+
     @Test
     fun plainJsonObjectPassesThroughWithoutAesDecryption() {
         val response = "  {\"code\":200,\"data\":{\"playDuration\":874}}"

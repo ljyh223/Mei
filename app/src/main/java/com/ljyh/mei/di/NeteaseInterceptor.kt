@@ -1,5 +1,6 @@
 package com.ljyh.mei.di
 
+import android.os.Build
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DeviceIdKey
@@ -64,6 +65,18 @@ class NeteaseInterceptor : Interceptor {
         "ua" to "NeteaseMusic/9.4.32.251222163637" // 或者你之前的 Android UA
     )
 
+    private val XEAPI_CONFIG = mapOf(
+        "os" to "android",
+        "osver" to Build.VERSION.RELEASE,
+        "appver" to "9.6.05",
+        "channel" to "netease",
+        "versioncode" to "9006005",
+        "mobilename" to Build.MODEL,
+        "buildver" to "260923162310",
+        "resolution" to "2268x1080",
+        "ua" to "NeteaseMusic/9.6.05.260923162310(9006005);Dalvik/2.1.0 (Linux; U; Android ${Build.VERSION.RELEASE}; ${Build.MODEL} Build/${Build.ID})"
+    )
+
     // 公用常量
     private val CONST_NMDI = "Q1NKTQkBDAAMIEF4coQMHcb6TLA7AAAAciOiJ%2F%2FOO4VQ7m%2FLvLJ1pD9CIsJP5mfzI4SusB%2BaNScGLpThEYBcPxGzj0pL5hLdZ7LqB2UVULdYgc0%3D"
     private val CONST_URS_APPID = "F2219AE9D7828A7D73E2006D000C61031D196A37DB497E3885B8298504867886B6F0E44087D61EFC06BE92279CD6EEC6"
@@ -76,7 +89,11 @@ class NeteaseInterceptor : Interceptor {
         val builder = originalRequest.newBuilder()
             .removeHeader(CRYPTO_MODE_HEADER)
 
-        val config = if (cryptoMode == "eapi") EAPI_CONFIG else ANDROID_CONFIG
+        val config = when {
+            cryptoMode == "xeapi" || url.contains("/eapi/bsr/sk/get") -> XEAPI_CONFIG
+            cryptoMode == "eapi" -> EAPI_CONFIG
+            else -> ANDROID_CONFIG
+        }
 
         val deviceId = AppContext.instance.dataStore[DeviceIdKey] ?: getDeviceId()
         val musicU = AppContext.instance.dataStore[CookieKey] ?: ""
@@ -101,6 +118,10 @@ class NeteaseInterceptor : Interceptor {
             put("WNMCID", cachedWnmcid)
             put("URS_APPID", CONST_URS_APPID)
             put("WEVNSM", "1.0.0")
+            if (cryptoMode == "xeapi") {
+                put("EVNSM", "1.0.0")
+                put("NMCID", cachedWnmcid)
+            }
             put("__csrf", CONST_CSRF)
             put("NMDI", CONST_NMDI)
             put("NMTID", cachedNmtid)
@@ -137,14 +158,30 @@ class NeteaseInterceptor : Interceptor {
         }
         builder.addHeader("User-Agent", userAgent)
 
+        if (cryptoMode == "xeapi") {
+            builder.addHeader("X-Client-Enc-State", "ENCRYPTED")
+            builder.addHeader("x-aeapi", "true")
+            builder.addHeader("x-deviceid", deviceId)
+            builder.addHeader("x-sdeviceid", deviceId)
+            builder.addHeader("x-os", config["os"]!!)
+            builder.addHeader("x-osver", config["osver"]!!)
+            builder.addHeader("x-appver", config["appver"]!!)
+            builder.addHeader("x-buildver", config["buildver"]!!)
+            builder.addHeader("cmpageid", "page_songlist")
+            builder.addHeader("x-mam-custommark", "cronet")
+            if (musicU.isNotEmpty()) builder.addHeader("x-music-u", musicU)
+        }
+
         if (cryptoMode == "weapi") {
             builder.addHeader("Referer", "https://music.163.com")
         }
 
-        builder.addHeader("X-Real-IP", fakeIP)
-        builder.addHeader("X-Forwarded-For", fakeIP)
+        if (cryptoMode != "xeapi") {
+            builder.addHeader("X-Real-IP", fakeIP)
+            builder.addHeader("X-Forwarded-For", fakeIP)
+        }
 
-        handleRequestEncryption(builder, originalRequest, cryptoMode, url, neteaseHeader)
+        handleRequestEncryption(builder, originalRequest, cryptoMode, neteaseHeader)
 
         val response = chain.proceed(builder.build())
         return handleResponseDecryption(response, cryptoMode)
@@ -160,7 +197,6 @@ class NeteaseInterceptor : Interceptor {
         builder: Request.Builder,
         originalRequest: Request,
         cryptoMode: String,
-        url: String,
         headerObj: NeteaseHeader
     ) {
         val rawBody = getBodyString(originalRequest.body)
@@ -172,13 +208,16 @@ class NeteaseInterceptor : Interceptor {
                 }.getOrDefault(mutableMapOf())
 
                 bodyMap["header"] = JsonPrimitive(json.encodeToString(headerObj))
+                if (originalRequest.url.encodedPath == "/eapi/bsr/sk/get") {
+                    bodyMap["e_r"] = JsonPrimitive(true)
+                }
                 if(rawBody.contains("checkToken") && (cryptoMode == "api" || cryptoMode == "eapi")){
                     builder.addHeader("X-antiCheatToken", checkToken)
                 }
                 // bodyMap["e_r"] = true // 可选，如果遇到 buffer 问题可开启
 
                 val newBodyJson = JsonObject(bodyMap).toString()
-                val apiPath = url.replace("https://interface.music.163.com", "").replace("eapi", "api")
+                val apiPath = originalRequest.url.encodedPath.replaceFirst("/eapi/", "/api/")
 
                 val encryptedData = encryptEApi(apiPath, newBodyJson)
                 builder.post(FormBody.Builder().add("params", encryptedData.params).build())
@@ -203,6 +242,7 @@ class NeteaseInterceptor : Interceptor {
                 }
                 builder.post(formBodyBuilder.build())
             }
+            "xeapi" -> Unit // XeApiClient already supplied the C/S/R form body.
         }
     }
 
@@ -250,6 +290,7 @@ class NeteaseInterceptor : Interceptor {
         return when {
             url.contains("/weapi/") -> "weapi"
             url.contains("/eapi/") -> "eapi"
+            url.contains("/xeapi/") -> "xeapi"
             else -> "api"
         }
     }

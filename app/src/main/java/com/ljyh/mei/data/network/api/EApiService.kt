@@ -20,10 +20,10 @@ class EApiService(private val http: NeteaseHttp) {
         http.post(base, "/eapi/search/pc/complex/page/v3", body)
 
     suspend fun subscribePlaylist(body: SubscribePlaylist): BaseResponse =
-        http.post(base, "/api/playlist/subscribe", body)
+        http.post(base, "/eapi/playlist/subscribe", body)
 
     suspend fun unSubscribePlaylist(body: SubscribePlaylist): BaseResponse =
-        http.post(base, "/api/playlist/unsubscribe", body)
+        http.post(base, "/eapi/playlist/unsubscribe", body)
 
     suspend fun getListenDataRealtimeReport(
         body: Map<String, String>,

@@ -61,12 +61,11 @@ class MainActivity : ComponentActivity() {
 
     private fun initializeDeviceIdentity() {
         lifecycleScope.launch {
-            getAndroidId(this@MainActivity)
-            if (dataStore.get(FirstLaunchKey, true)) {
-                dataStore.edit { settings ->
-                    settings[FirstLaunchKey] = false
-                    settings[DeviceIdKey] = com.ljyh.mei.utils.netease.getDeviceId()
-                }
+            val deviceId = getAndroidId(this@MainActivity)
+            val firstLaunch = dataStore.get(FirstLaunchKey, true)
+            dataStore.edit { settings ->
+                settings[DeviceIdKey] = deviceId
+                if (firstLaunch) settings[FirstLaunchKey] = false
             }
         }
     }

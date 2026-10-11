@@ -1,10 +1,8 @@
 package com.ljyh.mei.ui.screen.playlist
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -17,16 +15,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.ui.screen.playlist.component.DailyRecommendationHeader
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +31,6 @@ import com.ljyh.mei.ui.model.UiPlaylist
 fun EveryDay(
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
     val everyDaySongs by viewModel.everyDay.collectAsState()
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -53,14 +49,13 @@ fun EveryDay(
                 id = -1L,
                 title = "每日推荐",
                 count = data.size,
-                subscriberCount = -1,
-                cover = data.firstOrNull()?.coverUrl.orEmpty(),
-                coverList = data.take(6).map { it.coverUrl },
-                creatorName = "网易云音乐",
+                subscriberCount = 0,
+                cover = "",
+                coverList = emptyList(),
+                creatorName = "",
                 isCreator = false,
-                description = "根据你的音乐口味生成，每天6:00更新",
+                description = null,
                 tracks = data,
-                playCount = -1,
                 isSubscribed = false
             )
         } else {
@@ -81,6 +76,19 @@ fun EveryDay(
             tracks = uiData.tracks.filter { it.matchesPlaylistSearch(dailySearchQuery) }
         )
     }
+    val allSongs = (everyDaySongs as? Resource.Success)?.data.orEmpty()
+    val playAll: () -> Unit = {
+        if (allSongs.isNotEmpty()) {
+            playerConnection.playQueue(
+                ListQueue(
+                    id = "dailySongs",
+                    title = uiData.title,
+                    items = allSongs.map { it.id.toString() to it.toMediaItem() },
+                    startIndex = 0,
+                )
+            )
+        }
+    }
 
     if (everyDaySongs is Resource.Error) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -91,18 +99,9 @@ fun EveryDay(
             uiData = displayedUiData,
             pagingItems = null,
             isLoading = isLoading,
-            onPlayAll = {
-                val allIds = (everyDaySongs as Resource.Success).data.map {
-                    it.id.toString() to it.toMediaItem()
-                }
-                playerConnection.playQueue(
-                    ListQueue(
-                        id = "playlist_${uiData.id}",
-                        title = uiData.title,
-                        items = allIds,
-                        startIndex = 0
-                    )
-                )
+            onPlayAll = playAll,
+            customHeader = {
+                DailyRecommendationHeader(tracks = uiData.tracks, isLoading = isLoading, onPlayAll = playAll)
             },
             headerActionIcon = Icons.Default.FavoriteBorder,
             headerActionLabel = "收藏",
@@ -132,9 +131,7 @@ fun EveryDay(
             onBack = {
                 navController.popBackStack()
             },
-            onHeaderAction = {
-                Toast.makeText(context, "不能收藏每日推荐歌单", Toast.LENGTH_SHORT).show()
-            },
+            onHeaderAction = {},
             playlistSearchQuery = dailySearchQuery,
             isPlaylistSearchActive = isDailySearchActive,
             onPlaylistSearchQueryChange = { dailySearchQuery = it },

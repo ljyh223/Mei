@@ -3,6 +3,7 @@ package com.ljyh.mei.di
 import android.content.Context
 import com.ljyh.mei.constants.QqCookieKey
 import com.ljyh.mei.data.network.NeteaseHttp
+import com.ljyh.mei.data.network.XeApiClient
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.api.WeApiService
@@ -63,7 +64,13 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideApiService(http: NeteaseHttp): ApiService = ApiService(http)
+    fun provideXeApiClient(@ApplicationContext context: Context, http: NeteaseHttp, json: Json): XeApiClient =
+        XeApiClient(context, http, json)
+
+    @Provides
+    @Singleton
+    fun provideApiService(http: NeteaseHttp, xeApiClient: XeApiClient): ApiService =
+        ApiService(http, xeApiClient)
 
     @Provides
     @Singleton
