@@ -15,6 +15,7 @@ import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.KeepPlayerScreenOnKey
@@ -33,6 +36,8 @@ import com.ljyh.mei.constants.SmartTransitionDurationKey
 import com.ljyh.mei.constants.SmartTransitionEnabledKey
 import com.ljyh.mei.constants.SmartTransitionMode
 import com.ljyh.mei.constants.SmartTransitionModeKey
+import com.ljyh.mei.constants.UsbExclusivePlaybackKey
+import com.ljyh.mei.playback.UsbOutputState
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
@@ -57,6 +62,11 @@ fun PlaySetting(
         key = MusicQualityKey,
         defaultValue = MusicQuality.EXHIGH,
     )
+    val (usbExclusive, onUsbExclusiveChange) = rememberPreference(
+        key = UsbExclusivePlaybackKey,
+        defaultValue = false,
+    )
+    val usbStatus by UsbOutputState.status.collectAsState()
     val (loopPlayback, onLoopPlaybackChange) = rememberPreference(
         key = LoopPlaybackKey,
         defaultValue = true
@@ -111,11 +121,21 @@ fun PlaySetting(
             PreferenceGroupTitle(
                 title = "PLAY"
             )
+            SwitchPreference(
+                title = { Text("USB 独占播放") },
+                description = if (usbExclusive) {
+                    usbStatus.message.ifEmpty { "连接 USB 解码器后尝试按歌曲采样率输出 PCM" }
+                } else "连接 USB 解码器后可尝试按歌曲采样率输出 PCM",
+                icon = { Icon(Icons.Rounded.Usb, null) },
+                checked = usbExclusive,
+                onCheckedChange = onUsbExclusiveChange,
+            )
             PreferenceEntry(
                 title = { Text("均衡器与音效") },
-                description = "参数均衡器、频响曲线与预设",
+                description = if (usbExclusive) "USB 独占播放时不可用" else "参数均衡器、频响曲线与预设",
                 icon = { Icon(Icons.Rounded.Equalizer, null) },
-                onClick = { Screen.Equalizer.navigate(navController) }
+                onClick = { Screen.Equalizer.navigate(navController) },
+                isEnabled = !usbExclusive,
             )
             SwitchPreference(
                 title = { Text("循环播放") },
@@ -125,12 +145,13 @@ fun PlaySetting(
             )
             SwitchPreference(
                 title = { Text("歌曲过渡") },
-                description = "根据音乐节奏衔接歌曲；同专辑歌曲保持原有间隔",
+                description = if (usbExclusive) "USB 独占播放时不可用" else "根据音乐节奏衔接歌曲；同专辑歌曲保持原有间隔",
                 icon = { Icon(Icons.Rounded.GraphicEq, null) },
                 checked = transitionEnabled,
                 onCheckedChange = onTransitionEnabledChange,
+                isEnabled = !usbExclusive,
             )
-            if (transitionEnabled) {
+            if (transitionEnabled && !usbExclusive) {
                 EnumListPreference(
                     title = { Text("过渡方式") },
                     icon = { Icon(Icons.Rounded.GraphicEq, null) },

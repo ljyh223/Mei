@@ -10,6 +10,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.ljyh.mei.constants.SmartTransitionDurationKey
 import com.ljyh.mei.constants.SmartTransitionEnabledKey
+import com.ljyh.mei.constants.UsbExclusivePlaybackKey
 import com.ljyh.mei.constants.SmartTransitionMode
 import com.ljyh.mei.constants.SmartTransitionModeKey
 import com.ljyh.mei.data.model.domain.metadata
@@ -75,7 +76,7 @@ internal class SmartTransitionController(
         context.dataStore.data.collectLatest { prefs ->
             val previousMode = settings.mode
             settings = Settings(
-                enabled = prefs[SmartTransitionEnabledKey] ?: false,
+                enabled = (prefs[SmartTransitionEnabledKey] ?: false) && !(prefs[UsbExclusivePlaybackKey] ?: false),
                 mode = runCatching { SmartTransitionMode.valueOf(prefs[SmartTransitionModeKey] ?: "Smart") }
                     .getOrDefault(SmartTransitionMode.Smart),
                 fixedMs = (prefs[SmartTransitionDurationKey] ?: 6).coerceIn(2, 12) * 1_000L,

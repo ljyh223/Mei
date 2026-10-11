@@ -1,9 +1,6 @@
 package com.ljyh.mei
 
-import korlibs.crypto.AES
-import korlibs.crypto.Padding
-import korlibs.encoding.hex
-import korlibs.encoding.unhex
+import com.ljyh.mei.utils.encrypt.decryptEApi
 //import org.junit.Test
 
 class Test{
@@ -16,11 +13,9 @@ class Test{
 
 
 
-        val result=AES.decryptAesEcb(
-            data=res.replace(" ","").unhex,
-            key = "e82ckenh8dichen8".toByteArray(),
-            padding =  Padding.PKCS7Padding
-        ).decodeToString()
+        val result = decryptEApi(
+            res.filterNot(Char::isWhitespace).chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        )
 
         println(result)
     }
