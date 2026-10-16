@@ -50,7 +50,8 @@ import com.ljyh.mei.constants.TabletAnimationStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.PreferenceSection
+import com.ljyh.mei.ui.component.PreferenceSubsection
 import com.ljyh.mei.ui.component.PreferenceEntry
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
@@ -126,7 +127,7 @@ fun AppearanceSettings(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("外观设置") },
+                title = { Text("外观") },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -150,154 +151,148 @@ fun AppearanceSettings(
                 .verticalScroll(rememberScrollState())
         ) {
 
-            PreferenceGroupTitle(title = "THEME")
-            SwitchPreference(
-                title = { Text("动态主题") },
-                icon = { Icon(Icons.Rounded.Palette, null) },
-                checked = dynamicTheme,
-                onCheckedChange = onDynamicThemeChange
-            )
-            PreferenceGroupTitle(
-                title = "PLAYLIST"
-            )
-
-            EnumListPreference(
-                title = { Text("歌单封面样式") },
-                icon = { Icon(Icons.Rounded.Image, null) },
-                selectedValue = playlistStyle,
-                onValueSelected = onPlaylistStyleChange,
-                valueText = {
-                    when (it) {
-                        PlaylistCoverStyle.Cover -> "封面"
-                        PlaylistCoverStyle.FirstSongImage -> "第一首歌曲封面"
-                        PlaylistCoverStyle.Combination -> "组合图片"
-                    }
-                }
-            )
-
-            SwitchPreference(
-                title = { Text("歌单开启表头") },
-                description = "平板模式下歌单显示表头",
-                icon = { Icon(Icons.Rounded.FormatBold, null) },
-                checked = playlistTrackTableHeader,
-                onCheckedChange = onPlaylistTrackTableHeaderChange
-            )
-
-            PreferenceGroupTitle(
-                title = "PLAYER"
-            )
-
-            // 原图封面
-            SwitchPreference(
-                title = { Text("使用原图加载封面") },
-                icon = { Icon(Icons.Rounded.Image, null) },
-                checked = originalCover,
-                onCheckedChange = onOriginalCover
-            )
-            SwitchPreference(
-                title = { Text("动态封面") },
-                description = "播放时自动加载，优先 Apple Music，其次网易云；省电模式或未充电且电量低于 20% 时暂停",
-                icon = { Icon(Icons.Rounded.MusicVideo, null) },
-                checked = dynamicCover,
-                onCheckedChange = onDynamicCoverChange
-            )
-            if (dynamicCover) {
+            PreferenceSection("主题") {
                 SwitchPreference(
-                    title = { Text("Apple Music 仅搜索英文标题") },
-                    description = "按歌名和专辑名字符筛选；不是歌词语言识别，网易云不受影响",
-                    icon = { Icon(Icons.Rounded.Language, null) },
-                    checked = appleEnglishTitlesOnly,
-                    onCheckedChange = onAppleEnglishTitlesOnlyChange
+                    title = { Text("动态主题") },
+                    icon = { Icon(Icons.Rounded.Palette, null) },
+                    checked = dynamicTheme,
+                    onCheckedChange = onDynamicThemeChange
                 )
             }
-            EnumListPreference(
-                title = { Text("进度条样式") },
-                icon = { Icon(Icons.Rounded.LinearScale, null) },
-                selectedValue = progressBarStyle,
-                onValueSelected = onProgressBarStyleChange,
-                valueText = { it.label }
-            )
-            EnumListPreference(
-                title = { Text("平板切换动画") },
-                icon = { Icon(Icons.Rounded.SwapHoriz, null) },
-                selectedValue = tabletAnimStyle,
-                onValueSelected = onTabletAnimStyleChange,
-                valueText = { it.label }
-            )
+            PreferenceSection("歌单") {
 
-            PreferenceGroupTitle(
-                title = "FLUID BACKGROUND"
-            )
-            ListPreference(
-                title = { Text("流动速度") },
-                description = "渐变动画速度，值越大流动越快",
-                icon = { Icon(Icons.Rounded.Speed, null) },
-                selectedValue = meshFlowSpeed,
-                values = listOf(0.05f, 0.10f, 0.15f, 0.25f, 0.5f),
-                onValueSelected = onMeshFlowSpeedChange,
-                valueText = {
-                    when (it) {
-                        0.05f -> "极慢"
-                        0.10f -> "慢"
-                        0.15f -> "标准"
-                        0.25f -> "快"
-                        0.5f -> "极快"
-                        else -> "${(it * 100).toInt()}%"
+                EnumListPreference(
+                    title = { Text("歌单封面样式") },
+                    icon = { Icon(Icons.Rounded.Image, null) },
+                    selectedValue = playlistStyle,
+                    onValueSelected = onPlaylistStyleChange,
+                    valueText = {
+                        when (it) {
+                            PlaylistCoverStyle.Cover -> "封面"
+                            PlaylistCoverStyle.FirstSongImage -> "第一首歌曲封面"
+                            PlaylistCoverStyle.Combination -> "组合图片"
+                        }
                     }
+                )
+
+                SwitchPreference(
+                    title = { Text("歌单开启表头") },
+                    description = "平板模式下歌单显示表头",
+                    icon = { Icon(Icons.Rounded.FormatBold, null) },
+                    checked = playlistTrackTableHeader,
+                    onCheckedChange = onPlaylistTrackTableHeaderChange
+                )
+            }
+            PreferenceSection("播放界面") {
+
+                // 原图封面
+                SwitchPreference(
+                    title = { Text("使用原图加载封面") },
+                    icon = { Icon(Icons.Rounded.Image, null) },
+                    checked = originalCover,
+                    onCheckedChange = onOriginalCover
+                )
+                SwitchPreference(
+                    title = { Text("动态封面") },
+                    description = "播放时自动加载，优先 Apple Music，其次网易云；省电模式或未充电且电量低于 20% 时暂停",
+                    icon = { Icon(Icons.Rounded.MusicVideo, null) },
+                    checked = dynamicCover,
+                    onCheckedChange = onDynamicCoverChange
+                )
+                if (dynamicCover) {
+                    SwitchPreference(
+                        title = { Text("Apple Music 仅搜索英文标题") },
+                        description = "只有在专辑名是全英文的时候才会搜索",
+                        icon = { Icon(Icons.Rounded.Language, null) },
+                        checked = appleEnglishTitlesOnly,
+                        onCheckedChange = onAppleEnglishTitlesOnlyChange
+                    )
                 }
-            )
-            ListPreference(
-                title = { Text("渲染精度") },
-                description = "渲染分辨率缩放，越低越省电但越模糊",
-                icon = { Icon(Icons.Rounded.Visibility, null) },
-                selectedValue = meshRenderScale,
-                values = listOf(0.25f, 0.5f, 0.75f, 1.0f),
-                onValueSelected = onMeshRenderScaleChange,
-                valueText = { "${(it * 100).toInt()}%" }
-            )
-            ListPreference(
-                title = { Text("网格细分") },
-                description = "网格细分级数，越大越平滑越耗GPU",
-                icon = { Icon(Icons.Rounded.GridOn, null) },
-                selectedValue = meshSubdivision,
-                values = (1..8).map { it * 10 },
-                onValueSelected = onMeshSubdivisionChange,
-                valueText = { "$it" }
-            )
-            SwitchPreference(
-                title = { Text("静态模式") },
-                description = "过渡完成后停止动画，省电",
-                icon = { Icon(Icons.Rounded.Timer, null) },
-                checked = meshStaticMode,
-                onCheckedChange = onMeshStaticModeChange
-            )
-            SwitchPreference(
-                title = { Text("播放动画") },
-                description = "暂停/恢复背景渲染",
-                icon = { Icon(Icons.Rounded.MusicVideo, null) },
-                checked = meshPlaying,
-                onCheckedChange = onMeshPlayingChange
-            )
+                EnumListPreference(
+                    title = { Text("进度条样式") },
+                    icon = { Icon(Icons.Rounded.LinearScale, null) },
+                    selectedValue = progressBarStyle,
+                    onValueSelected = onProgressBarStyleChange,
+                    valueText = { it.label }
+                )
+                EnumListPreference(
+                    title = { Text("平板切换动画") },
+                    icon = { Icon(Icons.Rounded.SwapHoriz, null) },
+                    selectedValue = tabletAnimStyle,
+                    onValueSelected = onTabletAnimStyleChange,
+                    valueText = { it.label }
+                )
+            }
+            PreferenceSection("流动背景") {
+                ListPreference(
+                    title = { Text("流动速度") },
+                    description = "渐变动画速度，值越大流动越快",
+                    icon = { Icon(Icons.Rounded.Speed, null) },
+                    selectedValue = meshFlowSpeed,
+                    values = listOf(0.05f, 0.10f, 0.15f, 0.25f, 0.5f),
+                    onValueSelected = onMeshFlowSpeedChange,
+                    valueText = {
+                        when (it) {
+                            0.05f -> "极慢"
+                            0.10f -> "慢"
+                            0.15f -> "标准"
+                            0.25f -> "快"
+                            0.5f -> "极快"
+                            else -> "${(it * 100).toInt()}%"
+                        }
+                    }
+                )
+                ListPreference(
+                    title = { Text("渲染精度") },
+                    description = "渲染分辨率缩放，越低越省电但越模糊",
+                    icon = { Icon(Icons.Rounded.Visibility, null) },
+                    selectedValue = meshRenderScale,
+                    values = listOf(0.25f, 0.5f, 0.75f, 1.0f),
+                    onValueSelected = onMeshRenderScaleChange,
+                    valueText = { "${(it * 100).toInt()}%" }
+                )
+                ListPreference(
+                    title = { Text("网格细分") },
+                    description = "网格细分级数，越大越平滑越耗GPU",
+                    icon = { Icon(Icons.Rounded.GridOn, null) },
+                    selectedValue = meshSubdivision,
+                    values = (1..8).map { it * 10 },
+                    onValueSelected = onMeshSubdivisionChange,
+                    valueText = { "$it" }
+                )
+                SwitchPreference(
+                    title = { Text("静态模式") },
+                    description = "过渡完成后停止动画，省电",
+                    icon = { Icon(Icons.Rounded.Timer, null) },
+                    checked = meshStaticMode,
+                    onCheckedChange = onMeshStaticModeChange
+                )
+                SwitchPreference(
+                    title = { Text("播放动画") },
+                    description = "暂停/恢复背景渲染",
+                    icon = { Icon(Icons.Rounded.MusicVideo, null) },
+                    checked = meshPlaying,
+                    onCheckedChange = onMeshPlayingChange
+                )
+            }
+            PreferenceSection("歌词") {
+                PreferenceEntry(
+                    title = { Text("歌词设置") },
+                    description = "歌词外观与桌面歌词",
+                    icon = { Icon(Icons.Rounded.Palette, null) },
+                    onClick = { Screen.LyricsSettings.navigate(navController) }
+                )
+            }
+            PreferenceSection("调试") {
 
-            PreferenceGroupTitle(title = "LYRIC")
-            PreferenceEntry(
-                title = { Text("歌词设置") },
-                description = "歌词外观与桌面歌词",
-                icon = { Icon(Icons.Rounded.Palette, null) },
-                onClick = { Screen.LyricsSettings.navigate(navController) }
-            )
-
-            PreferenceGroupTitle(
-                title = "DEBUG"
-            )
-
-            SwitchPreference(
-                title = { Text("Debug") },
-                description = "player debug",
-                icon = { Icon(Icons.Rounded.Kitesurfing, null) },
-                checked = debug,
-                onCheckedChange = onDebug
-            )
+                SwitchPreference(
+                    title = { Text("Debug") },
+                    description = "player debug",
+                    icon = { Icon(Icons.Rounded.Kitesurfing, null) },
+                    checked = debug,
+                    onCheckedChange = onDebug
+                )
+            }
         }
     }
 

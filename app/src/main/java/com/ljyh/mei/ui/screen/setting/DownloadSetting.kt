@@ -29,7 +29,7 @@ import com.ljyh.mei.constants.EmbedOriginalTtmlKey
 import com.ljyh.mei.ui.component.EditTextPreference
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.PreferenceSection
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -64,7 +64,7 @@ fun DownloadSetting(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("下载设置") },
+                title = { Text("下载") },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -87,30 +87,31 @@ fun DownloadSetting(
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
         ) {
-            PreferenceGroupTitle(title = "DOWNLOAD")
+            PreferenceSection("下载文件") {
 
-            EditTextPreference(
-                title = { Text("保存位置") },
-                icon = { Icon(Icons.Rounded.Folder, null) },
-                value = downloadPath,
-                onValueChange = onDownloadPathChange
-            )
+                EditTextPreference(
+                    title = { Text("保存位置") },
+                    icon = { Icon(Icons.Rounded.Folder, null) },
+                    value = downloadPath,
+                    onValueChange = onDownloadPathChange
+                )
 
-            EnumListPreference(
-                title = { Text("下载音质") },
-                icon = { Icon(Icons.Rounded.HighQuality, null) },
-                selectedValue = downloadQuality,
-                onValueSelected = onDownloadQualityChange,
-                valueText = { "${it.label} - ${it.description}" }
-            )
+                EnumListPreference(
+                    title = { Text("下载音质") },
+                    icon = { Icon(Icons.Rounded.HighQuality, null) },
+                    selectedValue = downloadQuality,
+                    onValueSelected = onDownloadQualityChange,
+                    valueText = { "${it.label} - ${it.description}" }
+                )
 
-            SwitchPreference(
-                title = { Text("保留原始 TTML 歌词") },
-                description = "有 TTML 时原样嵌入并保存 .ttml；关闭时使用普通 LRC",
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
-                checked = embedOriginalTtml,
-                onCheckedChange = onEmbedOriginalTtmlChange
-            )
+                SwitchPreference(
+                    title = { Text("保留原始 TTML 歌词") },
+                    description = "有 TTML 时原样嵌入并保存 .ttml；关闭时使用普通 LRC",
+                    icon = { Icon(Icons.Rounded.Lyrics, null) },
+                    checked = embedOriginalTtml,
+                    onCheckedChange = onEmbedOriginalTtmlChange
+                )
+            }
         }
     }
 }

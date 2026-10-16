@@ -2,7 +2,9 @@ package com.ljyh.mei.ui.screen.setting
 
 import android.text.format.Formatter
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -43,7 +45,7 @@ import com.ljyh.mei.playback.source.CacheManager
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceEntry
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.PreferenceSection
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
@@ -125,7 +127,7 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("缓存设置") },
+                title = { Text("缓存") },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -170,62 +172,67 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
         ) {
-            PreferenceGroupTitle("占用空间")
-            PreferenceEntry(
-                title = { Text("缓存总计") },
-                description = usage?.let { Formatter.formatShortFileSize(context, it.totalBytes) }
-                    ?: if (loadFailed) "读取失败" else "正在计算…",
-                icon = { Icon(Icons.Rounded.Storage, contentDescription = null) },
-            )
-            CacheRow(
-                "图片",
-                usage?.imageBytes,
-                busy,
-                loadFailed,
-                { pendingClear = CacheCategory.IMAGE }) {
-                Icon(Icons.Rounded.Image, contentDescription = null)
+            PreferenceSection("占用空间") {
+                PreferenceEntry(
+                    title = { Text("缓存总计") },
+                    description = usage?.let { Formatter.formatShortFileSize(context, it.totalBytes) }
+                        ?: if (loadFailed) "读取失败" else "正在计算…",
+                    icon = { Icon(Icons.Rounded.Storage, contentDescription = null) },
+                )
+                CacheRow(
+                    "图片",
+                    usage?.imageBytes,
+                    busy,
+                    loadFailed,
+                    { pendingClear = CacheCategory.IMAGE }) {
+                    Icon(Icons.Rounded.Image, contentDescription = null)
+                }
+                CacheRow(
+                    "音乐",
+                    usage?.musicBytes,
+                    busy,
+                    loadFailed,
+                    { pendingClear = CacheCategory.MUSIC }) {
+                    Icon(Icons.Rounded.LibraryMusic, contentDescription = null)
+                }
+                CacheRow(
+                    "其他",
+                    usage?.otherBytes,
+                    busy,
+                    loadFailed,
+                    { pendingClear = CacheCategory.OTHER }) {
+                    Icon(Icons.Rounded.Cached, contentDescription = null)
+                }
             }
-            CacheRow(
-                "音乐",
-                usage?.musicBytes,
-                busy,
-                loadFailed,
-                { pendingClear = CacheCategory.MUSIC }) {
-                Icon(Icons.Rounded.LibraryMusic, contentDescription = null)
+            PreferenceSection("缓存上限") {
+                ListPreference(
+                    title = { Text("图片缓存") },
+                    description = "${imageLimit.toCacheLimitLabel()} · 下次启动生效",
+                    selectedValue = imageLimit,
+                    values = listOf(50, 100, 250, 500, 1024, 2048),
+                    valueText = { it.toCacheLimitLabel() },
+                    onValueSelected = setImageLimit,
+                    icon = { Icon(Icons.Rounded.Image, contentDescription = null) },
+                )
+                ListPreference(
+                    title = { Text("音乐缓存") },
+                    description = "${musicLimit.toCacheLimitLabel()} · 下次启动生效",
+                    selectedValue = musicLimit,
+                    values = listOf(256, 512, 1024, 2048, 5120, 10240, 20480),
+                    valueText = { it.toCacheLimitLabel() },
+                    onValueSelected = setMusicLimit,
+                    icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null) },
+                )
+                Text(
+                    "音乐与动态封面共用缓存上限。其他临时缓存不设单独上限；正在下载的文件不计入，也不会被清理。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                )
             }
-            CacheRow(
-                "其他",
-                usage?.otherBytes,
-                busy,
-                loadFailed,
-                { pendingClear = CacheCategory.OTHER }) {
-                Icon(Icons.Rounded.Cached, contentDescription = null)
-            }
-            PreferenceGroupTitle("缓存上限")
-            ListPreference(
-                title = { Text("图片缓存") },
-                description = "${imageLimit.toCacheLimitLabel()} · 下次启动生效",
-                selectedValue = imageLimit,
-                values = listOf(50, 100, 250, 500, 1024, 2048),
-                valueText = { it.toCacheLimitLabel() },
-                onValueSelected = setImageLimit,
-                icon = { Icon(Icons.Rounded.Image, contentDescription = null) },
-            )
-            ListPreference(
-                title = { Text("音乐缓存") },
-                description = "${musicLimit.toCacheLimitLabel()} · 下次启动生效",
-                selectedValue = musicLimit,
-                values = listOf(256, 512, 1024, 2048, 5120, 10240, 20480),
-                valueText = { it.toCacheLimitLabel() },
-                onValueSelected = setMusicLimit,
-                icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null) },
-            )
-            Text(
-                "音乐与动态封面共用缓存上限。其他临时缓存不设单独上限；正在下载的文件不计入，也不会被清理。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
         }
     }
 }

@@ -78,7 +78,7 @@ import com.ljyh.mei.constants.ShowLyricPhoneticKey
 import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.PreferenceSection
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -156,7 +156,7 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text("歌词设置") },
+            title = { Text("歌词") },
             navigationIcon = {
                 IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
@@ -170,112 +170,115 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState()),
         ) {
-            PreferenceGroupTitle(title = "PLAYER LYRICS")
-            SwitchPreference(
-                title = { Text("主歌词字体加粗") },
-                icon = { Icon(Icons.Rounded.FormatBold, null) },
-                checked = mainBold,
-                onCheckedChange = onMainBold,
-            )
-            EnumListPreference(
-                title = { Text("主歌词字体大小") },
-                icon = { Icon(Icons.Rounded.FormatSize, null) },
-                selectedValue = mainSize,
-                onValueSelected = onMainSize,
-                valueText = { it.text.toString() },
-            )
-            SwitchPreference(
-                title = { Text("显示罗马音／粤语发音") },
-                description = "歌词提供发音时显示",
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
-                checked = showPhonetic,
-                onCheckedChange = onShowPhonetic,
-            )
-            SwitchPreference(
-                title = { Text("点击歌词跳转进度") },
-                description = "关闭后点击歌词只显示播放控制",
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
-                checked = seekOnLyricTap,
-                onCheckedChange = onSeekOnLyricTap,
-            )
-            SwitchPreference(
-                title = { Text("翻译歌词字体加粗") },
-                icon = { Icon(Icons.Rounded.FormatBold, null) },
-                checked = translationBold,
-                onCheckedChange = onTranslationBold,
-            )
-            EnumListPreference(
-                title = { Text("翻译歌词字体大小") },
-                icon = { Icon(Icons.Rounded.FormatSize, null) },
-                selectedValue = translationSize,
-                onValueSelected = onTranslationSize,
-                valueText = { it.text.toString() },
-            )
-
-            PreferenceGroupTitle(title = "DESKTOP LYRICS")
-            SwitchPreference(
-                title = { Text("桌面歌词") },
-                description = if (permissionGranted) "可拖动、锁定并自定义样式" else "开启需授予悬浮窗权限",
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
-                checked = enabled && permissionGranted,
-                onCheckedChange = { checked ->
-                    if (!checked) onEnabled(false)
-                    else if (Settings.canDrawOverlays(context)) {
-                        permissionGranted = true
-                        onEnabled(true)
-                    } else {
-                        waitingForPermission = true
-                        permissionLauncher.launch(Intent(
-                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            "package:${context.packageName}".toUri(),
-                        ))
-                    }
-                },
-            )
-            SwitchPreference(
-                title = { Text("启动时锁定") },
-                description = "锁定后只显示歌词并穿透触摸；在此处可解除锁定",
-                icon = { Icon(Icons.Rounded.Lyrics, null) },
-                checked = locked,
-                onCheckedChange = onLocked,
-                isEnabled = desktopOptionsEnabled,
-            )
-            ColorPreference("桌面歌词颜色", mainColor, desktopOptionsEnabled) {
-                colorTarget = "main"
-                showCustomColorPicker = false
+            PreferenceSection("主歌词") {
+                SwitchPreference(
+                    title = { Text("主歌词字体加粗") },
+                    icon = { Icon(Icons.Rounded.FormatBold, null) },
+                    checked = mainBold,
+                    onCheckedChange = onMainBold,
+                )
+                EnumListPreference(
+                    title = { Text("主歌词字体大小") },
+                    icon = { Icon(Icons.Rounded.FormatSize, null) },
+                    selectedValue = mainSize,
+                    onValueSelected = onMainSize,
+                    valueText = { it.text.toString() },
+                )
+                SwitchPreference(
+                    title = { Text("显示罗马音／粤语发音") },
+                    description = "歌词提供发音时显示",
+                    icon = { Icon(Icons.Rounded.Lyrics, null) },
+                    checked = showPhonetic,
+                    onCheckedChange = onShowPhonetic,
+                )
+                SwitchPreference(
+                    title = { Text("点击歌词跳转进度") },
+                    description = "关闭后点击歌词只显示播放控制",
+                    icon = { Icon(Icons.Rounded.Lyrics, null) },
+                    checked = seekOnLyricTap,
+                    onCheckedChange = onSeekOnLyricTap,
+                )
             }
-            ListPreference(
-                title = { Text("桌面歌词字体大小") },
-                icon = { Icon(Icons.Rounded.FormatSize, null) },
-                selectedValue = desktopTextSize,
-                values = listOf(16, 18, 20, 22, 24, 28, 32),
-                valueText = { "$it sp" },
-                onValueSelected = onDesktopTextSize,
-                isEnabled = desktopOptionsEnabled,
-            )
-            ColorPreference("翻译歌词颜色", translationColor, desktopOptionsEnabled) {
-                colorTarget = "translation"
-                showCustomColorPicker = false
+            PreferenceSection("翻译歌词") {
+                SwitchPreference(
+                    title = { Text("翻译歌词字体加粗") },
+                    icon = { Icon(Icons.Rounded.FormatBold, null) },
+                    checked = translationBold,
+                    onCheckedChange = onTranslationBold,
+                )
+                EnumListPreference(
+                    title = { Text("翻译歌词字体大小") },
+                    icon = { Icon(Icons.Rounded.FormatSize, null) },
+                    selectedValue = translationSize,
+                    onValueSelected = onTranslationSize,
+                    valueText = { it.text.toString() },
+                )
             }
-            ListPreference(
-                title = { Text("翻译歌词字体大小") },
-                icon = { Icon(Icons.Rounded.FormatSize, null) },
-                selectedValue = desktopTranslationSize,
-                values = listOf(12, 13, 14, 16, 18, 20),
-                valueText = { "$it sp" },
-                onValueSelected = onDesktopTranslationSize,
-                isEnabled = desktopOptionsEnabled,
-            )
-            ListPreference(
-                title = { Text("控制栏自动收起") },
-                description = "收起后点击歌词可重新显示；锁定时只显示歌词",
-                icon = { Icon(Icons.Rounded.Timer, null) },
-                selectedValue = hideDelay,
-                values = listOf(3, 5, 8, 12, 0),
-                valueText = { if (it == 0) "始终显示" else "$it 秒" },
-                onValueSelected = onHideDelay,
-                isEnabled = desktopOptionsEnabled,
-            )
+            PreferenceSection("桌面歌词") {
+                SwitchPreference(
+                    title = { Text("桌面歌词") },
+                    description = if (permissionGranted) "可拖动、锁定并自定义样式" else "开启需授予悬浮窗权限",
+                    icon = { Icon(Icons.Rounded.Lyrics, null) },
+                    checked = enabled && permissionGranted,
+                    onCheckedChange = { checked ->
+                        if (!checked) onEnabled(false)
+                        else if (Settings.canDrawOverlays(context)) {
+                            permissionGranted = true
+                            onEnabled(true)
+                        } else {
+                            waitingForPermission = true
+                            permissionLauncher.launch(Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                "package:${context.packageName}".toUri(),
+                            ))
+                        }
+                    },
+                )
+                SwitchPreference(
+                    title = { Text("启动时锁定") },
+                    description = "锁定后只显示歌词并穿透触摸；在此处可解除锁定",
+                    icon = { Icon(Icons.Rounded.Lyrics, null) },
+                    checked = locked,
+                    onCheckedChange = onLocked,
+                    isEnabled = desktopOptionsEnabled,
+                )
+                ColorPreference("桌面歌词颜色", mainColor, desktopOptionsEnabled) {
+                    colorTarget = "main"
+                    showCustomColorPicker = false
+                }
+                ListPreference(
+                    title = { Text("桌面歌词字体大小") },
+                    icon = { Icon(Icons.Rounded.FormatSize, null) },
+                    selectedValue = desktopTextSize,
+                    values = listOf(16, 18, 20, 22, 24, 28, 32),
+                    valueText = { "$it sp" },
+                    onValueSelected = onDesktopTextSize,
+                    isEnabled = desktopOptionsEnabled,
+                )
+                ColorPreference("翻译歌词颜色", translationColor, desktopOptionsEnabled) {
+                    colorTarget = "translation"
+                    showCustomColorPicker = false
+                }
+                ListPreference(
+                    title = { Text("翻译歌词字体大小") },
+                    icon = { Icon(Icons.Rounded.FormatSize, null) },
+                    selectedValue = desktopTranslationSize,
+                    values = listOf(12, 13, 14, 16, 18, 20),
+                    valueText = { "$it sp" },
+                    onValueSelected = onDesktopTranslationSize,
+                    isEnabled = desktopOptionsEnabled,
+                )
+                ListPreference(
+                    title = { Text("控制栏自动收起") },
+                    description = "收起后点击歌词可重新显示；锁定时只显示歌词",
+                    icon = { Icon(Icons.Rounded.Timer, null) },
+                    selectedValue = hideDelay,
+                    values = listOf(3, 5, 8, 12, 0),
+                    valueText = { if (it == 0) "始终显示" else "$it 秒" },
+                    onValueSelected = onHideDelay,
+                    isEnabled = desktopOptionsEnabled,
+                )
+            }
         }
     }
 

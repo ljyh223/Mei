@@ -45,7 +45,7 @@ import com.ljyh.mei.ui.component.EditTextPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceEntry
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.PreferenceSection
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
@@ -63,6 +63,10 @@ fun ContentsSetting(
     val (cookie) = rememberPreference(
         CookieKey,
         defaultValue = ""
+    )
+    val (ttmlLyricsBaseUrl, onTtmlLyricsBaseUrlChange) = rememberPreference(
+        TtmlLyricsBaseUrlKey,
+        defaultValue = DefaultTtmlLyricsBaseUrl,
     )
     var showQrLogin by rememberSaveable { mutableStateOf(false) }
     var showCookieCheckResult by remember { mutableStateOf(false) }
@@ -128,7 +132,7 @@ fun ContentsSetting(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("内容设置") },
+                title = { Text("账号与内容") },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -151,90 +155,83 @@ fun ContentsSetting(
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
         ) {
-            PreferenceGroupTitle(
-                title = "MUSIC"
-            )
+            PreferenceSection("网易云账号") {
 
-            EditTextPreference(
-                title = { Text("网易云Cookie: MUSIC_U") },
-                icon = { Icon(Icons.Rounded.Cookie, "网易云Cookie: MUSIC_U") },
-                value = cookie,
-                onValueChange = viewModel::saveCookie,
-                sensitive = true,
-            )
+                EditTextPreference(
+                    title = { Text("网易云Cookie: MUSIC_U") },
+                    icon = { Icon(Icons.Rounded.Cookie, "网易云Cookie: MUSIC_U") },
+                    value = cookie,
+                    onValueChange = viewModel::saveCookie,
+                    sensitive = true,
+                )
 
-            val (ttmlLyricsBaseUrl, onTtmlLyricsBaseUrlChange) = rememberPreference(
-                TtmlLyricsBaseUrlKey,
-                defaultValue = DefaultTtmlLyricsBaseUrl,
-            )
+                PreferenceEntry(
+                    title = { Text("扫码登录") },
+                    description = "使用网易云音乐 App 扫码",
+                    icon = { Icon(Icons.Rounded.QrCode2, "扫码登录") },
+                    onClick = {
+                        showCookieCheckResult = false
+                        showQrLogin = true
+                    },
+                )
 
-
-            PreferenceEntry(
-                title = { Text("扫码登录") },
-                description = "使用网易云音乐 App 扫码",
-                icon = { Icon(Icons.Rounded.QrCode2, "扫码登录") },
-                onClick = {
-                    showCookieCheckResult = false
-                    showQrLogin = true
-                },
-            )
-
-            PreferenceEntry(
-                title = { Text("测试Cookie") },
-                description = userName,
-                icon = { Icon(Icons.Rounded.TipsAndUpdates, "测试 Cookie") },
-                onClick = {
-                    if (cookie == "") {
-                        Toast.makeText(context, "还没有填写cookie", Toast.LENGTH_SHORT).show()
-                    } else {
-                        showCookieCheckResult = true
-                        viewModel.getUserAccount()
+                PreferenceEntry(
+                    title = { Text("测试Cookie") },
+                    description = userName,
+                    icon = { Icon(Icons.Rounded.TipsAndUpdates, "测试 Cookie") },
+                    onClick = {
+                        if (cookie == "") {
+                            Toast.makeText(context, "还没有填写cookie", Toast.LENGTH_SHORT).show()
+                        } else {
+                            showCookieCheckResult = true
+                            viewModel.getUserAccount()
+                        }
                     }
-                }
-            )
-
-            PreferenceGroupTitle(title = "备用音源")
-            val (qqCookie, onQqCookieChange) = rememberPreference(QqCookieKey, defaultValue = "")
-            EditTextPreference(
-                title = { Text("QQ 音乐 Cookie") },
-                icon = { Icon(Icons.Rounded.Cookie, contentDescription = null) },
-                value = qqCookie,
-                onValueChange = { onQqCookieChange(it.trim()) },
-                sensitive = true,
-                placeholder = { Text("粘贴 QQ 音乐网页的完整 Cookie") },
-                isInputValid = { true },
-            )
-
-            val (qqTimeout, onQqTimeoutChange) = rememberPreference(
-                QqTimeoutKey,
-                defaultValue = QqTimeout.Sec8.name
-            )
-            val currentTimeout = try {
-                QqTimeout.valueOf(qqTimeout)
-            } catch (_: Exception) {
-                QqTimeout.Sec8
+                )
             }
+            PreferenceSection("其他音源与歌词") {
+                val (qqCookie, onQqCookieChange) = rememberPreference(QqCookieKey, defaultValue = "")
+                EditTextPreference(
+                    title = { Text("QQ 音乐 Cookie") },
+                    icon = { Icon(Icons.Rounded.Cookie, contentDescription = null) },
+                    value = qqCookie,
+                    onValueChange = { onQqCookieChange(it.trim()) },
+                    sensitive = true,
+                    placeholder = { Text("粘贴 QQ 音乐网页的完整 Cookie") },
+                    isInputValid = { true },
+                )
 
-            ListPreference(
-                title = { Text("QQ音乐获取歌词超时") },
-                description = null,
-                icon = { Icon(Icons.Rounded.TipsAndUpdates, "QQ音乐获取歌词超时") },
-                selectedValue = currentTimeout,
-                values = QqTimeout.entries.toList(),
-                valueText = { it.label },
-                onValueSelected = { onQqTimeoutChange(it.name) }
-            )
-            EditTextPreference(
-                title = { Text("TTML 歌词服务根地址") },
-                icon = { Icon(Icons.Rounded.Lyrics, "TTML 歌词服务根地址") },
-                value = ttmlLyricsBaseUrl,
-                onValueChange = onTtmlLyricsBaseUrlChange,
-                isInputValid = { input ->
-                    input.trim().trimEnd('/').toHttpUrlOrNull()?.let {
-                        it.query == null && it.fragment == null
-                    } == true
-                },
-            )
+                val (qqTimeout, onQqTimeoutChange) = rememberPreference(
+                    QqTimeoutKey,
+                    defaultValue = QqTimeout.Sec8.name
+                )
+                val currentTimeout = try {
+                    QqTimeout.valueOf(qqTimeout)
+                } catch (_: Exception) {
+                    QqTimeout.Sec8
+                }
+
+                ListPreference(
+                    title = { Text("QQ音乐获取歌词超时") },
+                    description = null,
+                    icon = { Icon(Icons.Rounded.TipsAndUpdates, "QQ音乐获取歌词超时") },
+                    selectedValue = currentTimeout,
+                    values = QqTimeout.entries.toList(),
+                    valueText = { it.label },
+                    onValueSelected = { onQqTimeoutChange(it.name) }
+                )
+                EditTextPreference(
+                    title = { Text("TTML 歌词服务根地址") },
+                    icon = { Icon(Icons.Rounded.Lyrics, "TTML 歌词服务根地址") },
+                    value = ttmlLyricsBaseUrl,
+                    onValueChange = onTtmlLyricsBaseUrlChange,
+                    isInputValid = { input ->
+                        input.trim().trimEnd('/').toHttpUrlOrNull()?.let {
+                            it.query == null && it.fragment == null
+                        } == true
+                    },
+                )
+            }
         }
     }
 }

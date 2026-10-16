@@ -42,7 +42,8 @@ import com.ljyh.mei.ui.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceEntry
-import com.ljyh.mei.ui.component.PreferenceGroupTitle
+import com.ljyh.mei.ui.component.PreferenceSection
+import com.ljyh.mei.ui.component.PreferenceSubsection
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -94,7 +95,7 @@ fun PlaySetting(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("播放设置") },
+                title = { Text("播放体验") },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -118,78 +119,81 @@ fun PlaySetting(
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
         ) {
-            PreferenceGroupTitle(
-                title = "PLAY"
-            )
-            SwitchPreference(
-                title = { Text("USB 独占播放") },
-                description = if (usbExclusive) {
-                    usbStatus.message.ifEmpty { "连接 USB 解码器后尝试按歌曲采样率输出 PCM" }
-                } else "连接 USB 解码器后可尝试按歌曲采样率输出 PCM",
-                icon = { Icon(Icons.Rounded.Usb, null) },
-                checked = usbExclusive,
-                onCheckedChange = onUsbExclusiveChange,
-            )
-            PreferenceEntry(
-                title = { Text("均衡器与音效") },
-                description = if (usbExclusive) "USB 独占播放时不可用" else "参数均衡器、频响曲线与预设",
-                icon = { Icon(Icons.Rounded.Equalizer, null) },
-                onClick = { Screen.Equalizer.navigate(navController) },
-                isEnabled = !usbExclusive,
-            )
-            SwitchPreference(
-                title = { Text("循环播放") },
-                icon = { Icon(Icons.Rounded.Loop, null) },
-                checked = loopPlayback,
-                onCheckedChange = onLoopPlaybackChange
-            )
-            SwitchPreference(
-                title = { Text("歌曲过渡") },
-                description = if (usbExclusive) "USB 独占播放时不可用" else "根据音乐节奏衔接歌曲；同专辑歌曲保持原有间隔",
-                icon = { Icon(Icons.Rounded.GraphicEq, null) },
-                checked = transitionEnabled,
-                onCheckedChange = onTransitionEnabledChange,
-                isEnabled = !usbExclusive,
-            )
-            if (transitionEnabled && !usbExclusive) {
-                EnumListPreference(
-                    title = { Text("过渡方式") },
-                    icon = { Icon(Icons.Rounded.GraphicEq, null) },
-                    selectedValue = transitionMode,
-                    valueText = { if (it == SmartTransitionMode.Smart) "智能过渡" else "固定时长淡化" },
-                    onValueSelected = onTransitionModeChange,
+            PreferenceSection("音频输出") {
+                SwitchPreference(
+                    title = { Text("USB 独占播放") },
+                    description = if (usbExclusive) {
+                        usbStatus.message.ifEmpty { "连接 USB 解码器后尝试按歌曲采样率输出 PCM" }
+                    } else "连接 USB 解码器后可尝试按歌曲采样率输出 PCM",
+                    icon = { Icon(Icons.Rounded.Usb, null) },
+                    checked = usbExclusive,
+                    onCheckedChange = onUsbExclusiveChange,
                 )
-                if (transitionMode == SmartTransitionMode.Fixed) {
-                    ListPreference(
-                        title = { Text("淡化时长") },
-                        selectedValue = transitionSeconds,
-                        values = listOf(4, 6, 8, 10),
-                        valueText = { "$it 秒" },
-                        onValueSelected = onTransitionSecondsChange,
-                    )
-                }
+                PreferenceEntry(
+                    title = { Text("均衡器与音效") },
+                    description = if (usbExclusive) "USB 独占播放时不可用" else "参数均衡器、频响曲线与预设",
+                    icon = { Icon(Icons.Rounded.Equalizer, null) },
+                    onClick = { Screen.Equalizer.navigate(navController) },
+                    isEnabled = !usbExclusive,
+                )
+                EnumListPreference(
+                    title = { Text("音乐质量") },
+                    icon = { Icon(Icons.Rounded.HighQuality, null) },
+                    selectedValue = musicQuality,
+                    onValueSelected = onMusicQualityChange,
+                    valueText = { "${it.text} ${it.explanation}" }
+                )
             }
-            SwitchPreference(
-                title = { Text("播放界面保持常亮") },
-                description = "展开播放界面时阻止自动熄屏；省电模式或未充电且电量低于 20% 时暂停",
-                icon = { Icon(Icons.Rounded.LightMode, null) },
-                checked = keepPlayerScreenOn,
-                onCheckedChange = onKeepPlayerScreenOnChange
-            )
-            SwitchPreference(
-                title = { Text("无音频源时下一首歌曲") },
-                description = "无音频源时下一首歌曲，否则暂停",
-                icon = { Icon(Icons.Rounded.HideSource, null) },
-                checked = noAudioSource,
-                onCheckedChange = onNoAudioSourceChange
-            )
-            EnumListPreference(
-                title = { Text("音乐质量") },
-                icon = { Icon(Icons.Rounded.HighQuality, null) },
-                selectedValue = musicQuality,
-                onValueSelected = onMusicQualityChange,
-                valueText = { "${it.text} ${it.explanation}" }
-            )
+            PreferenceSection("播放行为") {
+                SwitchPreference(
+                    title = { Text("循环播放") },
+                    icon = { Icon(Icons.Rounded.Loop, null) },
+                    checked = loopPlayback,
+                    onCheckedChange = onLoopPlaybackChange
+                )
+                SwitchPreference(
+                    title = { Text("歌曲过渡") },
+                    description = if (usbExclusive) "USB 独占播放时不可用" else "根据音乐节奏衔接歌曲；同专辑歌曲保持原有间隔",
+                    icon = { Icon(Icons.Rounded.GraphicEq, null) },
+                    checked = transitionEnabled,
+                    onCheckedChange = onTransitionEnabledChange,
+                    isEnabled = !usbExclusive,
+                )
+                if (transitionEnabled && !usbExclusive) {
+                    PreferenceSubsection {
+                        EnumListPreference(
+                            title = { Text("过渡方式") },
+                            icon = { Icon(Icons.Rounded.GraphicEq, null) },
+                            selectedValue = transitionMode,
+                            valueText = { if (it == SmartTransitionMode.Smart) "智能过渡" else "固定时长淡化" },
+                            onValueSelected = onTransitionModeChange,
+                        )
+                        if (transitionMode == SmartTransitionMode.Fixed) {
+                            ListPreference(
+                                title = { Text("淡化时长") },
+                                selectedValue = transitionSeconds,
+                                values = listOf(4, 6, 8, 10),
+                                valueText = { "$it 秒" },
+                                onValueSelected = onTransitionSecondsChange,
+                            )
+                        }
+                    }
+                }
+                SwitchPreference(
+                    title = { Text("播放界面保持常亮") },
+                    description = "展开播放界面时阻止自动熄屏；省电模式或未充电且电量低于 20% 时暂停",
+                    icon = { Icon(Icons.Rounded.LightMode, null) },
+                    checked = keepPlayerScreenOn,
+                    onCheckedChange = onKeepPlayerScreenOnChange
+                )
+                SwitchPreference(
+                    title = { Text("无音频源时下一首歌曲") },
+                    description = "无音频源时下一首歌曲，否则暂停",
+                    icon = { Icon(Icons.Rounded.HideSource, null) },
+                    checked = noAudioSource,
+                    onCheckedChange = onNoAudioSourceChange
+                )
+            }
         }
     }
 }

@@ -7,7 +7,9 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,10 +34,7 @@ import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Source
 import androidx.compose.material.icons.rounded.Storage
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -55,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -141,65 +139,47 @@ fun AboutScreen() {
 
             item {
                 AboutSectionTitle("开发")
-                Card(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                AboutSegmentedGroup {
+                    AboutActionItem(
+                        icon = Icons.Rounded.Source,
+                        title = "GitHub 仓库",
+                        onClick = { openUrl(context, Github) }
                     )
-                ) {
-                    Column {
-                        AboutActionItem(
-                            icon = Icons.Rounded.Source,
-                            title = "GitHub 仓库",
-                            onClick = { openUrl(context, Github) }
-                        )
-                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                        AboutActionItem(
-                            icon = Icons.Rounded.BugReport,
-                            title = "问题反馈",
-                            onClick = { openUrl(context, "$Github/issues") }
-                        )
-                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                        AboutActionItem(
-                            icon = Icons.Default.Terminal,
-                            title = "日志收集"
-                        ) {
-                            Screen.Log.navigate(navController)
-                        }
+                    AboutActionItem(
+                        icon = Icons.Rounded.BugReport,
+                        title = "问题反馈",
+                        onClick = { openUrl(context, "$Github/issues") }
+                    )
+                    AboutActionItem(
+                        icon = Icons.Default.Terminal,
+                        title = "日志收集"
+                    ) {
+                        Screen.Log.navigate(navController)
                     }
                 }
             }
 
             item {
                 AboutSectionTitle("开源致谢")
-                Card(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                AboutSegmentedGroup {
+                    AboutActionItem(
+                        icon = Icons.Rounded.LibraryMusic,
+                        title = "amll-ttml-db",
+                        subtitle = "高质量逐字歌词库",
+                        onClick = { openUrl(context, "https://github.com/Steve-xmh/amll-ttml-db") }
                     )
-                ) {
-                    Column {
-                        AboutActionItem(
-                            icon = Icons.Rounded.LibraryMusic,
-                            title = "amll-ttml-db",
-                            subtitle = "高质量逐字歌词库",
-                            onClick = { openUrl(context, "https://github.com/Steve-xmh/amll-ttml-db") }
-                        )
-                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                        AboutActionItem(
-                            icon = Icons.Rounded.Lyrics,
-                            title = "accompanist-lyrics-ui",
-                            subtitle = "精美歌词组件渲染",
-                            onClick = { openUrl(context, "https://github.com/6xingyv/accompanist-lyrics-ui") }
-                        )
-                        HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                        AboutActionItem(
-                            icon = Icons.Rounded.LibraryMusic,
-                            title = "BeatNet",
-                            subtitle = "智能过渡的节拍分析模型 · CC BY 4.0",
-                            onClick = { openUrl(context, "$Github/blob/main/THIRD_PARTY_NOTICES") }
-                        )
-                    }
+                    AboutActionItem(
+                        icon = Icons.Rounded.Lyrics,
+                        title = "accompanist-lyrics-ui",
+                        subtitle = "精美歌词组件渲染",
+                        onClick = { openUrl(context, "https://github.com/6xingyv/accompanist-lyrics-ui") }
+                    )
+                    AboutActionItem(
+                        icon = Icons.Rounded.LibraryMusic,
+                        title = "BeatNet",
+                        subtitle = "智能过渡的节拍分析模型 · CC BY 4.0",
+                        onClick = { openUrl(context, "$Github/blob/main/THIRD_PARTY_NOTICES") }
+                    )
                 }
             }
 
@@ -221,64 +201,62 @@ fun AboutScreen() {
             if (devMode) {
                 item {
                     AboutSectionTitle("开发者调试")
-                    Card(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    AboutSegmentedGroup {
+                        ListItem(
+                            modifier = Modifier.clickable {
+                                viewModel.deleteAllCachedLyrics()
+                                Toast.makeText(context, "已清除AI歌词缓存", Toast.LENGTH_SHORT).show()
+                            },
+                            leadingContent = {
+                                Icon(Icons.Rounded.Storage, contentDescription = null, modifier = Modifier.size(20.dp))
+                            },
+                            headlineContent = { Text("删除AI歌词数据", style = MaterialTheme.typography.bodyLarge) },
+                            supportingContent = { Text("清除 cached_lyric 表", style = MaterialTheme.typography.bodySmall) },
+                            colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            )
                         )
-                    ) {
-                        Column {
-                            ListItem(
-                                modifier = Modifier.clickable {
-                                    viewModel.deleteAllCachedLyrics()
-                                    Toast.makeText(context, "已清除AI歌词缓存", Toast.LENGTH_SHORT).show()
-                                },
-                                leadingContent = {
-                                    Icon(Icons.Rounded.Storage, contentDescription = null, modifier = Modifier.size(20.dp))
-                                },
-                                headlineContent = { Text("删除AI歌词数据", style = MaterialTheme.typography.bodyLarge) },
-                                supportingContent = { Text("清除 cached_lyric 表", style = MaterialTheme.typography.bodySmall) },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                        ListItem(
+                            modifier = Modifier.clickable {
+                                viewModel.deleteAllQQSongs()
+                                Toast.makeText(context, "已清除QQ音乐ID映射", Toast.LENGTH_SHORT).show()
+                            },
+                            leadingContent = {
+                                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
+                            },
+                            headlineContent = { Text("删除QQ音乐ID数据", style = MaterialTheme.typography.bodyLarge) },
+                            supportingContent = { Text("清除 qqSong 表", style = MaterialTheme.typography.bodySmall) },
+                            colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             )
-                            HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                            ListItem(
-                                modifier = Modifier.clickable {
-                                    viewModel.deleteAllQQSongs()
-                                    Toast.makeText(context, "已清除QQ音乐ID映射", Toast.LENGTH_SHORT).show()
-                                },
-                                leadingContent = {
-                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
-                                },
-                                headlineContent = { Text("删除QQ音乐ID数据", style = MaterialTheme.typography.bodyLarge) },
-                                supportingContent = { Text("清除 qqSong 表", style = MaterialTheme.typography.bodySmall) },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                        )
+                        ListItem(
+                            modifier = Modifier.clickable {
+                                Screen.DeveloperSettings.navigate(navController)
+                            },
+                            leadingContent = {
+                                Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(20.dp))
+                            },
+                            headlineContent = { Text("动态封面调试", style = MaterialTheme.typography.bodyLarge) },
+                            supportingContent = { Text("Apple Music 匹配、视频与色板", style = MaterialTheme.typography.bodySmall) },
+                            trailingContent = {
+                                Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             )
-                            HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                            ListItem(
-                                modifier = Modifier.clickable {
-                                    Screen.DeveloperSettings.navigate(navController)
-                                },
-                                leadingContent = {
-                                    Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(20.dp))
-                                },
-                                headlineContent = { Text("动态封面调试", style = MaterialTheme.typography.bodyLarge) },
-                                supportingContent = { Text("Apple Music 匹配、视频与色板", style = MaterialTheme.typography.bodySmall) },
-                                trailingContent = {
-                                    Icon(Icons.Rounded.ChevronRight, contentDescription = null)
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                        )
+                        ListItem(
+                            modifier = Modifier.clickable { onDevModeChange(false) },
+                            headlineContent = { Text("开发者模式", style = MaterialTheme.typography.bodyLarge) },
+                            supportingContent = { Text("关闭后隐藏开发者调试区域", style = MaterialTheme.typography.bodySmall) },
+                            trailingContent = {
+                                Switch(checked = true, onCheckedChange = onDevModeChange)
+                            },
+                            colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             )
-                            HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-                            ListItem(
-                                modifier = Modifier.clickable { onDevModeChange(false) },
-                                headlineContent = { Text("开发者模式", style = MaterialTheme.typography.bodyLarge) },
-                                supportingContent = { Text("关闭后隐藏开发者调试区域", style = MaterialTheme.typography.bodySmall) },
-                                trailingContent = {
-                                    Switch(checked = true, onCheckedChange = onDevModeChange)
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                            )
-                        }
+                        )
                     }
                 }
                 item {
@@ -290,14 +268,27 @@ fun AboutScreen() {
 }
 
 @Composable
+private fun AboutSegmentedGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(24.dp)),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        content = content
+    )
+}
+
+@Composable
 private fun AboutSectionTitle(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 28.dp, top = 24.dp, bottom = 8.dp)
+            .padding(start = 24.dp, top = 24.dp, bottom = 10.dp)
     )
 }
 
@@ -323,7 +314,9 @@ private fun AboutActionItem(
                 tint = MaterialTheme.colorScheme.outline
             )
         },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
     )
 }
 
