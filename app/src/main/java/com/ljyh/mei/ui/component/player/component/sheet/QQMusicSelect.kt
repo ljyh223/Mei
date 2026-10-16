@@ -88,23 +88,31 @@ fun QQMusicSelectSheet(
 
                 is Resource.Success -> {
                     val songs = result.data
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 500.dp) // 限制最大高度
-                            .padding(bottom = 24.dp)
-                    ) {
-                        itemsIndexed(songs) { _, song ->
-                            OptimizedSongItem(
-                                song = song,
-                                targetDuration = mediaMetadata.duration,
-                                targetTitle = mediaMetadata.title,
-                                onClick = {
-                                    Timber.tag("QQMusicSelect").d(song.toString())
-                                    viewmodel.selectQQSong(song)
-                                    onDismiss()
-                                }
-                            )
+                    if (songs.isEmpty()) {
+                        Text(
+                            "QQ 音乐没有找到匹配歌曲",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(20.dp),
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 500.dp) // 限制最大高度
+                                .padding(bottom = 24.dp)
+                        ) {
+                            itemsIndexed(songs) { _, song ->
+                                OptimizedSongItem(
+                                    song = song,
+                                    targetDuration = mediaMetadata.duration,
+                                    targetTitle = mediaMetadata.title,
+                                    onClick = {
+                                        Timber.tag("QQMusicSelect").d(song.toString())
+                                        viewmodel.selectQQSong(song)
+                                        onDismiss()
+                                    }
+                                )
+                            }
                         }
                     }
                 }

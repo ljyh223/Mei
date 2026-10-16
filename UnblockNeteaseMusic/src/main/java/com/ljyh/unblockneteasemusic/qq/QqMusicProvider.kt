@@ -12,7 +12,6 @@ import com.ljyh.unblockneteasemusic.provider.MusicLyricProvider
 import com.ljyh.unblockneteasemusic.provider.PlayableAudioProvider
 import com.ljyh.unblockneteasemusic.provider.canReadAudio
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -22,6 +21,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
@@ -47,20 +47,26 @@ class QqMusicProvider internal constructor(
                 cookie?.takeIf(String::isNotBlank)?.let { header(HttpHeaders.Cookie, it) }
                 contentType(ContentType.Application.Json)
                 setBody(SearchRequest(request = SearchCall(param = SearchParams(query, pageSize = limit))))
-            }.body<SearchResponse>().request?.data?.body?.songs.orEmpty()
+            }.bodyAsText().let { wireJson.decodeFromString<SearchResponse>(it) }
+                .request?.takeIf { it.code == 0 }?.data?.body?.songs.orEmpty()
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             emptyList()
         }
-        val songs = if (liteSongs.isNotEmpty()) liteSongs else client.get(ENDPOINT) {
-            cookie?.takeIf(String::isNotBlank)?.let { header(HttpHeaders.Cookie, it) }
-            parameter("data", wireJson.encodeToString(
-                DesktopSearchRequest(DesktopSearchCall(param = DesktopSearchParams(
-                    pageSize = limit, query = query,
-                )))
-            ))
-        }.body<DesktopSearchResponse>().search?.data?.body?.song?.list.orEmpty()
+        val songs = if (liteSongs.isNotEmpty()) liteSongs else {
+            val response = client.get(ENDPOINT) {
+                cookie?.takeIf(String::isNotBlank)?.let { header(HttpHeaders.Cookie, it) }
+                parameter("data", wireJson.encodeToString(
+                    DesktopSearchRequest(DesktopSearchCall(param = DesktopSearchParams(
+                        pageSize = limit, query = query,
+                    )))
+                ))
+            }.bodyAsText().let { wireJson.decodeFromString<DesktopSearchResponse>(it) }
+            val result = response.search ?: error("QQ 音乐搜索响应缺少结果")
+            check(result.code == 0) { "QQ 音乐搜索失败（返回码 ${result.code}）" }
+            result.data?.body?.song?.list.orEmpty()
+        }
         return songs.map { song ->
             MusicTrack(
                 id = TrackId(SOURCE_ID, song.id.toString()),
@@ -100,7 +106,7 @@ class QqMusicProvider internal constructor(
                         songmid = listOf(mid),
                         uin = uin,
                     ))))
-                }.body<VkeyResponse>()
+                }.bodyAsText().let { wireJson.decodeFromString<VkeyResponse>(it) }
                 val data = response.payload?.data ?: continue
                 val path = data.midurlinfo.firstOrNull()?.purl?.takeIf(String::isNotBlank) ?: continue
                 val url = if (path.startsWith("http://") || path.startsWith("https://")) path
@@ -135,7 +141,7 @@ class QqMusicProvider internal constructor(
                     ),
                 ),
             )
-        }.body<LyricResponse>()
+        }.bodyAsText().let { wireJson.decodeFromString<LyricResponse>(it) }
         val data = response.payload?.data ?: return null
         return MusicLyrics(data.lyric, data.trans, data.roma, data.qrcTime != 0)
     }
@@ -148,7 +154,7 @@ class QqMusicProvider internal constructor(
     companion object {
         const val SOURCE_ID = "qq"
         private const val ENDPOINT = "https://u.y.qq.com/cgi-bin/musicu.fcg"
-        private val wireJson = Json { encodeDefaults = true }
+        private val wireJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
         private fun defaultClient(): HttpClient = HttpClient(OkHttp) {
             expectSuccess = true

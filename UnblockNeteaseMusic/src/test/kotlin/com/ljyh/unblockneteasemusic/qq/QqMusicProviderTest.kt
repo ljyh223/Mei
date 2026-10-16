@@ -25,7 +25,7 @@ class QqMusicProviderTest {
             assertEquals("u.y.qq.com", request.url.host)
             respond(
                 """{"request":{"data":{"body":{"item_song":[{"id":42,"mid":"songmid","name":"Song","interval":187,"singer":[{"id":7,"name":"Artist"}],"album":{"id":9,"name":"Album","pmid":"abc"},"unused":"ignored"}]}}}}""",
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=utf-8"),
             )
         }) { install(ContentNegotiation) { json(json) } }
         val provider = QqMusicProvider(client)
@@ -46,7 +46,7 @@ class QqMusicProviderTest {
             if (request.url.host == "u.y.qq.com") {
                 respond(
                     """{"req_0":{"data":{"sip":["https://audio.example/"],"midurlinfo":[{"purl":"song.mp3"}]}}}""",
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=utf-8"),
                 )
             } else {
                 assertEquals("audio.example", request.url.host)
@@ -68,8 +68,10 @@ class QqMusicProviderTest {
         val client = HttpClient(MockEngine { request ->
             assertEquals("uin=123; qqmusic_key=test", request.headers[HttpHeaders.Cookie])
             respond(
-                """{"request":{"data":{"body":{"item_song":[]}}}}""",
-                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                if (request.method.value == "POST")
+                    """{"request":{"data":{"body":{"item_song":[]}}}}"""
+                else """{"search":{"data":{"body":{"song":{"list":[]}}}}}""",
+                headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=utf-8"),
             )
         }) { install(ContentNegotiation) { json(json) } }
         val provider = QqMusicProvider(client) { "uin=123; qqmusic_key=test" }
@@ -83,18 +85,52 @@ class QqMusicProviderTest {
             if (request.method.value == "POST") {
                 respond(
                     """{"request":{"data":{"body":{"item_song":[]}}}}""",
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=utf-8"),
                 )
             } else {
                 assertTrue(request.url.parameters["data"].orEmpty().contains("DoSearchForQQMusicDesktop"))
                 respond(
                     """{"search":{"data":{"body":{"song":{"list":[{"id":42,"mid":"mid42","name":"Song","interval":180,"singer":[{"id":7,"name":"Artist"}]}]}}}}}""",
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=utf-8"),
                 )
             }
         }) { install(ContentNegotiation) { json(json) } }
         val provider = QqMusicProvider(client)
         assertEquals("mid42", provider.search("Song - Artist").single().playbackId)
+        provider.close()
+    }
+
+    @Test
+    fun searchShowsBusinessErrorInsteadOfTreatingItAsNoMatches() = runBlocking {
+        val client = HttpClient(MockEngine { request ->
+            val response = if (request.method.value == "POST")
+                """{"request":{"code":2001}}"""
+            else """{"search":{"code":2001}}"""
+            respond(response, headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=utf-8"))
+        }) { install(ContentNegotiation) { json(json) } }
+        val provider = QqMusicProvider(client)
+
+        val failure = runCatching { provider.search("Song") }.exceptionOrNull()
+        assertTrue(failure is IllegalStateException)
+        assertTrue(failure.message.orEmpty().contains("2001"))
+        provider.close()
+    }
+
+    @Test
+    fun lyricResponseWithTextPlainContentTypeIsDecoded() = runBlocking {
+        val client = HttpClient(MockEngine {
+            respond(
+                """{"music.musichallSong.PlayLyricInfo.GetPlayLyricInfo":{"data":{"lyric":"test lyric","qrc_t":1}}}""",
+                headers = headersOf(HttpHeaders.ContentType, "text/plain; charset=utf-8"),
+            )
+        }) { install(ContentNegotiation) { json(json) } }
+        val provider = QqMusicProvider(client)
+        val track = com.ljyh.unblockneteasemusic.model.MusicTrack(
+            com.ljyh.unblockneteasemusic.model.TrackId("qq", "42"),
+            "Song", emptyList(), null, 180_000,
+        )
+
+        assertEquals("test lyric", provider.lyrics(LyricRequest(track))?.original)
         provider.close()
     }
 

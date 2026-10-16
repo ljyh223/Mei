@@ -43,7 +43,7 @@ internal data class SearchParams(
 @Serializable
 internal data class SearchResponse(val request: SearchPayload? = null)
 @Serializable
-internal data class SearchPayload(val data: SearchData? = null)
+internal data class SearchPayload(val code: Int = 0, val data: SearchData? = null)
 @Serializable
 internal data class SearchData(val body: SearchBody? = null)
 @Serializable
@@ -67,7 +67,7 @@ internal data class DesktopSearchParams(
 @Serializable
 internal data class DesktopSearchResponse(val search: DesktopSearchPayload? = null)
 @Serializable
-internal data class DesktopSearchPayload(val data: DesktopSearchData? = null)
+internal data class DesktopSearchPayload(val code: Int = 0, val data: DesktopSearchData? = null)
 @Serializable
 internal data class DesktopSearchData(val body: DesktopSearchBody? = null)
 @Serializable
