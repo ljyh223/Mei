@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.album
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -56,12 +57,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntRect
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.domain.MediaMetadata
@@ -73,6 +79,7 @@ import java.time.ZoneId
 @Composable
 internal fun AlbumDetailContent(
     album: AlbumOverview,
+    coverColor: Color?,
     songs: List<MediaMetadata>,
     displayedSongs: List<MediaMetadata>,
     isSubscribed: Boolean,
@@ -86,12 +93,23 @@ internal fun AlbumDetailContent(
     onSubscribe: () -> Unit,
     onDownload: () -> Unit,
     onTrackClick: (MediaMetadata, Int) -> Unit,
-    onTrackMore: (MediaMetadata) -> Unit,
+    onTrackMore: (MediaMetadata, IntRect) -> Unit,
 ) {
     val listState = rememberLazyListState()
     val titleInBar by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
     val surface = MaterialTheme.colorScheme.surface
     val textColor = MaterialTheme.colorScheme.onSurface
+    val tintStrength = when {
+        coverColor == null -> 0f
+        surface.luminance() > 0.5f && coverColor.luminance() < 0.18f -> 0.08f
+        surface.luminance() <= 0.5f && coverColor.luminance() > 0.65f -> 0.08f
+        surface.luminance() > 0.5f -> 0.14f
+        else -> 0.18f
+    }
+    val albumTint by animateColorAsState(
+        targetValue = coverColor?.let { lerp(surface, it, tintStrength) } ?: surface,
+        label = "AlbumCoverTint",
+    )
     val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
     var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
@@ -103,10 +121,11 @@ internal fun AlbumDetailContent(
             contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
         ) {
             item(key = "album_header") {
-                AlbumHeader(album = album, trackCount = songs.size)
+                AlbumHeader(album = album, trackCount = songs.size, tint = albumTint)
             }
             item(key = "album_actions") {
                 AlbumActions(
+                    tint = albumTint,
                     hasSongs = songs.isNotEmpty(),
                     canPlay = canPlay,
                     isSubscribed = isSubscribed,
@@ -134,7 +153,7 @@ internal fun AlbumDetailContent(
                     song = song,
                     index = songIndexById[song.id] ?: index,
                     onClick = { onTrackClick(song, index) },
-                    onMore = { onTrackMore(song) },
+                    onMore = { anchor -> onTrackMore(song, anchor) },
                     canPlay = canPlay,
                 )
             }
@@ -226,8 +245,7 @@ internal fun AlbumDetailContent(
 }
 
 @Composable
-private fun AlbumHeader(album: AlbumOverview, trackCount: Int) {
-    val surface = MaterialTheme.colorScheme.surface
+private fun AlbumHeader(album: AlbumOverview, trackCount: Int, tint: Color) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val heroHeight = (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
         Box(Modifier.fillMaxWidth().height(heroHeight)) {
@@ -244,8 +262,8 @@ private fun AlbumHeader(album: AlbumOverview, trackCount: Int) {
                     Brush.verticalGradient(
                         0f to Color.Transparent,
                         0.55f to Color.Transparent,
-                        0.82f to surface.copy(alpha = 0.78f),
-                        1f to surface,
+                        0.82f to tint.copy(alpha = 0.82f),
+                        1f to tint,
                     )
                 )
             )
@@ -289,6 +307,7 @@ private fun AlbumHeader(album: AlbumOverview, trackCount: Int) {
 
 @Composable
 private fun AlbumActions(
+    tint: Color,
     hasSongs: Boolean,
     canPlay: Boolean,
     isSubscribed: Boolean,
@@ -296,31 +315,34 @@ private fun AlbumActions(
     onSubscribe: () -> Unit,
     onDownload: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
-            .widthIn(max = 300.dp).fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Button(
-            onClick = onPlayAll,
-            enabled = hasSongs && canPlay,
-            modifier = Modifier.weight(1f).height(48.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp),
+    val surface = MaterialTheme.colorScheme.surface
+    Box(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface)))) {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+                .widthIn(max = 300.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("播放全部")
-        }
-        FilledTonalIconButton(onClick = onSubscribe, modifier = Modifier.size(48.dp)) {
-            Icon(
-                if (isSubscribed) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (isSubscribed) "取消收藏专辑" else "收藏专辑",
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(48.dp)) {
-            Icon(Icons.Default.Download, contentDescription = "下载专辑", modifier = Modifier.size(20.dp))
+            Button(
+                onClick = onPlayAll,
+                enabled = hasSongs && canPlay,
+                modifier = Modifier.weight(1f).height(48.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("播放全部")
+            }
+            FilledTonalIconButton(onClick = onSubscribe, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    if (isSubscribed) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (isSubscribed) "取消收藏专辑" else "收藏专辑",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Download, contentDescription = "下载专辑", modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
@@ -358,9 +380,10 @@ private fun AlbumTrackRow(
     song: MediaMetadata,
     index: Int,
     onClick: () -> Unit,
-    onMore: () -> Unit,
+    onMore: (IntRect) -> Unit,
     canPlay: Boolean,
 ) {
+    var moreBounds by remember(song.id) { mutableStateOf(IntRect.Zero) }
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(enabled = canPlay, onClick = onClick)
             .padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
@@ -389,7 +412,15 @@ private fun AlbumTrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        IconButton(onClick = onMore, modifier = Modifier.size(48.dp)) {
+        IconButton(
+            onClick = { onMore(moreBounds) },
+            modifier = Modifier.size(48.dp).onGloballyPositioned { coordinates ->
+                val bounds = coordinates.boundsInWindow()
+                moreBounds = IntRect(
+                    bounds.left.toInt(), bounds.top.toInt(), bounds.right.toInt(), bounds.bottom.toInt()
+                )
+            },
+        ) {
             Icon(
                 Icons.Default.MoreVert,
                 contentDescription = "更多：${song.title}",

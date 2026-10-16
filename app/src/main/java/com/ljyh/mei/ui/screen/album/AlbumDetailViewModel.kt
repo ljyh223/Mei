@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.album
 
+import android.content.Context
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.constants.MusicQuality
@@ -11,6 +13,8 @@ import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.di.repository.AlbumsRepository
+import com.ljyh.mei.di.repository.ColorRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +24,9 @@ import javax.inject.Inject
 @HiltViewModel
 class AlbumDetailViewModel @Inject constructor(
     private val repository: PlaylistRepository,
-    private val albumsRepository: AlbumsRepository
+    private val albumsRepository: AlbumsRepository,
+    private val colorRepository: ColorRepository,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _albumDetail = MutableStateFlow<Resource<AlbumContent>>(Resource.Loading)
     val albumDetail: StateFlow<Resource<AlbumContent>> = _albumDetail
@@ -77,6 +83,11 @@ class AlbumDetailViewModel @Inject constructor(
             _isSubscribe.value = albumsRepository.existsAlbum(id)
         }
     }
+
+    fun cachedCoverColor(url: String): Color? = colorRepository.getFromMemory(url)
+
+    suspend fun coverColor(url: String): Color? =
+        url.takeIf { it.isNotBlank() }?.let { colorRepository.getColorOrExtract(context, it) }
 
     suspend fun resolveSongUrls(ids: List<String>, quality: MusicQuality) =
         repository.getSongUrlV1(ids, quality)

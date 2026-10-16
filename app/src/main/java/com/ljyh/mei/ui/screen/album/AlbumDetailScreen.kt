@@ -23,6 +23,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -47,6 +48,7 @@ import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -252,8 +254,22 @@ fun AlbumDetailScreen(
             onRetry = { viewModel.getAlbumDetail(id.toString()) },
         )
         is Resource.Success -> {
+            val coverUrl = result.data.album.picUrl
+            var coverColor by remember(coverUrl) {
+                mutableStateOf<Color?>(viewModel.cachedCoverColor(coverUrl))
+            }
+            LaunchedEffect(coverUrl) {
+                coverColor = try {
+                    viewModel.coverColor(coverUrl)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    null
+                }
+            }
             AlbumDetailContent(
                 album = result.data.album,
+                coverColor = coverColor,
                 songs = result.data.songs,
                 displayedSongs = displayedSongs,
                 isSubscribed = isSubscribed,
@@ -286,7 +302,7 @@ fun AlbumDetailScreen(
                         }
                     )
                 },
-                onTrackMore = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                onTrackMore = { track, anchor -> currentOverlay = OverlayState.TrackActionMenu(track, anchor) },
             )
         }
     }
