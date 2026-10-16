@@ -49,8 +49,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.MoreActionOrderKey
+import com.ljyh.mei.ui.component.player.component.rememberSleepTimerStatus
+import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.utils.preferences.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
@@ -62,6 +65,9 @@ fun MoreActionsSheet(
     onDismissRequest: () -> Unit,
     onActionClick: (MoreAction) -> Unit,
 ) {
+    val sleepTimerStatus = LocalPlayerConnection.current?.let {
+        rememberSleepTimerStatus(it.service.sleepTimer)
+    }
     val (savedOrder, saveOrder) = rememberPreference(MoreActionOrderKey, defaultValue = "")
     var actions by remember { mutableStateOf(MoreAction.entries.toList()) }
     val draft = remember { mutableStateListOf<MoreAction>() }
@@ -116,6 +122,16 @@ fun MoreActionsSheet(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                 )
+                if (!editing && sleepTimerStatus != null) {
+                    TextButton(onClick = { onActionClick(MoreAction.SLEEP_TIMER) }) {
+                        Text(
+                            text = "定时 $sleepTimerStatus",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
+                        )
+                    }
+                }
                 if (editing) {
                     TextButton(onClick = {
                         val newOrder = draft.toList()

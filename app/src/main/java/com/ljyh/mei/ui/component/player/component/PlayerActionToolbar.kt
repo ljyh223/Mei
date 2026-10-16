@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,29 +30,23 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.PlayerActionKey
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.PlayerAction
-import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.preferences.rememberPreference
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import timber.log.Timber
-import kotlin.time.Duration.Companion.seconds
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalAnimationApi::class)
@@ -85,25 +80,9 @@ fun PlayerActionToolbar(
         PlayMode.fromInt(playModeValue) ?: PlayMode.REPEAT_MODE_ALL
     }
 
-    // 睡眠定时器逻辑
-    var sleepTimerTimeLeft by remember { mutableLongStateOf(0L) }
     val sleepTimer = playerConnection.service.sleepTimer
-    val sleepTimerEnabled = remember(sleepTimer.triggerTime, sleepTimer.pauseWhenSongEnd) {
-        sleepTimer.isActive
-    }
-
-    LaunchedEffect(sleepTimerEnabled) {
-        if (sleepTimerEnabled) {
-            while (isActive) {
-                sleepTimerTimeLeft = if (sleepTimer.pauseWhenSongEnd) {
-                    playerConnection.player.duration - playerConnection.player.currentPosition
-                } else {
-                    sleepTimer.triggerTime - System.currentTimeMillis()
-                }
-                delay(1.seconds)
-            }
-        }
-    }
+    val sleepTimerStatus = rememberSleepTimerStatus(sleepTimer)
+    val sleepTimerEnabled = sleepTimerStatus != null
 
 
 
@@ -179,8 +158,8 @@ fun PlayerActionToolbar(
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
-                                        text = makeTimeString(sleepTimerTimeLeft),
-                                        style = MaterialTheme.typography.labelMedium,
+                                        text = sleepTimerStatus.orEmpty(),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
                                         color = foreground,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1
@@ -229,14 +208,33 @@ fun PlayerActionToolbar(
                 }
 
                 PlayerAction.MORE -> {
+                    val showTimerStatus = sleepTimerStatus != null && PlayerAction.SLEEP_TIMER !in actions
                     ShadowedIconButton(
                         onClick = onMoreClick
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.MoreVert,
-                            contentDescription = "更多功能",
-                            tint = foreground
-                        )
+                        if (showTimerStatus) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Rounded.MoreVert,
+                                    contentDescription = "更多功能，睡眠定时剩余 $sleepTimerStatus",
+                                    tint = foreground,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = sleepTimerStatus.orEmpty(),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                                    fontSize = 10.sp,
+                                    color = foreground,
+                                    maxLines = 1,
+                                )
+                            }
+                        } else {
+                            Icon(
+                                imageVector = Icons.Rounded.MoreVert,
+                                contentDescription = "更多功能",
+                                tint = foreground
+                            )
+                        }
                     }
                 }
             }
