@@ -3,13 +3,10 @@ package com.ljyh.mei.ui.component.player.component.sheet
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -25,8 +22,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -38,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.player.PlayerViewModel
@@ -51,9 +48,13 @@ fun MoreActionsSheet(
     onActionClick: (MoreAction) -> Unit,
     viewModel: PlayerViewModel
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val sortOrder by viewModel.moreSortOrder.collectAsState()
     val moreActions by viewModel.sortedMoreActions.collectAsState()
+    val primaryActions = listOf(MoreAction.ADD_TO_PLAYLIST, MoreAction.VIEW_PLAYLIST, MoreAction.COMMENT)
+    val secondaryActions = moreActions.filterNot { it in primaryActions }
+    val expanded = sheetState.currentValue == SheetValue.Expanded
+    val sheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.82f
 
     // 排序 Dialog 状态
     var showSortOptions by remember { mutableStateOf(false) }
@@ -78,7 +79,7 @@ fun MoreActionsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // 关键：处理底部导航栏遮挡，增加底部内边距
+                .height(sheetHeight)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp)
         ) {
@@ -108,37 +109,39 @@ fun MoreActionsSheet(
                 }
             }
 
-            // --- 2. 列表内容 ---
-            // 使用 LazyColumn，但不要加 weight(1f) 或 fillMaxSize
-            // 如果列表很长，它会自己处理滚动；如果短，它就自适应高度
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(items = moreActions, key = { it.id }) { action ->
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                text = action.label,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                imageVector = action.icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
-                            onActionClick(action)
-                        }
-                    )
+            primaryActions.forEach { action ->
+                MoreActionRow(action) { onActionClick(action) }
+            }
+            androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            if (!expanded) {
+                Text(
+                    text = "上拉查看更多",
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                if (expanded) items(items = secondaryActions, key = { it.id }) { action ->
+                    MoreActionRow(action) { onActionClick(action) }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun MoreActionRow(action: MoreAction, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = {
+            Text(action.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        },
+        leadingContent = {
+            Icon(action.icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier.clickable(onClick = onClick),
+    )
 }
 
 @Composable
