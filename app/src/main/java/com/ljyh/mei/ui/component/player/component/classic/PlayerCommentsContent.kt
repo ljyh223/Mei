@@ -8,10 +8,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,6 +28,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.data.model.api.CommentSortType
 import com.ljyh.mei.ui.screen.comment.CommentViewModel
 import com.ljyh.mei.ui.screen.comment.component.CommentItem
 
@@ -32,6 +37,7 @@ import com.ljyh.mei.ui.screen.comment.component.CommentItem
 fun PlayerCommentsContent(
     songId: String,
     onViewAllComments: () -> Unit,
+    onBackToLyrics: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: CommentViewModel = hiltViewModel(),
 ) {
@@ -41,7 +47,10 @@ fun PlayerCommentsContent(
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
 
     LaunchedEffect(songId) {
-        if (songId.isNotBlank()) viewModel.setSongId(songId)
+        if (songId.isNotBlank()) {
+            viewModel.setSortType(CommentSortType.HOT)
+            viewModel.setSongId(songId)
+        }
     }
 
     LazyColumn(modifier = modifier) {
@@ -52,14 +61,19 @@ fun PlayerCommentsContent(
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                onBackToLyrics?.let { onBack ->
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回歌词", tint = Color.White)
+                    }
+                }
                 Text(
-                    text = if (total > 0) "评论 $total" else "评论",
+                    text = if (total > 0) "热门评论 · $total" else "热门评论",
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onViewAllComments) {
-                    Text("查看全部")
+                IconButton(onClick = onViewAllComments) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "查看全部评论", tint = Color.White)
                 }
             }
         }

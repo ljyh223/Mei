@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.component.player.state
 
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -30,6 +31,7 @@ import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import timber.log.Timber
+import kotlin.math.abs
 import java.util.Timer
 
 @UnstableApi
@@ -67,7 +69,7 @@ class PlayerStateContainer(
     lateinit var qqLyricSearch: State<Resource<List<MusicTrack>>>
         internal set
 
-    lateinit var checkSongLike: State<Resource<Boolean>>
+    lateinit var likeState: State<Resource<Boolean>>
         internal set
 
     lateinit var isLiked: State<Boolean>
@@ -91,7 +93,40 @@ class PlayerStateContainer(
     var controlsVisible by mutableStateOf(true)
         internal set
 
+    internal var pendingSeekPosition: Long? = null
+        private set
+    private var pendingSeekAt: Long = 0L
+
+    fun previewSeek(position: Long) {
+        isDragging = true
+        sliderPosition = position.toFloat()
+    }
+
+    fun commitSeek(position: Long) {
+        pendingSeekPosition = position
+        pendingSeekAt = SystemClock.elapsedRealtime()
+        sliderPosition = position.toFloat()
+        playerConnection.player.seekTo(position)
+        isDragging = false
+    }
+
+    internal fun refreshPosition() {
+        val player = playerConnection.player
+        duration = player.duration.coerceAtLeast(1L)
+        if (isDragging) return
+        val current = player.currentPosition
+        pendingSeekPosition?.let { target ->
+            val confirmed = abs(current - target) <= 500L
+            val expired = SystemClock.elapsedRealtime() - pendingSeekAt >= 2_500L
+            if (!confirmed && !expired) return
+            pendingSeekPosition = null
+        }
+        sliderPosition = current.toFloat()
+    }
+
     fun reset() {
+        pendingSeekPosition = null
+        isDragging = false
         lyricLine = createDefaultLyricData("歌词加载中", source = LyricSource.Loading)
         sliderPosition = 0f
         duration = 0L
@@ -121,13 +156,13 @@ fun rememberPlayerStateContainer(
 
     container.lyricResult = playerViewModel.lyric.collectAsState()
     container.qqLyricSearch = playerViewModel.searchResult.collectAsState()
-    container.checkSongLike = playerViewModel.like.collectAsState()
+    container.likeState = playerViewModel.like.collectAsState()
     container.allPlaylist = playerViewModel.localPlaylists.collectAsState()
     container.myPlaylist = playerViewModel.myPlaylists.collectAsState()
 
     container.isLiked = remember {
         derivedStateOf {
-            when (val result = container.checkSongLike.value) {
+            when (val result = container.likeState.value) {
                 is Resource.Success -> result.data
                 Resource.Loading -> false
                 is Resource.Error -> {
@@ -140,24 +175,21 @@ fun rememberPlayerStateContainer(
 
     LaunchedEffect(container.mediaMetadata.value?.id) {
         container.mediaMetadata.value?.let { meta ->
-            playerViewModel.getLike(meta.id)
+            playerViewModel.observeLike(meta.id)
         }
     }
 
     LaunchedEffect(container.playbackState.value, container.isPlaying.value, container.isDragging) {
         val playbackState = container.playbackState.value
-        val isPlaying = container.isPlaying.value
         val isDragging = container.isDragging
 
-        if (playbackState == STATE_READY && isPlaying && !isDragging) {
+        if (playbackState == STATE_READY && !isDragging) {
             while (isActive) {
-                container.sliderPosition = playerConnection.player.currentPosition.toFloat()
-                container.duration = playerConnection.player.duration.coerceAtLeast(1L)
-                delay(50)
+                container.refreshPosition()
+                delay(if (container.isPlaying.value || container.pendingSeekPosition != null) 50 else 250)
             }
-        } else if (!isPlaying && !isDragging) {
-            container.sliderPosition = playerConnection.player.currentPosition.toFloat()
-            container.duration = playerConnection.player.duration.coerceAtLeast(1L)
+        } else if (!isDragging) {
+            container.refreshPosition()
         }
     }
 

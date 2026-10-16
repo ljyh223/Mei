@@ -137,9 +137,8 @@ fun ClassicTabletLayout(
                 FluidProgressSlider(
                     position = sliderPosition.toLong(),
                     duration = duration,
-                    onPositionChange = { newPosition ->
-                        stateContainer.playerConnection.player.seekTo(newPosition)
-                    },
+                    onPositionPreview = stateContainer::previewSeek,
+                    onPositionChange = stateContainer::commitSeek,
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .padding(horizontal = PlayerHorizontalPadding + 8.dp)
@@ -148,10 +147,9 @@ fun ClassicTabletLayout(
                 PlayerProgressSlider(
                     position = sliderPosition.toLong(),
                     duration = duration,
+                    onPositionPreview = stateContainer::previewSeek,
                     isPlaying = isPlaying, // 波浪进度条需要这个参数
-                    onPositionChange = { newPosition ->
-                        stateContainer.playerConnection.player.seekTo(newPosition)
-                    },
+                    onPositionChange = stateContainer::commitSeek,
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .padding(horizontal = PlayerHorizontalPadding + 8.dp)
@@ -228,6 +226,7 @@ fun ClassicTabletLayout(
                     PlayerCommentsContent(
                         songId = mediaMetadata?.id?.toString().orEmpty(),
                         onViewAllComments = { mediaMetadata?.let { onViewAllComments(it.id) } },
+                        onBackToLyrics = overlayHandler::showLyrics,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = PlayerHorizontalPadding)

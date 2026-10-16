@@ -4,7 +4,10 @@ import android.content.Context
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.data.model.api.GetSongUrlV1
+import com.ljyh.mei.data.model.api.BaseResponse
+import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.model.response.SongUrl
+import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.utils.encrypt.XeApiCrypto
 import com.ljyh.mei.utils.encrypt.XeApiPublicKey
 import com.ljyh.mei.utils.encrypt.XeApiSession
@@ -21,7 +24,10 @@ import io.ktor.http.content.TextContent
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
@@ -36,11 +42,15 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okio.Buffer
 import timber.log.Timber
 
 private const val XEAPI_BASE = "https://interface3.music.163.com"
 
-/** Android 9.6.05 XEAPI transport, initially used by the player URL v1 endpoint. */
+/** Android 9.6.05 XEAPI C/S/R transport shared by player URLs, lyrics and likes. */
 class XeApiClient(
     private val context: Context,
     private val http: NeteaseHttp,
@@ -51,17 +61,38 @@ class XeApiClient(
     private val keyStore = context.getSharedPreferences("netease_xeapi", Context.MODE_PRIVATE)
     @Volatile private var publicKey: XeApiPublicKey? = null
     @Volatile private var session: XeApiSession? = null
+    private val antiCheatClient = OkHttpClient.Builder()
+        .callTimeout(10, TimeUnit.SECONDS)
+        .build()
 
     suspend fun getSongUrlV1(body: GetSongUrlV1): SongUrl {
         val url = buildSongUrlV1Url(body, context.dataStore[UserIdKey].orEmpty(), json)
-        return requestSongUrl(url, retryOnRefresh = true)
+        return json.decodeFromString(requestRaw(url))
     }
 
-    private suspend fun requestSongUrl(url: HttpUrl, retryOnRefresh: Boolean): SongUrl {
+    suspend fun getLyricV1(id: String): Lyric =
+        json.decodeFromString(requestRaw(buildLyricV1Url(id)))
+
+    suspend fun like(body: Like): BaseResponse {
+        return json.decodeFromString(requestRaw(
+            xeApiUrl("v1/radio/like"),
+            encodedContent = encodeLikeContent(body),
+            requireAntiCheatToken = true,
+        ))
+    }
+
+    private suspend fun requestRaw(
+        url: HttpUrl,
+        encodedContent: String = "",
+        retryOnRefresh: Boolean = true,
+        requireAntiCheatToken: Boolean = false,
+    ): String {
         val key = getPublicKey()
-        val requestBody = crypto.encrypt(url.encodedQuery.orEmpty(), key, session)
+        val requestBody = crypto.encrypt(url.encodedQuery.orEmpty(), key, session, encodedContent)
+        val antiCheatToken = if (requireAntiCheatToken) fetchAntiCheatTokenV3() else null
         val response = http.client.post(url.toString()) {
             header("X-Netease-Crypto", "xeapi")
+            if (antiCheatToken != null) header("X-antiCheatToken", antiCheatToken)
             setBody(TextContent(
                 requestBody,
                 ContentType.parse("application/x-www-form-urlencoded;charset=utf-8"),
@@ -79,7 +110,8 @@ class XeApiClient(
             session = null
             if (retryOnRefresh) {
                 getPublicKey(forceRefresh = true)
-                return requestSongUrl(url, retryOnRefresh = false)
+                return requestRaw(url, encodedContent, retryOnRefresh = false,
+                    requireAntiCheatToken = requireAntiCheatToken)
             }
         }
         if (status == "8888" || status == "10000" || status == "20000" || status == "20002") {
@@ -87,11 +119,28 @@ class XeApiClient(
         }
         val bytes = response.bodyAsBytes()
         Timber.tag("XEAPI").d(
-            "songUrlV1 status=%s bytes=%d sessionUpdated=%s",
-            status, bytes.size, sessionUpdated,
+            "path=%s status=%s bytes=%d sessionUpdated=%s",
+            url.encodedPath, status, bytes.size, sessionUpdated,
         )
         if (bytes.isEmpty()) throw IOException("XEAPI returned an empty response (status=$status)")
-        return json.decodeFromString(decodeEApiResponse(bytes))
+        return decodeEApiResponse(bytes)
+    }
+
+    private suspend fun fetchAntiCheatTokenV3(): String? = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("https://ac.dun.163yun.com/v3/b?pn=YD00000558929251")
+                .get()
+                .build()
+            antiCheatClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                parseAntiCheatTokenV3(response.body.string())
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private suspend fun getPublicKey(forceRefresh: Boolean = false): XeApiPublicKey =
@@ -181,6 +230,24 @@ class XeApiClient(
         )
     }
 }
+
+internal fun xeApiUrl(path: String): HttpUrl = "$XEAPI_BASE/xeapi/${path.trimStart('/')}".toHttpUrl()
+
+internal fun buildLyricV1Url(id: String): HttpUrl =
+    xeApiUrl("song/lyric/v1").newBuilder().addQueryParameter("id", id).build()
+
+internal fun encodeLikeContent(body: Like): String {
+    val form = FormBody.Builder()
+        .add("alg", body.alg)
+        .add("trackId", body.trackId)
+        .add("like", body.like.toString())
+        .add("time", body.time)
+        .build()
+    return Buffer().apply { form.writeTo(this) }.readUtf8()
+}
+
+internal fun parseAntiCheatTokenV3(response: String): String? =
+    Regex("""null\(\[200,\d+,"([^"]+)"\]\)""").find(response)?.groupValues?.get(1)
 
 internal fun buildSongUrlV1Url(body: GetSongUrlV1, userId: String, json: Json): HttpUrl {
     val ids = json.parseToJsonElement(body.ids).let { element ->

@@ -1,10 +1,9 @@
 package com.ljyh.mei.data.model.room
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "like")
+@Entity(tableName = "like", primaryKeys = ["userId", "id"])
 data class Like(
-    @PrimaryKey val id: String,
+    val userId: String,
+    val id: String,
 )
-

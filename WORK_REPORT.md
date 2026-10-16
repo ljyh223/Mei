@@ -56,7 +56,8 @@
 
 | 库 | 版本 | 用途 |
 |---|---|---|
-| korlibs-crypto | 6.0.1 | AES/DES加密 (排除了Android端冲突) |
+| Android 标准加密接口 | 系统内置 | WeAPI/EAPI 的 AES、MD5 与编码 |
+| Google Tink | 1.7.0 | XEAPI 的 X25519 密钥交换 |
 | kotlin-reflect | 2.1.21 | Kotlin反射 |
 | jaudiotagger | 3.0.1 | 音频文件标签写入 (FLAC/MP3) |
 

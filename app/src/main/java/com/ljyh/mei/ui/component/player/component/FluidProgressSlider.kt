@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +51,7 @@ fun FluidProgressSlider(
     position: Long,
     duration: Long,
     onPositionChange: (Long) -> Unit,
+    onPositionPreview: (Long) -> Unit = {},
     showMusicQuality: Boolean = true,
     showRemainingTime: Boolean = false,
     modifier: Modifier = Modifier
@@ -69,9 +71,10 @@ fun FluidProgressSlider(
 
     // 内部拖拽位置状态
     var rawDragPosition by remember { mutableFloatStateOf(0f) }
+    var hasScrubbed by remember { mutableStateOf(false) }
 
     // 计算当前显示的值
-    val sliderPosition = if (isUserDragging) {
+    val sliderPosition = if (isUserDragging && hasScrubbed) {
         rawDragPosition
     } else {
         position.toFloat()
@@ -113,11 +116,16 @@ fun FluidProgressSlider(
         ) {
             Slider(
                 value = sliderPosition,
-                onValueChange = { rawDragPosition = it },
+                onValueChange = {
+                    rawDragPosition = it
+                    hasScrubbed = true
+                    onPositionPreview(it.roundToLong())
+                },
                 onValueChangeFinished = {
                     if (isDurationValid) {
                         onPositionChange(rawDragPosition.roundToLong())
                     }
+                    hasScrubbed = false
                 },
                 valueRange = valueRange,
                 interactionSource = interactionSource,

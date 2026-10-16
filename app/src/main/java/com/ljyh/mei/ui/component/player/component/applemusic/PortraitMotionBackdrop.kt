@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
+import com.ljyh.mei.ui.component.player.component.isBlankMotionFrame
 import kotlin.math.exp
 
 /** A gray mask is needed only when most of the visible video frame is nearly white. */
@@ -58,8 +59,19 @@ internal fun averageMotionColor(pixels: IntArray): Color {
     )
 }
 
-internal class PortraitMotionBackdropState {
-    var edgeColor: Color? = null
+private object PortraitMotionColors {
+    private val colors = LinkedHashMap<String, Color>(8, 0.75f, true)
+
+    fun get(key: String): Color? = synchronized(colors) { colors[key] }
+
+    fun put(key: String, color: Color) = synchronized(colors) {
+        colors[key] = color
+        if (colors.size > 8) colors.remove(colors.keys.first())
+    }
+}
+
+internal class PortraitMotionBackdropState(private val cacheKey: String? = null) {
+    var edgeColor: Color? = cacheKey?.let(PortraitMotionColors::get)
         private set
     var hasLargeWhiteArea by mutableStateOf(false)
         private set
@@ -77,7 +89,7 @@ internal class PortraitMotionBackdropState {
     }
 
     fun acceptPreview(bitmap: Bitmap) {
-        if (hasVideoFrame) {
+        if (hasVideoFrame || isBlankMotionFrame(bitmap)) {
             bitmap.recycle()
             return
         }
@@ -85,6 +97,10 @@ internal class PortraitMotionBackdropState {
     }
 
     fun accept(bitmap: Bitmap) {
+        if (!hasVideoFrame && isBlankMotionFrame(bitmap)) {
+            bitmap.recycle()
+            return
+        }
         hasVideoFrame = true
         process(bitmap)
     }
@@ -103,6 +119,7 @@ internal class PortraitMotionBackdropState {
             if (reduced !== strip) reduced.recycle()
             val sampledColor = averageMotionColor(pixels)
             edgeColor = sampledColor
+            cacheKey?.let { PortraitMotionColors.put(it, sampledColor) }
             backdropView?.let { view ->
                 view.controlColor = sampledColor.toArgb()
                 view.setStrip(strip)
@@ -154,11 +171,10 @@ internal class PortraitMotionBackdropView(context: Context) : View(context) {
         val h = height.toFloat()
         if (w <= 0f || h <= 0f || videoBottomPx <= 0f) return
         val frame = strip
-        if (frame != null) {
-            colorPaint.shader = null
-            colorPaint.color = controlColor
-            canvas.drawRect(0f, videoBottomPx, w, h, colorPaint)
-        }
+        // Cover the dark player base even before the first preview/video sample arrives.
+        colorPaint.shader = null
+        colorPaint.color = controlColor
+        canvas.drawRect(0f, videoBottomPx, w, h, colorPaint)
         // The APK's motion_legibility_gradient is a fixed #B3171717 tint masked by a
         // 20% -> 0% -> 100% alpha ramp, spanning the entire player behind the sampled blur.
         colorPaint.shader = LinearGradient(

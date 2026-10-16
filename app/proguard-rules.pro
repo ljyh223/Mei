@@ -67,10 +67,6 @@
 -dontwarn javax.imageio.ImageWriter
 -dontwarn javax.imageio.stream.ImageOutputStream
 -dontwarn javax.swing.filechooser.FileFilter
--dontwarn korlibs.crypto.encoding.Base64
--dontwarn korlibs.crypto.encoding.Base64Kt
--dontwarn korlibs.crypto.encoding.Hex
--dontwarn korlibs.crypto.encoding.HexKt
 
 # 保留四大组件、自定义 Application
 -keep public class * extends android.app.Activity

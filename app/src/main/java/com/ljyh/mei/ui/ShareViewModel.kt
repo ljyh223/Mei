@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -48,9 +49,27 @@ class ShareViewModel @Inject constructor(
     private var qrLoginJob: Job? = null
 
     fun getUserAccount(){
-        _userAccount.value = Resource.Loading
         viewModelScope.launch {
-            _userAccount.value = userRepository.getUserAccount()
+            refreshUserAccount()
+        }
+    }
+
+    fun saveCookie(cookie: String) {
+        viewModelScope.launch {
+            val normalized = cookie.trim()
+            context.dataStore.edit { preferences ->
+                val changed = preferences[CookieKey].orEmpty() != normalized
+                if (normalized.isBlank()) preferences.remove(CookieKey)
+                else preferences[CookieKey] = normalized
+                if (changed) {
+                    preferences.remove(UserIdKey)
+                    preferences.remove(UserNicknameKey)
+                    preferences.remove(UserAvatarUrlKey)
+                    preferences.remove(UserPhotoKey)
+                }
+            }
+            if (normalized.isNotBlank()) refreshUserAccount()
+            else _userAccount.value = Resource.Loading
         }
     }
 
@@ -172,8 +191,22 @@ class ShareViewModel @Inject constructor(
     }
 
     private suspend fun refreshUserAccount() {
+        val cookie = context.dataStore.data.first()[CookieKey].orEmpty()
+        if (cookie.isBlank()) return
         _userAccount.value = Resource.Loading
-        _userAccount.value = userRepository.getUserAccount()
+        val result = userRepository.getUserAccount()
+        if (context.dataStore.data.first()[CookieKey] != cookie) return
+        _userAccount.value = result
+        val account = (result as? Resource.Success)?.data ?: return
+        if (account.code != 200) return
+        val profile = account.profile ?: return
+        val uid = profile.userId.toString()
+        context.dataStore.edit { preferences ->
+            if (preferences[CookieKey] != cookie) return@edit
+            preferences[UserIdKey] = uid
+            preferences[UserNicknameKey] = profile.nickname
+            preferences[UserAvatarUrlKey] = profile.avatarUrl
+        }
     }
 
     override fun onCleared() {

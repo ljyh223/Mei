@@ -176,9 +176,8 @@ fun ClassicPhoneLayout(
             FluidProgressSlider(
                 position = sliderPosition.toLong(),
                 duration = duration,
-                onPositionChange = { newPosition ->
-                    stateContainer.playerConnection.player.seekTo(newPosition)
-                },
+                onPositionPreview = stateContainer::previewSeek,
+                onPositionChange = stateContainer::commitSeek,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding + 8.dp)
@@ -187,10 +186,9 @@ fun ClassicPhoneLayout(
             PlayerProgressSlider(
                 position = sliderPosition.toLong(),
                 duration = duration,
+                onPositionPreview = stateContainer::previewSeek,
                 isPlaying = isPlaying, // 波浪进度条需要这个参数
-                onPositionChange = { newPosition ->
-                    stateContainer.playerConnection.player.seekTo(newPosition)
-                },
+                onPositionChange = stateContainer::commitSeek,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding + 8.dp)

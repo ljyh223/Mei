@@ -1,11 +1,8 @@
 package com.ljyh.mei.di.repository
 
 import android.content.Context
-import android.graphics.Bitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.graphics.ColorUtils
-import androidx.palette.graphics.Palette
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -24,6 +21,8 @@ import com.ljyh.mei.di.dao.CachedLyricDao
 import com.ljyh.mei.di.dao.ColorDao
 import com.ljyh.mei.di.dao.HistoryDao
 import com.ljyh.mei.di.dao.LikeDao
+import com.ljyh.mei.utils.color.extractCoverColor
+import com.ljyh.mei.utils.image.sizedNeteaseImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -36,6 +35,8 @@ import javax.inject.Singleton
 @Singleton
 class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
     private val memoryCache = ConcurrentHashMap<String, Color>()
+    // Existing rows contain the older boosted palette; use a new key without changing Room schema.
+    private fun cacheKey(url: String) = "cover-v2:$url"
 
     fun getFromMemory(url: String): Color? {
         if (url.isEmpty()) return null
@@ -45,7 +46,7 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
     suspend fun getColorOrExtract(context: Context, url: String): Color = withContext(Dispatchers.IO) {
         if (url.isEmpty()) return@withContext Color.Black
         memoryCache[url]?.let { return@withContext it }
-        val dbEntity = colorDao.getColor(url)
+        val dbEntity = colorDao.getColor(cacheKey(url))
         if (dbEntity != null) {
             val color = Color(dbEntity.color)
             memoryCache[url] = color
@@ -53,36 +54,18 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
         }
         val loader = context.imageLoader
         val request = ImageRequest.Builder(context)
-            .data(url).allowHardware(false).size(128).build()
+            .data(url.sizedNeteaseImage(128)).allowHardware(false).size(128).build()
         val result = loader.execute(request)
-        val finalColor = if (result is SuccessResult) {
-            extractAndBoostColor(result.image.toBitmap())
-        } else Color.Black
-        memoryCache[url] = finalColor
-        colorDao.insertColor(CacheColor(url = url, color = finalColor.toArgb()))
-        finalColor
+        val color = (result as? SuccessResult)?.let { extractCoverColor(it.image.toBitmap()) }
+            ?: return@withContext Color(0xFF777777)
+        memoryCache[url] = color
+        colorDao.insertColor(CacheColor(url = cacheKey(url), color = color.toArgb()))
+        color
     }
 
-    private fun extractAndBoostColor(bitmap: Bitmap): Color {
-        val palette = Palette.from(bitmap).generate()
-        val vibrant = palette.vibrantSwatch?.rgb?.let { Color(it) }
-        val dominant = palette.dominantSwatch?.rgb?.let { Color(it) }
-        val seed = vibrant ?: dominant ?: Color.Black
-        val hsl = FloatArray(3)
-        ColorUtils.colorToHSL(seed.toArgb(), hsl)
-        val isMonotone = hsl[1] < 0.1f || hsl[2] < 0.05f || hsl[2] > 0.95f
-        return if (isMonotone) Color(0xFF2E3192) else boostSaturation(seed, 1.4f)
-    }
-
-    private fun boostSaturation(color: Color, multiplier: Float): Color {
-        val hsl = FloatArray(3)
-        ColorUtils.colorToHSL(color.toArgb(), hsl)
-        hsl[1] = (hsl[1] * multiplier).coerceIn(0f, 1f)
-        return Color(ColorUtils.HSLToColor(hsl))
-    }
-
-    fun getDbColor(url: String): Color? = colorDao.getColor(url)?.let { Color(it.color) }
-    suspend fun insertColor(color: CacheColor) = colorDao.insertColor(color)
+    fun getDbColor(url: String): Color? = colorDao.getColor(cacheKey(url))?.let { Color(it.color) }
+    suspend fun insertColor(color: CacheColor) =
+        colorDao.insertColor(color.copy(url = cacheKey(color.url)))
 }
 
 class QQSongRepository @Inject constructor(private val qqSongDao: com.ljyh.mei.di.dao.QQSongDao) {
@@ -93,11 +76,14 @@ class QQSongRepository @Inject constructor(private val qqSongDao: com.ljyh.mei.d
 }
 
 class LikeRepository @Inject constructor(private val likeDao: LikeDao) {
-    suspend fun getLike(id: String): Like? = likeDao.getLike(id)
-    suspend fun getAllLike(): List<Like> = likeDao.getALlLike()
-    suspend fun insertLike(like: Like) = likeDao.insertLike(like)
-    suspend fun updateAllLike(likes: List<Like>) = likeDao.updateALlLike(likes)
-    suspend fun deleteLike(id: String) = likeDao.deleteLike(id)
+    fun observeLiked(userId: String, id: String): Flow<Boolean> = likeDao.observeLiked(userId, id)
+    suspend fun isLiked(userId: String, id: String): Boolean = likeDao.isLiked(userId, id)
+    suspend fun getAllForUser(userId: String): List<Like> = likeDao.getAllForUser(userId)
+    suspend fun replaceAllForUser(userId: String, ids: Collection<String>) =
+        likeDao.replaceAllForUser(userId, ids)
+    suspend fun setLiked(userId: String, id: String, liked: Boolean) {
+        if (liked) likeDao.insertLike(Like(userId, id)) else likeDao.deleteLike(userId, id)
+    }
 }
 
 @Singleton

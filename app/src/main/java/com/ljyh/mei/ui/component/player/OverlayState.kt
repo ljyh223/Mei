@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.component.player
 
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import androidx.compose.ui.unit.IntRect
 
 sealed interface OverlayState {
     data object None : OverlayState
@@ -18,5 +19,5 @@ sealed interface OverlayState {
     data object MoreAction: OverlayState
     data object BottomAction: OverlayState
 
-    data class TrackActionMenu(val track: MediaMetadata): OverlayState
+    data class TrackActionMenu(val track: MediaMetadata, val anchor: IntRect = IntRect.Zero): OverlayState
 }

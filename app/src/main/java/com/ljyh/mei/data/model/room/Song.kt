@@ -19,6 +19,7 @@ data class Song(
     val bitrate: Int? = null,
     val sampleRate: Int? = null,
     val folderPath: String? = null,
+    val matchedNeteaseId: Long? = null,
     val addedAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

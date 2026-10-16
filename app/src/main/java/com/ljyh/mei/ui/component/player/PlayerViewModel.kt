@@ -23,11 +23,11 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.data.repository.DynamicCoverRepository
+import com.ljyh.mei.data.repository.LikedSongsRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import com.ljyh.mei.di.repository.ColorRepository
-import com.ljyh.mei.di.repository.LikeRepository
 import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.MoreAction
@@ -37,11 +37,15 @@ import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.lyric.LyricManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -49,6 +53,8 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -59,7 +65,7 @@ class PlayerViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val localPlaylistRepository: LocalPlaylistRepository,
     private val playlistRepository: PlaylistRepository,
-    private val likeRepository: LikeRepository,
+    private val likedSongsRepository: LikedSongsRepository,
     private val colorRepository: ColorRepository,
     private val dynamicCoverRepository: DynamicCoverRepository,
     val lyricManager: LyricManager
@@ -116,6 +122,12 @@ class PlayerViewModel @Inject constructor(
 
     private val _like = MutableStateFlow<Resource<Boolean>>(Resource.Loading)
     val like: StateFlow<Resource<Boolean>> = _like
+    private val likeActionLock = Mutex()
+    private var likeSongId: Long? = null
+    private var likeObservationJob: Job? = null
+    private val pendingLikeActions = mutableMapOf<String, Int>()
+    private val _likeFeedback = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val likeFeedback: SharedFlow<String> = _likeFeedback.asSharedFlow()
 
     private val _networkPlaylistsState = MutableStateFlow<Resource<UserPlaylistPage>>(Resource.Loading)
     val networkPlaylistsState: StateFlow<Resource<UserPlaylistPage>> = _networkPlaylistsState
@@ -151,23 +163,45 @@ class PlayerViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    // 获取点赞状态
-    fun getLike(id: Long) {
-        viewModelScope.launch {
-            Timber.tag("PlayerViewModel").d("get like $id")
-            _like.value = repository.checkSongLike(id)
+    fun observeLike(id: Long) {
+        likeObservationJob?.cancel()
+        likeSongId = id
+        _like.value = Resource.Loading
+        likeObservationJob = viewModelScope.launch {
+            likedSongsRepository.observeLiked(id.toString()).collect { liked ->
+                if (likeSongId == id && pendingLikeActions[id.toString()] == null) {
+                    _like.value = Resource.Success(liked)
+                }
+            }
         }
     }
 
-    // 切换点赞状态
     fun like(id: String) {
+        if (id.toLongOrNull() != likeSongId) return
+        val current = (_like.value as? Resource.Success)?.data ?: return
+        val desired = !current
+        _like.value = Resource.Success(desired)
+        pendingLikeActions[id] = (pendingLikeActions[id] ?: 0) + 1
         viewModelScope.launch {
-            try {
-                val currentLiked = (_like.value as? Resource.Success)?.data == true
-                repository.like(id, !currentLiked)
-                _like.value = Resource.Success(!currentLiked)
-            } catch (e: Exception) {
-                e.printStackTrace()
+            likeActionLock.withLock {
+                try {
+                    likedSongsRepository.setLiked(id, desired)
+                    _likeFeedback.emit(if (desired) "已添加到我喜欢的音乐" else "已取消喜欢")
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (e: Exception) {
+                    Timber.tag("PlayerViewModel").e(e, "Failed to update song like")
+                    _likeFeedback.emit("红心操作失败：${e.message ?: "请重试"}")
+                } finally {
+                    val remaining = (pendingLikeActions[id] ?: 1) - 1
+                    if (remaining > 0) pendingLikeActions[id] = remaining
+                    else {
+                        pendingLikeActions.remove(id)
+                        if (likeSongId?.toString() == id) {
+                            _like.value = Resource.Success(likedSongsRepository.isLiked(id))
+                        }
+                    }
+                }
             }
         }
     }

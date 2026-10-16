@@ -35,6 +35,8 @@ fun PlayerControlsSection(
     onSleepTimerClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onMoreClick: () -> Unit,
+    onPositionPreview: (Long) -> Unit,
+    onPositionChange: (Long) -> Unit,
     portraitMotionStyle: Boolean = false,
     isCompact: Boolean = false // 新增参数
 ) {
@@ -55,9 +57,8 @@ fun PlayerControlsSection(
             FluidProgressSlider(
                 position = sliderPosition.toLong(),
                 duration = duration,
-                onPositionChange = { newPosition ->
-                    playerConnection.player.seekTo(newPosition)
-                },
+                onPositionPreview = onPositionPreview,
+                onPositionChange = onPositionChange,
                 showMusicQuality = !portraitMotionStyle,
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
@@ -68,10 +69,9 @@ fun PlayerControlsSection(
             PlayerProgressSlider(
                 position = sliderPosition.toLong(),
                 duration = duration,
+                onPositionPreview = onPositionPreview,
                 isPlaying = isPlaying, // 波浪进度条需要这个参数
-                onPositionChange = { newPosition ->
-                    playerConnection.player.seekTo(newPosition)
-                },
+                onPositionChange = onPositionChange,
                 showMusicQuality = !portraitMotionStyle,
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier

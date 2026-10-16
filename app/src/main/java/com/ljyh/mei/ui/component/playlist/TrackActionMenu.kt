@@ -1,114 +1,178 @@
 package com.ljyh.mei.ui.component.playlist
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+import com.ljyh.mei.BuildConfig
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
-import com.ljyh.mei.ui.component.GridMenu
-import com.ljyh.mei.ui.component.GridMenuItem
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.system.setClipboard
 
-@OptIn(ExperimentalMaterial3Api::class)
+data class TrackMenuTarget(val track: MediaMetadata, val anchor: IntRect)
+
+private class TrackMenuPositionProvider(
+    private val button: IntRect,
+    private val margin: Int,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val maxX = (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin)
+        val maxY = (windowSize.height - popupContentSize.height - margin).coerceAtLeast(margin)
+        val x = (button.right - popupContentSize.width).coerceIn(margin, maxX)
+        val preferredY = if (button.bottom + popupContentSize.height <= windowSize.height - margin) {
+            button.bottom
+        } else {
+            button.top - popupContentSize.height
+        }
+        return IntOffset(x, preferredY.coerceIn(margin, maxY))
+    }
+}
+
 @Composable
 fun TrackActionMenu(
-    targetTrack: MediaMetadata?,
+    target: TrackMenuTarget?,
     isCreator: Boolean = false,
     onDismiss: () -> Unit,
     onAddToPlaylist: (() -> Unit)? = null,
     onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
     onDownloadTrack: (() -> Unit)? = null,
-    onDelete: () -> Unit? = {},
+    onCompleteMetadata: (() -> Unit)? = null,
+    onDelete: () -> Unit = {},
     onCopyId: () -> Unit,
-    onCopyName: () -> Unit
+    onCopyName: () -> Unit,
 ) {
-    if (targetTrack != null) {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    val track = target?.track ?: return
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val maxHeight = (LocalConfiguration.current.screenHeightDp.dp - 32.dp).coerceIn(120.dp, 360.dp)
+    val margin = with(density) { 8.dp.roundToPx() }
+
+    Popup(
+        onDismissRequest = onDismiss,
+        popupPositionProvider = TrackMenuPositionProvider(target.anchor, margin),
+        properties = PopupProperties(focusable = true),
+    ) {
+        Surface(
+            modifier = Modifier.width(232.dp).heightIn(max = maxHeight),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp,
         ) {
-            GridMenu(
-                contentPadding = PaddingValues(bottom = 48.dp)
-            ) {
-                onAddToPlaylist?.let { addToPlaylist ->
-                    GridMenuItem(
-                        icon = Icons.Rounded.Add,
-                        title = "添加到歌单",
-                        onClick = {
-                            onDismiss()
-                            addToPlaylist()
-                        }
-                    )
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                MenuAction("下一首播放", Icons.Rounded.SkipNext) { onDismiss(); onPlayNext() }
+                MenuAction("队尾播放", Icons.Rounded.Add) { onDismiss(); onAddToQueue() }
+                onAddToPlaylist?.let { action ->
+                    MenuAction("添加到歌单", Icons.Rounded.Add) { onDismiss(); action() }
                 }
-                GridMenuItem(
-                    icon = Icons.Rounded.SkipNext,
-                    title = "下一首播放",
-                    onClick = {
-                        onDismiss()
-                        onPlayNext()
-                    },
-                )
-
-                onDownloadTrack?.let { downloadFunc ->
-                    GridMenuItem(
-                        icon = Icons.Filled.Download,
-                        title = "下载",
-                        onClick = {
-                            onDismiss()
-                            downloadFunc()
-                        }
-                    )
+                onDownloadTrack?.let { action ->
+                    MenuAction("下载", Icons.Filled.Download) { onDismiss(); action() }
                 }
-
+                onCompleteMetadata?.let { action ->
+                    MenuAction("补全歌曲信息", Icons.Rounded.Add) { onDismiss(); action() }
+                }
                 if (isCreator) {
-                    GridMenuItem(
-                        icon = Icons.Rounded.DeleteSweep,
-                        title = "删除此歌曲",
-                        onClick = {
-                            onDismiss()
-                            onDelete()
-                        }
-                    )
+                    MenuAction("从歌单删除", Icons.Rounded.DeleteSweep) { onDismiss(); onDelete() }
                 }
-                GridMenuItem(
-                    icon = Icons.Rounded.ContentCopy,
-                    title = "复制歌名",
-                    onClick = { onDismiss(); onCopyName() })
-                GridMenuItem(
-                    icon = Icons.Rounded.ContentCopy,
-                    title = "复制ID",
-                    onClick = { onDismiss(); onCopyId() })
+                HorizontalDivider()
+                MenuAction("复制歌名", Icons.Rounded.ContentCopy) { onDismiss(); onCopyName() }
+                MenuAction("复制歌曲 ID", Icons.Rounded.ContentCopy) { onDismiss(); onCopyId() }
+                if (BuildConfig.DEBUG) {
+                    HorizontalDivider()
+                    val debugFields = listOf(
+                        "歌手" to track.artists.joinToString(" / ") { it.name },
+                        "歌手 ID" to track.artists.joinToString(", ") { it.id.toString() },
+                        "专辑" to track.album.title,
+                        "专辑 ID" to track.album.id.toString(),
+                        "封面地址" to track.coverUrl,
+                    )
+                    debugFields.forEach { (label, value) ->
+                        MenuAction("复制$label", Icons.Rounded.ContentCopy) {
+                            onDismiss()
+                            setClipboard(context, value, label)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+@Composable
+private fun MenuAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        onClick = onClick,
+        leadingIcon = { Icon(icon, contentDescription = null) },
+    )
+}
+
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
-fun BasicTrackActionMenu(track: MediaMetadata?, onDismiss: () -> Unit) {
+fun BasicTrackActionMenu(
+    target: TrackMenuTarget?,
+    onCompleteMetadata: (() -> Unit)? = null,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current
+    val track = target?.track
     TrackActionMenu(
-        targetTrack = track,
+        target = target,
         onDismiss = onDismiss,
+        onCompleteMetadata = onCompleteMetadata,
         onPlayNext = {
             if (playerConnection == null) {
                 Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
             } else if (track != null) {
                 playerConnection.playNext(track.toMediaItem())
                 Toast.makeText(context, "已添加到下一首", Toast.LENGTH_SHORT).show()
+            }
+        },
+        onAddToQueue = {
+            if (playerConnection == null) {
+                Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
+            } else if (track != null) {
+                playerConnection.addToQueue(track.toMediaItem())
+                Toast.makeText(context, "已添加到队尾", Toast.LENGTH_SHORT).show()
             }
         },
         onCopyName = { track?.let { setClipboard(context, it.title, "歌名") } },

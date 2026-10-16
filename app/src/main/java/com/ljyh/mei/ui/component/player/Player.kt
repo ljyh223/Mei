@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.component.player
 import android.app.Activity
 import android.os.Build
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
@@ -51,6 +52,12 @@ fun BottomSheetPlayer(
     val playerConnection = LocalPlayerConnection.current ?: return
     val navController = LocalNavController.current
     val device = rememberDeviceInfo()
+    val context = LocalContext.current
+    LaunchedEffect(playerViewModel, context) {
+        playerViewModel.likeFeedback.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // 创建公共状态容器
     val stateContainer = rememberPlayerStateContainer(
@@ -61,7 +68,7 @@ fun BottomSheetPlayer(
     val appleEnglishTitlesOnly by rememberPreference(AppleMotionEnglishTitlesOnlyKey, defaultValue = false)
     val keepPlayerScreenOn by rememberPreference(KeepPlayerScreenOnKey, defaultValue = false)
     val batteryIntensiveFeaturesAllowed = rememberBatteryIntensiveFeaturesAllowed()
-    val activity = LocalContext.current as? Activity
+    val activity = context as? Activity
     val shouldKeepScreenOn = keepPlayerScreenOn && batteryIntensiveFeaturesAllowed &&
         !state.isCollapsed && state.progress > 0f
     DisposableEffect(activity, shouldKeepScreenOn) {

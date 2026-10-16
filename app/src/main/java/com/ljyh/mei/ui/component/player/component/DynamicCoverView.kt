@@ -51,6 +51,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.time.Duration.Companion.milliseconds
 
+/** TextureView.getBitmap may return a blank buffer before a decoded frame reaches the surface. */
+internal fun isBlankMotionFrame(bitmap: Bitmap): Boolean {
+    val pixels = IntArray(bitmap.width * bitmap.height)
+    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+    return pixels.count { pixel ->
+        ((pixel shr 16) and 0xff) <= 8 &&
+            ((pixel shr 8) and 0xff) <= 8 &&
+            (pixel and 0xff) <= 8
+    } >= pixels.size * 0.98f
+}
+
 private const val MotionFadeEdgeStart = 0.82f
 private const val MotionFadeCenterDrop = 0.09f
 private const val MotionFadeWidth = 0.06f
@@ -88,6 +99,7 @@ fun DynamicCoverView(
     onPlaybackError: (PlaybackException) -> Unit = {},
     onFrameSample: ((Bitmap) -> Unit)? = null,
     onPreviewSample: ((Bitmap) -> Unit)? = null,
+    onArtworkReady: (() -> Unit)? = null,
     bottomFadeColor: Color? = null,
     fitVideoWidth: Boolean = false,
     modifier: Modifier = Modifier
@@ -106,6 +118,7 @@ fun DynamicCoverView(
     }
     val currentFrameSample by rememberUpdatedState(onFrameSample)
     val currentPreviewSample by rememberUpdatedState(onPreviewSample)
+    val currentArtworkReady by rememberUpdatedState(onArtworkReady)
     val currentTextureView by rememberUpdatedState(textureView)
     val previewModel = remember(context, cover?.previewUrl, imageUrl, fitVideoWidth) {
         val url = cover?.previewUrl ?: imageUrl
@@ -138,7 +151,13 @@ fun DynamicCoverView(
                 firstFrame = true
                 // A cached video can render before the sampling coroutine is launched.
                 currentTextureView?.takeIf { it.isAvailable }?.let { view ->
-                    captureMotionSample(view, fitVideoWidth)?.let { currentFrameSample?.invoke(it) }
+                    captureMotionSample(view, fitVideoWidth)?.let { sample ->
+                        if (isBlankMotionFrame(sample)) sample.recycle()
+                        else {
+                            currentArtworkReady?.invoke()
+                            currentFrameSample?.invoke(sample) ?: sample.recycle()
+                        }
+                    }
                 }
             }
             override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -158,13 +177,20 @@ fun DynamicCoverView(
     LaunchedEffect(player, playing, failed) {
         player?.playWhenReady = playing && !failed
     }
-    LaunchedEffect(player, textureView, playing, firstFrame, failed, onFrameSample != null) {
+    LaunchedEffect(player, textureView, playing, firstFrame, failed,
+        onFrameSample != null, onArtworkReady != null) {
         val view = textureView
-        if (player != null && view != null && firstFrame && !failed && onFrameSample != null) {
+        if (player != null && view != null && firstFrame && !failed &&
+            (onFrameSample != null || onArtworkReady != null)) {
             do {
                 if (view.isAvailable) {
-                    captureMotionSample(view, fitVideoWidth)
-                        ?.let { currentFrameSample?.invoke(it) }
+                    captureMotionSample(view, fitVideoWidth)?.let { sample ->
+                        if (isBlankMotionFrame(sample)) sample.recycle()
+                        else {
+                            currentArtworkReady?.invoke()
+                            currentFrameSample?.invoke(sample) ?: sample.recycle()
+                        }
+                    }
                 }
                 if (!playing) break
                 delay((if (fitVideoWidth) 42 else 66).milliseconds)
@@ -190,6 +216,7 @@ fun DynamicCoverView(
             contentDescription = "专辑封面",
             contentScale = ContentScale.Crop,
             onSuccess = { success ->
+                currentArtworkReady?.invoke()
                 if (fitVideoWidth && cover?.previewUrl != null && currentPreviewSample != null) {
                     val source = success.result.image.toBitmap()
                     val view = currentTextureView

@@ -27,6 +27,7 @@ fun FluidBackground(
     imageUrl: String?,
     isPlaying: Boolean = true,
     renderAlpha: Float = 1f,
+    onArtworkReady: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -64,6 +65,7 @@ fun FluidBackground(
     AndroidView(
         factory = { ctx ->
             MeshBackgroundView(ctx).apply {
+                onAlbumRendered = onArtworkReady
                 // 初始化时的默认值
                 setFlowSpeed(flowSpeed)
                 setRenderScale(renderScale)
@@ -74,9 +76,10 @@ fun FluidBackground(
             }
         },
         update = { view ->
+            view.onAlbumRendered = onArtworkReady
             view.alpha = renderAlpha.coerceIn(0f, 1f)
             albumBitmap?.let { bmp ->
-                view.setAlbum(bmp)
+                imageUrl?.let { view.setAlbum(bmp, it) }
             }
 
             view.setFlowSpeed(flowSpeed)

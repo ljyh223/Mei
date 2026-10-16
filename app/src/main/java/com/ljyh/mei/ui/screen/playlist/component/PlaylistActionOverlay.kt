@@ -9,6 +9,7 @@ import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
 import com.ljyh.mei.ui.component.playlist.TrackActionMenu
+import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
@@ -60,7 +61,7 @@ fun PlaylistActionOverlay(
 
         is OverlayState.TrackActionMenu -> {
             TrackActionMenu(
-                targetTrack = overlay.track,
+                target = TrackMenuTarget(overlay.track, overlay.anchor),
                 isCreator = isCreator,
                 onDismiss = onDismiss,
                 onAddToPlaylist = {
@@ -73,6 +74,14 @@ fun PlaylistActionOverlay(
                     } else {
                         playerConnection.playNext(overlay.track.toMediaItem())
                         Toast.makeText(context, "已添加到下一首", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onAddToQueue = {
+                    if (playerConnection == null) {
+                        Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
+                    } else {
+                        playerConnection.addToQueue(overlay.track.toMediaItem())
+                        Toast.makeText(context, "已添加到队尾", Toast.LENGTH_SHORT).show()
                     }
                 },
                 onDownloadTrack = onDownloadTrack?.let { { it(overlay.track) } },

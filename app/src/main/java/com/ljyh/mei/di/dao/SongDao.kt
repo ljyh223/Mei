@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.model.room.SourceType
@@ -22,6 +23,32 @@ interface SongDao {
 
     @Query("SELECT * FROM song WHERE sourceType = :sourceType")
     fun getSongsBySource(sourceType: SourceType): Flow<List<Song>>
+
+    @Query("SELECT * FROM song WHERE sourceType = :sourceType")
+    suspend fun getSongsBySourceOnce(sourceType: SourceType): List<Song>
+
+    @Query("SELECT * FROM song WHERE id = :id LIMIT 1")
+    suspend fun getSongOnce(id: String): Song?
+
+    @Query("UPDATE song SET title = :title, artist = :artist, album = :album, cover = :cover, matchedNeteaseId = :matchedId, updatedAt = :time WHERE id = :id")
+    suspend fun updateMatchedMetadata(
+        id: String,
+        title: String,
+        artist: List<String>,
+        album: String,
+        cover: String,
+        matchedId: Long,
+        time: Long = System.currentTimeMillis(),
+    )
+
+    @Transaction
+    suspend fun synchronizeScannedSongs(songs: List<Song>) {
+        val presentIds = songs.mapTo(HashSet()) { it.id }
+        getSongsBySourceOnce(SourceType.LOCAL)
+            .filterNot { it.id in presentIds }
+            .forEach { deleteById(it.id) }
+        insertSongs(songs)
+    }
 
     @Query("SELECT * FROM song WHERE folderPath = :folderPath")
     fun getSongsByFolder(folderPath: String): Flow<List<Song>>

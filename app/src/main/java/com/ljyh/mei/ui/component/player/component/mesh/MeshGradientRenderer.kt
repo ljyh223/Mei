@@ -19,6 +19,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     private data class MeshState(
         val mesh: BHPMesh,
         val textureId: Int,
+        val albumKey: String,
         var alpha: Float,
         var targetAlpha: Float
     )
@@ -55,22 +56,40 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     private var isStatic: Boolean = false
 
     private var pendingAlbum: Bitmap? = null
+    private var pendingAlbumKey: String? = null
+    private var retainedAlbum: Bitmap? = null
+    private var retainedAlbumKey: String? = null
+    private var reportedAlbumKey: String? = null
     private var albumChanged: Boolean = false
+
+    var onAlbumRendered: ((String) -> Unit)? = null
 
     private val random = java.util.Random()
 
-    fun setAlbum(bitmap: Bitmap) {
+    fun setAlbum(bitmap: Bitmap, key: String) {
         synchronized(this) {
-            val old = pendingAlbum
-            if (old !== null && old !== bitmap) {
-                old.recycle()
-            }
+            retainedAlbum?.takeIf { it !== bitmap }?.recycle()
+            retainedAlbum = bitmap
+            retainedAlbumKey = key
             pendingAlbum = bitmap
+            pendingAlbumKey = key
             albumChanged = true
         }
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: javax.microedition.khronos.egl.EGLConfig?) {
+
+        // EGL textures and framebuffers do not survive a recreated GL context.
+        // Rebuild from the retained artwork instead of drawing an empty black frame.
+        synchronized(this) {
+            meshStates.clear()
+            fbo = 0
+            fboTexture = 0
+            pendingAlbum = retainedAlbum
+            pendingAlbumKey = retainedAlbumKey
+            reportedAlbumKey = null
+            albumChanged = retainedAlbum != null
+        }
 
         Timber.tag(TAG).d("GPU 渲染器: ${GLES30.glGetString(GLES30.GL_RENDERER)}")
         Timber.tag(TAG).d("GPU 厂商: ${GLES30.glGetString(GLES30.GL_VENDOR)}")
@@ -147,6 +166,13 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             drawQuad(fboTexture, easeAlpha)
         }
 
+        meshStates.firstOrNull()?.albumKey?.let { key ->
+            if (reportedAlbumKey != key) {
+                reportedAlbumKey = key
+                onAlbumRendered?.invoke(key)
+            }
+        }
+
         GLES30.glDisable(GLES30.GL_BLEND)
     }
 
@@ -155,7 +181,9 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             if (!albumChanged) return
             albumChanged = false
             val bitmap = pendingAlbum ?: return
+            val key = pendingAlbumKey ?: return
             pendingAlbum = null
+            pendingAlbumKey = null
 
             val processed = AlbumTextureProcessor.process(bitmap)
             val textureId = uploadTexture(processed)
@@ -168,7 +196,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             processed.recycle()
 
             isStatic = false
-            val newState = MeshState(mesh, textureId, 0f, 1f)
+            val newState = MeshState(mesh, textureId, key, if (meshStates.isEmpty()) 1f else 0f, 1f)
             for (existing in meshStates) {
                 existing.targetAlpha = -1f
             }
@@ -448,6 +476,8 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
 
     private val renderer = MeshGradientRenderer()
     private var submittedAlbum: Bitmap? = null
+    private var submittedAlbumKey: String? = null
+    var onAlbumRendered: ((String) -> Unit)? = null
     private var appliedFlowSpeed = renderer.flowSpeed
     private var appliedRenderScale = renderer.renderScale
     private var appliedSubdivision = renderer.subdivision
@@ -455,16 +485,19 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
     private var appliedPlaying = true
 
     init {
+        renderer.onAlbumRendered = { key -> post { onAlbumRendered?.invoke(key) } }
         setEGLContextClientVersion(3)
         setEGLConfigChooser(8, 8, 8, 8, 0, 0)
         setRenderer(renderer)
         renderMode = RENDERMODE_CONTINUOUSLY
     }
 
-    fun setAlbum(bitmap: Bitmap) {
-        if (bitmap.isRecycled || submittedAlbum === bitmap) return
+    fun setAlbum(bitmap: Bitmap, key: String) {
+        if (bitmap.isRecycled || (submittedAlbum === bitmap && submittedAlbumKey == key)) return
+        val owned = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
         submittedAlbum = bitmap
-        queueEvent { renderer.setAlbum(bitmap) }
+        submittedAlbumKey = key
+        queueEvent { renderer.setAlbum(owned, key) }
     }
 
     fun setFlowSpeed(speed: Float) {

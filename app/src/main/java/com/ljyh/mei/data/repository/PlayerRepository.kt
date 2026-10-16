@@ -7,11 +7,8 @@ import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.model.api.GetIntelligence
-import com.ljyh.mei.data.model.api.GetLyric
-import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.model.api.Intelligence
-import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.unblockneteasemusic.model.LyricRequest
 import com.ljyh.unblockneteasemusic.model.MusicAlbum
@@ -25,7 +22,6 @@ import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
 import com.ljyh.mei.utils.preferences.dataStore
-import com.ljyh.mei.data.model.api.CheckSongLike
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -33,7 +29,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okio.IOException
-import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class PlayerRepository(
@@ -89,40 +84,14 @@ class PlayerRepository(
             durationMs = durationSeconds * 1_000,
         )
 
-    suspend fun getLyric(id: String): Resource<Lyric> {
-        return withContext(Dispatchers.IO) {
-            safeApiCall {
-                apiService.getLyric(
-                    GetLyric(
-                        id = id
-                    )
-                )
-            }
-        }
-    }
-
-
     suspend fun getLyricV1(id: String): Resource<Lyric> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
-                apiService.getLyricV1(
-                    GetLyricV1(
-                        id = id
-                    )
-                )
+                apiService.getLyricV1(id)
             }
         }
     }
 
-
-    suspend fun like(id: String, like: Boolean) {
-        apiService.like(
-            Like(
-                trackId = id,
-                like = like
-            )
-        )
-    }
 
     private val amllClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -193,16 +162,6 @@ class PlayerRepository(
                 apiService.getSongDetail(
                     GetSongDetails(id)
                 ).songs.map { it.toMediaMetadata() }
-            }
-        }
-    }
-
-    suspend fun checkSongLike(id: Long): Resource<Boolean>{
-        return withContext(Dispatchers.IO){
-            safeApiCall {
-                val result = apiService.checkSongLike(CheckSongLike("[${id}]"))
-                Timber.tag("Player Repo").d(result.toString())
-                result.ids.contains(id)
             }
         }
     }

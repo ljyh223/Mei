@@ -33,7 +33,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -50,7 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.compose.LazyPagingItems
 import com.ljyh.mei.data.model.domain.MediaMetadata
-import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
@@ -106,12 +104,6 @@ fun CommonSongListScreen(
     }
     val supportsPlaylistSearch = onPlaylistSearchQueryChange != null
 
-
-    LaunchedEffect(Unit) {
-        if (uiData.title.endsWith("喜欢的音乐")) {
-            viewModel.updateAllLike(uiData.tracks.map { Like(it.id.toString()) })
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -268,7 +260,7 @@ fun CommonSongListScreen(
                                     isTablet = true,
                                     lazyListState = lazyListState,
                                     onTrackClick = onTrackClick,
-                                    onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                                    onMoreClick = { track, anchor -> currentOverlay = OverlayState.TrackActionMenu(track, anchor) },
                                     onTrackDownload = onTrackDownload,
                                     reorderItems = reorderItems.takeIf { !isPlaylistSearchActive },
                                     reorderSaving = reorderSaving,
@@ -307,7 +299,7 @@ fun CommonSongListScreen(
                                 )
                             },
                             onTrackClick = onTrackClick,
-                            onMoreClick = { currentOverlay = OverlayState.TrackActionMenu(it) },
+                            onMoreClick = { track, anchor -> currentOverlay = OverlayState.TrackActionMenu(track, anchor) },
                             onTrackDownload = onTrackDownload,
                             reorderItems = reorderItems.takeIf { !isPlaylistSearchActive },
                             reorderSaving = reorderSaving,

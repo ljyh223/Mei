@@ -16,13 +16,12 @@ import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
-import com.ljyh.mei.data.model.room.Like
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.safeApiCall
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.di.repository.LikeRepository
+import com.ljyh.mei.data.repository.LikedSongsRepository
 import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.get
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,7 +38,7 @@ import javax.inject.Inject
 class PlaylistViewModel @Inject constructor(
     private val repository: PlaylistRepository,
     private val userRepository: UserRepository,
-    private val likeRepository: LikeRepository,
+    private val likedSongsRepository: LikedSongsRepository,
     private val localPlaylistRepository: com.ljyh.mei.di.repository.LocalPlaylistRepository,
 ) : ViewModel() {
     val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
@@ -80,8 +79,18 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             _removedTrackIds.value = emptySet()
             _playlistDetail.value = Resource.Loading
-            _playlistDetail.value = repository.getPlaylistDetail(id)
+            val detail = repository.getPlaylistDetail(id)
+            _playlistDetail.value = detail
             localPlaylistRepository.touchPlaylist(id, System.currentTimeMillis())
+            val currentUserId = AppContext.instance.dataStore[UserIdKey].orEmpty()
+            if (detail is Resource.Success && currentUserId.isNotEmpty() &&
+                detail.data.creatorUserId.toString() == currentUserId &&
+                detail.data.name.endsWith("喜欢的音乐")) {
+                when (val result = likedSongsRepository.refresh(currentUserId)) {
+                    is Resource.Error -> Timber.tag("LikedSongs").w("Playlist sync failed: %s", result.message)
+                    else -> Unit
+                }
+            }
         }
     }
 
@@ -206,12 +215,6 @@ class PlaylistViewModel @Inject constructor(
         }.cachedIn(viewModelScope)
     }
 
-
-    fun updateAllLike(likes: List<Like>) {
-        viewModelScope.launch {
-            likeRepository.updateAllLike(likes)
-        }
-    }
 
     fun addSongToPlaylist(
         pid: String,

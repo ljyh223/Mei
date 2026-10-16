@@ -70,6 +70,7 @@ import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.ui.component.item.TrackPlaceholder
 import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
+import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.local.LocalNavController
@@ -88,7 +89,7 @@ fun ArtistScreen(
 ) {
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    var menuTrack by remember { mutableStateOf<MediaMetadata?>(null) }
+    var menuTrack by remember { mutableStateOf<TrackMenuTarget?>(null) }
 
     val artistDetail by viewModel.artistDetail.collectAsState()
     val artistAlbums by viewModel.artistAlbums.collectAsState()
@@ -197,7 +198,7 @@ fun ArtistScreen(
                                     }
                                 )
                             },
-                            onMoreClick = { menuTrack = song.toMediaMetadata() }
+                            onMoreClick = { anchor -> menuTrack = TrackMenuTarget(song.toMediaMetadata(), anchor) }
                         )
                     }
                 }

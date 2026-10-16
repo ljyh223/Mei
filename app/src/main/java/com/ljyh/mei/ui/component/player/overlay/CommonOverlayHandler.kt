@@ -154,15 +154,7 @@ fun CommonOverlayHandler(
                 },
                 onActionClick = { action ->
                     if(action == MoreAction.COMMENT){
-                        stateContainer.mediaMetadata.value?.let { v->
-                            if (!overlayHandler.showInlineComments()) {
-                                navigateFromPlayer {
-                                    Screen.Comment.navigate(navController) {
-                                        addPath(v.id.toString())
-                                    }
-                                }
-                            }
-                        }
+                        stateContainer.mediaMetadata.value?.let { overlayHandler.showInlineComments() }
 
                     } else if (action == MoreAction.DOWNLOAD) {
                         pendingDownload = stateContainer.mediaMetadata.value

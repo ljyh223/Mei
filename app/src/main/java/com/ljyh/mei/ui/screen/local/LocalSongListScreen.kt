@@ -64,11 +64,13 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.model.room.Song
+import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.playlist.PlaylistBackground
 import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
+import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -76,6 +78,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
 import java.io.File
+import android.net.Uri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +91,8 @@ fun LocalSongListScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    var menuTrack by remember { mutableStateOf<MediaMetadata?>(null) }
+    var menuTrack by remember { mutableStateOf<TrackMenuTarget?>(null) }
+    var enrichSong by remember { mutableStateOf<Song?>(null) }
     val db = AppDatabase.getDatabase(context)
 
     val songs by when (filterType) {
@@ -180,9 +184,8 @@ fun LocalSongListScreen(
                             staticTracks = tracks,
                             isTablet = true,
                             onTrackClick = { track, index ->
-                                val isLost = songs.find { it.id == track.id.toString() }?.let {
-                                    it.path == null || !File(it.path).exists()
-                                } ?: false
+                                val isLost = songs.find { it.toMediaMetadata().id == track.id }
+                                    ?.let { !isLocalFileAvailable(context, it) } ?: false
                                 if (!isLost) {
                                     playerConnection.onTrackClicked(
                                         trackId = track.id.toString(),
@@ -190,7 +193,7 @@ fun LocalSongListScreen(
                                     )
                                 }
                             },
-                            onMoreClick = { menuTrack = it }
+                            onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor) }
                         )
                     }
                 } else {
@@ -207,9 +210,8 @@ fun LocalSongListScreen(
                             )
                         },
                         onTrackClick = { track, index ->
-                            val isLost = songs.find { it.id == track.id.toString() }?.let {
-                                it.path == null || !File(it.path).exists()
-                            } ?: false
+                            val isLost = songs.find { it.toMediaMetadata().id == track.id }
+                                ?.let { !isLocalFileAvailable(context, it) } ?: false
                             if (!isLost) {
                                 playerConnection.onTrackClicked(
                                     trackId = track.id.toString(),
@@ -217,7 +219,7 @@ fun LocalSongListScreen(
                                 )
                             }
                         },
-                        onMoreClick = { menuTrack = it },
+                        onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor) },
                         contentPadding = PaddingValues(
                             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
                                 .calculateBottomPadding()
@@ -227,7 +229,26 @@ fun LocalSongListScreen(
             }
         }
     }
-    BasicTrackActionMenu(menuTrack) { menuTrack = null }
+    val selectedLocalSong = menuTrack?.track?.id?.let { id ->
+        songs.firstOrNull { it.sourceType == SourceType.LOCAL && it.toMediaMetadata().id == id }
+    }
+    BasicTrackActionMenu(
+        target = menuTrack,
+        onCompleteMetadata = selectedLocalSong?.let { song -> { enrichSong = song } },
+        onDismiss = { menuTrack = null },
+    )
+    enrichSong?.let { song ->
+        LocalMetadataSheet(song = song, onDismiss = { enrichSong = null })
+    }
+}
+
+private fun isLocalFileAvailable(context: android.content.Context, song: Song): Boolean {
+    val path = song.path ?: return false
+    return if (path.startsWith("content://")) {
+        runCatching {
+            context.contentResolver.openFileDescriptor(Uri.parse(path), "r")?.use { true } ?: false
+        }.getOrDefault(false)
+    } else File(path).isFile
 }
 
 @Composable

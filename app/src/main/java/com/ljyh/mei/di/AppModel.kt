@@ -2,6 +2,7 @@ package com.ljyh.mei.di
 
 import android.content.Context
 import com.google.gson.Gson
+import com.ljyh.mei.di.dao.SongDao
 import com.ljyh.mei.di.repository.AlbumsRepository
 import com.ljyh.mei.di.repository.CachedLyricRepository
 import com.ljyh.mei.di.repository.ColorRepository
@@ -38,6 +39,9 @@ object AppModule {
     @Provides
     fun provideSongDao(db: AppDatabase): SongRepository =
         SongRepository(db.songDao())
+
+    @Provides
+    fun provideSongDaoInstance(db: AppDatabase): SongDao = db.songDao()
 
     @Provides
     fun provideQQSongDao(db: AppDatabase): QQSongRepository =

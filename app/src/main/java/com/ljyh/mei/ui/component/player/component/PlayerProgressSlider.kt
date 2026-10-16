@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +56,7 @@ fun PlayerProgressSlider(
     duration: Long,
     isPlaying: Boolean, // 新增：需要根据播放状态控制波浪滚动
     onPositionChange: (Long) -> Unit,
+    onPositionPreview: (Long) -> Unit = {},
     showMusicQuality: Boolean = true,
     showRemainingTime: Boolean = false,
     modifier: Modifier = Modifier
@@ -70,9 +72,10 @@ fun PlayerProgressSlider(
 
     // 内部拖拽位置状态
     var rawDragPosition by remember { mutableFloatStateOf(0f) }
+    var hasScrubbed by remember { mutableStateOf(false) }
 
     // 计算当前显示的值
-    val sliderPosition = if (isUserDragging) {
+    val sliderPosition = if (isUserDragging && hasScrubbed) {
         rawDragPosition
     } else {
         position.toFloat()
@@ -112,11 +115,14 @@ fun PlayerProgressSlider(
             value = sliderPosition,
             onValueChange = {
                 rawDragPosition = it
+                hasScrubbed = true
+                onPositionPreview(it.roundToLong())
             },
             onValueChangeFinished = {
                 if (isDurationValid) {
                     onPositionChange(rawDragPosition.roundToLong())
                 }
+                hasScrubbed = false
             },
             valueRange = valueRange,
             interactionSource = interactionSource,

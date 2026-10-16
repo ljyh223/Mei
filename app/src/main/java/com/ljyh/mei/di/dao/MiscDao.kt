@@ -29,20 +29,32 @@ interface ColorDao {
 
 @Dao
 interface LikeDao {
-    @Query("SELECT * FROM `like` where id=:id")
-    suspend fun getLike(id: String): Like?
+    @Query("SELECT EXISTS(SELECT 1 FROM `like` WHERE userId = :userId AND id = :id)")
+    fun observeLiked(userId: String, id: String): Flow<Boolean>
 
-    @Query("SELECT * FROM `like`")
-    suspend fun getALlLike(): List<Like>
+    @Query("SELECT EXISTS(SELECT 1 FROM `like` WHERE userId = :userId AND id = :id)")
+    suspend fun isLiked(userId: String, id: String): Boolean
+
+    @Query("SELECT * FROM `like` WHERE userId = :userId")
+    suspend fun getAllForUser(userId: String): List<Like>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLikes(likes: List<Like>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLike(like: Like)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun updateALlLike(likes: List<Like>)
+    @Query("DELETE FROM `like` WHERE userId = :userId AND id = :id")
+    suspend fun deleteLike(userId: String, id: String)
 
-    @Query("DELETE FROM `like` where id=:id")
-    suspend fun deleteLike(id: String)
+    @Query("DELETE FROM `like` WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
+    @Transaction
+    suspend fun replaceAllForUser(userId: String, ids: Collection<String>) {
+        deleteAllForUser(userId)
+        insertLikes(ids.map { Like(userId, it) })
+    }
 }
 
 @Dao

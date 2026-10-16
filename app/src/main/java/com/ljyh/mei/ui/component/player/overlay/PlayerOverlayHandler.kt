@@ -47,6 +47,8 @@ class PlayerOverlayHandler(
 
     private val _tabletPanel = mutableStateOf(TabletPlayerPanel.Lyrics)
     val tabletPanel: State<TabletPlayerPanel> = _tabletPanel
+    private val _phoneComments = mutableStateOf(false)
+    val phoneComments: State<Boolean> = _phoneComments
 
     val currentOverlayValue: OverlayState
         get() = _currentOverlay.value
@@ -68,13 +70,13 @@ class PlayerOverlayHandler(
 
     fun showLyrics() {
         _tabletPanel.value = TabletPlayerPanel.Lyrics
+        _phoneComments.value = false
     }
 
-    fun showInlineComments(): Boolean {
-        if (!useInlineQueue) return false
-        _tabletPanel.value = TabletPlayerPanel.Comments
+    fun showInlineComments() {
+        if (useInlineQueue) _tabletPanel.value = TabletPlayerPanel.Comments
+        else _phoneComments.value = true
         dismiss()
-        return true
     }
 
     /**

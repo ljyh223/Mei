@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntRect
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
@@ -53,7 +54,7 @@ fun PlaylistTrackList(
     isTablet: Boolean = false,
     headerContent: (@Composable () -> Unit)? = null, // 新增：可选的头部内容
     onTrackClick: (MediaMetadata, Int) -> Unit,
-    onMoreClick: (MediaMetadata) -> Unit,
+    onMoreClick: (MediaMetadata, IntRect) -> Unit,
     reorderItems: List<PlaylistOrderItem>? = null,
     reorderSaving: Boolean = false,
     onMoveTrack: (Int, Int) -> Unit = { _, _ -> },
@@ -115,7 +116,7 @@ fun PlaylistTrackList(
                             index = index,
                             isTablet = isTablet,
                             onClick = { if (item.track != null) onTrackClick(item.track, index) },
-                            onMoreClick = { if (item.track != null) onMoreClick(item.track) },
+                            onMoreClick = { anchor -> if (item.track != null) onMoreClick(item.track, anchor) },
                             moreButtonModifier = if (reorderSaving) Modifier else
                                 Modifier.longPressDraggableHandle(
                                     onDragStarted = {
@@ -156,7 +157,7 @@ fun PlaylistTrackList(
                             index = index,
                             isTablet = isTablet,
                             onClick = { onTrackClick(track, index) },
-                            onMoreClick = { onMoreClick(track) }
+                            onMoreClick = { anchor -> onMoreClick(track, anchor) }
                         )
                     }
                 }
@@ -205,7 +206,7 @@ fun PlaylistTrackList(
                         index = index,
                         isTablet = isTablet,
                         onClick = { onTrackClick(track, index) },
-                        onMoreClick = { onMoreClick(track) }
+                        onMoreClick = { anchor -> onMoreClick(track, anchor) }
                     )
                 }
                 if (emptyMessage != null && staticTracks.isEmpty()) {

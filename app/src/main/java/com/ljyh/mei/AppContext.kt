@@ -1,6 +1,7 @@
 package com.ljyh.mei
 
 import android.app.Application
+import androidx.datastore.preferences.core.edit
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -10,7 +11,14 @@ import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.ljyh.mei.constants.DynamicCoverKey
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
+import com.ljyh.mei.constants.CookieKey
+import com.ljyh.mei.constants.UserIdKey
+import com.ljyh.mei.constants.UserNicknameKey
+import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.data.repository.DynamicCoverRepository
+import com.ljyh.mei.data.repository.LikedSongsRepository
+import com.ljyh.mei.data.repository.UserRepository
+import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.power.canUseBatteryIntensiveFeatures
 import dagger.hilt.android.HiltAndroidApp
@@ -19,6 +27,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -27,11 +38,34 @@ import javax.inject.Inject
 @HiltAndroidApp
 class AppContext : Application(), SingletonImageLoader.Factory {
     @Inject lateinit var dynamicCoverRepository: DynamicCoverRepository
+    @Inject lateinit var likedSongsRepository: LikedSongsRepository
+    @Inject lateinit var userRepository: UserRepository
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        startupScope.launch {
+            dataStore.data
+                .map { preferences -> preferences[CookieKey].orEmpty() to preferences[UserIdKey].orEmpty() }
+                .distinctUntilChanged()
+                .collectLatest { (cookie, userId) ->
+                    if (cookie.isBlank()) return@collectLatest
+                    if (userId.isBlank()) {
+                        val account = (userRepository.getUserAccount() as? Resource.Success)
+                            ?.data?.takeIf { it.code == 200 }?.profile ?: return@collectLatest
+                        dataStore.edit { preferences ->
+                            if (preferences[CookieKey] == cookie) {
+                                preferences[UserIdKey] = account.userId.toString()
+                                preferences[UserNicknameKey] = account.nickname
+                                preferences[UserAvatarUrlKey] = account.avatarUrl
+                            }
+                        }
+                    } else {
+                        likedSongsRepository.refresh(userId, force = false)
+                    }
+                }
+        }
         startupScope.launch {
             try {
                 if (dataStore.data.first()[DynamicCoverKey] == true &&

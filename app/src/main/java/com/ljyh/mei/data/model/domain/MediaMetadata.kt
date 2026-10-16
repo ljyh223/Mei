@@ -225,7 +225,7 @@ val MediaItem.metadata: MediaMetadata?
 
 
 fun com.ljyh.mei.data.model.room.Song.toMediaMetadata(): MediaMetadata {
-    val songId = id.removePrefix("local_").removePrefix("-").let { sid ->
+    val songId = id.removePrefix("local_").let { sid ->
         sid.toLongOrNull() ?: sid.hashCode().toLong().let { if (it < 0) -it else it }
     }
     return MediaMetadata(

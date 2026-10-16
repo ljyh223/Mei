@@ -15,8 +15,7 @@ import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
-import com.ljyh.mei.data.model.api.CheckSongLike
-import com.ljyh.mei.data.model.api.CheckSongLikeResult
+import com.ljyh.mei.data.model.api.LikedSongListResponse
 import com.ljyh.mei.data.model.api.CreatePlaylist
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.DeletePlaylist
@@ -26,8 +25,6 @@ import com.ljyh.mei.data.model.api.GetArtistDetail
 import com.ljyh.mei.data.model.api.GetArtistSong
 import com.ljyh.mei.data.model.api.GetComment
 import com.ljyh.mei.data.model.api.GetIntelligence
-import com.ljyh.mei.data.model.api.GetLyric
-import com.ljyh.mei.data.model.api.GetLyricV1
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
 import com.ljyh.mei.data.model.api.GetSearch
 import com.ljyh.mei.data.model.api.GetSearchSuggest
@@ -45,7 +42,6 @@ import com.ljyh.mei.data.model.api.SearchSuggest
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.weapi.Comment
 import com.ljyh.mei.data.model.weapi.Like
-import com.ljyh.mei.data.model.weapi.LikeResult
 import com.ljyh.mei.data.network.NeteaseHttp
 import com.ljyh.mei.data.network.XeApiClient
 
@@ -62,14 +58,11 @@ class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) 
         http.post(base, "/api/nuser/account/get", emptyMap<String, String>())
     suspend fun getUserDetail(id: String, body: Map<String, String> = emptyMap()): UserDetail =
         http.post(base, "/api/v1/user/detail/$id", body)
-    suspend fun getLyric(body: GetLyric): Lyric =
-        http.post(base, "/api/song/lyric", body)
-    suspend fun getLyricV1(body: GetLyricV1): Lyric =
-        http.post(base, "/api/song/lyric/v1", body)
+    suspend fun getLyricV1(id: String): Lyric = xeApi.getLyricV1(id)
     suspend fun getUserPlaylist(body: GetUserPlaylist): UserPlaylist =
         http.post(base, "/api/user/playlist", body)
-    suspend fun checkSongLike(body: CheckSongLike): CheckSongLikeResult =
-        http.post(base, "/api/song/like/check", body)
+    suspend fun getLikedSongs(uid: String): LikedSongListResponse =
+        http.post(base, "/eapi/song/like/get", mapOf("uid" to uid))
     suspend fun getCollectAlbumList(body: GetAlbumList): UserAlbumList =
         http.post(base, "/api/album/sublist", body)
     suspend fun getAlbumDetail(body: Map<String, String> = emptyMap(), id: String): AlbumDetail =
@@ -84,8 +77,7 @@ class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) 
         http.post(base, "/api/song/enhance/player/url", body)
     suspend fun getUserPhotoAlbum(body: GetUserPhotoAlbum): AlbumPhoto =
         http.post(base, "/api/user/photo/album/get", body)
-    suspend fun like(body: Like): LikeResult =
-        http.post(base, "/api/radio/like", body)
+    suspend fun like(body: Like): BaseResponse = xeApi.like(body)
     suspend fun manipulateTracks(body: ManipulateTrack): ManipulateTrackResult =
         http.post(base, "/api/playlist/manipulate/tracks", body)
     suspend fun updatePlaylistTrackOrder(body: UpdatePlaylistTrackOrder): BaseResponse =

@@ -60,7 +60,7 @@ fun ContentsSetting(
 ) {
     val navController = LocalNavController.current
     val context = LocalContext.current
-    val (cookie, onCookie) = rememberPreference(
+    val (cookie) = rememberPreference(
         CookieKey,
         defaultValue = ""
     )
@@ -159,7 +159,7 @@ fun ContentsSetting(
                 title = { Text("网易云Cookie: MUSIC_U") },
                 icon = { Icon(Icons.Rounded.Cookie, "网易云Cookie: MUSIC_U") },
                 value = cookie,
-                onValueChange = onCookie,
+                onValueChange = viewModel::saveCookie,
                 sensitive = true,
             )
 

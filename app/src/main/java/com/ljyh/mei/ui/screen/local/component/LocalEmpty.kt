@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal fun EmptyLocalMusic() {
+internal fun EmptyLocalMusic(
+    hasPermission: Boolean,
+    isScanning: Boolean,
+    onScan: () -> Unit,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             Icons.Rounded.LibraryMusic,
@@ -31,9 +36,13 @@ internal fun EmptyLocalMusic() {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "下载歌曲来开始",
+            if (isScanning) "正在扫描设备音乐" else if (hasPermission) "设备中没有找到音乐文件" else "允许读取音频后扫描设备音乐",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
         )
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onScan, enabled = !isScanning) {
+            Text(if (hasPermission) "重新扫描" else "允许并扫描")
+        }
     }
 }

@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntRect
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
@@ -41,6 +42,7 @@ import com.ljyh.mei.ui.component.item.ArtistItem
 import com.ljyh.mei.ui.component.item.PlaylistItem
 import com.ljyh.mei.ui.component.item.Track
 import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
+import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -56,7 +58,7 @@ fun SearchResultScreen(
     // 状态收集
     val searchState by viewModel.searchResult.collectAsState()
     val selectedType by viewModel.currentTab.collectAsState()
-
+    // TODO: 适配新的搜索结果界面
     // 初始化逻辑：只需在进入界面（或 query 改变）时调用一次
     LaunchedEffect(query, type) {
         viewModel.onSearchInit(query, type)
@@ -64,7 +66,7 @@ fun SearchResultScreen(
 
     val playerConnection = LocalPlayerConnection.current
     val navController = LocalNavController.current
-    var menuTrack by remember { mutableStateOf<MediaMetadata?>(null) }
+    var menuTrack by remember { mutableStateOf<TrackMenuTarget?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -108,7 +110,7 @@ fun SearchResultScreen(
                             )
                         )
                     },
-                    onSongMoreClick = { menuTrack = it },
+                    onSongMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor) },
                 )
             }
         }
@@ -170,7 +172,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
     type: SearchType,
     navController: NavController,
     onSongClick: (List<MediaMetadata>, Int) -> Unit,
-    onSongMoreClick: (MediaMetadata) -> Unit,
+    onSongMoreClick: (MediaMetadata, IntRect) -> Unit,
 ) {
     when (type) {
         SearchType.Song -> {
@@ -184,7 +186,7 @@ fun androidx.compose.foundation.lazy.LazyListScope.SearchResultList(
                         val index = songs.indexOfFirst { it.id == song.id }
                         onSongClick(songs, maxOf(0, index))
                     },
-                    onMoreClick = { onSongMoreClick(song) }
+                    onMoreClick = { anchor -> onSongMoreClick(song, anchor) }
                 )
             }
         }
