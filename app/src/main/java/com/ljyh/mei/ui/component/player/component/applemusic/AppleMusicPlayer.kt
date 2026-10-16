@@ -612,7 +612,7 @@ fun AppleMusicPlayer(
                         if (showComments) {
                             PlayerCommentsContent(
                                 songId = mediaMetadata?.id?.toString().orEmpty(),
-                                onBackToLyrics = overlayHandler::showLyrics,
+                                onControlsVisibilityChange = { stateContainer.controlsVisible = it },
                                 onViewAllComments = {
                                     mediaMetadata?.let { song ->
                                         state.collapseThen {

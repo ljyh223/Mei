@@ -1,28 +1,30 @@
 package com.ljyh.mei.ui.component.player.component.classic
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
@@ -37,14 +39,32 @@ import com.ljyh.mei.ui.screen.comment.component.CommentItem
 fun PlayerCommentsContent(
     songId: String,
     onViewAllComments: () -> Unit,
-    onBackToLyrics: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onControlsVisibilityChange: (Boolean) -> Unit = {},
     viewModel: CommentViewModel = hiltViewModel(),
 ) {
-    val total by viewModel.total.collectAsState()
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
     val floorComments by viewModel.floorComments.collectAsState()
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
+    val currentOnControlsVisibilityChange by rememberUpdatedState(onControlsVisibilityChange)
+    val scrollThreshold = with(LocalDensity.current) { 10.dp.toPx() }
+    val scrollConnection = remember(scrollThreshold) {
+        object : NestedScrollConnection {
+            private var accumulatedScroll = 0f
+
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
+                val delta = available.y
+                if (accumulatedScroll * delta < 0f) accumulatedScroll = 0f
+                accumulatedScroll += delta
+                if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
+                    currentOnControlsVisibilityChange(accumulatedScroll > 0f)
+                    accumulatedScroll = 0f
+                }
+                return Offset.Zero
+            }
+        }
+    }
 
     LaunchedEffect(songId) {
         if (songId.isNotBlank()) {
@@ -53,25 +73,12 @@ fun PlayerCommentsContent(
         }
     }
 
-    LazyColumn(modifier = modifier) {
+    LazyColumn(modifier = modifier.nestedScroll(scrollConnection)) {
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd,
             ) {
-                onBackToLyrics?.let { onBack ->
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回歌词", tint = Color.White)
-                    }
-                }
-                Text(
-                    text = if (total > 0) "热门评论 · $total" else "热门评论",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                )
-                Spacer(Modifier.weight(1f))
                 IconButton(onClick = onViewAllComments) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "查看全部评论", tint = Color.White)
                 }
@@ -88,7 +95,7 @@ fun PlayerCommentsContent(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("评论加载失败", color = MaterialTheme.colorScheme.error)
+                    Text("评论加载失败", color = Color(0xFFFFDAD6))
                 }
             }
 
@@ -99,7 +106,7 @@ fun PlayerCommentsContent(
                             modifier = Modifier.fillMaxWidth().padding(24.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("暂无评论", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("暂无评论", color = Color.White.copy(alpha = 0.82f))
                         }
                     }
                 }
@@ -114,6 +121,7 @@ fun PlayerCommentsContent(
                         isExpanded = isExpanded,
                         floorComments = if (isExpanded) floorComments else Resource.Loading,
                         onToggleFloor = viewModel::toggleFloorComments,
+                        lightText = true,
                     )
                 }
                 if (pagingItems.loadState.append is LoadState.Loading) {
@@ -130,6 +138,6 @@ private fun LoadingIndicator() {
         modifier = Modifier.fillMaxWidth().padding(24.dp),
         contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
     }
 }

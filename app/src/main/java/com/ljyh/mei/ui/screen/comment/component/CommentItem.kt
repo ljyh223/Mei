@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,8 +41,13 @@ fun CommentItem(
     isExpanded: Boolean,
     floorComments: Resource<List<FloorCommentEntry>>,
     onToggleFloor: (Long, Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lightText: Boolean = false,
 ) {
+    val primaryText = if (lightText) Color.White else MaterialTheme.colorScheme.onSurface
+    val secondaryText = if (lightText) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val mutedText = if (lightText) Color.White.copy(alpha = 0.68f) else MaterialTheme.colorScheme.outline
+    val accentText = if (lightText) Color.White else MaterialTheme.colorScheme.primary
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -63,7 +69,7 @@ fun CommentItem(
                 Text(
                     text = comment.user.nickname,
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = secondaryText
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -71,7 +77,7 @@ fun CommentItem(
                 Text(
                     text = comment.content,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = primaryText
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -80,14 +86,14 @@ fun CommentItem(
                     Text(
                         text = comment.timeText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = mutedText
                     )
 
                     if (comment.location?.isNotBlank() == true) {
                         Text(
                             text = "  IP: ${comment.location}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
+                            color = mutedText
                         )
                     }
 
@@ -97,15 +103,13 @@ fun CommentItem(
                         imageVector = Icons.Default.ThumbUp,
                         contentDescription = null,
                         modifier = Modifier.size(12.dp),
-                        tint = if (comment.liked) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outline
+                        tint = if (comment.liked) accentText else mutedText
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = if (comment.likedCount > 0) comment.likedCount.toString() else "",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (comment.liked) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outline
+                        color = if (comment.liked) accentText else mutedText
                     )
                 }
 
@@ -115,7 +119,7 @@ fun CommentItem(
                     Text(
                         text = if (isExpanded) "收起回复" else "展开 $floorCount 条回复",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = accentText,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .clickable { onToggleFloor(comment.id, floorCount) }
@@ -135,7 +139,8 @@ fun CommentItem(
                     .fillMaxWidth()
                     .padding(start = 62.dp, end = 16.dp, bottom = 4.dp)
                     .background(
-                        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f),
+                        if (lightText) Color.White.copy(alpha = 0.08f)
+                        else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f),
                         RoundedCornerShape(8.dp)
                     )
             ) {
@@ -152,7 +157,7 @@ fun CommentItem(
                     is Resource.Success -> {
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
                             floorComments.data.forEach { floor ->
-                                FloorCommentItem(comment = floor)
+                                FloorCommentItem(comment = floor, lightText = lightText)
                             }
                         }
                     }
@@ -161,7 +166,7 @@ fun CommentItem(
                         Text(
                             text = "加载失败",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
+                            color = if (lightText) Color(0xFFFFDAD6) else MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(12.dp)
                         )
                     }

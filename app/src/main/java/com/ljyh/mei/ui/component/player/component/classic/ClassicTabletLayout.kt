@@ -226,7 +226,6 @@ fun ClassicTabletLayout(
                     PlayerCommentsContent(
                         songId = mediaMetadata?.id?.toString().orEmpty(),
                         onViewAllComments = { mediaMetadata?.let { onViewAllComments(it.id) } },
-                        onBackToLyrics = overlayHandler::showLyrics,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = PlayerHorizontalPadding)

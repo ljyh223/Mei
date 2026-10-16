@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -26,8 +27,12 @@ import com.ljyh.mei.data.model.domain.FloorCommentEntry
 @Composable
 fun FloorCommentItem(
     comment: FloorCommentEntry,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lightText: Boolean = false,
 ) {
+    val primaryText = if (lightText) Color.White else MaterialTheme.colorScheme.onSurface
+    val secondaryText = if (lightText) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val mutedText = if (lightText) Color.White.copy(alpha = 0.68f) else MaterialTheme.colorScheme.outline
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -48,7 +53,7 @@ fun FloorCommentItem(
             Text(
                 text = comment.user.nickname,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = secondaryText
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -56,7 +61,7 @@ fun FloorCommentItem(
             Text(
                 text = comment.content,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface
+                color = primaryText
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -65,7 +70,7 @@ fun FloorCommentItem(
                 Text(
                     text = comment.timeText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = mutedText
                 )
 
                 val location = comment.location
@@ -73,7 +78,7 @@ fun FloorCommentItem(
                     Text(
                         text = "  IP: $location",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = mutedText
                     )
                 }
 
@@ -84,13 +89,13 @@ fun FloorCommentItem(
                         imageVector = Icons.Default.ThumbUp,
                         contentDescription = null,
                         modifier = Modifier.size(12.dp),
-                        tint = MaterialTheme.colorScheme.outline
+                        tint = mutedText
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
                         text = comment.likedCount.toString(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = mutedText
                     )
                 }
             }
