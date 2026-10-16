@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -31,10 +32,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
-import com.ljyh.mei.BuildConfig
+import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.utils.preferences.rememberPreference
 import com.ljyh.mei.utils.system.setClipboard
 
 data class TrackMenuTarget(val track: MediaMetadata, val anchor: IntRect)
@@ -78,6 +80,7 @@ fun TrackActionMenu(
     val track = target?.track ?: return
     val context = LocalContext.current
     val density = LocalDensity.current
+    val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
     val maxHeight = (LocalConfiguration.current.screenHeightDp.dp - 32.dp).coerceIn(120.dp, 360.dp)
     val margin = with(density) { 8.dp.roundToPx() }
 
@@ -111,7 +114,7 @@ fun TrackActionMenu(
                 HorizontalDivider()
                 MenuAction("复制歌名", Icons.Rounded.ContentCopy) { onDismiss(); onCopyName() }
                 MenuAction("复制歌曲 ID", Icons.Rounded.ContentCopy) { onDismiss(); onCopyId() }
-                if (BuildConfig.DEBUG) {
+                if (debugEnabled) {
                     HorizontalDivider()
                     val debugFields = listOf(
                         "歌手" to track.artists.joinToString(" / ") { it.name },

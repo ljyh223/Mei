@@ -53,6 +53,7 @@ val MusicCacheLimitMbKey = intPreferencesKey("musicCacheLimitMb")
 val CoverStyleKey = stringPreferencesKey("coverStyle")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
 val PlayerActionKey = stringPreferencesKey("playerBottomAction")
+val MoreActionOrderKey = stringPreferencesKey("moreActionOrder")
 
 val NormalLyricTextSizeKey = stringPreferencesKey("lyricTextSize")
 val NormalLyricTextBoldKey = booleanPreferencesKey("lyricTextBold")

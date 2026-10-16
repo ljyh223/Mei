@@ -1,19 +1,24 @@
 package com.ljyh.mei.ui.component.player.component.sheet
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,110 +26,178 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.ui.component.player.PlayerViewModel
+import com.ljyh.mei.constants.MoreActionOrderKey
 import com.ljyh.mei.ui.model.MoreAction
-import com.ljyh.mei.ui.model.SortOrder
+import com.ljyh.mei.utils.preferences.rememberPreference
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreActionsSheet(
     onDismissRequest: () -> Unit,
     onActionClick: (MoreAction) -> Unit,
-    viewModel: PlayerViewModel
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val sortOrder by viewModel.moreSortOrder.collectAsState()
-    val moreActions by viewModel.sortedMoreActions.collectAsState()
-    val primaryActions = listOf(MoreAction.ADD_TO_PLAYLIST, MoreAction.VIEW_PLAYLIST, MoreAction.COMMENT)
-    val secondaryActions = moreActions.filterNot { it in primaryActions }
-    val expanded = sheetState.currentValue == SheetValue.Expanded
-    val sheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.82f
+    val (savedOrder, saveOrder) = rememberPreference(MoreActionOrderKey, defaultValue = "")
+    var actions by remember { mutableStateOf(MoreAction.entries.toList()) }
+    val draft = remember { mutableStateListOf<MoreAction>() }
+    var editing by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    val listState = rememberLazyListState()
+    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+        draft.moveAction(from.index, to.index)
+        haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+    }
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { target -> target != SheetValue.Hidden || !editing },
+    )
+    LaunchedEffect(savedOrder) { actions = MoreAction.orderedBy(savedOrder) }
 
-    // 排序 Dialog 状态
-    var showSortOptions by remember { mutableStateOf(false) }
-
-    if (showSortOptions) {
-        SortOptionsDialog(
-            currentOrder = sortOrder,
-            onOrderSelected = {
-                viewModel.setMoreSortOrder(it)
-                showSortOptions = false
-            },
-            onDismiss = { showSortOptions = false }
-        )
+    fun leaveEdit() {
+        editing = false
+        draft.clear()
     }
 
+    val sheetHeight = minOf(LocalConfiguration.current.screenHeightDp.dp * 0.52f, 440.dp)
     ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = {
+            if (editing) leaveEdit() else onDismissRequest()
+        },
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
+        BackHandler(enabled = editing) { leaveEdit() }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(sheetHeight)
-                .navigationBarsPadding()
-                .padding(bottom = 16.dp)
+                .navigationBarsPadding(),
         ) {
-
-            // --- 1. 标题栏 (手动实现简单的 Header) ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (editing) {
+                    IconButton(onClick = ::leaveEdit) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "取消调整顺序")
+                    }
+                }
                 Text(
-                    text = "更多操作",
+                    text = if (editing) "调整顺序" else "更多操作",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
-
-                // 排序按钮
-                IconButton(onClick = { showSortOptions = true }) {
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = "排序设置",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                if (editing) {
+                    TextButton(onClick = {
+                        val newOrder = draft.toList()
+                        actions = newOrder
+                        saveOrder(newOrder.joinToString(",") { it.id })
+                        leaveEdit()
+                    }) { Text("完成") }
+                } else {
+                    IconButton(onClick = {
+                        draft.clear()
+                        draft.addAll(actions)
+                        editing = true
+                    }) {
+                        Icon(Icons.Rounded.Edit, contentDescription = "调整操作顺序")
+                    }
                 }
             }
 
-            primaryActions.forEach { action ->
-                MoreActionRow(action) { onActionClick(action) }
-            }
-            androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-            if (!expanded) {
-                Text(
-                    text = "上拉查看更多",
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                if (expanded) items(items = secondaryActions, key = { it.id }) { action ->
-                    MoreActionRow(action) { onActionClick(action) }
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                if (editing) {
+                    itemsIndexed(draft, key = { _, action -> action.id }) { index, action ->
+                        ReorderableItem(reorderState, key = action.id) { isDragging ->
+                            Surface(
+                                color = if (isDragging) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
+                                shadowElevation = if (isDragging) 4.dp else 0.dp,
+                            ) {
+                                ListItem(
+                                    headlineContent = { Text(action.label) },
+                                    leadingContent = { Icon(action.icon, contentDescription = null) },
+                                    trailingContent = {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .longPressDraggableHandle(
+                                                    onDragStarted = {
+                                                        haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                                    },
+                                                    onDragStopped = {
+                                                        haptics.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                                    },
+                                                )
+                                                .semantics(mergeDescendants = true) {
+                                                    contentDescription = "调整${action.label}顺序"
+                                                    customActions = buildList {
+                                                        if (index > 0) add(CustomAccessibilityAction("上移") {
+                                                            draft.moveAction(index, index - 1)
+                                                            true
+                                                        })
+                                                        if (index < draft.lastIndex) add(CustomAccessibilityAction("下移") {
+                                                            draft.moveAction(index, index + 1)
+                                                            true
+                                                        })
+                                                    }
+                                                },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(Icons.Rounded.DragHandle, contentDescription = null)
+                                        }
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    items(actions, key = MoreAction::id) { action ->
+                        MoreActionRow(action) { onActionClick(action) }
+                    }
                 }
+            }
+
+            if (editing) {
+                TextButton(
+                    onClick = {
+                        draft.clear()
+                        draft.addAll(MoreAction.entries)
+                    },
+                    modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+                ) { Text("恢复默认") }
             }
         }
     }
@@ -144,54 +217,7 @@ private fun MoreActionRow(action: MoreAction, onClick: () -> Unit) {
     )
 }
 
-@Composable
-private fun SortOptionsDialog(
-    currentOrder: SortOrder,
-    onOrderSelected: (SortOrder) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("选择排序方式") },
-        text = {
-            Column {
-                SortOptionRow(
-                    text = "使用频率",
-                    selected = currentOrder == SortOrder.FREQUENCY,
-                    onClick = { onOrderSelected(SortOrder.FREQUENCY) }
-                )
-                SortOptionRow(
-                    text = "风险等级",
-                    selected = currentOrder == SortOrder.RISK,
-                    onClick = { onOrderSelected(SortOrder.RISK) }
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("完成")
-            }
-        }
-    )
-}
-
-@Composable
-private fun SortOptionRow(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
-        Text(text = text)
-    }
+private fun MutableList<MoreAction>.moveAction(from: Int, to: Int) {
+    if (from == to || from !in indices || to !in indices) return
+    add(to, removeAt(from))
 }

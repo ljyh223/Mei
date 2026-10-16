@@ -30,8 +30,6 @@ import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
-import com.ljyh.mei.ui.model.MoreAction
-import com.ljyh.mei.ui.model.SortOrder
 import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.lyric.LyricManager
@@ -368,34 +366,5 @@ class PlayerViewModel @Inject constructor(
             }
         }
     }
-
-    private val _moreSortOrder = MutableStateFlow(SortOrder.FREQUENCY)
-    val moreSortOrder = _moreSortOrder.asStateFlow()
-    val sortedMoreActions: StateFlow<List<MoreAction>> =
-        _moreSortOrder
-            .map { sortOrder ->
-                val actions = MoreAction.entries.toMutableList()
-                sortMoreActions(actions, sortOrder)
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = MoreAction.entries.toList()
-            )
-
-
-
-    fun setMoreSortOrder(order: SortOrder) {
-        _moreSortOrder.value = order
-    }
-
-    // 排序函数
-    private fun sortMoreActions(actions: List<MoreAction>, order: SortOrder): List<MoreAction> {
-        return when (order) {
-            SortOrder.FREQUENCY -> actions.sortedByDescending { it.frequency }
-            SortOrder.RISK -> actions.sortedBy { it.riskLevel }
-        }
-    }
-
 
 }

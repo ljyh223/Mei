@@ -179,11 +179,6 @@ class PlayerOverlayHandler(
                     stateContainer.playerViewModel.downloadSong(it, context)
                 }
             }
-            MoreAction.DELETE -> {
-                mediaMetadata?.let {
-                    stateContainer.playerViewModel.deleteSongById(it.id.toString())
-                }
-            }
             MoreAction.VIEW_PLAYLIST -> {
                 if (useInlineQueue) {
                     _tabletPanel.value = TabletPlayerPanel.Queue

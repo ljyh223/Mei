@@ -164,7 +164,6 @@ fun CommonOverlayHandler(
                     }
 
                 },
-                viewModel = playerViewModel
             )
         }
 
