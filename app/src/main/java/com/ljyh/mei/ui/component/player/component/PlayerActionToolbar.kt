@@ -175,7 +175,7 @@ fun PlayerActionToolbar(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(50))
                                         .background(foreground.copy(alpha = 0.2f))
-                                        .clickable(onClick = sleepTimer::clear)
+                                        .clickable(onClick = onSleepTimerClick)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(

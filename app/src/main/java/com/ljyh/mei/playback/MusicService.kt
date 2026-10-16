@@ -80,6 +80,8 @@ import com.ljyh.mei.playback.lyrics.DesktopLyricsController
 import com.ljyh.mei.playback.queue.PlaybackQueueManager
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshot
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshotCodec
+import com.ljyh.mei.playback.sleep.SleepDetectionController
+import com.ljyh.mei.playback.sleep.SleepTimer
 import com.ljyh.mei.playback.source.CacheManager
 import com.ljyh.mei.playback.source.CacheManager.getCacheDataSourceFactory
 import com.ljyh.mei.playback.source.CacheManager.isContentFullyCached
@@ -137,6 +139,7 @@ class MusicService : MediaLibraryService(),
     @Volatile private var desktopLyricsEnabled = false
 
     lateinit var sleepTimer: SleepTimer
+    lateinit var sleepDetectionController: SleepDetectionController
     private val serviceJob = SupervisorJob()
     var scope = CoroutineScope(Dispatchers.Main + serviceJob)
     private var historyJob: Job? = null
@@ -239,6 +242,8 @@ class MusicService : MediaLibraryService(),
                     }
                 })
             }
+
+        sleepDetectionController = SleepDetectionController(this, scope, sleepTimer)
 
 
 
@@ -565,6 +570,7 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
+        sleepDetectionController.close()
         queueSaveJob?.cancel()
         if (!restoringQueue) {
             runBlocking { savePlaybackQueue() }

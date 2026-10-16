@@ -84,6 +84,7 @@ dependencies {
     implementation(libs.media3.okhttp)
     implementation(libs.media3.hls)
     implementation(libs.media3.transformer)
+    implementation(libs.play.services.location)
     implementation(libs.annotations)
     implementation(libs.androidx.core.animation)
     implementation(libs.androidx.compose.material3.window.size.class1)
