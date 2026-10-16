@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.playlist
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -211,6 +213,7 @@ fun PlaylistScreen(
             return ListQueue(
                 id = "playlist_${uiData.id}",
                 title = uiData.title,
+                source = QueueSource(QueueSource.Type.PLAYLIST, uiData.id.toString(), uiData.title),
                 items = allPairs,
                 startIndex = startTrackId
                     ?.let { trackId -> allPairs.indexOfFirst { it.first == trackId.toString() } }
@@ -392,7 +395,8 @@ fun PlaylistScreen(
             onTrackClick = { mediaMetadata, index ->
                 playerConnection.onTrackClicked(
                     trackId = mediaMetadata.id.toString(),
-                    buildQueue = { buildListQueue(mediaMetadata.id) }
+                    buildQueue = { buildListQueue(mediaMetadata.id) },
+                    fallbackSource = QueueSource(QueueSource.Type.PLAYLIST, uiData.id.toString(), uiData.title)
                 )
             },
 

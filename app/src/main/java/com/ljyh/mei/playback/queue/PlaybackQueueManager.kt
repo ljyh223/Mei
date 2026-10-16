@@ -67,7 +67,7 @@ class PlaybackQueueManager(
             player.repeatMode = Player.REPEAT_MODE_ALL
 
             // 2. 立即添加种子歌曲并播放 (保证 UI 立即显示正确的封面和标题)
-            player.addMediaItem(seedItem)
+            player.addMediaItem(seedItem.withQueueEntry(QueueSource(QueueSource.Type.RADIO)))
             player.prepare()
             player.play()
 
@@ -108,7 +108,7 @@ class PlaybackQueueManager(
                 // 过滤掉当前正在播放的 ID，防止重复
                 val items = response.data
                     .filter { it.id.toString() != currentId }
-                    .map { it.toMediaMetadata().toMediaItem() }
+                    .map { it.toMediaMetadata().toMediaItem().withQueueEntry(QueueSource(QueueSource.Type.RADIO)) }
 
                 withContext(Dispatchers.Main) {
                     // 追加到列表末尾
@@ -173,7 +173,9 @@ class PlaybackQueueManager(
                     return@launch
                 }
 
-                val mediaItems = allIds.map { item -> item.second ?: createPlaceholder(item.first) }
+                val mediaItems = allIds.map { item ->
+                    (item.second ?: createPlaceholder(item.first)).withQueueEntry(queue.source)
+                }
 
                 // 强制先关闭随机模式 必须先关掉，才能保证 setMediaItems 里的 index 是线性的、准确的
                 player.shuffleModeEnabled = false
@@ -297,74 +299,58 @@ class PlaybackQueueManager(
                 }
             }
 
-            // 3. 筛选需要加载的 ID
-            val itemsNeedLoading = indicesToCheck.mapNotNull { index ->
-                if (index < 0 || index >= player.mediaItemCount) return@mapNotNull null
+            loadMetadataAtIndices(indicesToCheck)
+        }
+    }
 
-                val item = player.getMediaItemAt(index)
-                val isPlaceholder = item.localConfiguration?.uri.toString() == PLACEHOLDER_URI
-                val id = item.mediaId
+    /** Resolve placeholders around the visible queue rows as the user scrolls. */
+    fun loadMetadataForQueueRange(firstIndex: Int, lastIndex: Int) {
+        scope.launch(Dispatchers.Main) {
+            val end = lastIndex.coerceAtMost(player.mediaItemCount - 1)
+            val start = firstIndex.coerceAtLeast(0)
+            if (start <= end) loadMetadataAtIndices(start..end)
+        }
+    }
 
-                // 只有是占位符且没在加载中才请求
-                if (isPlaceholder && !loadingIds.contains(id)) {
-                    id
-                } else null
-            }.distinct()
+    private suspend fun loadMetadataAtIndices(indices: Iterable<Int>) {
+        val indicesToCheck = indices.filter { it >= 0 && it < player.mediaItemCount }.toList()
+        val itemsNeedLoading = indicesToCheck.mapNotNull { index ->
+            val item = player.getMediaItemAt(index)
+            val isPlaceholder = item.localConfiguration?.uri.toString() == PLACEHOLDER_URI
+            val id = item.mediaId
+            if (isPlaceholder && loadingIds.add(id)) id else null
+        }
+        if (itemsNeedLoading.isEmpty()) return
 
-            if (itemsNeedLoading.isEmpty()) return@launch
-
-            loadingIds.addAll(itemsNeedLoading)
-
-            // IO 线程加载数据
-            val loadedItems = withContext(Dispatchers.IO) {
-                try {
-                    loadSongDetails(itemsNeedLoading)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Fetch Metadata Failed", e)
-                    // 失败移除标记
-                    loadingIds.removeAll(itemsNeedLoading.toSet())
-                    emptyList()
-                }
-            }
-
-            // 回到主线程更新
+        try {
+            val loadedItems = withContext(Dispatchers.IO) { loadSongDetails(itemsNeedLoading) }
             if (loadedItems.isNotEmpty()) {
-                loadingIds.removeAll(loadedItems.map { it.mediaId }.toSet())
-
-                // 再次检查状态，防止异步期间 Player 被释放
-                if (player.mediaItemCount == 0) return@launch
-                // 为了性能，我们只遍历我们关心的那几个位置（indicesToCheck），但是必须做 Double Check
-                indicesToCheck.forEach { index ->
-                    // 索引防越界
-                    if (index >= 0 && index < player.mediaItemCount) {
-                        val currentItem = player.getMediaItemAt(index)
-
-                        // 查找这个位置的 ID 是否有对应的新数据
-                        val newItem = loadedItems.find { it.mediaId == currentItem.mediaId }
-
-                        // 只有当 ID 匹配，且当前确实是占位符时才替换
-                        // 这样即使 index 错位了（比如变成了别的歌），因为 ID 不匹配，也不会错误替换
-                        if (newItem != null) {
-                            val isStillPlaceholder =
-                                currentItem.localConfiguration?.uri.toString() == PLACEHOLDER_URI
-
-                            // 只有当它是占位符，或者我们要强制刷新时才替换
-                            if (isStillPlaceholder) {
-                                player.replaceMediaItem(index, newItem)
-                            }
-                        }
+                if (player.mediaItemCount == 0) return
+                val loadedById = loadedItems.associateBy(MediaItem::mediaId)
+                // A song can appear more than once in the queue. Resolve every matching
+                // placeholder, including occurrences outside this request's visible range.
+                for (index in 0 until player.mediaItemCount) {
+                    val currentItem = player.getMediaItemAt(index)
+                    val newItem = loadedById[currentItem.mediaId]
+                    if (newItem != null && currentItem.localConfiguration?.uri.toString() == PLACEHOLDER_URI) {
+                        player.replaceMediaItem(index, newItem.withQueueEntry(
+                            currentItem.queueSource, currentItem.queueEntryId ?: java.util.UUID.randomUUID().toString()
+                        ))
                     }
                 }
             }
+        } finally {
+            // Missing IDs remain retryable when the queue is reopened or scrolled again.
+            loadingIds.removeAll(itemsNeedLoading.toSet())
         }
     }
 
     /**
      * 添加到队列末尾
      */
-    fun addToQueue(items: List<MediaItem>) {
+    fun addToQueue(items: List<MediaItem>, source: QueueSource? = null) {
         scope.launch(Dispatchers.Main) {
-            player.addMediaItems(items)
+            player.addMediaItems(items.map { it.withQueueEntry(source ?: it.queueSource ?: QueueSource(QueueSource.Type.MANUAL)) })
 
             if (player.playbackState == Player.STATE_IDLE) {
                 player.prepare()
@@ -376,14 +362,14 @@ class PlaybackQueueManager(
      * 在下一首播放 (插队)
      */
     @OptIn(UnstableApi::class)
-    fun playNext(items: List<MediaItem>) {
+    fun playNext(items: List<MediaItem>, source: QueueSource? = null) {
         scope.launch(Dispatchers.Main) {
             if (items.isEmpty()) return@launch
             val wasEmpty = player.mediaItemCount == 0
             val currentIndex = player.currentMediaItemIndex
             val insertIndex =
                 if (wasEmpty) 0 else currentIndex + 1
-            player.addMediaItems(insertIndex, items)
+            player.addMediaItems(insertIndex, items.map { it.withQueueEntry(source ?: it.queueSource ?: QueueSource(QueueSource.Type.MANUAL)) })
 
             if (player.shuffleModeEnabled && !wasEmpty) {
                 val active = (player as? TransitionDeckPlayer)?.active

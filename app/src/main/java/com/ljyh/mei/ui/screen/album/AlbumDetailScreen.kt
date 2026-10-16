@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.album
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -235,6 +237,7 @@ fun AlbumDetailScreen(
             return ListQueue(
                 id = "album_${detail.data.album.id}",
                 title = detail.data.album.name,
+                source = QueueSource(QueueSource.Type.ALBUM, detail.data.album.id.toString(), detail.data.album.name),
                 items = items,
                 startIndex = startIndex
             )
@@ -295,6 +298,7 @@ fun AlbumDetailScreen(
                 onTrackClick = { song, index ->
                     playerConnection?.onTrackClicked(
                         trackId = song.id.toString(),
+                        fallbackSource = QueueSource(QueueSource.Type.ALBUM, id.toString(), result.data.album.name),
                         buildQueue = {
                             val originalIndex = result.data.songs.indexOfFirst { it.id == song.id }
                                 .takeIf { it >= 0 } ?: index
@@ -311,6 +315,8 @@ fun AlbumDetailScreen(
         overlay = currentOverlay,
         isCreator = false,
         playlistId = id,
+        queueSource = QueueSource(QueueSource.Type.ALBUM, id.toString(),
+            (albumDetail as? Resource.Success)?.data?.album?.name),
         allMePlaylist = allMePlaylist,
         onDismiss = { currentOverlay = OverlayState.None },
         onUpdateOverlay = { currentOverlay = it },

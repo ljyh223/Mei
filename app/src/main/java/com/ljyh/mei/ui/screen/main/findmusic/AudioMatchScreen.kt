@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.main.findmusic
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -208,6 +210,7 @@ fun AudioMatchScreen(
                                 ListQueue(
                                     id = "AudioMatch-${System.currentTimeMillis()}",
                                     title = "听歌识曲",
+                                    source = QueueSource(QueueSource.Type.RECOGNITION, "audio_match"),
                                     items = results.map { it.id.toString() to it.mediaItem },
                                     startIndex = index,
                                     position = song.startTimeMs.coerceIn(0, Int.MAX_VALUE.toLong()).toInt(),

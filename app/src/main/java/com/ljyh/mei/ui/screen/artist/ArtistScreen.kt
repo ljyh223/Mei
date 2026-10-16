@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.artist
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -188,17 +190,23 @@ fun ArtistScreen(
                                 }
                                 playerConnection.onTrackClicked(
                                     trackId = song.id.toString(),
+                                    fallbackSource = QueueSource(QueueSource.Type.ARTIST, id,
+                                        (artistDetail as? Resource.Success)?.data?.data?.artist?.name),
                                     buildQueue = {
                                         ListQueue(
                                             UUID.randomUUID().toString(),
                                             "Hot Songs",
                                             allIds,
-                                            songs.indexOf(song)
+                                            songs.indexOf(song),
+                                            source = QueueSource(QueueSource.Type.ARTIST, id,
+                                                (artistDetail as? Resource.Success)?.data?.data?.artist?.name),
                                         )
                                     }
                                 )
                             },
-                            onMoreClick = { anchor -> menuTrack = TrackMenuTarget(song.toMediaMetadata(), anchor) }
+                            onMoreClick = { anchor -> menuTrack = TrackMenuTarget(song.toMediaMetadata(), anchor,
+                                QueueSource(QueueSource.Type.ARTIST, id,
+                                    (artistDetail as? Resource.Success)?.data?.data?.artist?.name)) }
                         )
                     }
                 }

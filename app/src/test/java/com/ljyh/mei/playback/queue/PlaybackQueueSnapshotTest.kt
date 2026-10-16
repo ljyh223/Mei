@@ -22,10 +22,32 @@ class PlaybackQueueSnapshotTest {
     }
 
     @Test
+    fun duplicateSongOccurrencesKeepDifferentSourcesAfterRestore() {
+        val first = QueueSource(QueueSource.Type.PLAYLIST, "10", "收藏")
+        val second = QueueSource(QueueSource.Type.ALBUM, "20", "专辑")
+        val snapshot = PlaybackQueueSnapshot(
+            ids = listOf("123", "123"),
+            currentIndex = 1,
+            positionMs = 0,
+            currentSong = null,
+            entries = listOf(
+                QueueEntrySnapshot("entry-a", first),
+                QueueEntrySnapshot("entry-b", second),
+            ),
+        )
+
+        val restored = PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(snapshot))
+        assertEquals(snapshot, restored)
+        assertEquals(first, restored?.entries?.get(0)?.source)
+        assertEquals(second, restored?.entries?.get(1)?.source)
+    }
+
+    @Test
     fun oldSnapshotRestoresAsNormalQueue() {
         val oldSnapshot = """{"ids":["1"],"currentIndex":0,"positionMs":0}"""
 
         assertEquals(false, PlaybackQueueSnapshotCodec.decode(oldSnapshot)?.isFmMode)
+        assertNull(PlaybackQueueSnapshotCodec.decode(oldSnapshot)?.entries)
     }
 
     @Test

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
+import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
@@ -23,6 +24,7 @@ fun PlaylistActionOverlay(
     overlay: OverlayState,
     isCreator: Boolean,
     playlistId: Long, // 当前歌单 ID，用于删除歌曲
+    queueSource: QueueSource,
     allMePlaylist: List<Playlist>, // 用户拥有的歌单列表
     onDismiss: () -> Unit,
     onUpdateOverlay: (OverlayState) -> Unit, // 用于切换状态（如从菜单跳到收藏页）
@@ -61,7 +63,7 @@ fun PlaylistActionOverlay(
 
         is OverlayState.TrackActionMenu -> {
             TrackActionMenu(
-                target = TrackMenuTarget(overlay.track, overlay.anchor),
+                target = TrackMenuTarget(overlay.track, overlay.anchor, queueSource),
                 isCreator = isCreator,
                 onDismiss = onDismiss,
                 onAddToPlaylist = {
@@ -72,7 +74,7 @@ fun PlaylistActionOverlay(
                     if (playerConnection == null) {
                         Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
                     } else {
-                        playerConnection.playNext(overlay.track.toMediaItem())
+                        playerConnection.playNext(overlay.track.toMediaItem(), queueSource)
                         Toast.makeText(context, "已添加到下一首", Toast.LENGTH_SHORT).show()
                     }
                 },
@@ -80,7 +82,7 @@ fun PlaylistActionOverlay(
                     if (playerConnection == null) {
                         Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
                     } else {
-                        playerConnection.addToQueue(overlay.track.toMediaItem())
+                        playerConnection.addToQueue(overlay.track.toMediaItem(), queueSource)
                         Toast.makeText(context, "已添加到队尾", Toast.LENGTH_SHORT).show()
                     }
                 },

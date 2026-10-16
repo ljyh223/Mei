@@ -80,6 +80,11 @@ import com.ljyh.mei.playback.lyrics.DesktopLyricsController
 import com.ljyh.mei.playback.queue.PlaybackQueueManager
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshot
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshotCodec
+import com.ljyh.mei.playback.queue.QueueEntrySnapshot
+import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.playback.queue.queueEntryId
+import com.ljyh.mei.playback.queue.queueSource
+import com.ljyh.mei.playback.queue.withQueueEntry
 import com.ljyh.mei.playback.sleep.SleepDetectionController
 import com.ljyh.mei.playback.sleep.SleepTimer
 import com.ljyh.mei.playback.source.CacheManager
@@ -360,11 +365,13 @@ class MusicService : MediaLibraryService(),
                 if (playerWasEmpty && snapshot != null) {
                     queueManager.isFmMode = snapshot.isFmMode
                     val items = snapshot.ids.mapIndexed { index, id ->
-                        if (index == snapshot.currentIndex && snapshot.currentSong != null) {
+                        val item = if (index == snapshot.currentIndex && snapshot.currentSong != null) {
                             snapshot.currentSong.toMediaItem()
                         } else {
                             createPlaceholder(id)
                         }
+                        val entry = snapshot.entries?.getOrNull(index)
+                        item.withQueueEntry(entry?.source, entry?.entryId ?: java.util.UUID.randomUUID().toString())
                     }
                     player.setMediaItems(items, snapshot.currentIndex, snapshot.positionMs)
                     player.playWhenReady = false
@@ -406,6 +413,9 @@ class MusicService : MediaLibraryService(),
         val snapshot = if (player.mediaItemCount > 0 && player.currentMediaItemIndex >= 0) {
             PlaybackQueueSnapshot(
                 ids = player.mediaItems.map(MediaItem::mediaId),
+                entries = player.mediaItems.map { item ->
+                    QueueEntrySnapshot(item.queueEntryId ?: java.util.UUID.randomUUID().toString(), item.queueSource)
+                },
                 currentIndex = player.currentMediaItemIndex,
                 positionMs = player.currentPosition.coerceAtLeast(0L),
                 currentSong = snapshotCurrentSong(),
@@ -537,15 +547,15 @@ class MusicService : MediaLibraryService(),
         }
     }
 
-    fun playNext(items: List<MediaItem>) {
+    fun playNext(items: List<MediaItem>, source: QueueSource? = null) {
         scope.launch {
-            queueManager.playNext(items)
+            queueManager.playNext(items, source)
         }
     }
 
-    fun addToQueue(items: List<MediaItem>) {
+    fun addToQueue(items: List<MediaItem>, source: QueueSource? = null) {
         scope.launch {
-            queueManager.addToQueue(items)
+            queueManager.addToQueue(items, source)
         }
     }
 

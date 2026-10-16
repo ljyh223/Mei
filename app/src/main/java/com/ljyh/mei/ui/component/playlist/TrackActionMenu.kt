@@ -35,11 +35,12 @@ import androidx.compose.ui.window.PopupProperties
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
+import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.preferences.rememberPreference
 import com.ljyh.mei.utils.system.setClipboard
 
-data class TrackMenuTarget(val track: MediaMetadata, val anchor: IntRect)
+data class TrackMenuTarget(val track: MediaMetadata, val anchor: IntRect, val source: QueueSource? = null)
 
 private class TrackMenuPositionProvider(
     private val button: IntRect,
@@ -166,7 +167,7 @@ fun BasicTrackActionMenu(
             if (playerConnection == null) {
                 Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
             } else if (track != null) {
-                playerConnection.playNext(track.toMediaItem())
+                playerConnection.playNext(track.toMediaItem(), target.source)
                 Toast.makeText(context, "已添加到下一首", Toast.LENGTH_SHORT).show()
             }
         },
@@ -174,7 +175,7 @@ fun BasicTrackActionMenu(
             if (playerConnection == null) {
                 Toast.makeText(context, "播放器未就绪", Toast.LENGTH_SHORT).show()
             } else if (track != null) {
-                playerConnection.addToQueue(track.toMediaItem())
+                playerConnection.addToQueue(track.toMediaItem(), target.source)
                 Toast.makeText(context, "已添加到队尾", Toast.LENGTH_SHORT).show()
             }
         },

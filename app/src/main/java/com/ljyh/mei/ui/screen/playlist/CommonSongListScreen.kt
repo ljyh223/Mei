@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.playlist
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -320,6 +322,8 @@ fun CommonSongListScreen(
                 overlay = currentOverlay,
                 isCreator = uiData.isCreator,
                 playlistId = uiData.id,
+                queueSource = if (uiData.id == -1L) QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title)
+                    else QueueSource(QueueSource.Type.PLAYLIST, uiData.id.toString(), uiData.title),
                 allMePlaylist = allMePlaylist,
                 onDismiss = { currentOverlay = OverlayState.None },
                 onUpdateOverlay = { currentOverlay = it },

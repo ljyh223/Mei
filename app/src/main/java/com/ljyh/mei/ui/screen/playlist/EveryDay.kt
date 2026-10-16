@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.playlist
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -83,6 +85,7 @@ fun EveryDay(
                 ListQueue(
                     id = "dailySongs",
                     title = uiData.title,
+                    source = QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title),
                     items = allSongs.map { it.id.toString() to it.toMediaItem() },
                     startIndex = 0,
                 )
@@ -109,6 +112,7 @@ fun EveryDay(
 
                 playerConnection.onTrackClicked(
                     trackId = mediaMetadata.id.toString(),
+                    fallbackSource = QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title),
                     buildQueue = {
                         if (everyDaySongs is Resource.Success) {
                             val allIds =
@@ -118,6 +122,7 @@ fun EveryDay(
                             ListQueue(
                                 id = "dailySongs",
                                 title = uiData.title,
+                                source = QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title),
                                 items = allIds,
                                 startIndex = uiData.tracks.indexOfFirst { it.id == mediaMetadata.id }
                                     .takeIf { it >= 0 } ?: index

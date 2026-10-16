@@ -14,6 +14,7 @@ class ListQueue(
     private val items: List<Pair<String, MediaItem?>>, // 改为 private val，外部不应修改
     val startIndex: Int = 0,
     val position: Int = 0,
+    override val source: QueueSource = QueueSource.fromQueue(id, title),
 ) : Queue {
 
     override val totalCount: Int = items.size
@@ -24,7 +25,7 @@ class ListQueue(
     fun startingAt(trackId: String): ListQueue? {
         val index = items.indexOfFirst { it.first == trackId }
         if (index < 0) return null
-        return ListQueue(id, title, items, startIndex = index)
+        return ListQueue(id, title, items, startIndex = index, source = source)
     }
 
     private val _state = MutableStateFlow<Queue.QueueState>(Queue.QueueState.Idle)

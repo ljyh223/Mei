@@ -37,6 +37,7 @@ import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.item.AlbumItem
 import com.ljyh.mei.ui.component.item.ArtistItem
 import com.ljyh.mei.ui.component.item.PlaylistItem
@@ -106,11 +107,12 @@ fun SearchResultScreen(
                                 title = "搜索: $query",
                                 items = songs.map { song -> song.id.toString() to song.toMediaItem() },
                                 startIndex = index,
-                                position = 0
+                                position = 0,
+                                source = QueueSource(QueueSource.Type.SEARCH, query, query),
                             )
                         )
                     },
-                    onSongMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor) },
+                    onSongMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, QueueSource(QueueSource.Type.SEARCH, query, query)) },
                 )
             }
         }

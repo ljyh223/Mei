@@ -10,7 +10,11 @@ internal data class PlaybackQueueSnapshot(
     val positionMs: Long,
     val currentSong: MediaMetadata?,
     val isFmMode: Boolean = false,
+    /** Null in snapshots written before per-song sources were introduced. */
+    val entries: List<QueueEntrySnapshot>? = null,
 )
+
+internal data class QueueEntrySnapshot(val entryId: String, val source: QueueSource?)
 
 internal object PlaybackQueueSnapshotCodec {
     private val gson = Gson()
@@ -24,6 +28,8 @@ internal object PlaybackQueueSnapshotCodec {
                     snapshot.ids.all { it.isNotBlank() } &&
                     snapshot.currentIndex in snapshot.ids.indices &&
                     snapshot.positionMs >= 0L &&
+                    (snapshot.entries == null || (snapshot.entries.size == snapshot.ids.size &&
+                        snapshot.entries.all { it.entryId.isNotBlank() })) &&
                     (snapshot.currentSong == null ||
                         snapshot.currentSong.id.toString() == snapshot.ids[snapshot.currentIndex])
             }

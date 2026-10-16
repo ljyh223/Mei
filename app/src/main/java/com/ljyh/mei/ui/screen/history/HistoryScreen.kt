@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.history
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -121,6 +123,7 @@ fun HistoryScreen(
                                 ListQueue(
                                     id = "history",
                                     title = "最近播放",
+                                    source = QueueSource(QueueSource.Type.HISTORY, "history"),
                                     items = historyList.map { it.song.id to null },
                                     startIndex = historyList.indexOf(item),
                                     position = item.playedAt.toInt()

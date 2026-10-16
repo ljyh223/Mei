@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.main.home
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -238,6 +240,7 @@ private fun HomeBlockItem(
                 ListQueue(
                     id = "intelligence-${System.currentTimeMillis()}",
                     title = "心动模式",
+                    source = QueueSource(QueueSource.Type.RECOMMENDATION, "intelligence", "心动模式"),
                     items = items.map { it.mediaId to it },
                     startIndex = 0,
                     position = 0
@@ -414,12 +417,14 @@ private fun HomeBlockItem(
                 } else {
                     playerConnection.onTrackClicked(
                         trackId = flatSongs[index].first,
+                        fallbackSource = QueueSource(QueueSource.Type.RECOMMENDATION, block.positionCode, title),
                         buildQueue = {
                             ListQueue(
                                 id = UUID.randomUUID().toString(),
                                 title = if (block.positionCode == "PAGE_RECOMMEND_PRIVATE_RCMD_SONG") "PRIVATE_RCMD_SONG" else "RED_SIMILAR_SONG",
                                 items = flatSongs,
-                                startIndex = index
+                                startIndex = index,
+                                source = QueueSource(QueueSource.Type.RECOMMENDATION, block.positionCode, title),
                             )
                         }
                     )

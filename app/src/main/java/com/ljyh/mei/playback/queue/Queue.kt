@@ -15,6 +15,9 @@ interface Queue {
     
     /** 队列标题 */
     val title: String?
+
+    /** Source applied to songs when this queue becomes active. */
+    val source: QueueSource? get() = null
     
     /** 队列总歌曲数量 */
     val totalCount: Int

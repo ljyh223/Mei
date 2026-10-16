@@ -27,6 +27,7 @@ import com.ljyh.mei.extensions.getCurrentQueueIndex
 import com.ljyh.mei.extensions.getQueueWindows
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.Queue
+import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.log.reportException
@@ -104,20 +105,21 @@ class PlayerConnection(
     fun isPlaying(id: String): Boolean {
         return mediaMetadata.value?.id.toString() == id && isPlaying.value
     }
-    fun onTrackClicked(trackId: String, buildQueue: () -> ListQueue?) {
-        // A restored queue has song IDs but no source-list identity. Reusing it just because the
-        // ID is present preserves its old shuffle order and can ignore the list the user tapped.
+    fun onTrackClicked(trackId: String, buildQueue: () -> ListQueue?, fallbackSource: QueueSource? = null) {
+        // Rebuild the list selected by the user. The existing queue may contain the same song
+        // from another source or have a different shuffle order.
         val selectedQueue = buildQueue()?.startingAt(trackId)
         if (selectedQueue != null) {
             playQueue(selectedQueue, startInShuffleMode = false)
             return
         }
         // A partial or loading list can still play the exact tapped song. It must not fall back
-        // to a restored queue whose source and shuffle order are unknown.
+        // to a different queue whose order and source do not match this tap.
         playQueue(
             ListQueue(
                 id = "track_$trackId",
                 items = listOf(trackId to createPlaceholder(trackId)),
+                source = fallbackSource ?: QueueSource(QueueSource.Type.OTHER, title = "单曲播放"),
             ),
             startInShuffleMode = false,
         )
@@ -134,16 +136,16 @@ class PlayerConnection(
     fun playQueue(queue: ListQueue, startInShuffleMode: Boolean = player.shuffleModeEnabled) {
         service.queueManager.playQueue(queue, startInShuffleMode = startInShuffleMode)
     }
-    fun playNext(item: MediaItem) = playNext(listOf(item))
+    fun playNext(item: MediaItem, source: QueueSource? = null) = playNext(listOf(item), source)
 
-    fun playNext(items: List<MediaItem>) {
-        service.playNext(items)
+    fun playNext(items: List<MediaItem>, source: QueueSource? = null) {
+        service.playNext(items, source)
     }
 
-    fun addToQueue(item: MediaItem) = addToQueue(listOf(item))
+    fun addToQueue(item: MediaItem, source: QueueSource? = null) = addToQueue(listOf(item), source)
 
-    fun addToQueue(items: List<MediaItem>) {
-        service.addToQueue(items)
+    fun addToQueue(items: List<MediaItem>, source: QueueSource? = null) {
+        service.addToQueue(items, source)
     }
 
     fun seekToNext() {

@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.local
 
+import com.ljyh.mei.playback.queue.QueueSource
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -116,6 +118,7 @@ fun LocalSongListScreen(
         return ListQueue(
             id = "local_$filterType+$filterValue",
             title = title,
+            source = QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title),
             items = items,
             startIndex = index
         )
@@ -189,11 +192,12 @@ fun LocalSongListScreen(
                                 if (!isLost) {
                                     playerConnection.onTrackClicked(
                                         trackId = track.id.toString(),
-                                        buildQueue = { buildQueue(index) }
+                                        buildQueue = { buildQueue(index) },
+                                        fallbackSource = QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)
                                     )
                                 }
                             },
-                            onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor) }
+                            onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)) }
                         )
                     }
                 } else {
@@ -215,11 +219,12 @@ fun LocalSongListScreen(
                             if (!isLost) {
                                 playerConnection.onTrackClicked(
                                     trackId = track.id.toString(),
-                                    buildQueue = { buildQueue(index) }
+                                    buildQueue = { buildQueue(index) },
+                                    fallbackSource = QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)
                                 )
                             }
                         },
-                        onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor) },
+                        onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)) },
                         contentPadding = PaddingValues(
                             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
                                 .calculateBottomPadding()
