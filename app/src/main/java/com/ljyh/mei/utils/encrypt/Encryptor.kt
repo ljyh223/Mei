@@ -113,22 +113,6 @@ fun encryptId(id: String): String {
 
 }
 
-
-fun generateRandomMac(): String {
-    val parts = Array(6) { i ->
-        val high = CHARS.random()
-        val low = CHARS.random()
-        "$high$low"
-    }
-    val firstByte = parts[0].toInt(16) and 0xFE
-    parts[0] = firstByte.toString(16).uppercase().padStart(2, '0')
-
-    return parts.joinToString(":")
-}
-
-
-
-
 data class WeApi(
     val params: String,
     val encSecKey: String

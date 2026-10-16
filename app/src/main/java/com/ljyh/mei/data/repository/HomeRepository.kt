@@ -1,31 +1,20 @@
 package com.ljyh.mei.data.repository
 
 import android.content.Context
-import android.util.Log
 import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.AppContext
-import com.ljyh.mei.constants.LastHomePageData_1
-import com.ljyh.mei.constants.LastHomePageData_2
 import com.ljyh.mei.constants.LastHomePageTime
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
-import com.ljyh.mei.data.model.api.GetSearch
-import com.ljyh.mei.data.model.api.SearchResult
-import com.ljyh.mei.data.model.weapi.GetHomePageResourceShow
 import com.ljyh.mei.data.model.weapi.buildGetHomePageResourceShow
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.EApiService
-import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
-import com.ljyh.mei.utils.cache.CacheFile
-import com.ljyh.mei.utils.cache.CacheFile.isNewDay
+import com.ljyh.mei.utils.DateUtils.isWithinSameDayWindow
 import com.ljyh.mei.utils.preferences.dataStore
-import com.ljyh.mei.utils.preferences.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.File
@@ -37,9 +26,9 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
     suspend fun getHomePageResourceShow(
         refresh: Boolean = false
     ): Resource<List<HomePageResourceShow.Data.Block>> {
-        Timber.tag("NewDay").d(isNewDay(getLastFetchTime(context)).toString())
+        Timber.tag("NewDay").d(isWithinSameDayWindow(getLastFetchTime(context)).toString())
         Timber.tag("refresh").d(refresh.toString())
-        if (isNewDay(getLastFetchTime(context)) || refresh) {
+        if (isWithinSameDayWindow(getLastFetchTime(context)) || refresh) {
             Timber.tag("getHomePageResourceShow").d("新加载")
             return withContext(Dispatchers.IO) {
                 safeApiCall {
