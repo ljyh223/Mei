@@ -71,7 +71,8 @@ fun SongInfoSheet(
     qqSongId: String?,
     dynamicCover: DynamicCover?,
     onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    embedded: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -80,13 +81,7 @@ fun SongInfoSheet(
     var playingCoverKey by remember(metadata.id, dynamicCover?.cacheKey) { mutableStateOf<String?>(null) }
     var savingCoverKey by remember { mutableStateOf<String?>(null) }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = modifier
-    ) {
+    val sheetContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -269,6 +264,19 @@ fun SongInfoSheet(
                 value = if (metadata.explicit) "是" else "否",
                 onCopy = { setClipboard(context, if (metadata.explicit) "是" else "否", "Explicit") }
             )
+        }
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest,
+            sheetState = sheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = modifier
+        ) {
+            sheetContent()
         }
     }
 }

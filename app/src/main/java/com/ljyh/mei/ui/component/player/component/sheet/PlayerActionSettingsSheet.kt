@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,7 +39,8 @@ import timber.log.Timber
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerActionSettingsSheet(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val context = LocalContext.current
     // 读取保存的设置
@@ -62,10 +65,11 @@ fun PlayerActionSettingsSheet(
         onActionStringChange(PlayerAction.toSettings(selectedActions))
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    val sheetContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp)
         ) {
@@ -142,6 +146,13 @@ fun PlayerActionSettingsSheet(
                     )
                 }
             }
+        }
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(onDismissRequest = onDismiss) {
+            sheetContent()
         }
     }
 }

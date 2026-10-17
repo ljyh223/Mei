@@ -53,15 +53,11 @@ fun QQMusicSelectSheet(
     viewmodel: PlayerViewModel,
     mediaMetadata: MediaMetadata,
     onDismiss: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val searchNew by viewmodel.searchResult.collectAsState()
     val sheetState = rememberModalBottomSheetState()
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) {
+    val sheetContent: @Composable () -> Unit = {
         Column(modifier = Modifier.fillMaxWidth()) {
             CurrentReferenceHeader(mediaMetadata.title, mediaMetadata.artists[0].name, mediaMetadata.duration)
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
@@ -117,6 +113,18 @@ fun QQMusicSelectSheet(
                     }
                 }
             }
+        }
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            sheetContent()
         }
     }
 }

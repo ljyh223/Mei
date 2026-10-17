@@ -4,12 +4,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,7 +61,8 @@ fun CreatePlaylistSheet(
     defaultText: String = "",
     defaultHidden: Boolean = false,
     onDismiss: () -> Unit,
-    onConfirm: (text: String, privacy: Boolean) -> Unit
+    onConfirm: (text: String, privacy: Boolean) -> Unit,
+    embedded: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var text by remember { mutableStateOf(defaultText) }
@@ -68,8 +73,8 @@ fun CreatePlaylistSheet(
     val focusManager = LocalFocusManager.current
 
     // 尝试在显示时自动获取焦点
-    LaunchedEffect(Unit) {
-        // 延迟一点点，等待动画开始
+    LaunchedEffect(embedded) {
+        if (embedded) delay(220)
         try {
             focusRequester.requestFocus()
         } catch (e: Exception) {
@@ -77,15 +82,12 @@ fun CreatePlaylistSheet(
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        contentWindowInsets = { WindowInsets.ime }
-    ) {
+    val sheetContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(if (embedded) Modifier.imePadding() else Modifier)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 // 底部留出一些空间，避免贴底太紧
                 .padding(bottom = 24.dp)
@@ -207,6 +209,18 @@ fun CreatePlaylistSheet(
                     Text("完成")
                 }
             }
+        }
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            contentWindowInsets = { WindowInsets.ime }
+        ) {
+            sheetContent()
         }
     }
 }

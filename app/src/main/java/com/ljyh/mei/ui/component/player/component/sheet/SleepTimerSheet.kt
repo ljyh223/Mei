@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -63,7 +64,8 @@ import kotlin.math.roundToInt
 @Composable
 fun SleepTimerSheet(
     playerConnection: PlayerConnection,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -80,6 +82,12 @@ fun SleepTimerSheet(
     var startingDetection by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var closed by remember { mutableStateOf(false) }
+    DisposableEffect(service) {
+        onDispose {
+            closed = true
+            service.sleepDetectionController.cancelPending()
+        }
+    }
     val selectedMinutes = if (mode == SleepStopMode.Countdown) countdownMinutes else detectionLimitMinutes
     val minimumMinutes = if (mode == SleepStopMode.Countdown) 1 else 30
 
@@ -109,11 +117,7 @@ fun SleepTimerSheet(
         if (granted) startDetection() else errorMessage = "需要活动识别权限才能检测入睡"
     }
 
-    ModalBottomSheet(
-        onDismissRequest = ::dismissSheet,
-        sheetState = sheetState,
-        contentWindowInsets = { WindowInsets(0) }
-    ) {
+    val sheetContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -322,6 +326,17 @@ fun SleepTimerSheet(
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("取消当前定时") }
             }
+        }
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = ::dismissSheet,
+            sheetState = sheetState,
+            contentWindowInsets = { WindowInsets(0) }
+        ) {
+            sheetContent()
         }
     }
 }

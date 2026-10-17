@@ -233,15 +233,10 @@ fun PlaylistContent(
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistBottomSheet(onDismiss: () -> Unit) {
+fun PlaylistBottomSheet(onDismiss: () -> Unit, embedded: Boolean = false) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-    ) {
+    val sheetContent: @Composable () -> Unit = {
         PlaylistContent(
             onDismiss = onDismiss,
             modifier = Modifier
@@ -249,6 +244,15 @@ fun PlaylistBottomSheet(onDismiss: () -> Unit) {
                 .height(sheetHeight)
                 .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),
         )
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        ) { sheetContent() }
     }
 }
 

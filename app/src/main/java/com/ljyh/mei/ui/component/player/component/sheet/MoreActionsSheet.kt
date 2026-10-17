@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,14 +65,17 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 fun MoreActionsSheet(
     onDismissRequest: () -> Unit,
     onActionClick: (MoreAction) -> Unit,
+    embedded: Boolean = false,
+    editingState: MutableState<Boolean>? = null,
 ) {
     val sleepTimerStatus = LocalPlayerConnection.current?.let {
         rememberSleepTimerStatus(it.service.sleepTimer)
     }
     val (savedOrder, saveOrder) = rememberPreference(MoreActionOrderKey, defaultValue = "")
-    var actions by remember { mutableStateOf(MoreAction.entries.toList()) }
+    var actions by remember(savedOrder) { mutableStateOf(MoreAction.orderedBy(savedOrder)) }
     val draft = remember { mutableStateListOf<MoreAction>() }
-    var editing by remember { mutableStateOf(false) }
+    val activeEditingState = editingState ?: remember { mutableStateOf(false) }
+    var editing by activeEditingState
     val haptics = LocalHapticFeedback.current
     val listState = rememberLazyListState()
     val reorderState = rememberReorderableLazyListState(listState) { from, to ->
@@ -82,7 +86,7 @@ fun MoreActionsSheet(
         skipPartiallyExpanded = true,
         confirmValueChange = { target -> target != SheetValue.Hidden || !editing },
     )
-    LaunchedEffect(savedOrder) { actions = MoreAction.orderedBy(savedOrder) }
+    LaunchedEffect(editing) { if (!editing) draft.clear() }
 
     fun leaveEdit() {
         editing = false
@@ -90,14 +94,7 @@ fun MoreActionsSheet(
     }
 
     val sheetHeight = minOf(LocalConfiguration.current.screenHeightDp.dp * 0.52f, 440.dp)
-    ModalBottomSheet(
-        onDismissRequest = {
-            if (editing) leaveEdit() else onDismissRequest()
-        },
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
+    val sheetContent: @Composable () -> Unit = {
         BackHandler(enabled = editing) { leaveEdit() }
         Column(
             modifier = Modifier
@@ -215,6 +212,20 @@ fun MoreActionsSheet(
                     modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
                 ) { Text("恢复默认") }
             }
+        }
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = {
+                if (editing) leaveEdit() else onDismissRequest()
+            },
+            sheetState = sheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            sheetContent()
         }
     }
 }

@@ -42,8 +42,13 @@ class PlayerOverlayHandler(
     private val context: android.content.Context,
     private val useInlineQueue: Boolean,
 ) {
-    private val _currentOverlay = mutableStateOf<OverlayState>(OverlayState.None)
-    val currentOverlay: State<OverlayState> = _currentOverlay
+    private val sheetNavigation = PlayerSheetNavigation()
+    val currentOverlay: State<OverlayState> = sheetNavigation.current
+    val canGoBack: Boolean get() = sheetNavigation.canGoBack
+    val isReturning: Boolean get() = sheetNavigation.isReturning
+
+    private fun show(next: OverlayState) = sheetNavigation.show(next)
+    fun goBack() = sheetNavigation.goBack()
 
     private val _tabletPanel = mutableStateOf(TabletPlayerPanel.Lyrics)
     val tabletPanel: State<TabletPlayerPanel> = _tabletPanel
@@ -51,13 +56,13 @@ class PlayerOverlayHandler(
     val phoneComments: State<Boolean> = _phoneComments
 
     val currentOverlayValue: OverlayState
-        get() = _currentOverlay.value
+        get() = sheetNavigation.current.value
 
     /**
      * 显示播放列表弹窗
      */
     fun showPlaylist() {
-        _currentOverlay.value = OverlayState.Playlist
+        show(OverlayState.Playlist)
     }
 
     fun toggleInlineQueue() {
@@ -83,7 +88,7 @@ class PlayerOverlayHandler(
      * 显示睡眠定时弹窗
      */
     fun showSleepTimer() {
-        _currentOverlay.value = OverlayState.SleepTimer
+        show(OverlayState.SleepTimer)
     }
 
     /**
@@ -94,68 +99,66 @@ class PlayerOverlayHandler(
         if (uid.isNotEmpty()) {
             stateContainer.playerViewModel.syncUserPlaylists(uid)
         }
-        _currentOverlay.value = OverlayState.AddToPlaylist(mediaId)
+        show(OverlayState.AddToPlaylist(mediaId))
     }
 
     /**
      * 显示创建播放列表弹窗
      */
     fun showCreatePlaylist() {
-        _currentOverlay.value = OverlayState.CreatePlaylist
+        show(OverlayState.CreatePlaylist)
     }
 
     /**
      * 显示更多操作弹窗
      */
     fun showMoreAction() {
-        _currentOverlay.value = OverlayState.MoreAction
+        show(OverlayState.MoreAction)
     }
 
     /**
      * 显示底部设置弹窗
      */
     fun showBottomAction() {
-        _currentOverlay.value = OverlayState.BottomAction
+        show(OverlayState.BottomAction)
     }
 
     /**
      * 显示专辑艺术家弹窗
      */
     fun showAlbumArtist(album: MediaMetadata.Album, artists: List<MediaMetadata.Artist>, cover: String) {
-        _currentOverlay.value = OverlayState.AlbumArtist(album, artists, cover)
+        show(OverlayState.AlbumArtist(album, artists, cover))
     }
 
     /**
      * 显示QQ音乐选择弹窗
      */
     fun showQQMusicSelection(mediaMetadata: MediaMetadata) {
-        _currentOverlay.value = OverlayState.QQMusicSelection(mediaMetadata)
+        show(OverlayState.QQMusicSelection(mediaMetadata))
     }
 
     /**
      * 显示音质选择弹窗
      */
     fun showMusicQualitySelection(current: Int) {
-        _currentOverlay.value = OverlayState.MusicQualitySelection(current)
+        show(OverlayState.MusicQualitySelection(current))
     }
 
     /**
      * 显示轨道操作菜单
      */
     fun showTrackActionMenu(track: MediaMetadata) {
-        _currentOverlay.value = OverlayState.TrackActionMenu(track)
+        show(OverlayState.TrackActionMenu(track))
     }
 
     fun showSongInfo(metadata: MediaMetadata) {
-        _currentOverlay.value = OverlayState.SongInfo(metadata)
+        show(OverlayState.SongInfo(metadata))
     }
 
     /**
      * 关闭当前弹窗
      */
-    fun dismiss() {
-        _currentOverlay.value = OverlayState.None
-    }
+    fun dismiss() = sheetNavigation.dismiss()
 
     /**
      * 处理更多操作点击

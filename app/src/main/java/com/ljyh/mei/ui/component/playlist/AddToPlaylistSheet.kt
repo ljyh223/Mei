@@ -36,15 +36,12 @@ fun AddToPlaylistSheet(
     playlists: List<Playlist>,
     onDismiss: () -> Unit,
     onSelectPlaylist: (Playlist) -> Unit,
-    onCreateNewPlaylist: () -> Unit
+    onCreateNewPlaylist: () -> Unit,
+    embedded: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-    ) {
+    val sheetContent: @Composable () -> Unit = {
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,6 +91,17 @@ fun AddToPlaylistSheet(
                     onClick = { onSelectPlaylist(playlist) }
                 )
             }
+        }
+    }
+    if (embedded) {
+        sheetContent()
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+        ) {
+            sheetContent()
         }
     }
 }
