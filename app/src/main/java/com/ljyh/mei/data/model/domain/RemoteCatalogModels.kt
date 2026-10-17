@@ -101,5 +101,5 @@ data class AccountProfile(
 
 fun UserAccount.toDomain() = UserAccountSummary(
     code = code,
-    profile = profile?.let { AccountProfile(it.userId, it.nickname, it.avatarUrl, it.signature) },
+    profile = profile?.let { AccountProfile(it.userId, it.nickname, it.avatarUrl, it.signature.orEmpty()) },
 )

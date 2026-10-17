@@ -172,6 +172,16 @@ class NeteaseResponseDtoTest {
     }
 
     @Test
+    fun missingOrNullAccountSignatureDoesNotBreakLibraryProfile() {
+        for (signature in listOf("\"signature\":null,", "")) {
+            val account = json.decodeFromString<UserAccount>(
+                """{"code":200,"profile":{$signature"userId":7,"nickname":"Listener","avatarUrl":"avatar"}}"""
+            )
+            assertEquals("", account.toDomain().profile?.signature)
+        }
+    }
+
+    @Test
     fun decodesPolymorphicHomeBlocksWithoutRequiringUnusedMetadata() {
         val response = json.decodeFromString<HomePageResourceShow>(
             """{"code":200,"data":{"blocks":[{"positionCode":"PAGE_RECOMMEND_RADAR","dslData":{"radar":{"title":"Radar","resources":[{"resourceId":"9","title":"Mix","coverImg":"cover"}]}}},{"positionCode":"PAGE_RECOMMEND_PRIVATE_RCMD_SONG","dslData":{"home_common":{"header":{"title":"Songs"},"content":{"items":[{"items":[{"resourceId":"7","title":"Song","coverUrl":"cover","artistName":"Artist"}]}]}}}}],"serverOnly":{"ignored":true}}}"""

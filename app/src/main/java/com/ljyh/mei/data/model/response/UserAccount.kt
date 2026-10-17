@@ -15,7 +15,7 @@ data class UserAccount(
     data class Profile(
         @SerialName("avatarUrl") val avatarUrl: String = "",
         @SerialName("nickname") val nickname: String = "",
-        @SerialName("signature") val signature: String = "",
+        @SerialName("signature") val signature: String? = null,
         @SerialName("userId") val userId: Long = 0,
     )
 }

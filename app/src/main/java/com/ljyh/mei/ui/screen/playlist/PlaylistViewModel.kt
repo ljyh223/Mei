@@ -41,7 +41,7 @@ class PlaylistViewModel @Inject constructor(
     private val likedSongsRepository: LikedSongsRepository,
     private val localPlaylistRepository: com.ljyh.mei.di.repository.LocalPlaylistRepository,
 ) : ViewModel() {
-    val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
+    val userId: String get() = AppContext.instance.dataStore[UserIdKey] ?: ""
     private val _playlistDetail = MutableStateFlow<Resource<MiniPlaylistDetail>>(Resource.Loading)
     val playlistDetail: StateFlow<Resource<MiniPlaylistDetail>> = _playlistDetail
 

@@ -144,7 +144,7 @@ class PlayerViewModel @Inject constructor(
 
     var mediaMetadata: MediaMetadata? = null
 
-    val userId = AppContext.instance.dataStore[UserIdKey] ?: ""
+    val userId: String get() = AppContext.instance.dataStore[UserIdKey] ?: ""
 
     val localPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
         .stateIn(
@@ -153,8 +153,12 @@ class PlayerViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    val myPlaylists: StateFlow<List<Playlist>> = localPlaylistRepository.getAllPlaylist()
-        .map { it.filter { p -> p.author == userId } }
+    val myPlaylists: StateFlow<List<Playlist>> = combine(
+        localPlaylistRepository.getAllPlaylist(),
+        AppContext.instance.dataStore.data.map { it[UserIdKey].orEmpty() },
+    ) { playlists, uid ->
+        if (uid.isBlank()) emptyList() else playlists.filter { it.author == uid }
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000L),
