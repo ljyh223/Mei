@@ -22,7 +22,7 @@ data class ArtistAlbum(
         @SerialName("artists") val artists: List<Artist> = emptyList(),
         @SerialName("picUrl") val picUrl: String = "",
         @SerialName("name") val name: String = "",
-        @SerialName("id") val id: Int = 0,
+        @SerialName("id") val id: Long = 0,
         @SerialName("size") val size: Int = 0,
     ) {
         @Serializable

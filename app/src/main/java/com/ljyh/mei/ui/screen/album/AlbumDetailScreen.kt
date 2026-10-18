@@ -285,6 +285,9 @@ fun AlbumDetailScreen(
                     if (!active) albumSearchQuery = ""
                 },
                 onBack = { navController.popBackStack() },
+                onArtistClick = { artistId ->
+                    Screen.Artist.navigate(navController) { addPath(artistId.toString()) }
+                },
                 onPlayAll = {
                     buildListQueue(0)?.let { playerConnection?.playQueue(it) }
                 },

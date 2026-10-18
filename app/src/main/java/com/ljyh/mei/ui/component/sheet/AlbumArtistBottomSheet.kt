@@ -1,10 +1,11 @@
-package com.ljyh.mei.ui.component.player.component.sheet
+package com.ljyh.mei.ui.component.sheet
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,7 @@ fun AlbumArtistBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     embedded: Boolean = false,
+    showAlbumDestination: Boolean = true,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -58,6 +61,7 @@ fun AlbumArtistBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.7f - 48.dp)
                 .verticalScroll(rememberScrollState()) // 防止内容过多无法滚动
                 .padding(bottom = 32.dp) // 底部留白，避开手势导航条
         ) {
@@ -71,9 +75,10 @@ fun AlbumArtistBottomSheet(
             )
 
             // --- 1. 专辑部分 ---
-            SectionLabel(text = "专辑")
+            if (showAlbumDestination) {
+                SectionLabel(text = "专辑")
 
-            ListItem(
+                ListItem(
                 headlineContent = {
                     Text(
                         text = albumInfo.title,
@@ -108,11 +113,14 @@ fun AlbumArtistBottomSheet(
                     onAlbumClick(albumInfo.id)
                     onDismissRequest() // 点击后自动关闭
                 }
-            )
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            Spacer(modifier = Modifier.height(8.dp))
+                if (artistList.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
 
             // --- 2. 歌手部分 ---
             if (artistList.isNotEmpty()) {
@@ -146,7 +154,7 @@ fun AlbumArtistBottomSheet(
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(enabled = artist.id > 0) {
                             onArtistClick(artist.id)
                             onDismissRequest()
                         }

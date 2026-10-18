@@ -3,9 +3,11 @@ package com.ljyh.mei.data.repository
 import com.ljyh.mei.data.model.api.ArtistAlbum
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.api.ArtistSong
+import com.ljyh.mei.data.model.api.ArtistSongsPage
 import com.ljyh.mei.data.model.api.GetArtistAlbum
 import com.ljyh.mei.data.model.api.GetArtistDetail
 import com.ljyh.mei.data.model.api.GetArtistSong
+import com.ljyh.mei.data.model.api.GetArtistSongsPage
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.safeApiCall
@@ -22,13 +24,20 @@ class ArtistRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun getArtistAlbums(id: String): Resource<ArtistAlbum> {
+    suspend fun getArtistAlbums(id: String, offset: Int = 0, limit: Int = 10): Resource<ArtistAlbum> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
-                apiService.getArtistAlbums(GetArtistAlbum(), id)
+                apiService.getArtistAlbums(GetArtistAlbum(limit = limit, offset = offset), id)
             }
         }
     }
+
+    suspend fun getArtistSongsPage(id: String, offset: Int, limit: Int): Resource<ArtistSongsPage> =
+        withContext(Dispatchers.IO) {
+            safeApiCall {
+                apiService.getArtistSongsPage(GetArtistSongsPage(id = id, offset = offset, limit = limit))
+            }
+        }
 
     suspend fun getArtistSongs(id: String): Resource<ArtistSong> {
         return withContext(Dispatchers.IO) {

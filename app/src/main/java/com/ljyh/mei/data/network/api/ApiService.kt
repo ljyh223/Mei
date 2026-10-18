@@ -13,6 +13,7 @@ import com.ljyh.mei.data.model.response.UserPlaylist
 import com.ljyh.mei.data.model.api.ArtistAlbum
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.api.ArtistSong
+import com.ljyh.mei.data.model.api.ArtistSongsPage
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.LikedSongListResponse
@@ -23,6 +24,7 @@ import com.ljyh.mei.data.model.api.GetAlbumList
 import com.ljyh.mei.data.model.api.GetArtistAlbum
 import com.ljyh.mei.data.model.api.GetArtistDetail
 import com.ljyh.mei.data.model.api.GetArtistSong
+import com.ljyh.mei.data.model.api.GetArtistSongsPage
 import com.ljyh.mei.data.model.api.GetComment
 import com.ljyh.mei.data.model.api.GetIntelligence
 import com.ljyh.mei.data.model.api.GetPlaylistDetail
@@ -96,6 +98,8 @@ class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) 
         http.post(base, "/api/artist/albums/$id", body)
     suspend fun getArtistSongs(body: GetArtistSong, id: String): ArtistSong =
         http.post(base, "/api/v1/artist/$id", body)
+    suspend fun getArtistSongsPage(body: GetArtistSongsPage): ArtistSongsPage =
+        http.post(base, "/api/v1/artist/songs", body)
     suspend fun getIntelligenceList(body: GetIntelligence): Intelligence =
         http.post(base, "/api/playmode/intelligence/list", body)
     suspend fun getComment(body: GetComment): Comment =

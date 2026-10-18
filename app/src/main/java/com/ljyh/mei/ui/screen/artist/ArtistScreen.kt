@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,7 +31,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +59,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,6 +73,7 @@ import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.item.Track
+import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.component.item.TrackPlaceholder
 import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
 import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
@@ -80,6 +84,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.utils.image.sizedNeteaseImage
 import java.util.UUID
 
 
@@ -90,12 +95,13 @@ fun ArtistScreen(
     viewModel: ArtistViewModel = hiltViewModel()
 ) {
     val navController = LocalNavController.current
-    val playerConnection = LocalPlayerConnection.current ?: return
+    val playerConnection = LocalPlayerConnection.current
     var menuTrack by remember { mutableStateOf<TrackMenuTarget?>(null) }
 
     val artistDetail by viewModel.artistDetail.collectAsState()
     val artistAlbums by viewModel.artistAlbums.collectAsState()
     val artistSongs by viewModel.artistSongs.collectAsState()
+    var showDescriptionSheet by remember(id) { mutableStateOf(false) }
 
     val scrollState = rememberLazyListState()
     // Hero 高度 320dp，当滚过约 60% 时显示 TopBar 标题
@@ -136,16 +142,12 @@ fun ArtistScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
+                    navigationIconContentColor = if (showTopBarTitle) MaterialTheme.colorScheme.onSurface else Color.White,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 scrollBehavior = scrollBehavior
@@ -168,7 +170,8 @@ fun ArtistScreen(
                     is Resource.Success -> ArtistHeader(
                         artist = detail.data.data.artist,
                         expertIdentities = detail.data.data.secondaryExpertIdentiy
-                            .filter { it.expertIdentiyCount > 0 }
+                            .filter { it.expertIdentiyCount > 0 },
+                        onExpandDescription = { showDescriptionSheet = true },
                     )
                     is Resource.Loading -> ArtistHeaderShimmer()
                     is Resource.Error -> ErrorItem(detail.message)
@@ -176,7 +179,9 @@ fun ArtistScreen(
             }
 
             // --- 2. Hot Songs ---
-            item { SectionTitle("热门单曲") }
+            item { SectionTitle("热门单曲", onShowAll = {
+                Screen.ArtistSongs.navigate(navController) { addPath(id) }
+            }) }
 
             when (val songsResource = artistSongs) {
                 is Resource.Success -> {
@@ -188,7 +193,7 @@ fun ArtistScreen(
                                 val allIds = songs.map {
                                     it.id.toString() to it.toMediaMetadata().toMediaItem()
                                 }
-                                playerConnection.onTrackClicked(
+                                playerConnection?.onTrackClicked(
                                     trackId = song.id.toString(),
                                     fallbackSource = QueueSource(QueueSource.Type.ARTIST, id,
                                         (artistDetail as? Resource.Success)?.data?.data?.artist?.name),
@@ -221,11 +226,13 @@ fun ArtistScreen(
             }
 
             // --- 3. Albums ---
-            item { SectionTitle("专辑") }
+            item { SectionTitle("专辑", onShowAll = {
+                Screen.ArtistAlbums.navigate(navController) { addPath(id) }
+            }) }
 
             when (val albumsResource = artistAlbums) {
                 is Resource.Success -> {
-                    val albums = albumsResource.data.hotAlbums
+                    val albums = albumsResource.data.hotAlbums.take(10)
                     item {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 20.dp),
@@ -234,7 +241,7 @@ fun ArtistScreen(
                             items(albums, key = { it.id }) { hotAlbum ->
                                 AlbumCard(
                                     album = Album(
-                                        id = hotAlbum.id.toLong(),
+                                        id = hotAlbum.id,
                                         title = hotAlbum.name,
                                         cover = hotAlbum.picUrl,
                                         artist = hotAlbum.artists.map {
@@ -265,6 +272,10 @@ fun ArtistScreen(
         }
     }
     BasicTrackActionMenu(menuTrack) { menuTrack = null }
+    val artist = (artistDetail as? Resource.Success)?.data?.data?.artist
+    if (showDescriptionSheet && artist != null) {
+        DescriptionSheet(artist.name, artist.briefDesc) { showDescriptionSheet = false }
+    }
 }
 
 
@@ -276,8 +287,9 @@ fun ArtistHeader(
     artist: ArtistDetail.Data.Artist?,
     expertIdentities: List<ArtistDetail.Data.SecondaryExpertIdentiy>,
     isLoading: Boolean = false,
+    onExpandDescription: () -> Unit = {},
 ) {
-    var descExpanded by remember { mutableStateOf(false) }
+    var canExpand by remember(artist?.briefDesc) { mutableStateOf(false) }
     val bgColor = MaterialTheme.colorScheme.background
     val loading = isLoading || artist == null
 
@@ -457,18 +469,12 @@ fun ArtistHeader(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
                     lineHeight = 20.sp,
-                    maxLines = if (descExpanded) Int.MAX_VALUE else 3,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { canExpand = it.hasVisualOverflow },
                 )
-                if (!loading) {
-                    Text(
-                        text = if (descExpanded) "收起" else "展开全部",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .padding(top = 4.dp, bottom = 8.dp)
-                            .clickable { descExpanded = !descExpanded }
-                    )
+                if (!loading && canExpand) {
+                    TextButton(onClick = onExpandDescription) { Text("展开全部") }
                 }
             }
         }
@@ -567,7 +573,7 @@ fun AlbumCard(
             )
         } else {
             AsyncImage(
-                model = album?.cover,
+                model = album?.cover?.sizedNeteaseImage(300),
                 contentDescription = album?.title,
                 modifier = Modifier
                     .size(116.dp)
@@ -618,13 +624,15 @@ fun ArtistHeaderShimmer() {
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
 @Composable
-fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 4.dp)
-    )
+fun SectionTitle(title: String, onShowAll: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f))
+        if (onShowAll != null) TextButton(onClick = onShowAll) { Text("查看全部") }
+    }
 }
 
 @Composable

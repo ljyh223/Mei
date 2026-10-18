@@ -10,6 +10,23 @@ data class GetArtistSong(
     val total: Boolean = true,
 )
 
+@Serializable
+data class GetArtistSongsPage(
+    val id: String,
+    @SerialName("private_cloud") val privateCloud: String = "true",
+    @SerialName("work_type") val workType: Int = 1,
+    val order: String = "hot",
+    val offset: Int = 0,
+    val limit: Int = 50,
+)
+
+@Serializable
+data class ArtistSongsPage(
+    val songs: List<ArtistSong.HotSong> = emptyList(),
+    val more: Boolean = false,
+    val code: Int = 0,
+)
+
 /** Only the song fields consumed by the artist screen and MediaMetadata mapper. */
 @Serializable
 data class ArtistSong(
@@ -37,6 +54,7 @@ data class ArtistSong(
             @SerialName("id") val id: Long = 0,
             @SerialName("name") val name: String = "",
             @SerialName("pic") val pictureId: Long = 0,
+            @SerialName("picUrl") val picUrl: String = "",
         )
     }
 }

@@ -117,7 +117,7 @@ fun EveryDaySongs.Data.DailySong.toMediaMetadata() = MediaMetadata(
 fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
     id = id,
     title = name,
-    coverUrl= getResourceLink(album.pictureId.toString()),
+    coverUrl = album.picUrl.ifBlank { getResourceLink(album.pictureId.toString()) },
     artists = artists.map {
         MediaMetadata.Artist(
             id = it.id,

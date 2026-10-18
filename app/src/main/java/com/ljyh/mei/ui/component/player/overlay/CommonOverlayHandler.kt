@@ -48,7 +48,7 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.ui.component.DownloadConfirmDialog
 import com.ljyh.mei.ui.component.player.OverlayState
-import com.ljyh.mei.ui.component.player.component.sheet.AlbumArtistBottomSheet
+import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.player.component.sheet.MoreActionsSheet
 import com.ljyh.mei.ui.component.player.component.sheet.PlayerActionSettingsSheet
 import com.ljyh.mei.ui.component.player.component.sheet.PlaylistBottomSheet

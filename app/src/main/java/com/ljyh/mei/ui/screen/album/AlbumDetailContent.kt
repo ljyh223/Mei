@@ -3,8 +3,6 @@ package com.ljyh.mei.ui.screen.album
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,13 +39,11 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -62,7 +59,6 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,6 +67,8 @@ import androidx.compose.ui.unit.IntRect
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
+import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import java.time.Instant
 import java.time.ZoneId
@@ -89,6 +87,7 @@ internal fun AlbumDetailContent(
     onSearchQueryChange: (String) -> Unit,
     onSearchActiveChange: (Boolean) -> Unit,
     onBack: () -> Unit,
+    onArtistClick: (Long) -> Unit,
     onPlayAll: () -> Unit,
     onSubscribe: () -> Unit,
     onDownload: () -> Unit,
@@ -112,7 +111,19 @@ internal fun AlbumDetailContent(
     )
     val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
+    val participatingArtists = remember(album.artistIds, songs) {
+        val albumArtistIds = album.artistIds.toSet()
+        songs.flatMap { it.artists }
+            .filter { it.name.isNotBlank() && it.id !in albumArtistIds }
+            .distinctBy { if (it.id > 0) it.id.toString() else it.name }
+    }
+    val allArtists = remember(album.artistIds, album.artistNames, participatingArtists) {
+        album.artistNames.mapIndexed { index, name ->
+            MediaMetadata.Artist(album.artistIds.getOrNull(index) ?: 0L, name)
+        }.filter { it.name.isNotBlank() } + participatingArtists
+    }
     var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
+    var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(surface)) {
         LazyColumn(
@@ -121,7 +132,14 @@ internal fun AlbumDetailContent(
             contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
         ) {
             item(key = "album_header") {
-                AlbumHeader(album = album, trackCount = songs.size, tint = albumTint)
+                AlbumHeader(
+                    album = album,
+                    trackCount = songs.size,
+                    artists = allArtists,
+                    tint = albumTint,
+                    onArtistClick = onArtistClick,
+                    onShowArtists = { showArtistsSheet = true },
+                )
             }
             item(key = "album_actions") {
                 AlbumActions(
@@ -218,34 +236,33 @@ internal fun AlbumDetailContent(
     }
 
     if (showDescriptionSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showDescriptionSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            modifier = Modifier.heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.7f),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                    .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
-            ) {
-                Text(
-                    text = album.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
-                )
-                Text(
-                    text = album.description.trim(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        DescriptionSheet(album.name, album.description) { showDescriptionSheet = false }
+    }
+    if (showArtistsSheet) {
+        AlbumArtistBottomSheet(
+            albumInfo = MediaMetadata.Album(album.id, album.name),
+            artistList = allArtists,
+            coverUrl = album.picUrl,
+            onAlbumClick = {},
+            onArtistClick = { id ->
+                showArtistsSheet = false
+                onArtistClick(id)
+            },
+            onDismissRequest = { showArtistsSheet = false },
+            showAlbumDestination = false,
+        )
     }
 }
 
 @Composable
-private fun AlbumHeader(album: AlbumOverview, trackCount: Int, tint: Color) {
+private fun AlbumHeader(
+    album: AlbumOverview,
+    trackCount: Int,
+    artists: List<MediaMetadata.Artist>,
+    tint: Color,
+    onArtistClick: (Long) -> Unit,
+    onShowArtists: () -> Unit,
+) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val heroHeight = (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
         Box(Modifier.fillMaxWidth().height(heroHeight)) {
@@ -279,14 +296,21 @@ private fun AlbumHeader(album: AlbumOverview, trackCount: Int, tint: Color) {
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (album.artistNames.isNotEmpty()) {
+                if (artists.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
+                    val firstArtist = artists.first()
                     Text(
-                        text = album.artistNames.joinToString(" / "),
+                        text = if (artists.size > 1) "${firstArtist.name} 等" else firstArtist.name,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        color = if (artists.size > 1 || firstArtist.id > 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.heightIn(min = 48.dp)
+                            .clickable(enabled = artists.size > 1 || firstArtist.id > 0) {
+                                if (artists.size > 1) onShowArtists() else onArtistClick(firstArtist.id)
+                            }
+                            .wrapContentHeight(Alignment.CenterVertically),
                     )
                 }
                 Spacer(Modifier.height(8.dp))
