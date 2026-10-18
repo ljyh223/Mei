@@ -388,6 +388,7 @@ fun PlaylistScreen(
             onPlayAll = {
                 buildListQueue()?.let { queue ->
                     playerConnection.playQueue(queue)
+                    viewModel.recordPlaylistPlayback(id.toString())
                 }
             },
 
@@ -398,6 +399,7 @@ fun PlaylistScreen(
                     buildQueue = { buildListQueue(mediaMetadata.id) },
                     fallbackSource = QueueSource(QueueSource.Type.PLAYLIST, uiData.id.toString(), uiData.title)
                 )
+                viewModel.recordPlaylistPlayback(id.toString())
             },
 
             playlistSearchQuery = playlistSearchQuery,

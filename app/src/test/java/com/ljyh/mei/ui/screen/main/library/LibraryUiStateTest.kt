@@ -1,12 +1,70 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.room.sortedBySmartScore
 import com.ljyh.mei.data.model.response.UserAlbumList
 import com.ljyh.mei.data.network.Resource
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class LibraryUiStateTest {
+    @Test
+    fun createdPlaylistsKeepTheSameOrderForDifferentRoomQueryOrders() {
+        val playlists = listOf(
+            playlist(id = "z", author = "owner"),
+            playlist(id = "a", author = "owner"),
+            playlist(id = "m", author = "owner"),
+        )
+        val library = buildLibraryUiState(
+            profile = LibraryProfileUi("owner", "name", "avatar", ""),
+            section = LibrarySection.Created,
+            playlists = playlists,
+            albums = emptyList(),
+            now = 1_000L,
+        )
+
+        assertEquals(
+            library.createdPlaylists.map { it.id },
+            playlists.reversed().sortedBySmartScore(1_000L).map { it.id },
+        )
+    }
+
+    @Test
+    fun personalPlaybackRanksAheadOfServerPopularity() {
+        val now = 40L * 24 * 60 * 60 * 1_000
+        val personallyPlayed = playlist("personal", "owner").copy(
+            localPlayCount = 3,
+            lastPlayTime = now - 2L * 24 * 60 * 60 * 1_000,
+            playCount = 20,
+        )
+        val popular = playlist("popular", "owner").copy(playCount = 1_000_000)
+
+        assertEquals(
+            listOf("personal", "popular"),
+            listOf(popular, personallyPlayed).sortedBySmartScore(now).map { it.id },
+        )
+    }
+
+    @Test
+    fun frequentPlaylistRanksAheadOfOneOffPlayAndServerCountBreaksColdStartTies() {
+        val now = 40L * 24 * 60 * 60 * 1_000
+        val frequent = playlist("frequent", "owner").copy(
+            localPlayCount = 20,
+            lastPlayTime = now - 15L * 24 * 60 * 60 * 1_000,
+        )
+        val oneOff = playlist("one-off", "owner").copy(
+            localPlayCount = 1,
+            lastPlayTime = now,
+        )
+        val coldPopular = playlist("cold-popular", "owner").copy(playCount = 100)
+        val coldOther = playlist("cold-other", "owner").copy(playCount = 1)
+
+        assertEquals(
+            listOf("frequent", "one-off", "cold-popular", "cold-other"),
+            listOf(coldOther, oneOff, coldPopular, frequent).sortedBySmartScore(now).map { it.id },
+        )
+    }
+
     @Test
     fun accountFailureWithoutCachedProfileIsAnError() {
         val state = resolveLibraryUiState(

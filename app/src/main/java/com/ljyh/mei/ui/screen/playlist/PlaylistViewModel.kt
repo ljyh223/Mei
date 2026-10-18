@@ -27,9 +27,12 @@ import com.ljyh.mei.utils.preferences.get
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -53,8 +56,12 @@ class PlaylistViewModel @Inject constructor(
     val manipulateTracks: StateFlow<Resource<ManipulateTrackResult>> = _manipulateTracks
 
 
-    private val _playlist = MutableStateFlow<List<Playlist>>(emptyList())
-    val playlist: StateFlow<List<Playlist>> = _playlist
+    val playlist: StateFlow<List<Playlist>> = combine(
+        localPlaylistRepository.getAllPlaylist(),
+        AppContext.instance.dataStore.data.map { it[UserIdKey].orEmpty() },
+    ) { playlists, uid ->
+        if (uid.isBlank()) emptyList() else playlists.filter { it.author == uid }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), emptyList())
 
 
     private val _everyDay = MutableStateFlow<Resource<List<MediaMetadata>>>(Resource.Loading)
@@ -81,7 +88,6 @@ class PlaylistViewModel @Inject constructor(
             _playlistDetail.value = Resource.Loading
             val detail = repository.getPlaylistDetail(id)
             _playlistDetail.value = detail
-            localPlaylistRepository.touchPlaylist(id, System.currentTimeMillis())
             val currentUserId = AppContext.instance.dataStore[UserIdKey].orEmpty()
             if (detail is Resource.Success && currentUserId.isNotEmpty() &&
                 detail.data.creatorUserId.toString() == currentUserId &&
@@ -91,6 +97,12 @@ class PlaylistViewModel @Inject constructor(
                     else -> Unit
                 }
             }
+        }
+    }
+
+    fun recordPlaylistPlayback(id: String) {
+        viewModelScope.launch {
+            localPlaylistRepository.touchPlaylist(id, System.currentTimeMillis())
         }
     }
 
@@ -258,27 +270,10 @@ class PlaylistViewModel @Inject constructor(
     }
     fun getAllMePlaylist(){
         viewModelScope.launch {
-            _playlist.value = localPlaylistRepository.getPlaylistByAuthor(userId)
             if (userId.isNotEmpty()) {
                 when (val result = userRepository.getUserPlaylist(userId, 100)) {
                     is Resource.Success -> {
-                        val playlistsToInsert = result.data.playlists.map {
-                            val existing = localPlaylistRepository.getPlaylist(it.id.toString())
-                            Playlist(
-                                id = it.id.toString(),
-                                title = it.name,
-                                cover = it.coverImgUrl,
-                                author = it.creator.userId.toString(),
-                                authorName = it.creator.nickname,
-                                authorAvatar = it.creator.avatarUrl,
-                                count = it.trackCount,
-                                playCount = it.playCount,
-                                lastPlayTime = existing?.lastPlayTime ?: 0L,
-                                localPlayCount = existing?.localPlayCount ?: 0
-                            )
-                        }
-                        localPlaylistRepository.insertPlaylists(playlistsToInsert)
-                        _playlist.value = localPlaylistRepository.getPlaylistByAuthor(userId)
+                        localPlaylistRepository.mergeUserPlaylists(result.data.playlists)
                     }
                     is Resource.Error -> {}
                     Resource.Loading -> {}

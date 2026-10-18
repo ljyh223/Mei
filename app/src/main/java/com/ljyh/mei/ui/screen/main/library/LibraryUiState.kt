@@ -7,6 +7,7 @@ import com.ljyh.mei.data.model.response.UserVipInfo
 import com.ljyh.mei.data.model.response.ListenDataRealtimeResponse
 import com.ljyh.mei.data.model.response.ListenDataReportResponse
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.model.room.sortedBySmartScore
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.model.toAlbum
@@ -123,8 +124,8 @@ internal fun buildLibraryUiState(
     return LibraryContentUiState(
         profile = profile,
         section = section,
-        createdPlaylists = created.sortedForLibrary(now),
-        collectedPlaylists = collected.sortedForLibrary(now),
+        createdPlaylists = created.sortedBySmartScore(now),
+        collectedPlaylists = collected.sortedBySmartScore(now),
         albums = albums,
         listeningFootprint = listeningFootprint,
     )
@@ -224,13 +225,5 @@ private fun ListenDataReportResponse.toListeningInsightUi(): ListeningInsightUi?
     return insight.takeIf {
         listOf(it.title, it.subtitle, it.topStyle, it.topArtist, it.topSong, it.comparisonText)
             .any { value -> !value.isNullOrBlank() }
-    }
-}
-
-internal fun List<Playlist>.sortedForLibrary(now: Long): List<Playlist> {
-    val maxLocalPlayCount = maxOfOrNull { it.localPlayCount } ?: 0
-    val maxPlayCount = maxOfOrNull { it.playCount } ?: 0L
-    return sortedByDescending {
-        it.sortScore(maxLocalPlayCount, maxPlayCount, now)
     }
 }

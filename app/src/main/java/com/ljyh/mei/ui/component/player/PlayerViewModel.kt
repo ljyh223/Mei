@@ -244,18 +244,7 @@ class PlayerViewModel @Inject constructor(
             _networkPlaylistsState.value = Resource.Loading
             when (val networkResult = userRepository.getUserPlaylist(uid, limit)) {
                 is Resource.Success -> {
-                    val playlistsToInsert = networkResult.data.playlists.map {
-                        Playlist(
-                            id = it.id.toString(),
-                            title = it.name,
-                            cover = it.coverImgUrl,
-                            author = it.creator.userId.toString(),
-                            authorName = it.creator.nickname,
-                            authorAvatar = it.creator.avatarUrl,
-                            count = it.trackCount
-                        )
-                    }
-                    localPlaylistRepository.insertPlaylists(playlistsToInsert)
+                    localPlaylistRepository.mergeUserPlaylists(networkResult.data.playlists)
                     _networkPlaylistsState.value = networkResult
                 }
 

@@ -3,6 +3,7 @@ package com.ljyh.mei.data.model.room
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlin.math.exp
+import kotlin.math.ln1p
 
 @Entity(tableName = "playlist")
 data class Playlist(
@@ -23,17 +24,28 @@ data class Playlist(
 ) {
     fun sortScore(
         maxLocalPlayCount: Int = 1,
-        maxServerPlayCount: Long = 1L,
         now: Long = System.currentTimeMillis()
     ): Double {
         val daysSinceLastPlay = if (lastPlayTime > 0L) {
-            (now - lastPlayTime) / (1000.0 * 60 * 60 * 24)
+            ((now - lastPlayTime).coerceAtLeast(0L)) / (1000.0 * 60 * 60 * 24)
         } else Double.MAX_VALUE
 
         val recent = exp(-daysSinceLastPlay / 30.0)
-        val frequency = localPlayCount.toDouble() / maxLocalPlayCount.coerceAtLeast(1)
-        val serverHeat = playCount.toDouble() / maxServerPlayCount.coerceAtLeast(1)
+        val frequency = ln1p(localPlayCount.coerceAtLeast(0).toDouble()) /
+            ln1p(maxLocalPlayCount.coerceAtLeast(1).toDouble())
 
-        return 50.0 * recent + 30.0 * frequency + 20.0 * serverHeat
+        return 50.0 * recent + 50.0 * frequency
     }
+}
+
+fun List<Playlist>.sortedBySmartScore(now: Long): List<Playlist> {
+    val maxLocalPlayCount = maxOfOrNull { it.localPlayCount } ?: 0
+    return sortedWith(
+        compareByDescending<Playlist> { it.localPlayCount > 0 && it.lastPlayTime > 0L }
+            .thenByDescending { it.sortScore(maxLocalPlayCount, now) }
+            .thenByDescending {
+                if (it.localPlayCount > 0 && it.lastPlayTime > 0L) 0L else it.playCount
+            }
+            .thenBy { it.id }
+    )
 }
