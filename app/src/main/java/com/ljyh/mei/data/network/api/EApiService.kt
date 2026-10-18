@@ -19,9 +19,6 @@ class EApiService(private val http: NeteaseHttp) {
     suspend fun search(body: GetUserPhotoAlbum): AlbumPhoto =
         http.post(base, "/eapi/search/pc/complex/page/v3", body)
 
-    suspend fun subscribePlaylist(body: SubscribePlaylist): BaseResponse =
-        http.post(base, "/eapi/playlist/subscribe", body)
-
     suspend fun unSubscribePlaylist(body: SubscribePlaylist): BaseResponse =
         http.post(base, "/eapi/playlist/unsubscribe", body)
 

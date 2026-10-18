@@ -76,6 +76,9 @@ class XeApiClient(
         return json.decodeFromString(requestRaw(buildLikeRequest(body)))
     }
 
+    suspend fun subscribePlaylist(id: String): BaseResponse =
+        json.decodeFromString(requestRaw(buildSubscribePlaylistRequest(id)))
+
     private suspend fun requestRaw(
         request: XeApiRequest,
         retryOnRefresh: Boolean = true,

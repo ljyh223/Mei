@@ -92,4 +92,18 @@ class XeApiClientTest {
 
         assertEquals("flac", url.parameters["encodeType"])
     }
+
+    @Test
+    fun playlistSubscriptionUsesCapturedXeapiContract() {
+        val request = buildSubscribePlaylistRequest("14068844531")
+
+        assertEquals("interface3.music.163.com", request.url.host)
+        assertEquals("/xeapi/playlist/subscribe", request.url.encodedPath)
+        assertEquals("", request.url.encodedQuery)
+        assertEquals(
+            "{\"content\":\"id=14068844531\",\"queryString\":\"e_r=true\"}",
+            request.encryptionPlaintext().decodeToString(),
+        )
+        assertTrue(request.requiresAntiCheatToken)
+    }
 }

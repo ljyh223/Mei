@@ -80,6 +80,7 @@ class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) 
     suspend fun getUserPhotoAlbum(body: GetUserPhotoAlbum): AlbumPhoto =
         http.post(base, "/api/user/photo/album/get", body)
     suspend fun like(body: Like): BaseResponse = xeApi.like(body)
+    suspend fun subscribePlaylist(id: String): BaseResponse = xeApi.subscribePlaylist(id)
     suspend fun manipulateTracks(body: ManipulateTrack): ManipulateTrackResult =
         http.post(base, "/api/playlist/manipulate/tracks", body)
     suspend fun updatePlaylistTrackOrder(body: UpdatePlaylistTrackOrder): BaseResponse =

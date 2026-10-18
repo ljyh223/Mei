@@ -142,12 +142,7 @@ class PlaylistRepository(
     ): Resource<BaseResponse> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
-                eApiService.subscribePlaylist(
-                    SubscribePlaylist(
-                        id = id,
-                        checkToken = checkToken
-                    )
-                )
+                apiService.subscribePlaylist(id)
             }
         }
     }

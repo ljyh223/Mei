@@ -75,6 +75,12 @@ internal fun buildLikeRequest(body: Like): XeApiRequest = XeApiRequest(
     requiresAntiCheatToken = true,
 )
 
+internal fun buildSubscribePlaylistRequest(id: String): XeApiRequest = XeApiRequest(
+    url = xeApiUrl("playlist/subscribe"),
+    originalBody = XeApiOriginalBody.Form(listOf("id" to id).formUrlEncode()),
+    requiresAntiCheatToken = true,
+)
+
 internal fun encodeLikeContent(body: Like): String {
     return listOf(
         "alg" to body.alg,
