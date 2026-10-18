@@ -1,6 +1,13 @@
 package com.ljyh.mei.utils.encrypt
 
 import com.google.crypto.tink.subtle.X25519
+import com.ljyh.mei.data.network.XeApiOriginalBody
+import com.ljyh.mei.data.network.XeApiRequest
+import com.ljyh.mei.data.network.buildLyricV1Request
+import com.ljyh.mei.data.network.encryptionPlaintext
+import io.ktor.http.URLBuilder
+import io.ktor.http.Url
+import io.ktor.http.takeFrom
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.Base64
@@ -8,7 +15,6 @@ import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -32,25 +38,26 @@ class XeApiCryptoTest {
             nextUpdateTime = Long.MAX_VALUE,
         )
         val session = XeApiSession("s".repeat(32), "k".repeat(32))
-        val query = "https://interface3.music.163.com/xeapi/song/enhance/player/url/v1"
-            .toHttpUrl().newBuilder()
-            .addQueryParameter("ids", "[\"393594_0\",\"409647155_0\"]")
-            .addQueryParameter("level", "exhigh")
-            .addQueryParameter("encodeType", "aac")
-            .addQueryParameter("trialMode", "1")
-            .addQueryParameter("faql", "0")
-            .addQueryParameter("immerseType", "ste2")
-            .addQueryParameter("degradeImmerseType", "aac")
-            .addQueryParameter("expParams", "{\"hy-zyyinzhi\":\"t1\"}")
-            .addQueryParameter("cliUserId", "1234567890")
-            .addQueryParameter("cliVipTypes", "[1,6,15]")
-            .addQueryParameter("trialModes", "{\"393594\":1,\"409647155\":1}")
-            .addQueryParameter("supportDolby", "false")
-            .addQueryParameter("volumeBalance", "0")
-            .addQueryParameter("djVolumeBalance", "1")
-            .build().encodedQuery!!
+        val url = URLBuilder().takeFrom(Url("https://interface3.music.163.com/xeapi/song/enhance/player/url/v1")).apply {
+            parameters.append("ids", "[\"393594_0\",\"409647155_0\"]")
+            parameters.append("level", "exhigh")
+            parameters.append("encodeType", "aac")
+            parameters.append("trialMode", "1")
+            parameters.append("faql", "0")
+            parameters.append("immerseType", "ste2")
+            parameters.append("degradeImmerseType", "aac")
+            parameters.append("expParams", "{\"hy-zyyinzhi\":\"t1\"}")
+            parameters.append("cliUserId", "1234567890")
+            parameters.append("cliVipTypes", "[1,6,15]")
+            parameters.append("trialModes", "{\"393594\":1,\"409647155\":1}")
+            parameters.append("supportDolby", "false")
+            parameters.append("volumeBalance", "0")
+            parameters.append("djVolumeBalance", "1")
+        }.build()
+        val query = url.encodedQuery
+        val plaintextBytes = XeApiRequest(url).encryptionPlaintext()
 
-        val form = XeApiCrypto().encrypt(query, key, session).split('&').associate { pair ->
+        val form = XeApiCrypto().encrypt(plaintextBytes, key, session).split('&').associate { pair ->
             val (name, value) = pair.split('=', limit = 2)
             name to URLDecoder.decode(value, StandardCharsets.UTF_8.name())
         }
@@ -76,7 +83,7 @@ class XeApiCryptoTest {
         val sPlaintext = cipher.doFinal(s.copyOfRange(44, s.size)).toString(StandardCharsets.UTF_8)
         assertEquals("${Base64.getEncoder().encodeToString(session.key.toByteArray())}|android|${key.sk}", sPlaintext)
 
-        val firstRequest = XeApiCrypto().encrypt(query, key).split('&').associate { pair ->
+        val firstRequest = XeApiCrypto().encrypt(plaintextBytes, key).split('&').associate { pair ->
             val (name, value) = pair.split('=', limit = 2)
             name to URLDecoder.decode(value, StandardCharsets.UTF_8.name())
         }
@@ -96,17 +103,42 @@ class XeApiCryptoTest {
         )
         val encodedContent = "scene=playlist_head&playlistId=123&newStyle=true"
         val session = XeApiSession("s".repeat(32), "k".repeat(32))
-        val c = XeApiCrypto().encrypt("", publicKey, session, encodedContent)
+        val url = Url("https://interface3.music.163.com/xeapi/test")
+        val c = XeApiCrypto().encrypt(
+            XeApiRequest(url, XeApiOriginalBody.Form(encodedContent)).encryptionPlaintext(),
+            publicKey, session,
+        )
             .substringAfter("C=").substringBefore('&')
         assertEquals(
             "{\"content\":\"$encodedContent\",\"queryString\":\"e_r=true\"}",
             decryptC(c, session.key.toByteArray()),
         )
-        val emptyContentC = XeApiCrypto().encrypt("", publicKey, session)
+        val emptyContentC = XeApiCrypto().encrypt(XeApiRequest(url).encryptionPlaintext(), publicKey, session)
             .substringAfter("C=").substringBefore('&')
         assertEquals(
             "{\"content\":\"\",\"queryString\":\"e_r=true\"}",
             decryptC(emptyContentC, session.key.toByteArray()),
+        )
+    }
+
+    @Test
+    fun lyricJsonBodyUsesBase64BodyInsteadOfFormContent() {
+        val serverPrivate = X25519.generatePrivateKey()
+        val publicKey = XeApiPublicKey(
+            publicKey = Base64.getEncoder().encodeToString(X25519.publicFromPrivate(serverPrivate)),
+            version = "1000000000000",
+            sk = "test-sk",
+            nextUpdateTime = Long.MAX_VALUE,
+        )
+        val session = XeApiSession("s".repeat(32), "k".repeat(32))
+        val request = buildLyricV1Request("536623722")
+        val query = request.url.encodedQuery
+        val c = XeApiCrypto().encrypt(request.encryptionPlaintext(), publicKey, session)
+            .substringAfter("C=").substringBefore('&')
+
+        assertEquals(
+            "{\"contentType\":\"application/json\",\"queryString\":\"$query&e_r=true\",\"body\":\"e30=\"}",
+            decryptC(c, session.key.toByteArray()),
         )
     }
 

@@ -529,7 +529,21 @@ object QRCUtils {
 
             return lyric
         }catch (e: Exception){
+            // 有些接口（如 Android 协议的 qrc=0 分支）直接返回 base64 明文，这里兼容一下
+            return decodeBase64OrSelf(data)
+        }
+    }
+
+    /** base64 明文兜底；解不出可读文本时返回空串，避免把坏数据当歌词。 */
+    private fun decodeBase64OrSelf(data: String): String {
+        val text = try {
+            String(java.util.Base64.getDecoder().decode(data), Charsets.UTF_8)
+        } catch (_: Exception) {
             return ""
         }
+        if (text.isEmpty()) return ""
+        // 注意 CJK 在 0x4E00 以上，这里只要求"不是控制字符"
+        val printable = text.count { it == '\n' || it == '\r' || it == '\t' || !it.isISOControl() }
+        return if (printable * 10 >= text.length * 9) text else ""
     }
 }

@@ -109,9 +109,23 @@ val DownloadPathKey = stringPreferencesKey("downloadPath")
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 val EmbedOriginalTtmlKey = booleanPreferencesKey("embedOriginalTtml")
 val QqTimeoutKey = stringPreferencesKey("qq_timeout")
+val QqLyricApiKey = stringPreferencesKey("qq_lyric_api")
 val TtmlLyricsBaseUrlKey = stringPreferencesKey("ttmlLyricsBaseUrl")
 
 const val DefaultTtmlLyricsBaseUrl = "https://amlldb.bikonoo.com"
+
+/**
+ * QQ 搜索与歌词走哪个客户端接口。
+ *
+ * 项目里目前存在两套 QQ 歌词实现，互不影响：
+ *  - [Android]  = 新：Android 客户端协议（musics.fcg + sign/mask），见 [com.ljyh.mei.data.network.qqandroid.QqAndroidClient]
+ *  - [Legacy]   = 旧：musicu.fcg + cookie，见 [com.ljyh.unblockneteasemusic.qq.QqMusicProvider]
+ */
+enum class QqLyricApi(val label: String) {
+    Auto("自动（Android 优先，失败回退旧版）"),
+    Android("Android 客户端协议"),
+    Legacy("旧版 musicu.fcg")
+}
 
 enum class QqTimeout(val seconds: Int, val label: String) {
     Sec3(3, "3秒"),

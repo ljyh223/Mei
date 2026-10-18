@@ -10,8 +10,6 @@ import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 
 @Serializable
 data class XeApiPublicKey(
@@ -26,21 +24,15 @@ data class XeApiSession(val id: String, val key: String)
 /** 9.6.05 C/S/R envelope. The public key and session are supplied by XeApiClient. */
 class XeApiCrypto(private val random: SecureRandom = SecureRandom()) {
     fun encrypt(
-        encodedQuery: String,
+        plaintext: ByteArray,
         publicKey: XeApiPublicKey,
         session: XeApiSession? = null,
-        encodedContent: String = "",
     ): String {
         val peerKey = Base64.getDecoder().decode(publicKey.publicKey)
         require(peerKey.size == 32) { "Invalid XEAPI public key" }
         val dynamicKey = session?.key?.toByteArray(StandardCharsets.UTF_8) ?: randomBytes(16)
         require(dynamicKey.size in setOf(16, 24, 32)) { "Invalid XEAPI session key" }
 
-        val plaintext = buildJsonObject {
-            if (encodedQuery.isNotEmpty()) put("queryString", "$encodedQuery&e_r=true")
-            put("content", encodedContent)
-            if (encodedQuery.isEmpty()) put("queryString", "e_r=true")
-        }.toString().toByteArray(StandardCharsets.UTF_8)
         val staticCiphertext = aesEcbEncrypt(STATIC_KEY, plaintext)
         val prefix = randomBytes(16)
         val xored = ByteArray(staticCiphertext.size) { index ->

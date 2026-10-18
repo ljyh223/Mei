@@ -2,7 +2,12 @@ package com.ljyh.mei.data.repository
 
 import android.content.Context
 import com.ljyh.mei.constants.DefaultTtmlLyricsBaseUrl
+import com.ljyh.mei.constants.QqLyricApi
+import com.ljyh.mei.constants.QqLyricApiKey
 import com.ljyh.mei.constants.TtmlLyricsBaseUrlKey
+import com.ljyh.mei.data.network.qqandroid.QqAndroidClient
+import com.ljyh.mei.data.network.qqandroid.QqSong
+import com.ljyh.mei.data.network.qqandroid.toMusicTrack
 import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaMetadata
@@ -22,6 +27,11 @@ import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
 import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.preferences.toEnum
+import com.ljyh.mei.utils.lyric.LRCParser
+import com.ljyh.mei.utils.lyric.QRCParser
+import com.ljyh.unblockneteasemusic.qq.QRCUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -30,9 +40,11 @@ import okhttp3.Request
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okio.IOException
 import java.util.concurrent.TimeUnit
+import timber.log.Timber
 
 class PlayerRepository(
     private val qqMusicProvider: QqMusicProvider,
+    private val qqAndroidClient: QqAndroidClient,
     private val apiService: ApiService,
     private val weApiService: WeApiService,
     private val context: Context,
@@ -40,7 +52,21 @@ class PlayerRepository(
 
     suspend fun searchNew(keyword: String): Resource<List<MusicTrack>> {
         return withContext(Dispatchers.IO) {
-            safeApiCall { qqMusicProvider.search(keyword) }
+            val api = context.dataStore.data.first()[QqLyricApiKey].toEnum(QqLyricApi.Auto)
+            safeApiCall {
+                when (api) {
+                    QqLyricApi.Legacy -> qqMusicProvider.search(keyword)
+                    QqLyricApi.Android -> qqAndroidClient.search(keyword).map { it.toMusicTrack() }
+                    QqLyricApi.Auto -> try {
+                        qqAndroidClient.search(keyword).map { it.toMusicTrack() }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: Exception) {
+                        Timber.w(error, "QQ Android search failed, falling back to legacy")
+                        qqMusicProvider.search(keyword)
+                    }
+                }
+            }
         }
     }
 
@@ -50,14 +76,7 @@ class PlayerRepository(
         artist: String,
         duration: Long,
         id: Long
-    ): Resource<MusicLyrics> {
-        return withContext(Dispatchers.IO) {
-            safeApiCall {
-                qqMusicProvider.lyrics(LyricRequest(qqTrack(title, album, artist, duration, id)))
-                    ?: error("QQ lyric response has no data")
-            }
-        }
-    }
+    ): Resource<MusicLyrics> = qqLyric(title, album, artist, duration, id, preferWordSynced = true)
 
     suspend fun getLyricLrc(
         title: String,
@@ -65,14 +84,79 @@ class PlayerRepository(
         artist: String,
         duration: Long,
         id: Long
-    ): Resource<MusicLyrics> {
-        return withContext(Dispatchers.IO) {
-            safeApiCall {
-                qqMusicProvider.lyrics(
-                    LyricRequest(qqTrack(title, album, artist, duration, id), preferWordSynced = false)
-                ) ?: error("QQ lyric response has no data")
+    ): Resource<MusicLyrics> = qqLyric(title, album, artist, duration, id, preferWordSynced = false)
+
+    /**
+     * 按设置里选的「QQ 搜索与歌词接口」在两条 QQ 实现之间切换：
+     *  - [QqLyricApi.Android] —— 新版 Android 客户端协议（musics.fcg + sign/mask）
+     *  - [QqLyricApi.Legacy]  —— 旧版 musicu.fcg
+     *  - [QqLyricApi.Auto]    —— 先 Android，失败回退旧版
+     *
+     * 返回的 [MusicLyrics] 保持「服务端原始字段」语义，由 LyricManager 统一解码。
+     */
+    private suspend fun qqLyric(
+        title: String,
+        album: String,
+        artist: String,
+        duration: Long,
+        id: Long,
+        preferWordSynced: Boolean,
+    ): Resource<MusicLyrics> = withContext(Dispatchers.IO) {
+        val api = context.dataStore.data.first()[QqLyricApiKey].toEnum(QqLyricApi.Auto)
+        safeApiCall {
+            when (api) {
+                QqLyricApi.Legacy -> legacyQqLyric(title, album, artist, duration, id, preferWordSynced)
+                QqLyricApi.Android -> androidQqLyric(title, album, artist, duration, id, preferWordSynced)
+                QqLyricApi.Auto -> try {
+                    androidQqLyric(title, album, artist, duration, id, preferWordSynced)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (e: Exception) {
+                    Timber.w(e, "QQ Android lyric failed, falling back to legacy")
+                    legacyQqLyric(title, album, artist, duration, id, preferWordSynced)
+                }
             }
         }
+    }
+
+    private suspend fun legacyQqLyric(
+        title: String,
+        album: String,
+        artist: String,
+        duration: Long,
+        id: Long,
+        preferWordSynced: Boolean,
+    ): MusicLyrics = qqMusicProvider.lyrics(
+        LyricRequest(
+            qqTrack(title, album, artist, duration, id),
+            preferWordSynced = preferWordSynced,
+        )
+    ) ?: error("QQ lyric response has no data")
+
+    private suspend fun androidQqLyric(
+        title: String,
+        album: String,
+        artist: String,
+        duration: Long,
+        id: Long,
+        preferWordSynced: Boolean,
+    ): MusicLyrics {
+        val lyrics = qqAndroidClient.lyricRaw(
+            song = QqSong(
+                id = id,
+                mid = "",
+                name = title,
+                singer = artist,
+                album = album,
+                durationSec = duration.toInt(),
+            ),
+            preferWordSynced = preferWordSynced,
+        )
+        val decoded = QRCUtils.decodeLyric(lyrics.original)
+        val hasTimedLines = QRCParser.parse(decoded, null).lines.isNotEmpty() ||
+            LRCParser.parse(decoded, null).lines.isNotEmpty()
+        require(hasTimedLines) { "QQ Android lyric has no decodable timed lines" }
+        return lyrics
     }
 
     private fun qqTrack(title: String, album: String, artist: String, durationSeconds: Long, id: Long) =

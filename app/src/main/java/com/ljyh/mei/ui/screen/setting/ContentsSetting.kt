@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DefaultTtmlLyricsBaseUrl
+import com.ljyh.mei.constants.QqLyricApi
+import com.ljyh.mei.constants.QqLyricApiKey
 import com.ljyh.mei.constants.QqTimeout
 import com.ljyh.mei.constants.QqCookieKey
 import com.ljyh.mei.constants.QqTimeoutKey
@@ -49,6 +51,7 @@ import com.ljyh.mei.ui.component.PreferenceSection
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -190,6 +193,17 @@ fun ContentsSetting(
                 )
             }
             PreferenceSection("其他音源与歌词") {
+                val (qqLyricApi, onQqLyricApi) = rememberEnumPreference(QqLyricApiKey, QqLyricApi.Auto)
+                ListPreference(
+                    title = { Text("QQ 搜索与歌词接口") },
+                    description = "选择 QQ 搜索和歌词使用的接口，切换到下一次请求生效",
+                    icon = { Icon(Icons.Rounded.Lyrics, "QQ 搜索与歌词接口") },
+                    selectedValue = qqLyricApi,
+                    values = QqLyricApi.entries.toList(),
+                    valueText = { it.label },
+                    onValueSelected = onQqLyricApi,
+                )
+
                 val (qqCookie, onQqCookieChange) = rememberPreference(QqCookieKey, defaultValue = "")
                 EditTextPreference(
                     title = { Text("QQ 音乐 Cookie") },

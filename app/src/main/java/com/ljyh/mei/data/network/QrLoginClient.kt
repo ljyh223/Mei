@@ -5,22 +5,26 @@ import com.ljyh.mei.data.model.auth.QrLoginCheckResponse
 import com.ljyh.mei.data.model.auth.QrLoginKeyResponse
 import com.ljyh.mei.data.model.auth.extractMusicU
 import com.ljyh.mei.utils.encrypt.encryptWeAPI
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.cookies.matches
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.request
+import io.ktor.http.Cookie
+import io.ktor.http.HttpHeaders
+import io.ktor.http.Parameters
+import io.ktor.http.Url
+import io.ktor.http.parseServerSetCookieHeader
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Cookie
-import okhttp3.FormBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,7 +36,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class QrLoginClient internal constructor(
-    private val client: OkHttpClient,
+    private val client: HttpClient,
     private val baseUrl: String,
 ) {
     @Inject
@@ -86,7 +90,7 @@ class QrLoginClient internal constructor(
         )
     }
 
-    internal fun buildRequest(path: String, payload: Map<String, Any>): Request {
+    internal fun buildRequest(path: String, payload: Map<String, Any>): QrLoginRequest {
         val generation = synchronized(cookieLock) { sessionGeneration }
         return buildRequest(generation, path, payload)
     }
@@ -95,7 +99,7 @@ class QrLoginClient internal constructor(
         generation: Long,
         path: String,
         payload: Map<String, Any>,
-    ): Request {
+    ): QrLoginRequest {
         val cookieSnapshot = synchronized(cookieLock) {
             if (generation != sessionGeneration) throw CancellationException("QR login session replaced")
             cookies.toMap()
@@ -112,18 +116,18 @@ class QrLoginClient internal constructor(
             put("csrf_token", JsonPrimitive(csrf))
         }
         val encrypted = encryptWeAPI(requestPayload.toString())
-        return Request.Builder()
-            .url("$baseUrl/weapi$path")
-            .header("User-Agent", USER_AGENT)
-            .header("Referer", BASE_URL)
-            .header("Cookie", cookieHeader(cookieSnapshot))
-            .post(
-                FormBody.Builder()
-                    .add("params", encrypted.params)
-                    .add("encSecKey", encrypted.encSecKey)
-                    .build(),
-            )
-            .build()
+        return QrLoginRequest(
+            url = "$baseUrl/weapi$path",
+            headers = mapOf(
+                HttpHeaders.UserAgent to USER_AGENT,
+                HttpHeaders.Referrer to BASE_URL,
+                HttpHeaders.Cookie to cookieHeader(cookieSnapshot),
+            ),
+            form = Parameters.build {
+                append("params", encrypted.params)
+                append("encSecKey", encrypted.encSecKey)
+            },
+        )
     }
 
     private suspend fun perform(
@@ -132,43 +136,24 @@ class QrLoginClient internal constructor(
         payload: Map<String, Any>,
     ): String {
         val request = buildRequest(generation, path, payload)
-        val call = client.newCall(request)
-        return suspendCancellableCoroutine { continuation ->
-            continuation.invokeOnCancellation { call.cancel() }
-            call.enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    if (continuation.isActive) {
-                        continuation.resumeWith(Result.failure(e))
-                    }
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    try {
-                        response.use {
-                            if (!continuation.isActive) return
-                            val responseCookies = Cookie.parseAll(response.request.url, response.headers)
-                            if (!absorbCookies(generation, response.request.url, responseCookies)) {
-                                throw CancellationException("QR login session replaced")
-                            }
-                            if (!response.isSuccessful) {
-                                error("QR login request failed with HTTP ${response.code}")
-                            }
-                            val body = response.body.string()
-                            if (!isCurrentSession(generation)) {
-                                throw CancellationException("QR login session replaced")
-                            }
-                            if (continuation.isActive) {
-                                continuation.resumeWith(Result.success(body))
-                            }
-                        }
-                    } catch (throwable: Throwable) {
-                        if (continuation.isActive) {
-                            continuation.resumeWith(Result.failure(throwable))
-                        }
-                    }
-                }
-            })
+        val response = client.post(request.url) {
+            request.headers.forEach { (name, value) -> header(name, value) }
+            setBody(FormDataContent(request.form))
         }
+        val responseUrl = response.request.url
+        val responseCookies = response.headers.getAll(HttpHeaders.SetCookie).orEmpty()
+            .mapNotNull { raw -> runCatching { parseServerSetCookieHeader(raw) }.getOrNull() }
+        if (!absorbCookies(generation, responseUrl, responseCookies)) {
+            throw CancellationException("QR login session replaced")
+        }
+        if (response.status.value !in 200..299) {
+            error("QR login request failed with HTTP ${response.status.value}")
+        }
+        val body = response.bodyAsText()
+        if (!isCurrentSession(generation)) {
+            throw CancellationException("QR login session replaced")
+        }
+        return body
     }
 
     private fun isCurrentSession(generation: Long): Boolean = synchronized(cookieLock) {
@@ -177,12 +162,17 @@ class QrLoginClient internal constructor(
 
     private fun absorbCookies(
         generation: Long,
-        url: okhttp3.HttpUrl,
+        url: Url,
         parsed: List<Cookie>,
     ): Boolean = synchronized(cookieLock) {
         if (generation != sessionGeneration) return@synchronized false
         parsed.forEach { cookie ->
-            if (cookie.matches(url) && cookie.value.isNotEmpty() && cookie.value != "\"\"") {
+            val defaultPath = url.encodedPath.substringBeforeLast('/', "").ifEmpty { "/" }
+            val scoped = cookie.copy(
+                domain = cookie.domain ?: url.host,
+                path = cookie.path?.takeIf { it.startsWith('/') } ?: defaultPath,
+            )
+            if (scoped.matches(url) && scoped.value.isNotEmpty() && scoped.value != "\"\"") {
                 cookies[cookie.name] = cookie.value
             }
         }
@@ -202,10 +192,17 @@ class QrLoginClient internal constructor(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 
-        fun newHttpClient(): OkHttpClient = OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .build()
+        fun newHttpClient(): HttpClient = HttpClient(OkHttp) {
+            install(HttpTimeout) {
+                connectTimeoutMillis = 15_000
+                socketTimeoutMillis = 15_000
+            }
+        }
     }
 }
+
+internal data class QrLoginRequest(
+    val url: String,
+    val headers: Map<String, String>,
+    val form: Parameters,
+)

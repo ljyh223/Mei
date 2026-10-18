@@ -62,10 +62,11 @@ object RepositoryModule {
     fun providePlayerRepository(
         @ApplicationContext context: Context,
         qqMusicProvider: QqMusicProvider,
+        qqAndroidClient: com.ljyh.mei.data.network.qqandroid.QqAndroidClient,
         apiService: ApiService,
         weApiService: WeApiService,
     ): PlayerRepository {
-        return PlayerRepository(qqMusicProvider, apiService, weApiService, context)
+        return PlayerRepository(qqMusicProvider, qqAndroidClient, apiService, weApiService, context)
     }
 
     @Singleton
