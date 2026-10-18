@@ -87,7 +87,7 @@ import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
 import com.ljyh.mei.ui.component.player.component.DynamicCoverView
 import com.ljyh.mei.ui.component.player.component.LocalPlayerForegroundColor
-import com.ljyh.mei.ui.component.player.component.classic.component.FullScreenImageViewer
+import com.ljyh.mei.ui.component.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.component.classic.PlayerCommentsContent
 import com.ljyh.mei.ui.component.player.component.LyricScreen
 import com.ljyh.mei.ui.component.player.component.PlayerControlsSection

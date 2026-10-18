@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,6 +68,7 @@ fun RecommendCard(
     }
 
     val baseColor by animateColorAsState(extractedColor, label = "recommendCardColor")
+    val foregroundColor = if (baseColor.luminance() > 0.179f) Color.Black else Color.White
 
     Box(
         modifier = Modifier
@@ -93,12 +95,10 @@ fun RecommendCard(
                 .height(104.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            baseColor.copy(alpha = 0.85f),
-                            baseColor.copy(alpha = 0.95f),
-                            baseColor
-                        )
+                        0f to Color.Transparent,
+                        0.3f to baseColor.copy(alpha = 0.9f),
+                        0.42f to baseColor,
+                        1f to baseColor,
                     )
                 )
         ) {
@@ -114,7 +114,7 @@ fun RecommendCard(
                         text = title.orEmpty(),
                         maxLines = 1,
                         fontSize = 14.sp,
-                        color = Color.White,
+                        color = foregroundColor,
                         fontWeight = FontWeight.Bold,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -134,7 +134,7 @@ fun RecommendCard(
                             text = extInfo.text,
                             maxLines = 1,
                             fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.82f),
+                            color = foregroundColor,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
@@ -146,12 +146,12 @@ fun RecommendCard(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f))
+                            .background(foregroundColor.copy(alpha = 0.16f))
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.PlayArrow,
                             contentDescription = "播放",
-                            tint = Color.White
+                            tint = foregroundColor
                         )
                     }
                 }

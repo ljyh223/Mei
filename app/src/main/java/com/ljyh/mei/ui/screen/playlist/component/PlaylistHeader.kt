@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.playlist.component
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +27,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -37,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
+import com.ljyh.mei.ui.component.FullScreenImageViewer
 import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.screen.playlist.ActionButton
@@ -62,6 +67,7 @@ fun PlaylistHeader(
 ) {
 
     val playlistCoverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
+    var showCoverPreview by remember(cover) { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -74,6 +80,13 @@ fun PlaylistHeader(
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
             modifier = Modifier
                 .size(220.dp)
+                .combinedClickable(
+                    enabled = !isLoading && cover.isNotBlank(),
+                    onClickLabel = "预览歌单封面",
+                    onLongClickLabel = "预览歌单封面",
+                    onClick = { showCoverPreview = true },
+                    onLongClick = { showCoverPreview = true },
+                )
                 .skeleton(isLoading, RoundedCornerShape(16.dp))
         ) {
             if (!isLoading) when (playlistCoverStyle) {
@@ -208,5 +221,8 @@ fun PlaylistHeader(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+    if (showCoverPreview && cover.isNotBlank()) {
+        FullScreenImageViewer(cover) { showCoverPreview = false }
     }
 }

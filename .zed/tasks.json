@@ -1,0 +1,69 @@
+
+[
+  {
+    "label": "Android: Build Debug",
+    "command": "./gradlew",
+    "args": [":app:assembleDebug", "--console=plain"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all",
+    "reveal": "always",
+    "hide": "on_success"
+  },
+  {
+    "label": "Android: Install Debug",
+    "command": "./gradlew",
+    "args": [":app:installDebug", "--console=plain"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all",
+    "reveal": "always",
+    "hide": "on_success"
+  },
+  {
+    "label": "Android: Build & Run",
+    "command": "./gradlew :app:installDebug --console=plain && adb shell monkey -p com.ljyh.mei 1",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all",
+    "reveal": "always",
+    "hide": "on_success"
+  },
+  {
+    "label": "Android: Clean",
+    "command": "./gradlew",
+    "args": ["clean"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "reveal": "always",
+    "hide": "on_success"
+  },
+  {
+    "label": "ADB: Devices",
+    "command": "adb",
+    "args": ["devices", "-l"],
+    "reveal": "always"
+  },
+  {
+    "label": "ADB: Logcat",
+    "command": "adb",
+    "args": ["logcat", "-v", "color"],
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "ADB: Crash Logs",
+    "command": "adb",
+    "args": ["logcat", "-v", "color", "-s", "AndroidRuntime:E"],
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "ADB: Clear Logs",
+    "command": "adb",
+    "args": ["logcat", "-c"],
+    "reveal": "no_focus"
+  },
+  {
+    "label": "Android: Scrcpy",
+    "command": "scrcpy",
+    "use_new_terminal": true,
+    "reveal": "no_focus"
+  }
+]

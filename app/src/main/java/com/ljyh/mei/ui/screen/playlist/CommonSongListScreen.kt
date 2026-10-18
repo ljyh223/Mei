@@ -145,7 +145,7 @@ fun CommonSongListScreen(
                                 text = if (device.isTablet) {
                                     uiData.title
                                 } else {
-                                    uiData.title.take(6).let { shortTitle ->
+                                    uiData.title.take(10).let { shortTitle ->
                                         if (shortTitle.length < uiData.title.length) "$shortTitle…" else shortTitle
                                     }
                                 },

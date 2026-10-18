@@ -24,4 +24,6 @@ local.properties
 tempapplemusic-like-lyrics/
 temp/
 accompanist-lyrics-ui/
-tools/
+tools/*
+research/singer-diarization/
+video/
