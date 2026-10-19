@@ -52,6 +52,8 @@ val MusicCacheLimitMbKey = intPreferencesKey("musicCacheLimitMb")
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
+val ThemeColorKey = stringPreferencesKey("themeColor")
+const val DefaultThemeColor = "#FF0061A4"
 val PlayerActionKey = stringPreferencesKey("playerBottomAction")
 val MoreActionOrderKey = stringPreferencesKey("moreActionOrder")
 

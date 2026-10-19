@@ -3,6 +3,7 @@ package com.ljyh.mei.data.network
 import com.ljyh.mei.data.model.api.GetSongUrlV1
 import com.ljyh.mei.utils.encrypt.XeApiPublicKey
 import java.util.Base64
+import java.io.IOException
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -104,6 +105,16 @@ class XeApiClientTest {
             "{\"content\":\"id=14068844531\",\"queryString\":\"e_r=true\"}",
             request.encryptionPlaintext().decodeToString(),
         )
-        assertTrue(request.requiresAntiCheatToken)
+        assertEquals(AntiCheatTokenVersion.V2, request.antiCheatTokenVersion)
+    }
+
+    @Test
+    fun playlistSubscriptionSurfacesBusinessErrorMessage() {
+        val error = org.junit.Assert.assertThrows(IOException::class.java) {
+            decodePlaylistSubscribeResponse("""{"code":405,"message":"请求受限"}""", Json)
+        }
+        assertTrue(error.message.orEmpty().contains("405"))
+        assertTrue(error.message.orEmpty().contains("请求受限"))
+        assertEquals(200, decodePlaylistSubscribeResponse("""{"code":200}""", Json).code)
     }
 }

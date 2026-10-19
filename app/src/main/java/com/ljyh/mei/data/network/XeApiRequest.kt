@@ -22,10 +22,12 @@ internal sealed interface XeApiOriginalBody {
     data class JsonBody(val text: String) : XeApiOriginalBody
 }
 
+internal enum class AntiCheatTokenVersion { V2, V3 }
+
 internal data class XeApiRequest(
     val url: Url,
     val originalBody: XeApiOriginalBody = XeApiOriginalBody.Form(),
-    val requiresAntiCheatToken: Boolean = false,
+    val antiCheatTokenVersion: AntiCheatTokenVersion? = null,
 )
 
 internal fun xeApiUrl(path: String): Url = Url("$XEAPI_BASE/xeapi/${path.trimStart('/')}")
@@ -72,13 +74,13 @@ internal fun buildLyricV1Url(id: String): Url =
 internal fun buildLikeRequest(body: Like): XeApiRequest = XeApiRequest(
     url = xeApiUrl("v1/radio/like"),
     originalBody = XeApiOriginalBody.Form(encodeLikeContent(body)),
-    requiresAntiCheatToken = true,
+    antiCheatTokenVersion = AntiCheatTokenVersion.V3,
 )
 
 internal fun buildSubscribePlaylistRequest(id: String): XeApiRequest = XeApiRequest(
     url = xeApiUrl("playlist/subscribe"),
     originalBody = XeApiOriginalBody.Form(listOf("id" to id).formUrlEncode()),
-    requiresAntiCheatToken = true,
+    antiCheatTokenVersion = AntiCheatTokenVersion.V2,
 )
 
 internal fun encodeLikeContent(body: Like): String {

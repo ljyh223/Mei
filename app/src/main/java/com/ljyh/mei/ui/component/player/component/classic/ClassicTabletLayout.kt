@@ -56,6 +56,7 @@ import com.ljyh.mei.ui.component.player.overlay.TabletPlayerPanel
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
+import androidx.media3.common.Player.STATE_BUFFERING
 
 @Composable
 fun ClassicTabletLayout(
@@ -68,6 +69,7 @@ fun ClassicTabletLayout(
     val dynamicCover by stateContainer.playerViewModel.dynamicCover.collectAsState()
     val isPlaying by stateContainer.isPlaying
     val playbackState by stateContainer.playbackState
+    val isBuffering = isPlaying && playbackState == STATE_BUFFERING
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
     val duration by remember { derivedStateOf { stateContainer.duration } }
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
@@ -139,6 +141,8 @@ fun ClassicTabletLayout(
                     duration = duration,
                     onPositionPreview = stateContainer::previewSeek,
                     onPositionChange = stateContainer::commitSeek,
+                    onMusicQualityClick = overlayHandler::showMusicQualitySelection,
+                    isBuffering = isBuffering,
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .padding(horizontal = PlayerHorizontalPadding + 8.dp)
@@ -150,6 +154,8 @@ fun ClassicTabletLayout(
                     onPositionPreview = stateContainer::previewSeek,
                     isPlaying = isPlaying, // 波浪进度条需要这个参数
                     onPositionChange = stateContainer::commitSeek,
+                    onMusicQualityClick = overlayHandler::showMusicQualitySelection,
+                    isBuffering = isBuffering,
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .padding(horizontal = PlayerHorizontalPadding + 8.dp)

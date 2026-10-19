@@ -788,6 +788,7 @@ fun AppleMusicPlayer(
                                     onMoreClick = { overlayHandler.showMoreAction() },
                                     onPositionPreview = stateContainer::previewSeek,
                                     onPositionChange = stateContainer::commitSeek,
+                                    onMusicQualityClick = overlayHandler::showMusicQualitySelection,
                                     portraitMotionStyle = portraitAlpha > 0.5f,
                                     isCompact = isCompactHeight || isLandscape
                                 )

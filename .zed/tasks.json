@@ -42,8 +42,9 @@
   },
   {
     "label": "ADB: Logcat",
-    "command": "adb",
-    "args": ["logcat", "-v", "color"],
+    "command": "bash",
+    "args": [".zed/logcat-mei.sh"],
+    "cwd": "$ZED_WORKTREE_ROOT",
     "use_new_terminal": true,
     "reveal": "always"
   },

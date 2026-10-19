@@ -110,7 +110,7 @@ fun BottomSheetPlayer(
     } else {
         0.dp
     }
-    if (device.isTablet) {
+    if (device.isTablet || device.isLandscape) {
         ClassicPlayer(
             state = state,
             modifier = modifier,

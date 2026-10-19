@@ -37,6 +37,9 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -63,6 +66,7 @@ class XeApiClient(
     private val antiCheatClient = HttpClient(OkHttp) {
         install(HttpTimeout) { requestTimeoutMillis = 10_000 }
     }
+    private val watchmanTokenProvider = WatchmanTokenProvider(context)
 
     suspend fun getSongUrlV1(body: GetSongUrlV1): SongUrl {
         val request = buildSongUrlV1Request(body, context.dataStore[UserIdKey].orEmpty(), json)
@@ -77,7 +81,7 @@ class XeApiClient(
     }
 
     suspend fun subscribePlaylist(id: String): BaseResponse =
-        json.decodeFromString(requestRaw(buildSubscribePlaylistRequest(id)))
+        decodePlaylistSubscribeResponse(requestRaw(buildSubscribePlaylistRequest(id)), json)
 
     private suspend fun requestRaw(
         request: XeApiRequest,
@@ -85,7 +89,11 @@ class XeApiClient(
     ): String {
         val key = getPublicKey()
         val encryptedBody = crypto.encrypt(request.encryptionPlaintext(), key, session)
-        val antiCheatToken = if (request.requiresAntiCheatToken) fetchAntiCheatTokenV3() else null
+        val antiCheatToken = when (request.antiCheatTokenVersion) {
+            AntiCheatTokenVersion.V2 -> watchmanTokenProvider.getToken()
+            AntiCheatTokenVersion.V3 -> fetchAntiCheatTokenV3()
+            null -> null
+        }
         val response = http.client.post(request.url.toString()) {
             header("X-Netease-Crypto", "xeapi")
             if (antiCheatToken != null) header("X-antiCheatToken", antiCheatToken)
@@ -117,8 +125,8 @@ class XeApiClient(
         }
         val bytes = response.bodyAsBytes()
         Timber.tag("XEAPI").d(
-            "path=%s status=%s bytes=%d sessionUpdated=%s",
-            request.url.encodedPath, status, bytes.size, sessionUpdated,
+            "path=%s status=%s bytes=%d sessionUpdated=%s antiCheatSent=%s",
+            request.url.encodedPath, status, bytes.size, sessionUpdated, !antiCheatToken.isNullOrBlank(),
         )
         if (bytes.isEmpty()) throw IOException("XEAPI returned an empty response (status=$status)")
         return decodeEApiResponse(bytes)
@@ -206,6 +214,22 @@ class XeApiClient(
         return key
     }
 
+}
+
+internal fun decodePlaylistSubscribeResponse(raw: String, json: Json): BaseResponse {
+    val fields = json.parseToJsonElement(raw).jsonObject
+    val response = BaseResponse(
+        code = (fields["code"] as? JsonPrimitive)?.intOrNull
+            ?: throw IOException("XEAPI 收藏歌单响应缺少 code"),
+    )
+    if (response.code != 200) {
+        val reason = sequenceOf("message", "msg")
+            .mapNotNull { (fields[it] as? JsonPrimitive)?.contentOrNull }
+            .firstOrNull { it.isNotBlank() && it != "null" }
+            ?.take(160)
+        throw IOException("XEAPI 收藏歌单失败：${response.code}${reason?.let { "，$it" }.orEmpty()}")
+    }
+    return response
 }
 
 internal fun XeApiPublicKey.isUsableAt(now: Long): Boolean =

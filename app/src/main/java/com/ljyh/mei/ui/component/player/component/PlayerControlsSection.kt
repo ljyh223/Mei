@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.Player.STATE_BUFFERING
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
@@ -37,6 +38,7 @@ fun PlayerControlsSection(
     onMoreClick: () -> Unit,
     onPositionPreview: (Long) -> Unit,
     onPositionChange: (Long) -> Unit,
+    onMusicQualityClick: () -> Unit,
     portraitMotionStyle: Boolean = false,
     isCompact: Boolean = false // 新增参数
 ) {
@@ -49,6 +51,7 @@ fun PlayerControlsSection(
     )
 
     val isFM = playerConnection.isFMMode.collectAsState()
+    val isBuffering = isPlaying && playbackState == STATE_BUFFERING
 
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -59,7 +62,9 @@ fun PlayerControlsSection(
                 duration = duration,
                 onPositionPreview = onPositionPreview,
                 onPositionChange = onPositionChange,
-                showMusicQuality = !portraitMotionStyle,
+                onMusicQualityClick = onMusicQualityClick,
+                isBuffering = isBuffering,
+                showMusicQuality = true,
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -72,7 +77,9 @@ fun PlayerControlsSection(
                 onPositionPreview = onPositionPreview,
                 isPlaying = isPlaying, // 波浪进度条需要这个参数
                 onPositionChange = onPositionChange,
-                showMusicQuality = !portraitMotionStyle,
+                onMusicQualityClick = onMusicQualityClick,
+                isBuffering = isBuffering,
+                showMusicQuality = true,
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()

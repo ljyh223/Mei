@@ -52,6 +52,8 @@ fun FluidProgressSlider(
     duration: Long,
     onPositionChange: (Long) -> Unit,
     onPositionPreview: (Long) -> Unit = {},
+    onMusicQualityClick: () -> Unit,
+    isBuffering: Boolean,
     showMusicQuality: Boolean = true,
     showRemainingTime: Boolean = false,
     modifier: Modifier = Modifier
@@ -65,6 +67,7 @@ fun FluidProgressSlider(
     val interactionSource = remember { MutableInteractionSource() }
     val isUserDragging by interactionSource.collectIsDraggedAsState()
     val isUserPressed by interactionSource.collectIsPressedAsState()
+    val bufferingPhase = rememberBufferingSweep(isBuffering && !isUserDragging)
 
     // Apple Music 的逻辑是：只要按住 (Pressed) 或者 拖拽 (Dragged)，条就会变粗
     val isInteracting = isUserDragging || isUserPressed
@@ -84,7 +87,7 @@ fun FluidProgressSlider(
 
     // 1. 轨道高度动画：平时很细(2dp)，按住时变粗(10dp)
     val trackHeight by animateDpAsState(
-        targetValue = if (isInteracting) 10.dp else 2.dp, // 这里的数值决定了“变粗”的程度
+        targetValue = if (isInteracting) 10.dp else if (bufferingPhase != null) 4.dp else 2.dp,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMedium
@@ -173,6 +176,15 @@ fun FluidProgressSlider(
                                 cornerRadius = CornerRadius(height / 2, height / 2)
                             )
                         }
+                        bufferingPhase?.let { phase ->
+                            drawBufferingSweep(
+                                playedFraction = fraction,
+                                phase = phase,
+                                color = foreground,
+                                centerY = centerY,
+                                strokeWidth = height,
+                            )
+                        }
                     }
                 }
             )
@@ -209,14 +221,12 @@ fun FluidProgressSlider(
 
                 // 中间：音质 (复用你原本的逻辑)
             if (showMusicQuality) {
-                Text(
+                PlayerQualityLabel(
                     modifier = Modifier.weight(1f),
-                    text = musicQuality.explanation,
-                    style = timeTextStyle,
-                    color = foreground.copy(alpha = 0.8f), // Fluid 保留原来的 0.6f
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    quality = musicQuality,
+                    textStyle = timeTextStyle,
+                    color = foreground.copy(alpha = 0.8f),
+                    onClick = onMusicQualityClick,
                 )
             } else {
                 Spacer(Modifier.weight(1f))

@@ -50,6 +50,7 @@ import com.ljyh.mei.ui.component.DownloadConfirmDialog
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.player.component.sheet.MoreActionsSheet
+import com.ljyh.mei.ui.component.player.component.sheet.MusicQualitySheet
 import com.ljyh.mei.ui.component.player.component.sheet.PlayerActionSettingsSheet
 import com.ljyh.mei.ui.component.player.component.sheet.PlaylistBottomSheet
 import com.ljyh.mei.ui.component.player.component.sheet.QQMusicSelectSheet
@@ -91,8 +92,7 @@ fun CommonOverlayHandler(
     }
 
     val overlay = overlayHandler.currentOverlayValue
-    val isSheet = overlay != OverlayState.None &&
-        overlay !is OverlayState.MusicQualitySelection && overlay !is OverlayState.TrackActionMenu
+    val isSheet = overlay != OverlayState.None && overlay !is OverlayState.TrackActionMenu
     val moreEditing = remember { mutableStateOf(false) }
     LaunchedEffect(overlay) {
         if (overlay != OverlayState.MoreAction) moreEditing.value = false
@@ -191,6 +191,8 @@ fun CommonOverlayHandler(
                         embedded = true,
                     )
 
+                    OverlayState.MusicQualitySelection -> MusicQualitySheet(onDismiss = closeSheet)
+
                     is OverlayState.AddToPlaylist -> AddToPlaylistSheet(
                         playlists = stateContainer.myPlaylist.value,
                         onDismiss = closeSheet,
@@ -240,10 +242,6 @@ fun CommonOverlayHandler(
         }
     } else {
         when (overlay) {
-            is OverlayState.MusicQualitySelection -> LaunchedEffect(overlay) {
-                Toast.makeText(context, "音质选择: ${overlay.current}", Toast.LENGTH_SHORT).show()
-                overlayHandler.dismiss()
-            }
             is OverlayState.TrackActionMenu -> LaunchedEffect(overlay) {
                 Toast.makeText(context, "轨道操作: ${overlay.track.title}", Toast.LENGTH_SHORT).show()
                 overlayHandler.dismiss()

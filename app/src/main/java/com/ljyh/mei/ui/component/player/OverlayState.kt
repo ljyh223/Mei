@@ -9,7 +9,7 @@ sealed interface OverlayState {
     data object SleepTimer : OverlayState
     data object CreatePlaylist: OverlayState
     data class AddToPlaylist(val mediaId: Long) : OverlayState
-    data class MusicQualitySelection(val current: Int) : OverlayState
+    data object MusicQualitySelection : OverlayState
     data class QQMusicSelection(
         val mediaMetadata: MediaMetadata
     ): OverlayState

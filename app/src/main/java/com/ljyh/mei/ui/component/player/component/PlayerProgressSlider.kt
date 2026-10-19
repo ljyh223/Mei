@@ -57,6 +57,8 @@ fun PlayerProgressSlider(
     isPlaying: Boolean, // 新增：需要根据播放状态控制波浪滚动
     onPositionChange: (Long) -> Unit,
     onPositionPreview: (Long) -> Unit = {},
+    onMusicQualityClick: () -> Unit,
+    isBuffering: Boolean,
     showMusicQuality: Boolean = true,
     showRemainingTime: Boolean = false,
     modifier: Modifier = Modifier
@@ -69,6 +71,7 @@ fun PlayerProgressSlider(
     // 交互状态
     val interactionSource = remember { MutableInteractionSource() }
     val isUserDragging by interactionSource.collectIsDraggedAsState()
+    val bufferingPhase = rememberBufferingSweep(isBuffering && !isUserDragging)
 
     // 内部拖拽位置状态
     var rawDragPosition by remember { mutableFloatStateOf(0f) }
@@ -90,7 +93,7 @@ fun PlayerProgressSlider(
     val infiniteTransition = rememberInfiniteTransition(label = "wave_anim")
     val phase by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = if (isPlaying) (2 * PI).toFloat() else 0f, // 只有播放时才滚动
+        targetValue = if (isPlaying && !isBuffering) (2 * PI).toFloat() else 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
@@ -101,7 +104,7 @@ fun PlayerProgressSlider(
     // 如果暂停了，我们也可以让波浪慢慢变平，或者保持静止。
     // Android 原生行为是播放时波浪滚动，拖拽时波浪变直。
     // 这里做一个平滑过渡：拖拽时振幅(Amplitude)变小（变直），播放时振幅正常
-    val targetAmplitude = if (isUserDragging) 0f else if (isPlaying) 6f else 3f
+    val targetAmplitude = if (isUserDragging) 0f else if (isPlaying && !isBuffering) 6f else 3f
     val amplitude by animateFloatAsState(
         targetValue = targetAmplitude,
         animationSpec = tween(300),
@@ -207,6 +210,15 @@ fun PlayerProgressSlider(
                             // 加一点阴影让它更明显
                         )
                     }
+                    bufferingPhase?.let { phase ->
+                        drawBufferingSweep(
+                            playedFraction = progressFraction,
+                            phase = phase,
+                            color = foreground,
+                            centerY = centerY,
+                            strokeWidth = 3.dp.toPx(),
+                        )
+                    }
                 }
             }
         )
@@ -240,14 +252,12 @@ fun PlayerProgressSlider(
 
             // 中间：音质 (复用你原本的逻辑)
             if (showMusicQuality) {
-                Text(
+                PlayerQualityLabel(
                     modifier = Modifier.weight(1f),
-                    text = musicQuality.explanation,
-                    style = timeTextStyle,
-                    color = foreground.copy(alpha = 0.8f), // Fluid 保留原来的 0.6f
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    quality = musicQuality,
+                    textStyle = timeTextStyle,
+                    color = foreground.copy(alpha = 0.8f),
+                    onClick = onMusicQualityClick,
                 )
             } else {
                 Spacer(Modifier.weight(1f))

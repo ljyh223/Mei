@@ -29,7 +29,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import com.ljyh.mei.constants.DefaultThemeColor
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
@@ -37,6 +44,7 @@ import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
+import com.ljyh.mei.constants.ThemeColorKey
 import com.ljyh.mei.constants.DynamicCoverKey
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.OriginalCoverKey
@@ -48,6 +56,9 @@ import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.constants.TabletAnimationStyle
 import com.ljyh.mei.constants.TabletAnimationStyleKey
 import com.ljyh.mei.ui.component.EnumListPreference
+import com.ljyh.mei.ui.component.ColorPickerDialog
+import com.ljyh.mei.ui.component.ColorPreference
+import com.ljyh.mei.ui.component.ColorPreset
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceSection
@@ -61,6 +72,17 @@ import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 
+private val themeColorPresets = listOf(
+    ColorPreset("蓝色", Color(0xFF0061A4)),
+    ColorPreset("紫色", Color(0xFF6750A4)),
+    ColorPreset("红色", Color(0xFFB3261E)),
+    ColorPreset("洋红", Color(0xFFB91690)),
+    ColorPreset("青绿", Color(0xFF008577)),
+    ColorPreset("绿色", Color(0xFF34883F)),
+    ColorPreset("琥珀", Color(0xFFB78100)),
+    ColorPreset("橙色", Color(0xFFC75B00)),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppearanceSettings(
@@ -72,6 +94,15 @@ fun AppearanceSettings(
         DynamicThemeKey,
         defaultValue = true
     )
+    val (themeColor, onThemeColorChange) = rememberPreference(
+        ThemeColorKey,
+        defaultValue = DefaultThemeColor,
+    )
+    val selectedThemeColor = remember(themeColor) {
+        runCatching { Color(android.graphics.Color.parseColor(themeColor)) }
+            .getOrDefault(Color(0xFF0061A4))
+    }
+    var showThemeColorPicker by remember { mutableStateOf(false) }
 
     val (originalCover, onOriginalCover) = rememberPreference(
         OriginalCoverKey,
@@ -158,6 +189,14 @@ fun AppearanceSettings(
                     checked = dynamicTheme,
                     onCheckedChange = onDynamicThemeChange
                 )
+                if (!dynamicTheme) {
+                    ColorPreference(
+                        title = "主题颜色",
+                        color = selectedThemeColor,
+                        description = "#%06X".format(selectedThemeColor.toArgb() and 0xFFFFFF),
+                        onClick = { showThemeColorPicker = true },
+                    )
+                }
             }
             PreferenceSection("歌单") {
 
@@ -294,6 +333,19 @@ fun AppearanceSettings(
                 )
             }
         }
+    }
+
+    if (showThemeColorPicker && !dynamicTheme) {
+        ColorPickerDialog(
+            title = "选择主题色",
+            initialColor = selectedThemeColor,
+            presets = themeColorPresets,
+            onDismiss = { showThemeColorPicker = false },
+            onApply = { color ->
+                onThemeColorChange("#%08X".format(color.toArgb()))
+                showThemeColorPicker = false
+            },
+        )
     }
 
 

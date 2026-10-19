@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.Player.STATE_BUFFERING
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
@@ -69,6 +70,7 @@ fun ClassicPhoneLayout(
     val dynamicCover by stateContainer.playerViewModel.dynamicCover.collectAsState()
     val isPlaying by stateContainer.isPlaying
     val playbackState by stateContainer.playbackState
+    val isBuffering = isPlaying && playbackState == STATE_BUFFERING
     val sliderPosition by remember { derivedStateOf { stateContainer.sliderPosition } }
     val duration by remember { derivedStateOf { stateContainer.duration } }
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
@@ -178,6 +180,8 @@ fun ClassicPhoneLayout(
                 duration = duration,
                 onPositionPreview = stateContainer::previewSeek,
                 onPositionChange = stateContainer::commitSeek,
+                onMusicQualityClick = overlayHandler::showMusicQualitySelection,
+                isBuffering = isBuffering,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding + 8.dp)
@@ -189,6 +193,8 @@ fun ClassicPhoneLayout(
                 onPositionPreview = stateContainer::previewSeek,
                 isPlaying = isPlaying, // 波浪进度条需要这个参数
                 onPositionChange = stateContainer::commitSeek,
+                onMusicQualityClick = overlayHandler::showMusicQualitySelection,
+                isBuffering = isBuffering,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PlayerHorizontalPadding + 8.dp)

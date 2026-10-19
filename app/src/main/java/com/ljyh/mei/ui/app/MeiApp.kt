@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.app
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -18,6 +20,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +48,8 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.DynamicThemeKey
+import com.ljyh.mei.constants.DefaultThemeColor
+import com.ljyh.mei.constants.ThemeColorKey
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.data.model.domain.UserData
 import com.ljyh.mei.di.AppDatabase
@@ -93,6 +98,11 @@ fun MeiApp(
     val navController = rememberNavController()
     var searchActive by rememberSaveable { mutableStateOf(false) }
     val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
+    val themeColor by rememberPreference(ThemeColorKey, defaultValue = DefaultThemeColor)
+    val staticThemeColor = remember(themeColor) {
+        runCatching { Color(android.graphics.Color.parseColor(themeColor)) }
+            .getOrDefault(Color(0xFF0061A4))
+    }
     val playerConnection = rememberPlayerConnection(context, database)
 
     setSingletonImageLoaderFactory {
@@ -120,7 +130,10 @@ fun MeiApp(
         dynamicTheme = dynamicTheme,
         colorRepository = colorRepository,
     )
-    MusicTheme(seedColor = targetThemeColor, isDark = isSystemInDarkTheme()) {
+    MusicTheme(
+        seedColor = if (dynamicTheme) targetThemeColor else staticThemeColor,
+        isDark = isSystemInDarkTheme(),
+    ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -160,6 +173,17 @@ fun MeiApp(
                 expandedBound = maxHeight,
                 allowDismissGesture = false,
             )
+            val activity = context as? Activity
+            val requestedOrientation = if (device.isTablet || playerBottomSheetState.isExpanded) {
+                ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            } else {
+                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+            SideEffect {
+                if (activity != null && activity.requestedOrientation != requestedOrientation) {
+                    activity.requestedOrientation = requestedOrientation
+                }
+            }
             val routeBottomChromeAnimationSpec = remember {
                 PlayerMotionSpec.tween<Float>()
             }

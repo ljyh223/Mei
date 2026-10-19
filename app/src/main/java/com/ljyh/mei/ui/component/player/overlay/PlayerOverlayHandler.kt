@@ -140,8 +140,8 @@ class PlayerOverlayHandler(
     /**
      * 显示音质选择弹窗
      */
-    fun showMusicQualitySelection(current: Int) {
-        show(OverlayState.MusicQualitySelection(current))
+    fun showMusicQualitySelection() {
+        show(OverlayState.MusicQualitySelection)
     }
 
     /**
