@@ -1,0 +1,173 @@
+#pragma once
+
+#include "usb_pcm_codec.h"
+#include "usb_pcm_resampler.h"
+
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <mutex>
+#include <string>
+#include <vector>
+
+namespace neri::usb {
+
+struct PcmOutputFormat {
+    int sampleRate = 0;
+    int channelCount = 0;
+    int subslotBytes = 0;
+    int bitsPerSample = 0;
+    int frameBytes = 0;
+};
+
+struct PcmInputFormat {
+    int sampleRate = 0;
+    int channelCount = 0;
+    int encoding = 0;
+};
+
+struct PcmPipelineConfig {
+    PcmOutputFormat output;
+    PcmInputFormat input;
+    int ringDurationMs = 0;
+    int transferBytes = 0;
+    int transferCount = 0;
+};
+
+struct PcmPipelineSnapshot {
+    size_t levelBytes = 0;
+    size_t capacityBytes = 0;
+    size_t freeBytes = 0;
+    size_t maxLevelBytes = 0;
+    int64_t inputBytes = 0;
+    int64_t outputBytes = 0;
+    int64_t droppedBytes = 0;
+    int64_t underrunBytes = 0;
+    int64_t zeroFillBytes = 0;
+    int64_t pausedZeroFillBytes = 0;
+    int64_t signalOutputFrames = 0;
+    int64_t silentOutputFrames = 0;
+    int64_t signalOutputBytes = 0;
+    int64_t backpressureEvents = 0;
+    int64_t backpressureTotalUs = 0;
+    int64_t backpressureCurrentUs = 0;
+    int64_t backpressureMaxUs = 0;
+    float outputPeak = 0.0f;
+    float lastOutputPeak = 0.0f;
+    float channel0OutputPeak = 0.0f;
+    float channel1OutputPeak = 0.0f;
+    float lastChannel0OutputPeak = 0.0f;
+    float lastChannel1OutputPeak = 0.0f;
+    float targetGain = 1.0f;
+    float appliedGain = 1.0f;
+};
+
+class PcmPipeline final {
+public:
+    bool configure(const PcmPipelineConfig& config, std::string* error);
+    bool resizeRingDuration(
+        int ringDurationMs,
+        int transferBytes,
+        int transferCount,
+        std::string* error
+    );
+    size_t write(const uint8_t* input, size_t inputBytes, std::string* error);
+    // 输入结束时把重采样器的尾部写入队列；队列放不下时整体不写并返回 false，可以稍后重试
+    bool drainResampler(std::string* error);
+    size_t fill(uint8_t* output, size_t bytes, bool playbackEnabled);
+
+    void clear();
+    void resetCounters();
+    void addDroppedFrames(int64_t frames);
+    void setTargetGain(float gain);
+    // 比特完美：单位增益原样透传，增益为 0 时硬静音，不做任何斜坡和淡入淡出
+    void setBitPerfect(bool enabled);
+    [[nodiscard]] bool bitPerfect() const;
+    void armTransportStartRamp();
+    void applyTransportStartRamp(uint8_t* output, size_t bytes);
+
+    [[nodiscard]] size_t queuedFrames() const;
+    [[nodiscard]] PcmPipelineSnapshot snapshot() const;
+
+private:
+    [[nodiscard]] size_t freeBytesLocked() const;
+    [[nodiscard]] bool canCopyIntegerFrames(
+        int inputSampleBytes,
+        int inputFrameBytes
+    ) const;
+    [[nodiscard]] bool canWidenBigEndianIntegerFrames() const;
+    void widenIntegerFrame(const uint8_t* source, uint8_t* target, int inputSampleBytes) const;
+    size_t writeResampled(
+        const uint8_t* input,
+        int inputFrames,
+        int inputSampleBytes,
+        int inputFrameBytes,
+        size_t freeOutputFrames,
+        std::string* error
+    );
+    size_t writeConverted(
+        const uint8_t* input,
+        int inputFrames,
+        int inputSampleBytes,
+        int inputFrameBytes,
+        std::string* error
+    );
+    void encodeResampledOutput(size_t frames);
+    bool commitConverted(size_t consumedBytes);
+    [[nodiscard]] float inputSampleFor(
+        const uint8_t* frame,
+        int inputSampleBytes,
+        int outputChannel
+    ) const;
+    void beginBackpressureLocked(int64_t nowUs);
+    void endBackpressureLocked(int64_t nowUs);
+    size_t writeRingLocked(const uint8_t* input, size_t bytes);
+    size_t readRingLocked(uint8_t* output, size_t bytes);
+    void applyGain(uint8_t* output, size_t bytes);
+    bool applyBitPerfectGain(uint8_t* output, size_t bytes);
+    void fadeOutTrailingFrames(uint8_t* output, size_t bytes) const;
+    void markSilentOutputLocked();
+    void updateOutputSignalStatsLocked(const uint8_t* output, size_t bytes);
+
+    mutable std::mutex writeLock_;
+    mutable std::mutex lock_;
+    PcmOutputFormat outputFormat_;
+    PcmInputFormat inputFormat_;
+    std::vector<uint8_t> ring_;
+    size_t readIndex_ = 0;
+    size_t writeIndex_ = 0;
+    size_t levelBytes_ = 0;
+    PcmResampler resampler_;
+    std::vector<float> resampleInput_;
+    std::vector<float> resampleOutput_;
+    std::vector<uint8_t> conversionBuffer_;
+    int64_t inputBytes_ = 0;
+    int64_t outputBytes_ = 0;
+    int64_t droppedBytes_ = 0;
+    int64_t underrunBytes_ = 0;
+    int64_t zeroFillBytes_ = 0;
+    int64_t pausedZeroFillBytes_ = 0;
+    int64_t signalOutputFrames_ = 0;
+    int64_t silentOutputFrames_ = 0;
+    int64_t signalOutputBytes_ = 0;
+    int64_t backpressureEvents_ = 0;
+    int64_t backpressureTotalUs_ = 0;
+    int64_t backpressureStartedAtUs_ = 0;
+    int64_t backpressureMaxUs_ = 0;
+    size_t maxLevelBytes_ = 0;
+    float outputPeak_ = 0.0f;
+    float lastOutputPeak_ = 0.0f;
+    float channel0OutputPeak_ = 0.0f;
+    float channel1OutputPeak_ = 0.0f;
+    float lastChannel0OutputPeak_ = 0.0f;
+    float lastChannel1OutputPeak_ = 0.0f;
+    std::atomic<float> targetGain_ { 1.0f };
+    std::atomic<float> appliedGain_ { 1.0f };
+    std::atomic<bool> bitPerfect_ { false };
+    float gainRampTarget_ = 1.0f;
+    int gainRampFramesRemaining_ = 0;
+    int transportStartRampFramesTotal_ = 0;
+    std::atomic<int> transportStartRampFramesRemaining_ { 0 };
+};
+
+} // namespace neri::usb

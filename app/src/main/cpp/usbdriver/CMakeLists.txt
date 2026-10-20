@@ -1,0 +1,11 @@
+# USB transport adapted from NeriPlayer 113699bb; see NOTICE.md and NERI_LICENSE.md.
+add_subdirectory(third_party/libusb)
+target_link_libraries(neri_libusb PRIVATE log)
+file(GLOB_RECURSE MEI_USB_SOURCES CONFIGURE_DEPENDS usb/*.cpp)
+add_library(mei_usb SHARED ${MEI_USB_SOURCES})
+target_include_directories(mei_usb PRIVATE . third_party)
+target_compile_features(mei_usb PRIVATE cxx_std_17)
+target_compile_options(mei_usb PRIVATE -Wall -Wextra)
+target_link_libraries(mei_usb PRIVATE neri_libusb android log)
+target_link_options(mei_usb PRIVATE -Wl,-z,max-page-size=16384)
+target_link_options(neri_libusb PRIVATE -Wl,-z,max-page-size=16384)

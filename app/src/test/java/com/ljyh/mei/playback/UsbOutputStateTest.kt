@@ -81,10 +81,10 @@ class UsbOutputStateTest {
     }
 
     @Test
-    fun unsupportedAndroidVersionShowsReasonEvenWithoutPlayback() {
+    fun missingNativeDriverShowsReasonEvenWithoutPlayback() {
         val store = UsbOutputStatusStore()
         store.updateEnvironment(true, false, devices)
-        assertTrue(store.status.value.message.contains("Android 14"))
+        assertTrue(store.status.value.message.contains("无法加载"))
         assertNull(store.beginAttempt())
     }
 
@@ -96,6 +96,31 @@ class UsbOutputStateTest {
         store.finish(output)
         assertEquals("格式不支持独占，使用普通输出", store.status.value.message)
         assertFalse(store.status.value.active)
+    }
+
+    @Test
+    fun nativeFailureBlocksRetryUntilConnectionOrPreferenceChanges() {
+        val store = connectedStore()
+        assertTrue(store.blockNative(store.beginAttempt(), "传输失败"))
+        assertFalse(store.nativeUsable())
+        store.updateEnvironment(true, true, devices)
+        assertFalse(store.nativeUsable())
+        store.updateEnvironment(false, true, devices)
+        store.updateEnvironment(true, true, devices)
+        assertTrue(store.nativeUsable())
+    }
+
+    @Test
+    fun lateNativeFailureCannotBlockNewConnectionOrReEnableDisabledStatus() {
+        val store = connectedStore()
+        val old = store.beginAttempt()
+        store.updateEnvironment(true, true, mapOf(8 to "new DAC"))
+        assertFalse(store.blockNative(old, "旧传输失败"))
+        assertTrue(store.nativeUsable())
+        val newer = store.beginAttempt()
+        store.updateEnvironment(false, true, emptyMap())
+        assertFalse(store.blockNative(newer, "关闭后迟到的失败"))
+        assertEquals(UsbOutputStatus(), store.status.value)
     }
 
     private fun connectedStore() = UsbOutputStatusStore().apply {
@@ -146,83 +171,6 @@ class UsbDeviceChangeTest {
     }
 }
 
-class UsbMixerPreferenceStoreTest {
-    @Test
-    fun oldDeckCannotClearMixerAttributesSelectedByNewDeck() {
-        val preferences = UsbMixerPreferenceStore()
-        val oldDeck = preferences.acquire(7) { true }
-        val newDeck = preferences.acquire(7) { true }
-        var clearCount = 0
-        preferences.release(7, oldDeck) { clearCount++ }
-        assertEquals(0, clearCount)
-        preferences.release(7, newDeck) { clearCount++ }
-        preferences.release(7, newDeck) { clearCount++ }
-        assertEquals(1, clearCount)
-    }
-
-    @Test
-    fun differentDevicesHaveIndependentOwnership() {
-        val preferences = UsbMixerPreferenceStore()
-        val first = preferences.acquire(7) { true }
-        val second = preferences.acquire(8) { true }
-        var clearedDevice = 0
-        preferences.release(7, second) { clearedDevice = 7 }
-        assertEquals(0, clearedDevice)
-        preferences.release(8, second) { clearedDevice = 8 }
-        assertEquals(8, clearedDevice)
-        preferences.release(7, first) { clearedDevice = 7 }
-        assertEquals(7, clearedDevice)
-    }
-
-    @Test
-    fun rejectedMixerRequestDoesNotTakeOwnershipFromExistingOutput() {
-        val preferences = UsbMixerPreferenceStore()
-        val old = preferences.acquire(7) { true }
-        assertNull(preferences.acquire(7) { false })
-        var cleared = false
-        preferences.release(7, old) { cleared = true }
-        assertTrue(cleared)
-    }
-}
-
-class UsbOutputObservationTest {
-    @Test
-    fun mixerRequestWithoutUsbRouteIsStillPending() {
-        val status = UsbOutputObservation(true, null, true).statusFor(7, "DAC")
-        assertFalse(status.active)
-        assertTrue(status.message.contains("等待音频路由"))
-    }
-
-    @Test
-    fun playingUsbRouteWithPreferredMixerIsActive() {
-        val status = UsbOutputObservation(true, 7, true).statusFor(7, "DAC · 44.1 kHz")
-        assertTrue(status.active)
-        assertTrue(status.message.contains("44.1 kHz"))
-        assertEquals(7, status.deviceId)
-    }
-
-    @Test
-    fun mixerPreferenceRevocationClearsActiveState() {
-        val status = UsbOutputObservation(true, 7, false).statusFor(7, "DAC")
-        assertFalse(status.active)
-        assertTrue(status.message.contains("配置已失效"))
-    }
-
-    @Test
-    fun routingToAnotherDeviceShowsOrdinaryOutput() {
-        val status = UsbOutputObservation(true, 8, true).statusFor(7, "DAC")
-        assertFalse(status.active)
-        assertTrue(status.message.contains("使用普通输出"))
-    }
-
-    @Test
-    fun pausedOutputIsReadyEvenIfAndroidKeepsItsPreviousRoute() {
-        val status = UsbOutputObservation(false, 7, true).statusFor(7, "DAC")
-        assertFalse(status.active)
-        assertTrue(status.message.contains("等待播放"))
-    }
-}
-
 class UsbPlaybackReconfigurationTest {
     @Test
     fun bufferedOrPreparingTrackCanSwitchOutputs() {
@@ -246,5 +194,17 @@ class UsbPlaybackReconfigurationTest {
     fun sourceAndDecoderFailuresAreNotRetriedByUsbEvents() {
         assertFalse(shouldReconfigureUsbPlayback(Player.STATE_IDLE, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED))
         assertFalse(shouldReconfigureUsbPlayback(Player.STATE_IDLE, PlaybackException.ERROR_CODE_DECODING_FAILED))
+    }
+}
+
+class UsbPcmDecodePolicyTest {
+    @Test fun usbDacAlwaysReceivesDecodedPcmIncludingOrdinaryOutput() {
+        for (mime in listOf("audio/mp4a-latm", "audio/mpeg", "audio/flac", "audio/ac3", null)) {
+            assertTrue(requiresUsbPcmDecoding(mime, true))
+        }
+        assertFalse(requiresUsbPcmDecoding("audio/raw", true))
+    }
+    @Test fun otherOutputDevicesKeepTheirExistingPassthroughSupport() {
+        assertFalse(requiresUsbPcmDecoding("audio/ac3", false))
     }
 }

@@ -1,11 +1,12 @@
 package com.ljyh.mei.playback
 
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.media.AudioDeviceCallback
-import android.media.AudioDeviceInfo
+import android.hardware.usb.UsbManager
 import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.Uri
@@ -77,6 +78,8 @@ import com.ljyh.mei.di.repository.HistoryRepository
 import com.ljyh.mei.di.repository.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.mediaItems
+import com.ljyh.mei.playback.usb.UsbNativeBridge
+import com.ljyh.mei.playback.usb.hasPcmOutput
 import com.ljyh.mei.playback.equalizer.AudioEffectsController
 import com.ljyh.mei.playback.equalizer.EqualizerProfile
 import com.ljyh.mei.playback.equalizer.ParametricEqualizerProcessor
@@ -142,12 +145,20 @@ class MusicService : MediaLibraryService(),
     private val firstTransitionProbe = TransitionAudioProbe()
     private val secondTransitionProbe = TransitionAudioProbe()
     @Volatile private var usbExclusiveEnabled = false
-    private lateinit var usbAudioManager: AudioManager
-    private var usbDevices: Map<Int, String> = emptyMap()
+    private lateinit var usbManager: UsbManager
+    @Volatile private var usbDevices: Map<Int, String> = emptyMap()
     private var usbReconfigureJob: Job? = null
-    private val usbDeviceCallback = object : AudioDeviceCallback() {
-        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) = refreshUsbDevices()
-        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) = refreshUsbDevices()
+    private val usbPermissionRequested = mutableSetOf<Int>()
+    private val usbReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == USB_PERMISSION_ACTION) {
+                val granted = usbManager.deviceList.values.any { it.hasPcmOutput() && usbManager.hasPermission(it) }
+                refreshUsbDevices(forceReconfigure = granted)
+                if (!granted && usbExclusiveEnabled) UsbOutputState.store.fallback("未获得 USB 访问权限，使用普通输出")
+            } else {
+                refreshUsbDevices()
+            }
+        }
     }
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
@@ -192,7 +203,7 @@ class MusicService : MediaLibraryService(),
     override fun onCreate() {
         super.onCreate()
         usbExclusiveEnabled = runBlocking { dataStore.data.first()[UsbExclusivePlaybackKey] ?: false }
-        usbAudioManager = getSystemService(AudioManager::class.java)
+        usbManager = getSystemService(UsbManager::class.java)
         usbDevices = connectedUsbDevices()
         updateUsbEnvironment()
         baseMediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
@@ -262,7 +273,16 @@ class MusicService : MediaLibraryService(),
                 })
             }
 
-        usbAudioManager.registerAudioDeviceCallback(usbDeviceCallback, Handler(Looper.getMainLooper()))
+        val usbFilter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            addAction(USB_PERMISSION_ACTION)
+        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this, usbReceiver, usbFilter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        requestUsbPermissionIfNeeded()
+        clearLegacyUsbMixerPreferences()
         sleepDetectionController = SleepDetectionController(this, scope, sleepTimer)
 
 
@@ -291,15 +311,17 @@ class MusicService : MediaLibraryService(),
                     if (enabled == usbExclusiveEnabled) return@collect
                     usbExclusiveEnabled = enabled
                     usbReconfigureJob?.cancel()
+                    usbPermissionRequested.clear()
                     usbDevices = connectedUsbDevices()
                     updateUsbEnvironment()
+                    requestUsbPermissionIfNeeded()
                     audioPlayer.cancelFade()
                     player.volume = 1f
                     if (enabled) {
                         player.active.skipSilenceEnabled = false
                         player.playbackParameters = androidx.media3.common.PlaybackParameters.DEFAULT
                     }
-                    reprepareCurrentTrack()
+                    usbReconfigureJob = scope.launch { reprepareUsbTrack() }
                 }
         }
         scope.launch {
@@ -586,32 +608,68 @@ class MusicService : MediaLibraryService(),
     }
 
     private fun connectedUsbDevices(): Map<Int, String> =
-        usbAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-            .filter { it.isUsbAudioOutput() }
-            .associate { it.id to it.productName.toString().ifBlank { "USB 解码器" } }
+        usbManager.deviceList.values.filter { it.hasPcmOutput() }
+            .associate { it.deviceId to (it.productName ?: "USB 解码器") }
 
     private fun updateUsbEnvironment() {
-        UsbOutputState.store.updateEnvironment(usbExclusiveEnabled, Build.VERSION.SDK_INT >= 34, usbDevices)
+        UsbOutputState.store.updateEnvironment(usbExclusiveEnabled, UsbNativeBridge.available, usbDevices)
     }
 
-    private fun refreshUsbDevices() {
+    private fun requestUsbPermissionIfNeeded() {
+        if (!usbExclusiveEnabled) return
+        val devices = usbManager.deviceList.values.filter { it.hasPcmOutput() }
+        val device = devices.singleOrNull() ?: return
+        if (usbManager.hasPermission(device) || !usbPermissionRequested.add(device.deviceId)) return
+        UsbOutputState.store.fallback("等待 USB 访问授权")
+        val permissionIntent = Intent(USB_PERMISSION_ACTION).setPackage(packageName)
+        val pendingIntent = PendingIntent.getBroadcast(this, device.deviceId, permissionIntent, PendingIntent.FLAG_IMMUTABLE)
+        usbManager.requestPermission(device, pendingIntent)
+    }
+
+    private fun refreshUsbDevices(forceReconfigure: Boolean = false) {
         val devices = connectedUsbDevices()
         val change = usbDeviceChange(
             usbDevices.keys, devices.keys, usbExclusiveEnabled, UsbOutputState.status.value.deviceId,
         )
+        val reconfiguring = usbReconfigureJob?.isActive == true
+        usbPermissionRequested.retainAll(devices.keys)
         usbDevices = devices
         updateUsbEnvironment()
-        if (!change.reconfigure || Build.VERSION.SDK_INT < 34) return
-        // Pause immediately on disconnection; reconnecting must never resume playback by itself.
+        requestUsbPermissionIfNeeded()
+        if (!change.reconfigure && !forceReconfigure) return
         if (change.pause) player.pause()
         usbReconfigureJob?.cancel()
         usbReconfigureJob = scope.launch {
-            // USB enumeration may deliver several callbacks for a single plug/unplug operation.
-            delay(250)
-            if (shouldReconfigureUsbPlayback(player.playbackState, player.playerError?.errorCode)) {
-                reprepareCurrentTrack()
+            if (reconfiguring || shouldReconfigureUsbPlayback(player.playbackState, player.playerError?.errorCode)) {
+                reprepareUsbTrack()
             }
         }
+    }
+
+    private fun clearLegacyUsbMixerPreferences() {
+        if (Build.VERSION.SDK_INT < 34) return
+        val manager = getSystemService(AudioManager::class.java)
+        val attributes = android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC).build()
+        manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).filter { it.isUsbAudioOutput() }.forEach {
+            runCatching { manager.clearPreferredMixerAttributes(attributes, it) }
+        }
+    }
+
+    private suspend fun reprepareUsbTrack() {
+        if (player.mediaItemCount == 0) return
+        val index = player.currentMediaItemIndex
+        val mediaId = player.currentMediaItem?.mediaId
+        val position = player.currentPosition.coerceAtLeast(0L)
+        player.stop()
+        // Native close restores the kernel interfaces; let Android rediscover the system audio route.
+        delay(if (usbExclusiveEnabled && UsbOutputState.store.nativeUsable()) 150L else 650L)
+        if (player.currentMediaItem?.mediaId != mediaId || player.currentMediaItemIndex != index) return
+        clearLegacyUsbMixerPreferences()
+        player.seekTo(index, position)
+        player.prepare()
+        // stop()/prepare() retain playWhenReady, including a user pause during the release barrier.
     }
 
     private fun reprepareCurrentTrack() {
@@ -626,9 +684,9 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
-        usbAudioManager.unregisterAudioDeviceCallback(usbDeviceCallback)
+        unregisterReceiver(usbReceiver)
         usbReconfigureJob?.cancel()
-        UsbOutputState.store.updateEnvironment(false, Build.VERSION.SDK_INT >= 34, emptyMap())
+        UsbOutputState.store.updateEnvironment(false, UsbNativeBridge.available, emptyMap())
         sleepDetectionController.close()
         queueSaveJob?.cancel()
         if (!restoringQueue) {
@@ -701,7 +759,15 @@ class MusicService : MediaLibraryService(),
                     ).build()
                 val provider = UsbExclusiveOutputProvider(
                     this@MusicService,
-                    audioAttributes.getPlatformAudioAttributes(),
+                    onFailure = {
+                        scope.launch {
+                            if (usbExclusiveEnabled) {
+                                player.pause()
+                                usbReconfigureJob?.cancel()
+                                usbReconfigureJob = scope.launch { reprepareUsbTrack() }
+                            }
+                        }
+                    },
                 ) { usbExclusiveEnabled }
                 val usb = DefaultAudioSink.Builder(this@MusicService)
                     .setEnableFloatOutput(true)
@@ -709,7 +775,7 @@ class MusicService : MediaLibraryService(),
                     .setAudioProcessors(emptyArray())
                     .setAudioOutputProvider(provider)
                     .build()
-                return SwitchingAudioSink(regular, usb, provider) { usbExclusiveEnabled }
+                return SwitchingAudioSink(regular, usb, provider, { usbDevices.isNotEmpty() }) { usbExclusiveEnabled }
             }
         }
 
@@ -805,6 +871,7 @@ class MusicService : MediaLibraryService(),
     }
 
     companion object {
+        private const val USB_PERMISSION_ACTION = "com.ljyh.mei.action.USB_PERMISSION"
         private const val DESKTOP_LYRICS_TOGGLE_ACTION = "com.ljyh.mei.action.TOGGLE_DESKTOP_LYRICS"
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888

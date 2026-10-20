@@ -12,30 +12,8 @@ data class UsbOutputStatus(
     val deviceId: Int? = null,
 )
 
-internal data class UsbOutputObservation(
-    val playing: Boolean,
-    val routedDeviceId: Int?,
-    val preferredMixer: Boolean,
-) {
-    fun statusFor(deviceId: Int, detail: String): UsbOutputStatus {
-        val active = playing && routedDeviceId == deviceId && preferredMixer
-        return UsbOutputStatus(
-            active = active,
-            message = when {
-                !preferredMixer -> "USB 独占配置已失效，重新播放后重试"
-                !playing -> "USB 已就绪，等待播放 · $detail"
-                active -> "USB 独占输出 · $detail"
-                routedDeviceId != null -> "音频未路由到 USB，使用普通输出"
-                else -> "已请求 USB 独占，等待音频路由 · $detail"
-            },
-            deviceId = deviceId,
-        )
-    }
-}
-
 object UsbOutputState {
     internal val store = UsbOutputStatusStore()
-    internal val mixerPreferences = UsbMixerPreferenceStore()
     val status = store.status
 }
 
@@ -47,6 +25,7 @@ internal class UsbOutputStatusStore {
     private var supported = false
     private var devices: Map<Int, String> = emptyMap()
     private var attempt: Any? = null
+    private var nativeBlocked = false
 
     @Synchronized
     fun updateEnvironment(enabled: Boolean, supported: Boolean, devices: Map<Int, String>) {
@@ -55,7 +34,20 @@ internal class UsbOutputStatusStore {
         this.supported = supported
         this.devices = devices.toMap()
         attempt = null
+        nativeBlocked = false
         mutableStatus.value = idleStatus()
+    }
+
+    @Synchronized
+    fun nativeUsable(): Boolean = enabled && supported && devices.isNotEmpty() && !nativeBlocked
+
+    @Synchronized
+    fun blockNative(owner: Any?, message: String): Boolean {
+        if (!enabled || owner == null || attempt !== owner) return false
+        nativeBlocked = true
+        attempt = Any()
+        mutableStatus.value = UsbOutputStatus(message = message)
+        return true
     }
 
     @Synchronized
@@ -86,7 +78,7 @@ internal class UsbOutputStatusStore {
 
     private fun idleStatus() = UsbOutputStatus(message = when {
         !enabled -> ""
-        !supported -> "USB 独占需要 Android 14 或更高版本，使用普通输出"
+        !supported -> "无法加载 USB 独占驱动，使用普通输出"
         devices.isEmpty() -> "未连接 USB 解码器，使用普通输出"
         else -> "已连接 ${devices.values.first()}，播放时尝试独占输出"
     })
@@ -115,25 +107,3 @@ internal fun shouldReconfigureUsbPlayback(playbackState: Int, errorCode: Int?): 
         (playbackState == Player.STATE_IDLE &&
             (errorCode == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED ||
                 errorCode == PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED))
-
-/** Android mixer preferences belong to the UID, so the two decks must share ownership. */
-internal class UsbMixerPreferenceStore {
-    private val owners = mutableMapOf<Int, Any>()
-
-    @Synchronized
-    fun acquire(deviceId: Int, configure: () -> Boolean): Any? {
-        if (!configure()) return null
-        return Any().also { owners[deviceId] = it }
-    }
-
-    @Synchronized
-    fun release(deviceId: Int, owner: Any?, clear: () -> Unit) {
-        if (owner != null && owners[deviceId] === owner) {
-            try {
-                clear()
-            } finally {
-                owners.remove(deviceId)
-            }
-        }
-    }
-}

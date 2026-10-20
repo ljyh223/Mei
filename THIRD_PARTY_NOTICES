@@ -16,3 +16,10 @@ independent implementations and remain under Mei's Apache License 2.0.
 
 The BeatNet model remains under CC BY 4.0; Mei's Apache License 2.0 does not
 replace its attribution and redistribution conditions.
+
+USB native transport: NeriPlayer (https://github.com/cwuom/NeriPlayer)
+Original author: cwuom / ouom. Native sources imported from 113699bb.
+Used under the NeriPlayer Native Attribution License; see
+app/src/main/cpp/usbdriver/NERI_LICENSE.md. No endorsement is implied.
+libusb is a separate shared library under LGPL-2.1-or-later.
+Its source and notices are in app/src/main/cpp/usbdriver/third_party/libusb.

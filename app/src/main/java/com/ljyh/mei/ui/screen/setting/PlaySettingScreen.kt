@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.setting
 
-import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
@@ -124,7 +123,6 @@ fun PlaySettingScreen(
                 SwitchPreference(
                     title = { Text("USB 独占播放") },
                     description = when {
-                        Build.VERSION.SDK_INT < 34 -> "USB 独占需要 Android 14 或更高版本"
                         usbExclusive -> usbStatus.message.ifEmpty { "播放时检测 USB 解码器并尝试独占输出" }
                         else -> "连接 USB 解码器后，按歌曲采样率尝试独占输出"
                     },

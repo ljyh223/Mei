@@ -5,6 +5,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.AuxEffectInfo
 import androidx.media3.common.Format
 import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.Clock
 import androidx.media3.exoplayer.analytics.PlayerId
 import androidx.media3.exoplayer.audio.AudioCapabilities
@@ -18,6 +19,7 @@ class SwitchingAudioSink(
     private val regular: AudioSink,
     private val usb: AudioSink,
     private val usbProvider: UsbExclusiveOutputProvider,
+    private val hasUsbOutput: () -> Boolean,
     private val useUsb: () -> Boolean,
 ) : AudioSink {
     private var current: AudioSink = regular
@@ -38,10 +40,12 @@ class SwitchingAudioSink(
         usb.setClock(clock)
     }
 
-    override fun supportsFormat(format: Format) = selected().supportsFormat(format)
-    override fun getFormatSupport(format: Format) = selected().getFormatSupport(format)
+    override fun supportsFormat(format: Format) = getFormatSupport(format) != AudioSink.SINK_FORMAT_UNSUPPORTED
+    override fun getFormatSupport(format: Format) =
+        if (requiresUsbPcmDecoding(format.sampleMimeType, hasUsbOutput())) AudioSink.SINK_FORMAT_UNSUPPORTED
+        else selected().getFormatSupport(format)
     override fun getFormatOffloadSupport(format: Format): AudioOffloadSupport =
-        selected().getFormatOffloadSupport(format)
+        if (hasUsbOutput()) AudioOffloadSupport.DEFAULT_UNSUPPORTED else selected().getFormatOffloadSupport(format)
 
     override fun getCurrentPositionUs(sourceEnded: Boolean) = current.getCurrentPositionUs(sourceEnded)
 
@@ -156,3 +160,7 @@ class SwitchingAudioSink(
         usbProvider.clearPreferredFormat()
     }
 }
+
+/** USB DACs may advertise compressed support even when their audio driver cannot consume it. */
+internal fun requiresUsbPcmDecoding(mimeType: String?, usbConnected: Boolean): Boolean =
+    usbConnected && mimeType != MimeTypes.AUDIO_RAW
