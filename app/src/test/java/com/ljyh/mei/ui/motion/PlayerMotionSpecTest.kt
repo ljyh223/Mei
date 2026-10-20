@@ -1,6 +1,10 @@
 package com.ljyh.mei.ui.motion
 
+import androidx.compose.animation.core.TargetBasedAnimation
+import androidx.compose.animation.core.VectorConverter
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -52,6 +56,28 @@ class PlayerMotionSpecTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             MotionProgressWindow(start = 0.5f, end = 0.25f)
+        }
+    }
+
+    @Test
+    fun lyricModeSettlesWithoutASubstantialArtworkSizeSnapInEitherDirection() {
+        val artworkSizeDeltaPx = 2_000f
+        val frameNanos = 16_666_667L
+        for ((start, target) in listOf(0f to 1f, 1f to 0f)) {
+            val animation = TargetBasedAnimation(
+                animationSpec = PlayerMotionSpec.LyricModeSpring,
+                typeConverter = Float.VectorConverter,
+                initialValue = start,
+                targetValue = target,
+            )
+            val penultimateProgress = animation.getValueFromNanos(animation.durationNanos - frameNanos)
+            val finalProgress = animation.getValueFromNanos(animation.durationNanos)
+            val finalSizeStepPx = abs(finalProgress - penultimateProgress) * artworkSizeDeltaPx
+
+            assertTrue(
+                "Lyric transition $start -> $target snaps artwork by $finalSizeStepPx px at completion",
+                finalSizeStepPx < 0.5f,
+            )
         }
     }
 }

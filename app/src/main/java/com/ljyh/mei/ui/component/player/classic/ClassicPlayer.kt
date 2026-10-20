@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.MiniPlayerBarHeight
+import com.ljyh.mei.constants.MiniPlayerCornerRadius
 import com.ljyh.mei.ui.component.player.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.cover.FluidBackground
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
@@ -100,7 +101,8 @@ fun ClassicPlayer(
         morphSpec = BottomSheetMorphSpec(
             collapsedHorizontalMargin = 0.dp,
             collapsedMaxWidth = null,
-            collapsedCornerRadius = 0.dp,
+            collapsedCornerRadius = MiniPlayerCornerRadius,
+            roundBottomCorners = false,
             expandedHorizontalMargin = 0.dp,
             expandedCornerRadius = 0.dp,
             collapsedHeight = MiniPlayerBarHeight + miniPlayerBottomInset,

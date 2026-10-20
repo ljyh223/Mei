@@ -356,7 +356,7 @@ private fun AlbumActions(
     val surface = MaterialTheme.colorScheme.surface
     Box(
         modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface))),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.CenterStart,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),

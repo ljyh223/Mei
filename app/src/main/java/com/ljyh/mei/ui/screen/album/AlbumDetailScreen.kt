@@ -54,6 +54,8 @@ import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
+import timber.log.Timber
+import java.util.Timer
 
 @RequiresApi(Build.VERSION_CODES.R)
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -246,11 +248,15 @@ fun AlbumDetailScreen(
             message = null,
             onRetry = null,
         )
-        is Resource.Error -> AlbumLoadState(
-            onBack = { navController.popBackStack() },
-            message = "专辑加载失败，请检查网络后重试",
-            onRetry = { viewModel.getAlbumDetail(id.toString()) },
-        )
+        is Resource.Error -> {
+            Timber.tag("AlbumScreen").d(result.message)
+            AlbumLoadState(
+                onBack = { navController.popBackStack() },
+                message = "专辑加载失败，请检查网络后重试",
+
+                onRetry = { viewModel.getAlbumDetail(id.toString()) },
+            )
+        }
         is Resource.Success -> {
             val coverUrl = result.data.album.picUrl
             var coverColor by remember(coverUrl) {
@@ -329,7 +335,9 @@ fun AlbumDetailScreen(
 
 @Composable
 private fun AlbumLoadState(onBack: () -> Unit, message: String?, onRetry: (() -> Unit)?) {
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+    Column(Modifier
+        .fillMaxSize()
+        .statusBarsPadding()) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
         }

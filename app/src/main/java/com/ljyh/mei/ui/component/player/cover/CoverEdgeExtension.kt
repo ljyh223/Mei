@@ -46,6 +46,12 @@ import kotlin.math.roundToInt
 
 private const val AnalysisSize = 128
 
+private data class CoverEdgeResult(
+    val url: String,
+    val config: CoverBackgroundConfig,
+    val artwork: CoverEdgeArtwork?,
+)
+
 internal class CoverEdgeArtwork(
     val texture: Bitmap,
     val feather: ImageBitmap,
@@ -85,11 +91,11 @@ internal fun rememberCoverEdgeArtwork(imageUrl: String?): CoverEdgeArtwork? {
         softEdgeMatch = softEdgeMatch,
         minimumSingleEdgeMatch = singleEdgeMatch,
     )
-    val artwork by produceState<CoverEdgeArtwork?>(null, imageUrl, config) {
+    val result by produceState<CoverEdgeResult?>(null, imageUrl, config) {
         if (imageUrl.isNullOrBlank()) return@produceState
         val (cached, decision) = CoverEdgeDecisions.get(imageUrl, config)
         if (cached) {
-            value = decision
+            value = CoverEdgeResult(imageUrl, config, decision)
             return@produceState
         }
         try {
@@ -133,14 +139,16 @@ internal fun rememberCoverEdgeArtwork(imageUrl: String?): CoverEdgeArtwork? {
                 }
             }
             CoverEdgeDecisions.put(imageUrl, config, analyzed)
-            value = analyzed
+            value = CoverEdgeResult(imageUrl, config, analyzed)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             // An unsuccessful load is retried on the next opening.
         }
     }
-    return artwork
+    // produceState keeps its previous value until the new effect starts. Never expose the
+    // previous song's edge color during that gap, even when the new request stalls.
+    return result?.takeIf { it.url == imageUrl && it.config == config }?.artwork
 }
 
 /** CLAMP extends the sampled background color beyond the square cover. */

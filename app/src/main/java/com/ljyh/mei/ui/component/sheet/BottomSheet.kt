@@ -73,6 +73,8 @@ data class BottomSheetMorphSpec(
     val collapsedHeight: Dp = 52.dp,
     val collapsedBottomMargin: Dp = 8.dp,
     val expandedBottomMargin: Dp = 0.dp,
+    // Edge-attached players keep their bottom edge flush with the navigation surface.
+    val roundBottomCorners: Boolean = true,
 )
 
 /** Controls whether the player surface changes size or moves as a fixed-size sheet. */
@@ -129,7 +131,7 @@ fun BottomSheet(
         }
         val cornerRadius = morphLayout?.cornerRadius
             ?: if (!state.isExpanded) 16.dp else 0.dp
-        val sheetShape = if (morphLayout != null) {
+        val sheetShape = if (morphLayout != null && morphSpec.roundBottomCorners) {
             RoundedCornerShape(cornerRadius)
         } else {
             RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius)
@@ -238,7 +240,7 @@ fun BottomSheet(
                                     enter = EnterTransition.None,
                                     exit = ExitTransition.None,
                                 )
-                                .clip(RoundedCornerShape(cornerRadius))
+                                .clip(sheetShape)
                         }
 
                         if (targetExpanded) {

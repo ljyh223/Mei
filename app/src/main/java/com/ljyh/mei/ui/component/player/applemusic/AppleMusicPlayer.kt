@@ -49,6 +49,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -75,6 +76,7 @@ import coil3.request.crossfade
 import coil3.size.Precision
 import coil3.size.Size
 import com.ljyh.mei.constants.MiniPlayerBarHeight
+import com.ljyh.mei.constants.MiniPlayerCornerRadius
 import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
@@ -175,12 +177,14 @@ fun AppleMusicPlayer(
     ) rememberCoverEdgeArtwork(coverUrl) else null
     val coverEdgeColor = coverEdgeArtwork?.controlsColor
     var readyCoverId by remember { mutableStateOf<Long?>(null) }
+    var readyFullCover by remember { mutableStateOf<Pair<Long, String>?>(null) }
     var readyFluidUrl by remember { mutableStateOf<String?>(null) }
     var readyPortraitKey by remember { mutableStateOf<String?>(null) }
     var retainedPortrait by remember { mutableStateOf<RetainedPortrait?>(null) }
     val portraitKey = portraitCover?.let { "${it.cacheKey}:${it.url}" }
     val portraitReady = portraitKey != null && readyPortraitKey == portraitKey
     val staticArtworkReady = mediaMetadata != null && readyCoverId == mediaMetadata?.id
+    val miniOverlayReady = mediaMetadata?.let { readyFullCover == (it.id to it.coverUrl) } == true
     val fluidReady = coverUrl != null && readyFluidUrl == coverUrl
 
     // --- Apple Music 特定的 LaunchedEffect ---
@@ -237,16 +241,18 @@ fun AppleMusicPlayer(
         (portraitCover == null || portraitReady)) {
         meshBackgroundAlpha * portraitReveal * (1f - lyricAnimFraction)
     } else 0f
-    val edgeExtensionAlpha by animateFloatAsState(
-        targetValue = if (
-            coverEdgeArtwork?.mode?.let { it != CoverExtensionMode.NONE } == true &&
-            staticArtworkReady && state.isExpanded &&
-            !detailsVisible && portraitCover == null && portraitAlpha < 0.001f &&
-            dynamicCover?.takeIf { it.songId == mediaMetadata?.id } == null
-        ) 1f else 0f,
-        animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis),
-        label = "StaticCoverEdgeExtension",
-    )
+    val edgeExtensionAlpha by key(mediaMetadata?.id, coverUrl) {
+        animateFloatAsState(
+            targetValue = if (
+                coverEdgeArtwork?.mode?.let { it != CoverExtensionMode.NONE } == true &&
+                staticArtworkReady && state.isExpanded &&
+                !detailsVisible && portraitCover == null && portraitAlpha < 0.001f &&
+                dynamicCover?.takeIf { it.songId == mediaMetadata?.id } == null
+            ) 1f else 0f,
+            animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis),
+            label = "StaticCoverEdgeExtension",
+        )
+    }
     SideEffect {
         if (portraitCover != null && coverUrl != null) {
             retainedPortrait = RetainedPortrait(portraitCover, coverUrl)
@@ -405,7 +411,8 @@ fun AppleMusicPlayer(
             backgroundColor = Color.Transparent,
             morphSpec = BottomSheetMorphSpec(
                 collapsedHorizontalMargin = 0.dp,
-                collapsedCornerRadius = 0.dp,
+                collapsedCornerRadius = MiniPlayerCornerRadius,
+                roundBottomCorners = false,
                 expandedHorizontalMargin = 0.dp,
                 expandedCornerRadius = 0.dp,
                 collapsedHeight = MiniPlayerBarHeight + miniPlayerBottomInset,
@@ -447,7 +454,7 @@ fun AppleMusicPlayer(
                         }
                     },
                     onNext = stateContainer.playerConnection::seekToNext,
-                    drawCover = false,
+                    drawCover = true,
                     bottomInset = miniPlayerBottomInset,
                 )
             },
@@ -486,7 +493,10 @@ fun AppleMusicPlayer(
                         label = "CoverTransition",
                         modifier = Modifier
                             .graphicsLayer {
-                                alpha = state.revealProgress * (1f - portraitAlpha)
+                                // The collapsed bar already has the cached thumbnail. Keep it
+                                // visible until the full-size overlay for this song is ready.
+                                alpha = state.revealProgress * (1f - portraitAlpha) *
+                                    if (state.isExpanded || miniOverlayReady) 1f else 0f
                                 translationX = finalStart
                                 translationY = finalTop
                                 scaleX = coverScale
@@ -526,7 +536,10 @@ fun AppleMusicPlayer(
                                 playing = isPlaying,
                                 onPlaybackError = { stateContainer.playerViewModel.fallbackDynamicCover(currentMetadata) },
                                 onArtworkReady = {
-                                    if (currentMetadata.id == mediaMetadata?.id) readyCoverId = currentMetadata.id
+                                    if (currentMetadata.id == mediaMetadata?.id) {
+                                        readyCoverId = currentMetadata.id
+                                        readyFullCover = currentMetadata.id to currentMetadata.coverUrl
+                                    }
                                 },
                                 modifier = Modifier.fillMaxSize(),
                             )
@@ -541,7 +554,10 @@ fun AppleMusicPlayer(
                                 contentDescription = "Cover",
                                 contentScale = ContentScale.Crop,
                                 onSuccess = {
-                                    if (currentMetadata.id == mediaMetadata?.id) readyCoverId = currentMetadata.id
+                                    if (currentMetadata.id == mediaMetadata?.id) {
+                                        readyCoverId = currentMetadata.id
+                                        readyFullCover = currentMetadata.id to currentMetadata.coverUrl
+                                    }
                                 },
                                 onError = {
                                     if (currentMetadata.id == mediaMetadata?.id) readyCoverId = currentMetadata.id
@@ -563,7 +579,7 @@ fun AppleMusicPlayer(
                     .fillMaxWidth()
                     .height(playerBackgroundHeight)
                     .background(if (state.isExpanded && staticArtworkReady && portraitCover == null &&
-                        portraitAlpha < 0.001f && coverEdgeColor != null
+                        portraitAlpha < 0.001f && coverEdgeColor != null && edgeExtensionAlpha > 0.001f
                     ) coverEdgeColor else lerp(
                         portraitBackdropState.edgeColor ?: portraitFallbackColor,
                         backgroundColor,

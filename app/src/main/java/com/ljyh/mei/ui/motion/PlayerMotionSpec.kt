@@ -59,6 +59,9 @@ object PlayerMotionSpec {
     val SheetDismissSpring: AnimationSpec<Float> = spring()
     val LyricModeSpring: SpringSpec<Float> = spring(
         stiffness = Spring.StiffnessLow,
+        // This 0..1 value drives hundreds of pixels of artwork travel and size. The default
+        // 0.01 threshold leaves a visible final snap, especially with system slow animations.
+        visibilityThreshold = 0.0001f,
     )
     val CoverPlayStateSpring: SpringSpec<Float> = spring(
         dampingRatio = Spring.DampingRatioMediumBouncy,

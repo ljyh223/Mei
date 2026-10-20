@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,7 +67,12 @@ fun RecommendCard(
         }
     }
 
-    val baseColor by animateColorAsState(extractedColor, label = "recommendCardColor")
+    // Gently soften saturated artwork colors and give the text a little contrast headroom.
+    val contrastTone = if (extractedColor.luminance() > 0.179f) Color.White else Color.Black
+    val baseColor by animateColorAsState(
+        targetValue = lerp(extractedColor, contrastTone, 0.08f),
+        label = "recommendCardColor",
+    )
     val foregroundColor = if (baseColor.luminance() > 0.179f) Color.Black else Color.White
 
     Box(
@@ -86,17 +92,19 @@ fun RecommendCard(
             contentScale = ContentScale.Crop,
         )
 
-        // 信息叠在封面上；底部渐变覆盖同一张图，因此没有图片与信息区的物理边界。
+        // Blend into the artwork gradually; reserve the opaque color for the bottom edge.
         if (!isLoading) Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(104.dp)
+                .height(cardHeight * 0.64f)
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.3f to baseColor.copy(alpha = 0.9f),
-                        0.42f to baseColor,
+                        0f to baseColor.copy(alpha = 0f),
+                        0.3f to baseColor.copy(alpha = 0.32f),
+                        0.48f to baseColor.copy(alpha = 0.9f),
+                        0.62f to baseColor.copy(alpha = 0.98f),
+                        0.78f to baseColor,
                         1f to baseColor,
                     )
                 )
@@ -118,7 +126,7 @@ fun RecommendCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        extInfo.icon?.let { icon ->
+                        extInfo.icon?.takeIf { it.isNotBlank() }?.let { icon ->
                             AsyncImage(
                                 model = icon,
                                 modifier = Modifier

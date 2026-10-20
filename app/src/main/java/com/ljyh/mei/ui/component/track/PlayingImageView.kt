@@ -27,6 +27,7 @@ fun PlayingImageView(
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(imageUrl)
+                .memoryCacheKey(imageUrl)
                 .crossfade(true)
                 .build(),
             contentDescription = "Album Art",
