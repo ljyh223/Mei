@@ -1,9 +1,24 @@
 package com.ljyh.mei.ui.screen.main.library
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.MeiStatePanel
+import com.ljyh.mei.ui.screen.main.library.component.BentoDashboard
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +42,7 @@ import com.ljyh.mei.constants.UserNicknameKey
 import com.ljyh.mei.constants.UserPhotoKey
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.main.library.component.ImmersiveBackground
@@ -110,14 +126,12 @@ fun LibraryScreen(
 
         when {
             cookie.isNotEmpty() && libraryUiState is LibraryUiState.Error -> LibraryErrorState(
-                message = (libraryUiState as LibraryUiState.Error).message,
                 onRetry = { viewModel.getUserAccount(force = true) },
             )
             cookie.isNotEmpty() && userId.isEmpty() -> LibraryLoadingState()
             userId.isEmpty() -> EmptyLoginState(navController)
             libraryUiState is LibraryUiState.Loading -> LibraryLoadingState()
             libraryUiState is LibraryUiState.Error -> LibraryErrorState(
-                message = (libraryUiState as LibraryUiState.Error).message,
                 onRetry = {
                     viewModel.getUserAccount(force = true)
                     viewModel.loadLibrary(profileSeed)
@@ -195,24 +209,47 @@ private fun LibraryLoadingState() {
 }
 
 @Composable
-private fun LibraryErrorState(message: String, onRetry: () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Button(onClick = onRetry) {
-            Text("加载失败：$message，点击重试")
-        }
+private fun LibraryErrorState(onRetry: () -> Unit) {
+    val navController = LocalNavController.current
+    Box(
+        Modifier.fillMaxSize().windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(
+            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+        )), contentAlignment = Alignment.Center,
+    ) {
+        MeiStatePanel(
+            title = "暂时无法同步音乐库",
+            message = "你仍然可以收听本地音乐。",
+            icon = Icons.Rounded.CloudOff,
+            actionLabel = "重试",
+            onAction = onRetry,
+            secondaryLabel = "本地音乐",
+            onSecondaryAction = { Screen.LocalMusic.navigate(navController) },
+        )
     }
 }
 
 @Composable
 fun EmptyLoginState(navController: NavController) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding()
+            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(
+                WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+            ))
+            .verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Button(
-            onClick = { Screen.ContentSettings.navigate(navController) }
-        ) {
-            Text("登录网易云音乐以同步数据")
-        }
+        Text("音乐库", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(horizontal = 20.dp))
+        BentoDashboard(
+            onHistoryClick = { Screen.History.navigate(navController) },
+            onLocalClick = { Screen.LocalMusic.navigate(navController) },
+            onDownloadClick = { Screen.DownloadManage.navigate(navController) },
+        )
+        MeiStatePanel(
+            title = "收藏与歌单",
+            message = "登录网易云音乐，同步你的歌单与收藏。",
+            icon = Icons.Rounded.LibraryMusic,
+            actionLabel = "登录账号",
+            onAction = { Screen.ContentSettings.navigate(navController) },
+        )
     }
 }

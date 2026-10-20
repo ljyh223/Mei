@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -26,7 +24,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -54,7 +51,6 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistBackground
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
-import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
@@ -142,13 +138,7 @@ fun CommonSongListScreen(
                             exit = fadeOut()
                         ) {
                             Text(
-                                text = if (device.isTablet) {
-                                    uiData.title
-                                } else {
-                                    uiData.title.take(10).let { shortTitle ->
-                                        if (shortTitle.length < uiData.title.length) "$shortTitle…" else shortTitle
-                                    }
-                                },
+                                text = uiData.title,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -162,7 +152,7 @@ fun CommonSongListScreen(
                     }) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = "返回",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -185,8 +175,8 @@ fun CommonSongListScreen(
                     }
                 }
                 val colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
                     navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurface
@@ -336,34 +326,4 @@ fun CommonSongListScreen(
     }
 
 
-}
-
-
-@Composable
-fun ActionButton(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit,
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    isLoading: Boolean = false,
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        IconButton(
-            onClick = onClick,
-            enabled = !isLoading,
-            colors = IconButtonDefaults.iconButtonColors(contentColor = color)
-        ) {
-            Icon(
-                icon,
-                contentDescription = text,
-                modifier = Modifier.size(28.dp).skeleton(isLoading, CircleShape),
-            )
-        }
-        Text(
-            text,
-            modifier = Modifier.skeleton(isLoading),
-            style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = 0.8f),
-        )
-    }
 }

@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -23,7 +22,7 @@ fun ImmersiveBackground(imageUrl: String, isTablet: Boolean = false) {
             modifier = Modifier
                 .fillMaxSize()
                 .blur(if (isTablet) 100.dp else 80.dp) // 平板端更模糊，减少干扰
-                .alpha(if (isTablet) 0.4f else 0.5f),
+                .alpha(if (isTablet) 0.24f else 0.20f),
             contentScale = ContentScale.Crop
         )
 
@@ -36,7 +35,11 @@ fun ImmersiveBackground(imageUrl: String, isTablet: Boolean = false) {
                 )
             )
         } else {
-            SolidColor(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
+            Brush.verticalGradient(listOf(
+                MaterialTheme.colorScheme.background.copy(alpha = 0.72f),
+                MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
+                MaterialTheme.colorScheme.background,
+            ))
         }
 
         Box(

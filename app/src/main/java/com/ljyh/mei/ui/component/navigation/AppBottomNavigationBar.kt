@@ -1,26 +1,43 @@
 package com.ljyh.mei.ui.component.navigation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ShortNavigationBar
-import androidx.compose.material3.ShortNavigationBarArrangement
-import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.glass.MeiGlassRole
+import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.screen.Index
 
-/**
- * Material 3 bottom navigation owned by the app scaffold.
- *
- * Visibility only affects drawing, not measurement. Keeping the scaffold inset stable prevents
- * the collapsed player anchor from moving while the full player is animating back into the bar.
- */
+/** Retain the measured bottom inset while the player and navigation animate independently. */
 @Composable
 fun AppBottomNavigationBar(
     visibilityProgress: Float,
@@ -30,32 +47,59 @@ fun AppBottomNavigationBar(
     onTabSelect: (Index) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var navigationBarHeight by remember { mutableIntStateOf(0) }
+    var measuredHeight by remember { mutableIntStateOf(0) }
     val progress = visibilityProgress.coerceIn(0f, 1f)
-    val alpha = alphaProgress.coerceIn(0f, 1f)
-
-    ShortNavigationBar(
+    Box(
         modifier = modifier
-            .onSizeChanged { navigationBarHeight = it.height }
+            .fillMaxWidth()
+            .onSizeChanged { measuredHeight = it.height }
             .graphicsLayer {
-                this.alpha = alpha
-                translationY = navigationBarHeight * (1f - progress)
-            },
-        arrangement = ShortNavigationBarArrangement.EqualWeight,
+                alpha = alphaProgress.coerceIn(0f, 1f)
+                translationY = measuredHeight * (1f - progress)
+            }
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Index.entries.forEach { destination ->
-            ShortNavigationBarItem(
-                selected = selectedRoute == destination.route,
-                onClick = { onTabSelect(destination) },
-                enabled = interactive,
-                icon = {
-                    Icon(
-                        imageVector = destination.icon,
-                        contentDescription = destination.label,
+        MeiGlassSurface(
+            modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+            shape = CircleShape,
+            role = MeiGlassRole.Navigation,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().selectableGroup().padding(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Index.entries.forEach { destination ->
+                    val selected = selectedRoute == destination.route
+                    val fill by animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                        label = "navigationSelection",
                     )
-                },
-                label = { Text(destination.label) },
-            )
+                    val ink by animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "navigationInk",
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f)
+                            .clip(CircleShape)
+                            .background(fill)
+                            .selectable(
+                                selected = selected,
+                                enabled = interactive,
+                                role = Role.Tab,
+                                onClick = { onTabSelect(destination) },
+                            )
+                            .heightIn(min = 52.dp)
+                            .padding(horizontal = 6.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+                    ) {
+                        Icon(destination.icon, contentDescription = null, tint = ink, modifier = Modifier.size(22.dp))
+                        Text(destination.label, style = MaterialTheme.typography.labelMedium, color = ink)
+                    }
+                }
+            }
         }
     }
 }

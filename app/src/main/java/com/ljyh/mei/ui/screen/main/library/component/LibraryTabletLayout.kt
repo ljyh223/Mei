@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import com.ljyh.mei.ui.theme.MeiCategory
+import com.ljyh.mei.ui.theme.MeiCategoryIcon
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -638,6 +640,7 @@ private fun LibraryQuickActions(onEvent: (LibraryEvent) -> Unit) {
             title = "最近播放",
             subtitle = "查看本机播放记录",
             prominent = true,
+            category = MeiCategory.Content,
             onClick = { onEvent(LibraryEvent.OpenHistory) },
             modifier = Modifier.weight(1.45f),
         )
@@ -645,6 +648,7 @@ private fun LibraryQuickActions(onEvent: (LibraryEvent) -> Unit) {
             icon = Icons.Rounded.Folder,
             title = "本地音乐",
             subtitle = "管理设备歌曲",
+            category = MeiCategory.Offline,
             onClick = { onEvent(LibraryEvent.OpenLocalMusic) },
             modifier = Modifier.weight(1f),
         )
@@ -652,6 +656,7 @@ private fun LibraryQuickActions(onEvent: (LibraryEvent) -> Unit) {
             icon = Icons.Rounded.Download,
             title = "下载管理",
             subtitle = "离线音乐与任务",
+            category = MeiCategory.Storage,
             onClick = { onEvent(LibraryEvent.OpenDownloads) },
             modifier = Modifier.weight(1f),
         )
@@ -663,6 +668,7 @@ private fun QuickActionCard(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    category: MeiCategory,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     prominent: Boolean = false,
@@ -670,26 +676,24 @@ private fun QuickActionCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(22.dp),
-        color = if (prominent) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = if (prominent) MaterialTheme.colorScheme.onPrimaryContainer
-        else MaterialTheme.colorScheme.onSurface,
-        modifier = modifier.height(96.dp),
+        color = if (prominent) MaterialTheme.colorScheme.secondaryContainer
+        else MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.heightIn(min = 116.dp),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+            MeiCategoryIcon(icon, category, size = 32.dp)
             Column {
                 Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (prominent) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.68f)
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp),
@@ -714,23 +718,16 @@ private fun LibrarySectionHeader(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
-        Row(
-            modifier = Modifier
-                .padding(top = 12.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        Surface(
+            modifier = Modifier.padding(top = 12.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
-            SectionButton("创建 ${state.createdCount}", state.section == LibrarySection.Created) {
-                onEvent(LibraryEvent.SelectSection(LibrarySection.Created))
-            }
-            SectionButton("收藏 ${state.collectedCount}", state.section == LibrarySection.Collected) {
-                onEvent(LibraryEvent.SelectSection(LibrarySection.Collected))
-            }
-            SectionButton("专辑 ${state.albumCount}", state.section == LibrarySection.Albums) {
-                onEvent(LibraryEvent.SelectSection(LibrarySection.Albums))
-            }
+            ModernCapsuleTabs(
+                tabs = listOf("创建 ${state.createdCount}", "收藏 ${state.collectedCount}", "专辑 ${state.albumCount}"),
+                selectedIndex = state.section.ordinal,
+                onTabClick = { onEvent(LibraryEvent.SelectSection(LibrarySection.entries[it])) },
+            )
         }
     }
 }
@@ -740,25 +737,6 @@ internal fun greetingForHour(hour: Int): String = when (hour) {
     in 11..13 -> "中午好"
     in 14..17 -> "下午好"
     else -> "晚上好"
-}
-
-@Composable
-private fun SectionButton(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) MaterialTheme.colorScheme.surface else Color.Transparent,
-        contentColor = if (selected) MaterialTheme.colorScheme.onSurface
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        shadowElevation = if (selected) 2.dp else 0.dp,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
-        )
-    }
 }
 
 private fun LibraryContentUiState.assetsForSelectedSection(): List<LibraryAsset> = when (section) {

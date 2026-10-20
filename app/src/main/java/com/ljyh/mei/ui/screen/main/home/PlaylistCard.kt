@@ -60,20 +60,20 @@ fun PlaylistCard(
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp)) // 整个组件裁切，防止水波纹溢出
+            .clip(RoundedCornerShape(16.dp)) // 整个组件裁切，防止水波纹溢出
             .clickable(enabled = !isLoading) { onClick() }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .skeleton(isLoading, RoundedCornerShape(8.dp))
+                .skeleton(isLoading, RoundedCornerShape(16.dp))
         ) {
             if (!isLoading) AsyncImage(
                 model = if (imageSize) coverImg.largeImage() else coverImg,
                 modifier = Modifier
                     .matchParentSize()
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(16.dp)),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
             )
@@ -147,8 +147,7 @@ fun PlaylistCard(
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
-            fontSize = 13.sp, // 调整字体大小，更精致
-            lineHeight = 18.sp,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.fillMaxWidth().skeleton(isLoading)
         )

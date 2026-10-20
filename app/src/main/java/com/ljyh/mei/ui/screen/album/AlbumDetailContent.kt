@@ -3,9 +3,14 @@ package com.ljyh.mei.ui.screen.album
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.combinedClickable
+import com.ljyh.mei.ui.component.MeiCollectionHeader
+import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
+import com.ljyh.mei.utils.image.largeImage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -53,7 +58,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
@@ -125,6 +129,7 @@ internal fun AlbumDetailContent(
             MediaMetadata.Artist(album.artistIds.getOrNull(index) ?: 0L, name)
         }.filter { it.name.isNotBlank() } + participatingArtists
     }
+    var showCoverPreview by remember(album.id) { mutableStateOf(false) }
     var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
     var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
@@ -142,11 +147,11 @@ internal fun AlbumDetailContent(
                     tint = albumTint,
                     onArtistClick = onArtistClick,
                     onShowArtists = { showArtistsSheet = true },
+                    onCoverClick = { showCoverPreview = true },
                 )
             }
             item(key = "album_actions") {
                 AlbumActions(
-                    tint = albumTint,
                     hasSongs = songs.isNotEmpty(),
                     canPlay = canPlay,
                     isSubscribed = isSubscribed,
@@ -235,15 +240,18 @@ internal fun AlbumDetailContent(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = if (titleInBar || isSearchActive) surface else Color.Transparent,
-                navigationIconContentColor = if (titleInBar || isSearchActive) textColor else Color.White,
-                actionIconContentColor = if (titleInBar || isSearchActive) textColor else Color.White,
+                containerColor = surface.copy(alpha = 0.96f),
+                navigationIconContentColor = textColor,
+                actionIconContentColor = textColor,
                 titleContentColor = textColor,
             ),
             modifier = Modifier.align(Alignment.TopCenter),
         )
     }
 
+    if (showCoverPreview && album.picUrl.isNotBlank()) {
+        FullScreenImageViewer(album.picUrl) { showCoverPreview = false }
+    }
     if (showDescriptionSheet) {
         DescriptionSheet(album.name, album.description) { showDescriptionSheet = false }
     }
@@ -271,79 +279,55 @@ private fun AlbumHeader(
     tint: Color,
     onArtistClick: (Long) -> Unit,
     onShowArtists: () -> Unit,
+    onCoverClick: () -> Unit,
 ) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val heroHeight = (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
-        Box(Modifier.fillMaxWidth().height(heroHeight)) {
-            if (album.picUrl.isNotBlank()) {
-                AsyncImage(
-                    model = album.picUrl,
-                    contentDescription = "专辑《${album.name}》封面",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            Box(
-                Modifier.matchParentSize().background(
-                    Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.55f to Color.Transparent,
-                        0.82f to tint.copy(alpha = 0.82f),
-                        1f to tint,
-                    )
-                )
+    MeiCollectionHeader(
+        title = album.name,
+        tint = tint,
+        modifier = Modifier.statusBarsPadding().padding(top = 64.dp),
+        cover = {
+            if (album.picUrl.isNotBlank()) AsyncImage(
+                model = album.picUrl.largeImage(),
+                contentDescription = "预览专辑《${album.name}》封面",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().combinedClickable(
+                    onClick = onCoverClick, onLongClick = onCoverClick,
+                    onClickLabel = "预览专辑封面", onLongClickLabel = "预览专辑封面",
+                ),
             )
-            Column(
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, bottom = 20.dp),
-            ) {
+        },
+        metadata = {
+            if (artists.isNotEmpty()) {
+                val firstArtist = artists.first()
                 Text(
-                    text = album.name,
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (artists.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    val firstArtist = artists.first()
-                    Text(
-                        text = if (artists.size > 1) "${firstArtist.name} 等" else firstArtist.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (artists.size > 1 || firstArtist.id > 0) MaterialTheme.colorScheme.primary
+                    text = if (artists.size > 1) "${firstArtist.name} 等" else firstArtist.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (artists.size > 1 || firstArtist.id > 0) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.heightIn(min = 48.dp)
-                            .clickable(enabled = artists.size > 1 || firstArtist.id > 0) {
-                                if (artists.size > 1) onShowArtists() else onArtistClick(firstArtist.id)
-                            }
-                            .wrapContentHeight(Alignment.CenterVertically),
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                val year = remember(album.publishTime) {
-                    album.publishTime.takeIf { it > 0 }?.let {
-                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).year
-                    }
-                }
-                Text(
-                    text = listOfNotNull(
-                        "专辑",
-                        year?.toString(),
-                        "${album.size.takeIf { it > 0 } ?: trackCount} 首").joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.heightIn(min = 48.dp)
+                        .clickable(enabled = artists.size > 1 || firstArtist.id > 0) {
+                            if (artists.size > 1) onShowArtists() else onArtistClick(firstArtist.id)
+                        }.wrapContentHeight(Alignment.CenterVertically),
                 )
             }
-        }
-    }
+            val year = remember(album.publishTime) {
+                album.publishTime.takeIf { it > 0 }?.let {
+                    Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).year
+                }
+            }
+            Text(
+                text = listOfNotNull("专辑", year?.toString(),
+                    "${album.size.takeIf { it > 0 } ?: trackCount} 首").joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+    )
 }
 
 @Composable
 private fun AlbumActions(
-    tint: Color,
     hasSongs: Boolean,
     canPlay: Boolean,
     isSubscribed: Boolean?,
@@ -355,18 +339,18 @@ private fun AlbumActions(
 ) {
     val surface = MaterialTheme.colorScheme.surface
     Box(
-        modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface))),
+        modifier = Modifier.fillMaxWidth().background(surface),
         contentAlignment = Alignment.CenterStart,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(
                 onClick = onPlayAll,
                 enabled = hasSongs && canPlay,
-                modifier = Modifier.widthIn(min = 144.dp).height(48.dp),
+                modifier = Modifier.widthIn(min = 144.dp).heightIn(min = 48.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -399,7 +383,7 @@ private fun AlbumActions(
 private fun AlbumDescription(albumId: Long, description: String, onExpand: () -> Unit) {
     var canExpand by remember(albumId, description) { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -433,8 +417,8 @@ private fun AlbumTrackRow(
 ) {
     var moreBounds by remember(song.id) { mutableStateOf(IntRect.Zero) }
     Row(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(enabled = canPlay, onClick = onClick)
-            .padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(enabled = canPlay, onClick = onClick)
+            .padding(start = 20.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

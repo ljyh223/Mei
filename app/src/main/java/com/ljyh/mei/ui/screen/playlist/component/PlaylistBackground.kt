@@ -24,7 +24,7 @@ fun PlaylistBackground(coverUrl: String?) {
                     .blur(50.dp)
                     .matchParentSize(),
                 contentScale = ContentScale.Crop,
-                alpha = 0.6f
+                alpha = 0.24f
             )
             // Gradient Overlay for readability
             Box(
@@ -33,8 +33,8 @@ fun PlaylistBackground(coverUrl: String?) {
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
                                 MaterialTheme.colorScheme.surface
                             )
                         )

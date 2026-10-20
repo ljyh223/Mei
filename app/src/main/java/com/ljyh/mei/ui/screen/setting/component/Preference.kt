@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -51,7 +52,7 @@ fun PreferenceSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 20.dp)
     ) {
         Text(
             text = title,
@@ -66,8 +67,8 @@ fun PreferenceSection(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp)),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                    .clip(MaterialTheme.shapes.large),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
                 content = content
             )
         }
@@ -112,6 +113,7 @@ fun PreferenceEntry(
                 enabled = isEnabled && onClick != null,
                 onClick = onClick ?: {}
             )
+            .heightIn(min = 60.dp)
             .alpha(if (isEnabled) 1f else 0.5f)
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {

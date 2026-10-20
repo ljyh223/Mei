@@ -10,10 +10,9 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Icon
-import androidx.compose.material3.FilledTonalIconButton
+import com.ljyh.mei.ui.component.player.controls.PlayerControlButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,27 +83,21 @@ fun Title(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val actionButtonColors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = iconColor.copy(alpha = 0.36f),
-                contentColor = iconColor,
-            )
-            FilledTonalIconButton(
+            PlayerControlButton(
                 onClick = onLikeClick,
-                modifier = Modifier.size(30.dp),
-                colors = actionButtonColors,
+                foreground = iconColor,
             ) {
                 Icon(
                     imageVector = if (isLiked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                    contentDescription = "喜欢",
+                    contentDescription = if (isLiked) "取消喜欢" else "喜欢",
                     tint = iconColor,
                     modifier = Modifier.size(22.dp),
                 )
             }
 
-            FilledTonalIconButton(
+            PlayerControlButton(
                 onClick = onMoreClick,
-                modifier = Modifier.size(30.dp),
-                colors = actionButtonColors,
+                foreground = iconColor,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,

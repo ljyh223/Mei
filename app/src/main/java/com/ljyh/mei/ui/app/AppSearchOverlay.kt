@@ -67,7 +67,8 @@ fun BoxScope.AppSearchOverlay(
             active = shellState.isSearchActive,
             onActiveChange = onActiveChange,
             scrollBehavior = scrollBehavior,
-            placeholder = { Text("搜索") },
+            placeholder = { Text("搜索歌曲、歌手、专辑", maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             leadingIcon = {
                 CombinedClickableIconButton(
                     onClick = {
@@ -97,7 +98,7 @@ fun BoxScope.AppSearchOverlay(
                     shellState.isSearchActive -> {
                         if (query.text.isNotEmpty()) {
                             IconButton(onClick = { onQueryChange(TextFieldValue()) }) {
-                                Icon(Icons.Rounded.Close, contentDescription = null)
+                                Icon(Icons.Rounded.Close, contentDescription = "清空搜索")
                             }
                         }
                         IconButton(onClick = onOpenAudioMatch) {
@@ -108,7 +109,7 @@ fun BoxScope.AppSearchOverlay(
                         }
                     }
                     isTopLevelRoute -> IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Rounded.Settings, contentDescription = null)
+                        Icon(Icons.Rounded.Settings, contentDescription = "设置")
                     }
                 }
             },

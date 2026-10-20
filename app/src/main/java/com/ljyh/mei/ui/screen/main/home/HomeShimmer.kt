@@ -34,7 +34,7 @@ fun HomeShimmer(viewModel: HomeViewModel) {
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp),
             contentPadding = PaddingValues(
                 top = systemBarsPadding.calculateTopPadding() + 16.dp,
                 bottom = systemBarsPadding.calculateBottomPadding() + 16.dp
@@ -71,7 +71,7 @@ private fun RecommendRowShimmer(
         Title(text = "", isLoading = true)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
+            contentPadding = PaddingValues(horizontal = 20.dp)
         ) {
             items(count) {
                 RecommendCard(
@@ -97,7 +97,7 @@ private fun PlaylistBlockShimmer(
         Title(text = "", isLoading = true)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
+            contentPadding = PaddingValues(horizontal = 20.dp)
         ) {
             items(count) {
                 PlaylistCard(

@@ -1,5 +1,15 @@
 package com.ljyh.mei.ui.screen.main.findmusic
 
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.LibraryMusic
+import com.ljyh.mei.ui.component.MeiFilterPill
+import com.ljyh.mei.ui.component.MeiStatePanel
+import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +25,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,7 +37,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -55,6 +61,7 @@ fun FindMusicScreen(
     val categories = viewModel.categories
 
     val listState = rememberLazyGridState()
+    val stateInsets = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
     LaunchedEffect(selectedCategory) {
         listState.scrollToItem(0)
     }
@@ -64,7 +71,7 @@ fun FindMusicScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text("发现音乐") }
+                    title = { Text("发现", style = MaterialTheme.typography.headlineLarge) }
                 )
                 // 分类选择器
                 CategorySelector(
@@ -82,13 +89,19 @@ fun FindMusicScreen(
         ) {
             when (val state = playlistState) {
                 is Resource.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                    SkeletonShimmerHost(enabled = true, modifier = Modifier.fillMaxSize()) {
+                        PlaylistGrid(emptyList(), listState, onPlaylistClick = {}, isLoading = true)
                     }
                 }
 
                 is Resource.Success -> {
-                    PlaylistGrid(
+                    if (state.data.playlists.isEmpty()) {
+                        Box(Modifier.fillMaxSize().windowInsetsPadding(stateInsets), contentAlignment = Alignment.Center) {
+                            MeiStatePanel("这个分类还没有歌单", Icons.Rounded.LibraryMusic,
+                                actionLabel = "重新加载",
+                                onAction = { viewModel.loadCategoryData(selectedCategory, forceRefresh = true) })
+                        }
+                    } else PlaylistGrid(
                         playlists = state.data.playlists,
                         listState = listState,
                         onPlaylistClick = { playlistId ->
@@ -101,11 +114,10 @@ fun FindMusicScreen(
                 }
 
                 is Resource.Error -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "加载失败", style = MaterialTheme.typography.titleMedium)
-                            Text(text = state.message, style = MaterialTheme.typography.bodyMedium)
-                        }
+                    Box(Modifier.fillMaxSize().windowInsetsPadding(stateInsets), contentAlignment = Alignment.Center) {
+                        MeiStatePanel("暂时无法加载歌单", Icons.Rounded.CloudOff,
+                            actionLabel = "重试",
+                            onAction = { viewModel.loadCategoryData(selectedCategory, forceRefresh = true) })
                     }
                 }
             }
@@ -126,30 +138,16 @@ fun CategorySelector(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
+            .selectableGroup()
             .padding(vertical = 8.dp),
         contentPadding = PaddingValues(
-            horizontal = 16.dp
+            horizontal = 20.dp
         ),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(categories) { category ->
             val isSelected = category == selectedCategory
-            FilterChip(
-                selected = isSelected,
-                onClick = { onCategorySelected(category) },
-                label = { Text(category) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = Color.Transparent,
-                    selectedBorderColor = Color.Transparent
-                )
-            )
+            MeiFilterPill(label = category, selected = isSelected, onClick = { onCategorySelected(category) })
         }
     }
 }
@@ -161,26 +159,33 @@ fun CategorySelector(
 fun PlaylistGrid(
     playlists: List<FeaturedPlaylist>,
     listState: LazyGridState,
-    onPlaylistClick: (Long) -> Unit
+    onPlaylistClick: (Long) -> Unit,
+    isLoading: Boolean = false,
 ) {
     val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val device = rememberDeviceInfo()
-    val gridPadding = if (device.isTablet) 28.dp else 16.dp
+    val gridPadding = if (device.isTablet) 28.dp else 20.dp
     val minCardWidth = if (device.isTablet) 180.dp else 140.dp
     val horizontalSpacing = if (device.isTablet) 20.dp else 12.dp
     val verticalSpacing = if (device.isTablet) 24.dp else 16.dp
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = minCardWidth),
+        columns = if (device.isTablet) GridCells.Adaptive(minSize = minCardWidth) else GridCells.Fixed(2),
         contentPadding = PaddingValues(
             start = gridPadding,
             end = gridPadding,
+            top = 12.dp,
             bottom = systemBarsPadding.calculateBottomPadding() + gridPadding
         ),
         horizontalArrangement = Arrangement.spacedBy(horizontalSpacing),
         verticalArrangement = Arrangement.spacedBy(verticalSpacing),
         state = listState,
     ) {
-        items(
+        if (isLoading) items(6, key = { "discover_placeholder_$it" }) {
+            SharedPlaylistCard(
+                id = "discover_placeholder_$it", title = "", coverImg = "",
+                modifier = Modifier.fillMaxWidth(), isLoading = true, onClick = {},
+            )
+        } else items(
             items = playlists,
             key = { it.id } // 优化性能，使用唯一ID
         ) { playlist ->

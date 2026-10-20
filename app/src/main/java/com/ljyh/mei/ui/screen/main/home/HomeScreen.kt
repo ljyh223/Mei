@@ -141,25 +141,49 @@ fun HomeScreen(
                             top = systemBarsPadding.calculateTopPadding() + 16.dp,
                             bottom = systemBarsPadding.calculateBottomPadding() + 16.dp
                         ),
-                        verticalArrangement = Arrangement.spacedBy(24.dp) // 块与块之间的间距
+                        verticalArrangement = Arrangement.spacedBy(28.dp)
                     ) {
-                        items(
-                            items = sortedBlocks,
-                            key = { it.positionCode }
-                        ) { block ->
-                            HomeBlockItem(
-                                block = block,
-                                navController = navController,
-                                viewModel = viewModel,
-                                playerViewModel = playerViewModel,
-                                device = device
-                            )
+                        if (sortedBlocks.isEmpty()) {
+                            item(key = "home_empty") {
+                                HomeStatus(
+                                    title = "还没有推荐内容",
+                                    onRetry = { viewModel.homePageResourceShow(true) },
+                                )
+                            }
+                        }
+                        sortedBlocks.forEachIndexed { index, block ->
+                            item(key = block.positionCode) {
+                                HomeBlockItem(
+                                    block = block,
+                                    navController = navController,
+                                    viewModel = viewModel,
+                                    playerViewModel = playerViewModel,
+                                    device = device,
+                                )
+                            }
+                            if (index == 0) {
+                                item(key = "home_shortcuts") {
+                                    HomeQuickActions(
+                                        onDaily = { Screen.EveryDay.navigate(navController) },
+                                        onAudioMatch = { Screen.AudioMatch.navigate(navController) },
+                                        onLocal = { Screen.LocalMusic.navigate(navController) },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
                 is Resource.Error -> {
-                    // 这里可以加一个错误重试页面
+                    Box(
+                        Modifier.fillMaxSize().padding(systemBarsPadding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        HomeStatus(
+                            title = "暂时无法加载推荐",
+                            onRetry = { viewModel.homePageResourceShow(true) },
+                        )
+                    }
                 }
 
                 Resource.Loading -> {
@@ -444,7 +468,7 @@ private fun <T> BlockWithTitle(
         Title(title)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp), // 左右留白
+            contentPadding = PaddingValues(horizontal = 20.dp), // 左右留白
             horizontalArrangement = Arrangement.spacedBy(12.dp) // Item 间距
         ) {
             items(resources) { resource ->
@@ -458,12 +482,12 @@ private fun <T> BlockWithTitle(
 fun Title(text: String, isLoading: Boolean = false) {
     Text(
         text = if (isLoading) "正在加载" else text,
-        fontSize = 20.sp,
+        style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground,
         maxLines = 1,
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
             .skeleton(isLoading)
     )
 }
@@ -487,7 +511,7 @@ fun TripleLaneSlider(
 
     HorizontalPager(
         state = pagerState,
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp),
         pageSpacing = 16.dp
     ) { page ->
         val firstLaneIndex = page * lanesPerPage

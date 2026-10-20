@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
@@ -38,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.datastore.preferences.core.edit
+import com.ljyh.mei.constants.LiquidGlassEnabledKey
 import com.ljyh.mei.constants.DefaultThemeColor
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshPlayingKey
@@ -98,6 +100,8 @@ fun AppearanceSettingsScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val (glassEnabled, onGlassEnabledChange) = rememberPreference(LiquidGlassEnabledKey, defaultValue = true)
 
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
@@ -189,6 +193,13 @@ fun AppearanceSettingsScreen(
         ) {
 
             PreferenceSection("主题") {
+                SwitchPreference(
+                    title = { Text("流体玻璃") },
+                    description = "导航、搜索与播放控件的通透材质；省电时自动简化",
+                    icon = { Icon(Icons.Rounded.BlurOn, contentDescription = null) },
+                    checked = glassEnabled,
+                    onCheckedChange = onGlassEnabledChange,
+                )
                 SwitchPreference(
                     title = { Text("动态主题") },
                     icon = { Icon(Icons.Rounded.Palette, null) },

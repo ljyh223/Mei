@@ -1,5 +1,9 @@
 package com.ljyh.mei.ui.screen.playlist.component
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.LibraryMusic
+import com.ljyh.mei.ui.component.MeiStatePanel
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -177,26 +181,31 @@ fun PlaylistTrackList(
                     }
 
                     is LoadState.Error -> {
-                        item { Text("加载更多失败，点击重试") }
+                        item(key = "playlist_append_error") {
+                            MeiStatePanel(
+                                title = "还有歌曲未能加载", icon = Icons.Rounded.CloudOff,
+                                actionLabel = "重试", onAction = pagingItems::retry,
+                            )
+                        }
                     }
 
                     else -> {}
                 }
 
-                if (
-                    emptyMessage != null &&
-                    pagingItems.itemCount == 0 &&
-                    pagingItems.loadState.refresh is LoadState.NotLoading
-                ) {
-                    item {
-                        Text(
-                            text = emptyMessage,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                if (pagingItems.itemCount == 0) {
+                    when (pagingItems.loadState.refresh) {
+                        is LoadState.Error -> item(key = "playlist_refresh_error") {
+                            MeiStatePanel("暂时无法加载歌曲", Icons.Rounded.CloudOff,
+                                actionLabel = "重试", onAction = pagingItems::retry)
+                        }
+                        is LoadState.Loading -> item(key = "playlist_refresh_loading") {
+                            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(Modifier.size(24.dp))
+                            }
+                        }
+                        is LoadState.NotLoading -> item(key = "playlist_empty") {
+                            MeiStatePanel(emptyMessage ?: "暂无歌曲", Icons.Rounded.LibraryMusic)
+                        }
                     }
                 }
             } else {
@@ -209,16 +218,9 @@ fun PlaylistTrackList(
                         onMoreClick = { anchor -> onMoreClick(track, anchor) }
                     )
                 }
-                if (emptyMessage != null && staticTracks.isEmpty()) {
-                    item {
-                        Text(
-                            text = emptyMessage,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                if (staticTracks.isEmpty()) {
+                    item(key = "playlist_static_empty") {
+                        MeiStatePanel(emptyMessage ?: "暂无歌曲", Icons.Rounded.LibraryMusic)
                     }
                 }
             }

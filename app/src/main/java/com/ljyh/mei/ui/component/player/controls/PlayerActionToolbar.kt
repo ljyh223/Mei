@@ -26,7 +26,6 @@ import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -134,7 +133,7 @@ fun PlayerActionToolbar(
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Lyrics,
-                            contentDescription = "Lyrics",
+                            contentDescription = "歌词",
                             tint = foreground
                         )
                     }
@@ -251,11 +250,10 @@ fun ShadowedIconButton(
     enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    IconButton(
+    PlayerControlButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier
-            .size(48.dp)
+        modifier = modifier,
     ) {
         Box(
             modifier = Modifier

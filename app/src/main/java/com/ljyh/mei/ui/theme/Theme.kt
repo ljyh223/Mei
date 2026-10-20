@@ -1,84 +1,103 @@
 package com.ljyh.mei.ui.theme
 
-import android.app.Activity
-import android.graphics.Bitmap
-import android.os.Build
-import android.util.Log
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.palette.graphics.Palette
 import com.materialkolor.DynamicMaterialTheme
-import com.materialkolor.PaletteStyle
-import com.materialkolor.ktx.themeColors
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
-private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(2.dp),
-    small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(8.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(32.dp)
-)
-
-
-private val AppTypography = Typography(
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp
+/** Stable reading surfaces; artwork and interactive roles retain the dynamic accent. */
+internal fun meiColorScheme(accent: ColorScheme, dark: Boolean): ColorScheme {
+    val ink = if (dark) Color(0xFFF1F3F7) else Color(0xFF20242C)
+    fun neutral(light: Long, night: Long) = lerp(
+        Color(if (dark) night else light), accent.primary, if (dark) 0.025f else 0.018f,
     )
+    val background = neutral(0xFFF4F6F9, 0xFF101218)
+    val low = neutral(0xFFFFFFFF, 0xFF191D25)
+    val high = neutral(0xFFFFFFFF, 0xFF272D38)
+    return accent.copy(
+        background = background,
+        onBackground = ink,
+        surface = background,
+        onSurface = ink,
+        surfaceDim = neutral(0xFFE5E8EE, 0xFF0D1015),
+        surfaceBright = high,
+        surfaceContainerLowest = neutral(0xFFFFFFFF, 0xFF0D1015),
+        surfaceContainerLow = low,
+        surfaceContainer = neutral(0xFFF9FAFC, 0xFF20252F),
+        surfaceContainerHigh = high,
+        surfaceContainerHighest = neutral(0xFFE9EDF3, 0xFF303744),
+        surfaceVariant = neutral(0xFFE9EDF3, 0xFF303744),
+        onSurfaceVariant = if (dark) Color(0xFFADB7C7) else Color(0xFF5B6473),
+        outline = if (dark) Color(0xFF8994A5) else Color(0xFF737D8D),
+        outlineVariant = if (dark) Color(0xFF39414F) else Color(0xFFDCE2EB),
+        surfaceTint = Color.Transparent,
+        secondaryContainer = lerp(low, accent.primary, if (dark) 0.20f else 0.10f),
+        onSecondaryContainer = ink,
+        inverseSurface = if (dark) Color(0xFFE9EDF3) else Color(0xFF282E39),
+        inverseOnSurface = if (dark) Color(0xFF20242C) else Color(0xFFF1F3F7),
+    )
+}
+
+val MeiShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp),
 )
+
+private fun text(size: Int, height: Int, weight: FontWeight = FontWeight.Normal) = TextStyle(
+    fontSize = size.sp, lineHeight = height.sp, fontWeight = weight, letterSpacing = 0.sp,
+)
+
+private val MeiTypography = Typography(
+    displayLarge = text(52, 60, FontWeight.Bold),
+    displayMedium = text(42, 50, FontWeight.Bold),
+    displaySmall = text(34, 42, FontWeight.Bold),
+    headlineLarge = text(30, 38, FontWeight.Bold),
+    headlineMedium = text(26, 34, FontWeight.Bold),
+    headlineSmall = text(22, 30, FontWeight.SemiBold),
+    titleLarge = text(20, 28, FontWeight.SemiBold),
+    titleMedium = text(16, 24, FontWeight.SemiBold),
+    titleSmall = text(14, 20, FontWeight.SemiBold),
+    bodyLarge = text(16, 24),
+    bodyMedium = text(14, 21),
+    bodySmall = text(12, 18),
+    labelLarge = text(14, 20, FontWeight.SemiBold),
+    labelMedium = text(12, 18, FontWeight.Medium),
+    labelSmall = text(11, 16, FontWeight.Medium),
+)
+
 @Composable
 fun MusicTheme(
-    seedColor: Color, // 传入已经平滑过渡好的颜色，或者普通颜色
+    seedColor: Color,
     isDark: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    // MaterialKolor 提供的组件
     DynamicMaterialTheme(
         seedColor = seedColor,
         isDark = isDark,
-        animate = true, // MaterialKolor 自带了颜色方案的插值动画，非常丝滑
-        animationSpec = tween(600), // 可以自定义动画时长
-        typography = AppTypography, // 在这里传入你的字体
-        // shapes = AppShapes, // 如果你有自定义形状
-        content = content
-    )
+        animate = true,
+        animationSpec = tween(400),
+        typography = MeiTypography,
+        shapes = MeiShapes,
+    ) {
+        MaterialTheme(
+            colorScheme = meiColorScheme(MaterialTheme.colorScheme, isDark),
+            shapes = MeiShapes,
+            typography = MeiTypography,
+            content = content,
+        )
+    }
 }

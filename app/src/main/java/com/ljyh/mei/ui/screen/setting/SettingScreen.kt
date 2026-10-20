@@ -1,23 +1,21 @@
 package com.ljyh.mei.ui.screen.setting
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -26,279 +24,137 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Storage
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.theme.MeiCategory
+import com.ljyh.mei.ui.theme.MeiCategoryIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val navController = LocalNavController.current
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设置") },
+                title = { Text("设置", style = MaterialTheme.typography.headlineSmall) },
                 navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
             )
-        }
-    ) { paddingValues ->
+        },
+    ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
-                    )
-                )
+            modifier = Modifier.fillMaxSize().padding(padding)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+                ))
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            FeaturedSettingCard(
-                onClick = { Screen.AppearanceSettings.navigate(navController) }
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                CompactSettingCard(
-                    title = "播放体验",
-                    description = "音质与音效",
-                    icon = Icons.Rounded.LibraryMusic,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.weight(1f),
-                    onClick = { Screen.PlaySettings.navigate(navController) }
-                )
-                CompactSettingCard(
-                    title = "账号与内容",
-                    description = "登录与音源",
-                    icon = Icons.Rounded.Language,
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.weight(1f),
-                    onClick = { Screen.ContentSettings.navigate(navController) }
-                )
+            SettingsGroup("聆听") {
+                SettingRow("播放", "音质、音效与播放行为", Icons.Rounded.LibraryMusic, MeiCategory.Playback) {
+                    Screen.PlaySettings.navigate(navController)
+                }
+                SettingsDivider()
+                SettingRow("歌词", "显示、翻译与桌面歌词", Icons.Rounded.Lyrics, MeiCategory.Lyrics) {
+                    Screen.LyricsSettings.navigate(navController)
+                }
             }
-
-            Text(
-                text = "离线与存储",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, top = 18.dp, bottom = 2.dp)
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp)),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                SettingNavigationRow(
-                    title = "下载",
-                    description = "音质与保存位置",
-                    icon = Icons.Rounded.Download,
-                    onClick = { Screen.DownloadSettings.navigate(navController) }
-                )
-                SettingNavigationRow(
-                    title = "缓存",
-                    description = "占用空间与清理",
-                    icon = Icons.Rounded.Storage,
-                    onClick = { Screen.CacheSettings.navigate(navController) }
-                )
+            SettingsGroup("个性化") {
+                SettingRow("外观", "主题、封面与界面", Icons.Rounded.Palette, MeiCategory.Appearance) {
+                    Screen.AppearanceSettings.navigate(navController)
+                }
+                SettingsDivider()
+                SettingRow("账号与内容", "登录、音源与内容偏好", Icons.Rounded.Language, MeiCategory.Content) {
+                    Screen.ContentSettings.navigate(navController)
+                }
             }
-
-            Text(
-                text = "实验",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, top = 18.dp, bottom = 2.dp),
-            )
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))) {
-                SettingNavigationRow(
-                    title = "Beta 功能",
-                    description = "试用中的效果与参数",
-                    icon = Icons.Rounded.Science,
-                    onClick = { Screen.BetaSettings.navigate(navController) },
-                )
+            SettingsGroup("离线与存储") {
+                SettingRow("下载", "音质与保存位置", Icons.Rounded.Download, MeiCategory.Offline) {
+                    Screen.DownloadSettings.navigate(navController)
+                }
+                SettingsDivider()
+                SettingRow("缓存", "占用空间与清理", Icons.Rounded.Storage, MeiCategory.Storage) {
+                    Screen.CacheSettings.navigate(navController)
+                }
             }
-
-            Spacer(Modifier.height(4.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-            ) {
-                SettingNavigationRow(
-                    title = "关于 Mei",
-                    icon = Icons.Rounded.Info,
-                    onClick = { Screen.About.navigate(navController) }
-                )
+            SettingsGroup("更多") {
+                SettingRow("Beta 功能", "试用中的效果与参数", Icons.Rounded.Science, MeiCategory.Experimental) {
+                    Screen.BetaSettings.navigate(navController)
+                }
+                SettingsDivider()
+                SettingRow("关于 Mei", null, Icons.Rounded.Info, MeiCategory.About) {
+                    Screen.About.navigate(navController)
+                }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
-private fun FeaturedSettingCard(onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(168.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            Icon(
-                imageVector = Icons.Rounded.Palette,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.14f),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 8.dp, end = 12.dp)
-                    .size(112.dp)
-            )
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Palette,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "外观",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "主题、封面与歌词",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
+private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(title, style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
+        Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            Column(Modifier.fillMaxWidth(), content = content)
         }
     }
 }
 
 @Composable
-private fun CompactSettingCard(
+private fun SettingsDivider() {
+    HorizontalDivider(modifier = Modifier.padding(start = 68.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f), thickness = 0.5.dp)
+}
+
+@Composable
+private fun SettingRow(
     title: String,
-    description: String,
+    description: String?,
     icon: ImageVector,
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier
-            .height(136.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Icon(icon, contentDescription = null, tint = contentColor)
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = contentColor
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = contentColor.copy(alpha = 0.82f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingNavigationRow(
-    title: String,
-    icon: ImageVector,
+    category: MeiCategory,
     onClick: () -> Unit,
-    description: String? = null
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .heightIn(min = 76.dp).padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(Modifier.width(28.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (description != null) {
-                Text(
-                    description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        MeiCategoryIcon(icon, category)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            if (!description.isNullOrBlank()) Text(description, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Icon(Icons.Rounded.ChevronRight, contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }
 }

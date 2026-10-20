@@ -3,8 +3,8 @@ package com.ljyh.mei.constants
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.room.Playlist
 
-val RecommendCardWidth = 160.dp
-val RecommendCardHeight = 200.dp
+val RecommendCardWidth = 176.dp
+val RecommendCardHeight = 224.dp
 val RecommendCardWidthTablet = 220.dp
 val RecommendCardHeightTablet = 275.dp
 
@@ -14,6 +14,7 @@ val PlaylistCardSpacing = 20.dp
 val PlaylistCardSize = 120.dp
 val PlaylistCardSizeTablet = 170.dp
 
+val MiniPlayerHorizontalMargin = 12.dp
 val MiniPlayerBarHeight = 64.dp
 val MiniPlayerCornerRadius = 12.dp
 val MiniPlayerCoverSize = 40.dp

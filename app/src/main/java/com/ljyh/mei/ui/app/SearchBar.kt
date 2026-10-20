@@ -37,11 +37,9 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.SearchBarColors
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarDefaults.TonalElevation
-import androidx.compose.material3.Surface
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
@@ -75,6 +73,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
+import com.ljyh.mei.ui.component.glass.MeiGlassSurface
+import com.ljyh.mei.ui.component.glass.MeiGlassRole
+import com.ljyh.mei.ui.component.glass.LocalMeiBackdrop
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AppBarHeight
 import kotlin.math.max
@@ -179,11 +180,10 @@ fun SearchBar(
             endPadding = lerp((SearchBarHorizontalPadding + endInset).roundToPx().toFloat(), 0f, animationProgress).toDp()
         }
 
-        Surface(
+        MeiGlassSurface(
             shape = animatedShape,
-            color = colors.containerColor,
-            contentColor = contentColorFor(colors.containerColor),
-            tonalElevation = tonalElevation,
+            role = MeiGlassRole.Navigation,
+            backdrop = if (animationProgress == 0f) LocalMeiBackdrop.current else null,
             modifier = Modifier
                 .padding(
                     top = animatedSurfaceTopPadding,
@@ -332,7 +332,7 @@ private val SearchBarCornerRadius: Dp = InputFieldHeight / 2
 internal val SearchBarMinWidth: Dp = 360.dp
 private val SearchBarMaxWidth: Dp = 720.dp
 internal val SearchBarVerticalPadding: Dp = 8.dp
-internal val SearchBarHorizontalPadding: Dp = 12.dp
+internal val SearchBarHorizontalPadding: Dp = 20.dp
 
 // Search bar has 16dp padding between icons and start/end, while by default text field has 12dp.
 val SearchBarIconOffsetX: Dp = 4.dp

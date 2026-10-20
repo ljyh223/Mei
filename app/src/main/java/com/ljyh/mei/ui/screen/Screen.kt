@@ -55,9 +55,9 @@ enum class Index(
     val label: String,
     val icon: ImageVector,
 ) {
-    Home("home", "For You", Icons.Rounded.Recommend),
-    FindMusic("find_music","Find",Icons.Rounded.MusicVideo),
-    Library("library", "Library", Icons.Rounded.LibraryMusic)
+    Home("home", "推荐", Icons.Rounded.Recommend),
+    FindMusic("find_music","发现",Icons.Rounded.MusicVideo),
+    Library("library", "音乐库", Icons.Rounded.LibraryMusic)
 }
 
 

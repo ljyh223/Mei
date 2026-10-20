@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.app
 
+import android.os.Build
+import android.app.ActivityManager
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import androidx.compose.animation.core.animateDpAsState
@@ -47,6 +49,7 @@ import coil3.gif.AnimatedImageDecoder
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.ljyh.mei.constants.AppBarHeight
+import com.ljyh.mei.constants.LiquidGlassEnabledKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.DefaultThemeColor
 import com.ljyh.mei.constants.ThemeColorKey
@@ -72,6 +75,11 @@ import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.ljyh.mei.ui.component.glass.LocalMeiBackdrop
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
+import com.ljyh.mei.ui.component.utils.rememberBatteryIntensiveFeaturesAllowed
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.ui.theme.rememberPlayerThemeColor
 import com.ljyh.mei.utils.preferences.dataStore
@@ -95,6 +103,7 @@ fun MeiApp(
     val context = LocalContext.current
     val navController = rememberNavController()
     var searchActive by rememberSaveable { mutableStateOf(false) }
+    val glassEnabled by rememberPreference(LiquidGlassEnabledKey, defaultValue = true)
     val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
     val themeColor by rememberPreference(ThemeColorKey, defaultValue = DefaultThemeColor)
     val staticThemeColor = remember(themeColor) {
@@ -236,104 +245,117 @@ fun MeiApp(
                 }
             }
 
+            val pageBackdrop = rememberLayerBackdrop()
+            val batteryAllowsGlass = rememberBatteryIntensiveFeaturesAllowed()
+            val lowRam = remember(context) {
+                context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
+            }
+            val useGlass = glassEnabled && batteryAllowsGlass && !lowRam && Build.VERSION.SDK_INT >= 31
             SyncPlayerSheetVisibility(playerConnection, playerBottomSheetState)
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets(0),
-                bottomBar = {
-                    if (!useTabletSidebar) {
-                        AppBottomNavigationBar(
-                            visibilityProgress = bottomNavigationProgress,
-                            alphaProgress = routeBottomNavigationProgress,
-                            interactive = shellState.showBottomNavigation &&
-                                playerBottomNavigationProgress >= 1f,
+            CompositionLocalProvider(
+                LocalMeiBackdrop provides pageBackdrop,
+                LocalMeiGlassEnabled provides useGlass,
+            ) {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = Color.Transparent,
+                    contentWindowInsets = WindowInsets(0),
+                    bottomBar = {
+                        if (!useTabletSidebar) {
+                            AppBottomNavigationBar(
+                                visibilityProgress = bottomNavigationProgress,
+                                alphaProgress = routeBottomNavigationProgress,
+                                interactive = shellState.showBottomNavigation &&
+                                    playerBottomNavigationProgress >= 1f,
+                                selectedRoute = route,
+                                onTabSelect = navController::selectMainDestination,
+                            )
+                        }
+                    },
+                ) {
+                    val scaffoldBottomInset = it.calculateBottomPadding()
+                    val playerNavigationOffset = playerBottomNavigationOffset(
+                        systemBottomInset = bottomInset,
+                        scaffoldBottomInset = scaffoldBottomInset,
+                        visibilityProgress = routeBottomNavigationProgress,
+                    )
+                    val playerAwareWindowInsets = remember(
+                        bottomInset,
+                        playerNavigationOffset,
+                        playerBottomSheetState.isDismissed,
+                    ) {
+                        val bottom = playerAwareBottomInset(
+                            systemBottomInset = bottomInset,
+                            navigationOffset = playerNavigationOffset,
+                            showMiniPlayer = !playerBottomSheetState.isDismissed,
+                        )
+                        systemBars
+                            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
+                            .add(WindowInsets(top = AppBarHeight, bottom = bottom))
+                    }
+
+                    CompositionLocalProvider(
+                        LocalDatabase provides database,
+                        LocalNavController provides navController,
+                        LocalPlayerConnection provides playerConnection,
+                        LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
+                        LocalUserData provides userData,
+                    ) {
+                        NavHost(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(start = navigationStartPadding)
+                                .then(if (useGlass) Modifier.layerBackdrop(pageBackdrop) else Modifier)
+                                .background(MaterialTheme.colorScheme.background),
+                            navController = navController,
+                            startDestination = when (startTab) {
+                                NavigationTab.Home -> Screen.Home.route
+                                NavigationTab.Library -> Screen.Library.route
+                            },
+                        ) {
+                            navigationBuilder(navController, topAppBarScrollBehavior)
+                        }
+
+                        AppSearchOverlay(
+                            shellState = shellState,
+                            query = query,
+                            onQueryChange = onQueryChange,
+                            onActiveChange = onActiveChange,
+                            onSubmit = { searchQuery, type ->
+                                if (searchQuery.isNotEmpty()) {
+                                    onActiveChange(false)
+                                    Screen.SearchResult.navigate(navController) {
+                                        addPath(searchQuery)
+                                        addPath(type.toString())
+                                    }
+                                }
+                            },
+                            onNavigateUp = { navController.navigateUp() },
+                            onBackToMain = { navController.backToMain() },
+                            onOpenSettings = { navController.navigate(Screen.Setting.route) },
+                            onOpenAudioMatch = {
+                                onActiveChange(false)
+                                Screen.AudioMatch.navigate(navController)
+                            },
+                            isTopLevelRoute = route in topLevelScreens,
+                            scrollBehavior = searchBarScrollBehavior,
+                            focusRequester = searchBarFocusRequester,
+                        )
+
+                        AdaptiveMainNavigationRail(
+                            useSidebar = useTabletSidebar,
+                            shouldShow = shellState.showMainNavigation,
                             selectedRoute = route,
                             onTabSelect = navController::selectMainDestination,
+                            sidebarModifier = Modifier.align(Alignment.CenterStart),
+                        )
+                        BottomSheetPlayer(
+                            state = playerBottomSheetState,
+                            collapsedBottomOffset = playerNavigationOffset,
+                            systemBottomInset = bottomInset,
+                            bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
                         )
                     }
-                },
-            ) {
-                val scaffoldBottomInset = it.calculateBottomPadding()
-                val playerNavigationOffset = playerBottomNavigationOffset(
-                    systemBottomInset = bottomInset,
-                    scaffoldBottomInset = scaffoldBottomInset,
-                    visibilityProgress = routeBottomNavigationProgress,
-                )
-                val playerAwareWindowInsets = remember(
-                    bottomInset,
-                    playerNavigationOffset,
-                    playerBottomSheetState.isDismissed,
-                ) {
-                    val bottom = playerAwareBottomInset(
-                        systemBottomInset = bottomInset,
-                        navigationOffset = playerNavigationOffset,
-                        showMiniPlayer = !playerBottomSheetState.isDismissed,
-                    )
-                    systemBars
-                        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
-                        .add(WindowInsets(top = AppBarHeight, bottom = bottom))
-                }
-
-                CompositionLocalProvider(
-                    LocalDatabase provides database,
-                    LocalNavController provides navController,
-                    LocalPlayerConnection provides playerConnection,
-                    LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
-                    LocalUserData provides userData,
-                ) {
-                    NavHost(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = navigationStartPadding),
-                        navController = navController,
-                        startDestination = when (startTab) {
-                            NavigationTab.Home -> Screen.Home.route
-                            NavigationTab.Library -> Screen.Library.route
-                        },
-                    ) {
-                        navigationBuilder(navController, topAppBarScrollBehavior)
-                    }
-
-                    AppSearchOverlay(
-                        shellState = shellState,
-                        query = query,
-                        onQueryChange = onQueryChange,
-                        onActiveChange = onActiveChange,
-                        onSubmit = { searchQuery, type ->
-                            if (searchQuery.isNotEmpty()) {
-                                onActiveChange(false)
-                                Screen.SearchResult.navigate(navController) {
-                                    addPath(searchQuery)
-                                    addPath(type.toString())
-                                }
-                            }
-                        },
-                        onNavigateUp = { navController.navigateUp() },
-                        onBackToMain = { navController.backToMain() },
-                        onOpenSettings = { navController.navigate(Screen.Setting.route) },
-                        onOpenAudioMatch = {
-                            onActiveChange(false)
-                            Screen.AudioMatch.navigate(navController)
-                        },
-                        isTopLevelRoute = route in topLevelScreens,
-                        scrollBehavior = searchBarScrollBehavior,
-                        focusRequester = searchBarFocusRequester,
-                    )
-
-                    AdaptiveMainNavigationRail(
-                        useSidebar = useTabletSidebar,
-                        shouldShow = shellState.showMainNavigation,
-                        selectedRoute = route,
-                        onTabSelect = navController::selectMainDestination,
-                        sidebarModifier = Modifier.align(Alignment.CenterStart),
-                    )
-                    BottomSheetPlayer(
-                        state = playerBottomSheetState,
-                        collapsedBottomOffset = playerNavigationOffset,
-                        systemBottomInset = bottomInset,
-                        bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
-                    )
                 }
             }
         }

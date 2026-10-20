@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -34,7 +35,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.width
@@ -78,9 +78,9 @@ fun RecommendCard(
     Box(
         modifier = Modifier
             .size(width = cardWidth, height = cardHeight)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(24.dp))
             .clickable(enabled = !isLoading) { onClick() }
-            .skeleton(isLoading, RoundedCornerShape(8.dp))
+            .skeleton(isLoading, RoundedCornerShape(24.dp))
     ) {
         if (!isLoading) AsyncImage(
             model = cover.largeImage(),
@@ -92,78 +92,59 @@ fun RecommendCard(
             contentScale = ContentScale.Crop,
         )
 
-        // Blend into the artwork gradually; reserve the opaque color for the bottom edge.
-        if (!isLoading) Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(cardHeight * 0.64f)
-                .background(
-                    Brush.verticalGradient(
-                        0f to baseColor.copy(alpha = 0f),
-                        0.3f to baseColor.copy(alpha = 0.32f),
-                        0.48f to baseColor.copy(alpha = 0.9f),
-                        0.62f to baseColor.copy(alpha = 0.98f),
-                        0.78f to baseColor,
-                        1f to baseColor,
-                    )
-                )
+        // Measure the opaque text band from its content so larger fonts remain readable.
+        if (!isLoading) Column(
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
         ) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(cardHeight * 0.22f)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, baseColor))),
+            )
             Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().background(baseColor)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title.orEmpty(),
-                        maxLines = 1,
-                        fontSize = 14.sp,
+                        maxLines = 2,
+                        style = MaterialTheme.typography.titleMedium,
                         color = foregroundColor,
                         fontWeight = FontWeight.Bold,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (extInfo.text.isNotBlank()) Row(verticalAlignment = Alignment.CenterVertically) {
                         extInfo.icon?.takeIf { it.isNotBlank() }?.let { icon ->
                             AsyncImage(
                                 model = icon,
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
+                                modifier = Modifier.size(14.dp).clip(RoundedCornerShape(3.dp)),
                                 contentDescription = null,
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
                             )
                             Spacer(Modifier.width(4.dp))
                         }
                         Text(
                             text = extInfo.text,
                             maxLines = 1,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             color = foregroundColor,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
-
                 if (showPlay || onPlayClick != null) {
                     IconButton(
                         onClick = onPlayClick ?: onClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(foregroundColor.copy(alpha = 0.16f))
+                        modifier = Modifier.size(48.dp).clip(CircleShape)
+                            .background(foregroundColor.copy(alpha = 0.16f)),
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PlayArrow,
-                            contentDescription = "播放",
-                            tint = foregroundColor
-                        )
+                        Icon(Icons.Rounded.PlayArrow, contentDescription = "播放", tint = foregroundColor)
                     }
                 }
             }
         }
     }
 }
-data class CardExtInfo(val icon: String?=null, val text: String)
+
+data class CardExtInfo(val icon: String? = null, val text: String)
