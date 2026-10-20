@@ -41,8 +41,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
-import com.ljyh.mei.ui.component.FullScreenImageViewer
-import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
+import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.screen.playlist.ActionButton
 import com.ljyh.mei.utils.preferences.rememberEnumPreference

@@ -41,9 +41,9 @@ import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.item.AlbumItem
 import com.ljyh.mei.ui.component.item.ArtistItem
 import com.ljyh.mei.ui.component.item.PlaylistItem
-import com.ljyh.mei.ui.component.item.Track
-import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
-import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
+import com.ljyh.mei.ui.component.track.Track
+import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
+import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection

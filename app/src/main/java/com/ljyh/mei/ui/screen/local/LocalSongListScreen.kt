@@ -6,7 +6,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -52,7 +50,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -69,10 +66,10 @@ import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.playlist.FinalPerfectCollage
-import com.ljyh.mei.ui.component.playlist.PlaylistBackground
-import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
-import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
+import com.ljyh.mei.ui.screen.playlist.component.FinalPerfectCollage
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistBackground
+import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
+import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -81,6 +78,7 @@ import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
 import java.io.File
 import android.net.Uri
+import com.ljyh.mei.ui.screen.local.component.LocalMetadataSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

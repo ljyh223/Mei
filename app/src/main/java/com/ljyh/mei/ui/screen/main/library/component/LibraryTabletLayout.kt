@@ -65,7 +65,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.ljyh.mei.ui.component.home.PlaylistCard
+import com.ljyh.mei.ui.screen.main.home.PlaylistCard
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.main.library.LibraryContentUiState
 import com.ljyh.mei.ui.screen.main.library.LibraryEvent

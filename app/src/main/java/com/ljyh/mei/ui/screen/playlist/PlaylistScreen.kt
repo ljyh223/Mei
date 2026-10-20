@@ -33,7 +33,7 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.download.SongDownloadInfo
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.DownloadConfirmDialog
+import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist

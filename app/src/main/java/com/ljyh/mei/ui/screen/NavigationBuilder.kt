@@ -15,9 +15,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.compose.ui.platform.LocalContext
-import com.ljyh.mei.di.AppDatabase
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import java.net.URLDecoder
 import com.ljyh.mei.ui.screen.about.AboutScreen
 import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
@@ -29,7 +26,7 @@ import com.ljyh.mei.ui.screen.main.library.LibraryScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
 import com.ljyh.mei.ui.screen.search.SearchResultScreen
-import com.ljyh.mei.ui.screen.setting.AppearanceSettings
+import com.ljyh.mei.ui.screen.setting.AppearanceSettingsScreen
 import com.ljyh.mei.ui.screen.setting.BetaSettingsScreen
 import com.ljyh.mei.ui.screen.setting.LyricsSettingsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
@@ -37,12 +34,12 @@ import com.ljyh.mei.ui.screen.artist.ArtistSongsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistAlbumsScreen
 import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
 import com.ljyh.mei.ui.screen.main.findmusic.AudioMatchScreen
-import com.ljyh.mei.ui.screen.setting.ContentsSetting
+import com.ljyh.mei.ui.screen.setting.ContentsSettingScreen
 import com.ljyh.mei.ui.screen.setting.DownloadManageScreen
-import com.ljyh.mei.ui.screen.setting.DownloadSetting
+import com.ljyh.mei.ui.screen.setting.DownloadSettingScreen
 import com.ljyh.mei.ui.screen.setting.CacheSettingsScreen
-import com.ljyh.mei.ui.screen.setting.PlaySetting
-import com.ljyh.mei.ui.screen.setting.EqualizerScreen
+import com.ljyh.mei.ui.screen.setting.PlaySettingScreen
+import com.ljyh.mei.ui.screen.setting.EqualizerSettingScreen
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 import com.ljyh.mei.ui.screen.setting.DeveloperSettingsScreen
 import com.ljyh.mei.ui.screen.log.LogScreen
@@ -79,7 +76,7 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(Screen.AppearanceSettings.route) {
-        AppearanceSettings(scrollBehavior)
+        AppearanceSettingsScreen(scrollBehavior)
     }
 
     composable(Screen.BetaSettings.route) {
@@ -91,10 +88,10 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(Screen.ContentSettings.route) {
-        ContentsSetting(scrollBehavior)
+        ContentsSettingScreen(scrollBehavior)
     }
     composable(Screen.PlaySettings.route){
-        PlaySetting(scrollBehavior)
+        PlaySettingScreen(scrollBehavior)
     }
 
     composable(Screen.DeveloperSettings.route) {
@@ -102,11 +99,11 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     composable(Screen.Equalizer.route) {
-        EqualizerScreen(scrollBehavior)
+        EqualizerSettingScreen(scrollBehavior)
     }
 
     composable(Screen.DownloadSettings.route) {
-        DownloadSetting(scrollBehavior)
+        DownloadSettingScreen(scrollBehavior)
     }
 
     composable(Screen.CacheSettings.route) {

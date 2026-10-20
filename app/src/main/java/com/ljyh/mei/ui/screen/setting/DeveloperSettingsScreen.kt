@@ -70,13 +70,13 @@ import com.ljyh.mei.data.repository.CoverPalette
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.data.repository.MotionArtworkClip
 import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.player.component.DynamicCoverView
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
 import kotlinx.coroutines.delay
 import androidx.core.graphics.toColorInt
+import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)

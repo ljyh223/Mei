@@ -37,7 +37,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,12 +63,9 @@ import com.ljyh.mei.data.model.eapi.homeResourcePositionComparator
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.home.CardExtInfo
-import com.ljyh.mei.ui.component.home.PlaylistCard
-import com.ljyh.mei.ui.component.home.RecommendCard
-import com.ljyh.mei.ui.component.player.PlayerViewModel
-import com.ljyh.mei.ui.component.playlist.PlayingImageView
+import com.ljyh.mei.ui.component.player.state.PlayerViewModel
 import com.ljyh.mei.ui.component.shimmer.skeleton
+import com.ljyh.mei.ui.component.track.PlayingImageView
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -78,7 +74,6 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.preferences.rememberPreference
 import java.util.UUID
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement

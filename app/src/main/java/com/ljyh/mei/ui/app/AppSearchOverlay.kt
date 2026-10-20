@@ -24,9 +24,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.navigation.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.IconButton as CombinedClickableIconButton
-import com.ljyh.mei.ui.component.SearchBar
-import com.ljyh.mei.ui.component.TabletNavigationRailWidth
+
 import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.screen.search.recordSearchHistory
 import kotlinx.coroutines.launch

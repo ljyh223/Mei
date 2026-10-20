@@ -33,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -57,20 +56,20 @@ import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
 import com.ljyh.mei.constants.SeekOnLyricTapKey
 import com.ljyh.mei.constants.ShowLyricPhoneticKey
-import com.ljyh.mei.ui.component.EnumListPreference
-import com.ljyh.mei.ui.component.ColorPickerDialog
-import com.ljyh.mei.ui.component.ColorPreference
-import com.ljyh.mei.ui.component.ColorPreset
+import com.ljyh.mei.ui.screen.setting.component.EnumListPreference
+import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPickerDialog
+import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPreset
 import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.ListPreference
-import com.ljyh.mei.ui.component.PreferenceSection
-import com.ljyh.mei.ui.component.SwitchPreference
+import com.ljyh.mei.ui.screen.setting.component.ListPreference
+import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
+import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import androidx.compose.ui.graphics.toArgb
+import com.ljyh.mei.ui.screen.setting.component.ColorPreference
 
 private val desktopLyricColorPresets = listOf(
     ColorPreset("白色", Color(0xFFFFFFFF)),

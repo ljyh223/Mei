@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -59,7 +58,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,15 +66,14 @@ import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.domain.toMediaItem
-import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.item.Track
+import com.ljyh.mei.ui.component.track.Track
 import com.ljyh.mei.ui.component.sheet.DescriptionSheet
-import com.ljyh.mei.ui.component.item.TrackPlaceholder
-import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
-import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
+import com.ljyh.mei.ui.component.track.TrackPlaceholder
+import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
+import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.local.LocalNavController

@@ -51,8 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.compose.LazyPagingItems
 import com.ljyh.mei.data.model.domain.MediaMetadata
-import com.ljyh.mei.ui.component.player.OverlayState
-import com.ljyh.mei.ui.component.playlist.PlaylistBackground
+import com.ljyh.mei.ui.component.player.overlay.OverlayState
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistBackground
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo

@@ -43,9 +43,9 @@ import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.constants.MusicCacheLimitMbKey
 import com.ljyh.mei.playback.source.CacheManager
 import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.ListPreference
-import com.ljyh.mei.ui.component.PreferenceEntry
-import com.ljyh.mei.ui.component.PreferenceSection
+import com.ljyh.mei.ui.screen.setting.component.ListPreference
+import com.ljyh.mei.ui.screen.setting.component.PreferenceEntry
+import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
@@ -53,7 +53,6 @@ import com.ljyh.mei.utils.cache.CacheCategory
 import com.ljyh.mei.utils.cache.CacheUsage
 import com.ljyh.mei.utils.cache.StorageCacheManager
 import com.ljyh.mei.utils.preferences.rememberPreference
-import com.ljyh.mei.ui.component.IconButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

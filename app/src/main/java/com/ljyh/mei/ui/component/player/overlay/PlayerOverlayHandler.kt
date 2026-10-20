@@ -16,11 +16,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.ui.component.player.OverlayState
-import com.ljyh.mei.ui.component.player.PlayerViewModel
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.model.MoreAction
-import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
 

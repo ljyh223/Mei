@@ -21,11 +21,8 @@ import com.ljyh.mei.constants.DynamicCoverSources
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.KeepPlayerScreenOnKey
 import com.ljyh.mei.data.model.domain.metadata
-import com.ljyh.mei.ui.component.player.component.applemusic.AppleMusicPlayer
-import com.ljyh.mei.ui.component.player.component.classic.ClassicPlayer
 import com.ljyh.mei.ui.component.player.overlay.CommonOverlayHandler
 import com.ljyh.mei.ui.component.player.overlay.rememberOverlayHandler
-import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.player.state.rememberPlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.utils.rememberBatteryIntensiveFeaturesAllowed
@@ -34,6 +31,9 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.kyant.backdrop.Backdrop
+import com.ljyh.mei.ui.component.player.applemusic.AppleMusicPlayer
+import com.ljyh.mei.ui.component.player.classic.ClassicPlayer
+import com.ljyh.mei.ui.component.player.state.PlayerViewModel
 import com.ljyh.mei.utils.preferences.rememberPreference
 import com.ljyh.mei.utils.preferences.rememberDynamicCoverSettings
 

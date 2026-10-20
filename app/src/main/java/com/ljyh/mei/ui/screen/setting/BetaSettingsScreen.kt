@@ -22,11 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ljyh.mei.constants.CoverBackgroundEnabledKey
 import com.ljyh.mei.ui.component.IconButton
-import com.ljyh.mei.ui.component.PreferenceSection
-import com.ljyh.mei.ui.component.SwitchPreference
+import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
+import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.screen.setting.component.CoverBackgroundSettings
 import com.ljyh.mei.utils.preferences.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)

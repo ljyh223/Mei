@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.MiniPlayerBarHeight
-import com.ljyh.mei.ui.component.isMainDestination
+import com.ljyh.mei.ui.component.navigation.isMainDestination
 import com.ljyh.mei.ui.screen.Screen
 
 enum class MainNavigationPresentation { Hidden, Sidebar, BottomBar }

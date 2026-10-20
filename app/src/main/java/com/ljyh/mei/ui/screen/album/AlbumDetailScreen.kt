@@ -1,8 +1,10 @@
 package com.ljyh.mei.ui.screen.album
 
+import android.os.Build
 import com.ljyh.mei.playback.queue.QueueSource
 
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,8 +41,7 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.download.SongDownloadInfo
 import com.ljyh.mei.playback.queue.ListQueue
-import com.ljyh.mei.ui.component.DownloadConfirmDialog
-import com.ljyh.mei.ui.component.player.OverlayState
+import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
@@ -48,11 +49,13 @@ import com.ljyh.mei.ui.screen.playlist.matchesPlaylistSearch
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionOverlay
 import com.ljyh.mei.download.DownloadManager
+import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 
+@RequiresApi(Build.VERSION_CODES.R)
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun AlbumDetailScreen(

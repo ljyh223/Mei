@@ -1,7 +1,9 @@
 package com.ljyh.mei.ui.component.player.overlay
 
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -46,19 +48,18 @@ import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.download.DownloadManager
-import com.ljyh.mei.ui.component.DownloadConfirmDialog
-import com.ljyh.mei.ui.component.player.OverlayState
+import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
+import com.ljyh.mei.ui.component.player.sheet.MoreActionsSheet
+import com.ljyh.mei.ui.component.player.sheet.MusicQualitySheet
+import com.ljyh.mei.ui.component.player.sheet.PlayerActionSettingsSheet
+import com.ljyh.mei.ui.component.player.sheet.PlaylistBottomSheet
+import com.ljyh.mei.ui.component.player.sheet.QQMusicSelectSheet
+import com.ljyh.mei.ui.component.player.sheet.SleepTimerSheet
+import com.ljyh.mei.ui.component.player.sheet.SongInfoSheet
 import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
-import com.ljyh.mei.ui.component.player.component.sheet.MoreActionsSheet
-import com.ljyh.mei.ui.component.player.component.sheet.MusicQualitySheet
-import com.ljyh.mei.ui.component.player.component.sheet.PlayerActionSettingsSheet
-import com.ljyh.mei.ui.component.player.component.sheet.PlaylistBottomSheet
-import com.ljyh.mei.ui.component.player.component.sheet.QQMusicSelectSheet
-import com.ljyh.mei.ui.component.player.component.sheet.SleepTimerSheet
-import com.ljyh.mei.ui.component.player.component.sheet.SongInfoSheet
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
-import com.ljyh.mei.ui.component.playlist.AddToPlaylistSheet
-import com.ljyh.mei.ui.component.playlist.CreatePlaylistSheet
+import com.ljyh.mei.ui.component.sheet.AddToPlaylistSheet
+import com.ljyh.mei.ui.component.sheet.CreatePlaylistSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.MoreAction
@@ -71,6 +72,7 @@ import kotlinx.coroutines.launch
  * 公共弹窗处理器 UI
  * 统一渲染所有弹窗组件，提取约150行重复代码
  */
+@RequiresApi(Build.VERSION_CODES.R)
 @UnstableApi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

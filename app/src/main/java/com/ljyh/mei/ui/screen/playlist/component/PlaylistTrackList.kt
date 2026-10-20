@@ -37,8 +37,8 @@ import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
-import com.ljyh.mei.ui.component.item.Track
-import com.ljyh.mei.ui.component.item.TrackPlaceholder
+import com.ljyh.mei.ui.component.track.Track
+import com.ljyh.mei.ui.component.track.TrackPlaceholder
 import com.ljyh.mei.ui.screen.playlist.PlaylistOrderItem
 import com.ljyh.mei.ui.screen.playlist.displayTrack
 import com.ljyh.mei.ui.component.shimmer.skeleton

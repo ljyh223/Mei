@@ -2,7 +2,6 @@ package com.ljyh.mei.ui.component.player.overlay
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import com.ljyh.mei.ui.component.player.OverlayState
 
 /** A sheet-to-sheet transition keeps the same modal container mounted. */
 internal class PlayerSheetNavigation {

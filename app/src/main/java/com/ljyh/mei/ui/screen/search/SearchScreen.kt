@@ -48,7 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.SearchHistoryKey
 import com.ljyh.mei.constants.SuggestionItemHeight
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.ui.component.SearchBarIconOffsetX
+import com.ljyh.mei.ui.app.SearchBarIconOffsetX
 import com.ljyh.mei.utils.preferences.dataStore
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map

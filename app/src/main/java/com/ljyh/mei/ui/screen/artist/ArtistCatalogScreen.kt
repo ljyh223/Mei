@@ -66,10 +66,10 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
-import com.ljyh.mei.ui.component.item.Track
-import com.ljyh.mei.ui.component.item.TrackPlaceholder
-import com.ljyh.mei.ui.component.playlist.BasicTrackActionMenu
-import com.ljyh.mei.ui.component.playlist.TrackMenuTarget
+import com.ljyh.mei.ui.component.track.Track
+import com.ljyh.mei.ui.component.track.TrackPlaceholder
+import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
+import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection

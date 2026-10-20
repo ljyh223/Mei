@@ -16,9 +16,6 @@ import com.ljyh.mei.constants.RecommendCardHeight
 import com.ljyh.mei.constants.RecommendCardHeightTablet
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.constants.RecommendCardWidthTablet
-import com.ljyh.mei.ui.component.home.CardExtInfo
-import com.ljyh.mei.ui.component.home.PlaylistCard
-import com.ljyh.mei.ui.component.home.RecommendCard
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets

@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.overlay
 
-import com.ljyh.mei.ui.component.player.OverlayState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
