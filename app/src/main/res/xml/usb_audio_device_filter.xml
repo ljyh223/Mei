@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Match AudioStreaming interfaces, including those on composite UAC1/UAC2 devices.
+         Omitting protocol accepts both versions; restricting subclass excludes MIDI-only devices.
+         This launches Mei; playback still uses Android's audio route and preferred mixer APIs. -->
+    <usb-device class="1" subclass="2" />
+</resources>
