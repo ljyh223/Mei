@@ -31,6 +31,8 @@ import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.di.repository.QQSongRepository
 import com.ljyh.mei.ui.model.LyricData
+import com.ljyh.mei.ui.model.LyricSelectionState
+import com.ljyh.mei.ui.model.LyricVariant
 import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.lyric.LyricManager
@@ -126,6 +128,7 @@ class PlayerViewModel @Inject constructor(
     }
     val searchResult: StateFlow<Resource<List<MusicTrack>>> = lyricManager.qqSearchResult
     val lyric: StateFlow<LyricData> = lyricManager.lyricData
+    val lyricSelection: StateFlow<LyricSelectionState> = lyricManager.selectionState
 
     private val _like = MutableStateFlow<Resource<Boolean>>(Resource.Loading)
     val like: StateFlow<Resource<Boolean>> = _like
@@ -225,6 +228,10 @@ class PlayerViewModel @Inject constructor(
         lyricManager.searchQQSong(keyword)
     }
 
+    fun selectLyricVariant(songId: String, variant: LyricVariant) {
+        viewModelScope.launch { lyricManager.selectLyricVariant(songId, variant) }
+    }
+
     fun selectQQSong(song: MusicTrack) {
         lyricManager.selectQQSongForLyric(mediaMetadata ?: return, song)
     }
@@ -237,8 +244,7 @@ class PlayerViewModel @Inject constructor(
 
     fun deleteSongById(id: String) {
         viewModelScope.launch {
-            qqSongRepository.deleteSongById(id)
-            lyricManager.loadLyrics(mediaMetadata ?: return@launch, forceReload = true)
+            lyricManager.deleteQqLyric(id)
         }
     }
 

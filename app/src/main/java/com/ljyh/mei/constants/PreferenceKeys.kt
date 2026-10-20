@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.ljyh.mei.playback.PlayMode
 import com.materialkolor.scheme.DynamicScheme
 
@@ -25,6 +26,7 @@ val UserAvatarUrlKey = stringPreferencesKey("userAvatarUrl")
 val UserPhotoKey = stringPreferencesKey("userPhoto")
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val SearchHistoryKey = stringPreferencesKey("searchHistory")
+val RejectedQqLyricSongIdsKey = stringSetPreferencesKey("rejectedQqLyricSongIds")
 val DesktopLyricsEnabledKey = booleanPreferencesKey("desktopLyricsEnabled")
 val DesktopLyricsLockedKey = booleanPreferencesKey("desktopLyricsLocked")
 val DesktopLyricsTextColorKey = stringPreferencesKey("desktopLyricsTextColor")

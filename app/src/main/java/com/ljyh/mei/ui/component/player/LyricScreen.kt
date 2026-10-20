@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextMotion
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -89,6 +90,7 @@ fun LyricScreen(
     onToggleControls: (Boolean) -> Unit,
     anchor: LyricsAnchor = LyricsAnchor.Fixed(40.dp),
     bottomFade: LyricsFade = LyricsFade.Fraction(0.5f),
+    lyricsEndPadding: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val playbackPosition = remember(playerConnection.player) {
@@ -261,6 +263,7 @@ fun LyricScreen(
                         },
                         modifier = Modifier
                             .padding(vertical = 8.dp)
+                            .padding(end = lyricsEndPadding)
                             .graphicsLayer {
                                 blendMode = BlendMode.Plus
                                 compositingStrategy = CompositingStrategy.Offscreen
@@ -315,7 +318,7 @@ private fun LyricSourceBadge(
                 }
             ),
             modifier = Modifier.size(16.dp),
-            contentDescription = null,
+            contentDescription = "选择歌词版本",
             tint = Color.White.copy(alpha = 0.6f)
         )
     }

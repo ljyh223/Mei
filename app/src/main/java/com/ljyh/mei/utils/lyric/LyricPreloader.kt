@@ -1,8 +1,10 @@
 package com.ljyh.mei.utils.lyric
 
 import android.content.Context
+import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.constants.QqTimeout
 import com.ljyh.mei.constants.QqTimeoutKey
+import com.ljyh.mei.constants.RejectedQqLyricSongIdsKey
 import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.unblockneteasemusic.model.MusicLyrics
@@ -16,12 +18,14 @@ import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.unblockneteasemusic.qq.QRCUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,6 +38,7 @@ import kotlin.math.abs
 data class LyricSourceSnapshot(
     val netEase: Resource<Lyric> = Resource.Loading,
     val qq: Resource<MusicLyrics> = Resource.Loading,
+    val qqLrc: String? = null,
     val ttml: Resource<String> = Resource.Loading,
 )
 
@@ -95,6 +100,27 @@ class LyricPreloader @Inject constructor(
                 if (!session.qqOverridden) {
                     state.update { it.copy(qq = result) }
                 }
+                if (!session.qqOverridden && result is Resource.Success && result.data.wordSynced) {
+                    val song = qqSongRepository.getQQSong(songId).firstOrNull()
+                    if (song != null) {
+                        val fallback = try {
+                            withTimeout(timeoutSeconds * 1_000L) {
+                                repository.getLyricLrc(
+                                    song.title, song.album, song.artist, song.duration, song.qid.toLong()
+                                )
+                            }
+                        } catch (cancelled: CancellationException) {
+                            if (cancelled !is TimeoutCancellationException) throw cancelled
+                            null
+                        } catch (_: Exception) {
+                            null
+                        } as? Resource.Success
+                        val lrc = fallback?.let { runCatching { QRCUtils.decodeLyric(it.data.original) }.getOrNull() }
+                        if (!session.qqOverridden && !lrc.isNullOrBlank()) {
+                            state.update { it.copy(qqLrc = lrc) }
+                        }
+                    }
+                }
             }
         }
         return session
@@ -112,10 +138,29 @@ class LyricPreloader @Inject constructor(
         synchronized(sessions) {
             sessions[songId]?.let { session ->
                 session.qqOverridden = true
-                session.state.update { it.copy(qq = result) }
+                session.state.update { it.copy(qq = result, qqLrc = null) }
             }
         }
     }
+
+    /** User rejected this match; do not silently select the same QQ lyric on future plays. */
+    suspend fun rejectQqMatch(songId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[RejectedQqLyricSongIdsKey] =
+                preferences[RejectedQqLyricSongIdsKey].orEmpty() + songId
+        }
+        synchronized(sessions) { sessions.remove(songId)?.job?.cancel() }
+    }
+
+    suspend fun allowQqMatch(songId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[RejectedQqLyricSongIdsKey] =
+                preferences[RejectedQqLyricSongIdsKey].orEmpty() - songId
+        }
+    }
+
+    suspend fun isQqMatchRejected(songId: String): Boolean =
+        context.dataStore.data.first()[RejectedQqLyricSongIdsKey]?.contains(songId) == true
 
     private class Session(val state: MutableStateFlow<LyricSourceSnapshot>) {
         var job: Job? = null
@@ -148,6 +193,7 @@ class LyricPreloader @Inject constructor(
         songId: String,
         metadata: MediaMetadata?
     ): Resource<MusicLyrics> {
+        if (isQqMatchRejected(songId)) return Resource.Error("QQ match rejected")
         val localSong = qqSongRepository.getQQSong(songId).firstOrNull()
         if (localSong != null) {
             return try {
@@ -164,6 +210,8 @@ class LyricPreloader @Inject constructor(
         // 静默搜索：查询但不写入任何共享 StateFlow
         val searchMetadata = metadata ?: return Resource.Error("QQ mapping not found")
         val best = searchSilent(searchMetadata) ?: return Resource.Error("No QQ match found")
+
+        if (isQqMatchRejected(songId)) return Resource.Error("QQ match rejected")
 
         val qqSong = QQSong(
             id = songId,

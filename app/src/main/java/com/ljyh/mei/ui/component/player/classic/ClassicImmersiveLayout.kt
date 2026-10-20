@@ -42,13 +42,15 @@ fun ClassicImmersiveLayout(
     val dynamicCover by stateContainer.playerViewModel.dynamicCover.collectAsState()
     val isPlaying by stateContainer.isPlaying
     val lyricLine by remember { derivedStateOf { stateContainer.lyricLine } }
+    val contentEndInset = 32.dp
+    val sourceBadgeEndInset = 8.dp
 
 
     Row(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.systemBars)
-            .padding(horizontal = 32.dp)
+            .padding(start = 32.dp, end = sourceBadgeEndInset)
     ) {
 
 
@@ -108,12 +110,11 @@ fun ClassicImmersiveLayout(
             modifier = Modifier
                 .weight(0.45f)
                 .fillMaxHeight()
-                .padding(horizontal = PlayerHorizontalPadding),
+                .padding(start = PlayerHorizontalPadding),
             onClick = {
                 mediaMetadata?.let {
                     if (overlayHandler.currentOverlayValue is OverlayState.None) {
-                        stateContainer.playerViewModel.searchQQSong(it.title)
-                        overlayHandler.showQQMusicSelection(
+                        overlayHandler.showLyricSourceSelection(
                             mediaMetadata = it
                         )
                     }
@@ -130,6 +131,7 @@ fun ClassicImmersiveLayout(
             onToggleControls = {},
             anchor = LyricsAnchor.Fraction(0.4f),
             bottomFade = LyricsFade.Fraction(0.2f),
+            lyricsEndPadding = PlayerHorizontalPadding + contentEndInset - sourceBadgeEndInset,
         )
     }
 }

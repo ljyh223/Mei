@@ -50,6 +50,7 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
 import com.ljyh.mei.ui.component.player.sheet.MoreActionsSheet
+import com.ljyh.mei.ui.component.player.sheet.LyricSourceSheet
 import com.ljyh.mei.ui.component.player.sheet.MusicQualitySheet
 import com.ljyh.mei.ui.component.player.sheet.PlayerActionSettingsSheet
 import com.ljyh.mei.ui.component.player.sheet.PlaylistBottomSheet
@@ -64,6 +65,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.model.LyricSelectionState
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.launch
@@ -186,6 +188,22 @@ fun CommonOverlayHandler(
                         onDismiss = closeSheet,
                         embedded = true,
                     )
+
+                    is OverlayState.LyricSourceSelection -> {
+                        val selection by playerViewModel.lyricSelection.collectAsState()
+                        LyricSourceSheet(
+                            state = selection.takeIf { it.songId == visible.mediaMetadata.id.toString() }
+                                ?: LyricSelectionState(songId = visible.mediaMetadata.id.toString()),
+                            onSelect = { variant ->
+                                playerViewModel.selectLyricVariant(visible.mediaMetadata.id.toString(), variant)
+                                closeSheet()
+                            },
+                            onFindQqLyrics = {
+                                playerViewModel.searchQQSong(visible.mediaMetadata.title)
+                                overlayHandler.showQQMusicSelection(visible.mediaMetadata)
+                            },
+                        )
+                    }
 
                     OverlayState.SleepTimer -> SleepTimerSheet(
                         playerConnection = stateContainer.playerConnection,

@@ -58,7 +58,11 @@ fun QQMusicSelectSheet(
     val sheetState = rememberModalBottomSheetState()
     val sheetContent: @Composable () -> Unit = {
         Column(modifier = Modifier.fillMaxWidth()) {
-            CurrentReferenceHeader(mediaMetadata.title, mediaMetadata.artists[0].name, mediaMetadata.duration)
+            CurrentReferenceHeader(
+                mediaMetadata.title,
+                mediaMetadata.artists.firstOrNull()?.name.orEmpty(),
+                mediaMetadata.duration,
+            )
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
             val result = searchNew
             when (result) {

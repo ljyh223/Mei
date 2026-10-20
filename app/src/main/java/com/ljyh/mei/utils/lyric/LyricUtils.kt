@@ -49,8 +49,8 @@ fun mergeLyrics(sources: List<LyricSourceData>, isPureMusic: Boolean = false): L
                 val trimmed = line.trim()
                 trimmed.startsWith("[") && trimmed.contains("]") && trimmed.contains("(")
             }
-            if (hasYrcLines && translation != null) {
-                Timber.tag("LyricUtils").d("yrc and tlyric")
+            if (hasYrcLines) {
+                Timber.tag("LyricUtils").d("yrc")
                 return LyricData(
                     isVerbatim = true,
                     isPureMusic = isPureMusic,

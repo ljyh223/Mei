@@ -676,8 +676,7 @@ fun AppleMusicPlayer(
                             onClick = {
                                 mediaMetadata?.let {
                                     if (overlayHandler.currentOverlayValue is OverlayState.None) {
-                                        stateContainer.playerViewModel.searchQQSong(it.title)
-                                        overlayHandler.showQQMusicSelection(
+                                        overlayHandler.showLyricSourceSelection(
                                             mediaMetadata = it
                                         )
                                     }
