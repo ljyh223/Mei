@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DownloadPathKey
+import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
@@ -62,32 +63,28 @@ fun AlbumDetailScreen(
     // 1. 请求初始数据
     LaunchedEffect(id) {
         viewModel.getAlbumDetail(id.toString())
-        viewModel.isSubscribe(id)
     }
 
     val context = LocalContext.current
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current
+    val (cookie) = rememberPreference(CookieKey, "")
+    LaunchedEffect(id, cookie) {
+        viewModel.isSubscribe(id, authenticated = cookie.isNotBlank())
+    }
 
     val albumDetail by viewModel.albumDetail.collectAsState()
     val subscribeState by viewModel.subscribeAlbum.collectAsState()
     val unSubscribeState by viewModel.unSubscribeAlbum.collectAsState()
-    val isSubscribeState by viewModel.isSubscribe.collectAsState()
+    val subscriptionState by viewModel.subscriptionState.collectAsState()
+    val subscriptionPending by viewModel.subscriptionPending.collectAsState()
     val allMePlaylist by playlistViewModel.playlist.collectAsState()
     var currentOverlay by remember { mutableStateOf<OverlayState>(OverlayState.None) }
 
 
-    // 3. 本地收藏状态 (乐观更新核心)
-    var isSubscribed by remember(id) { mutableStateOf(false) }
-
     LaunchedEffect(subscribeState) {
         when (val result = subscribeState) {
-            is Resource.Success -> if (result.data.code != 200) {
-                isSubscribed = false
-                Toast.makeText(context, "收藏失败，请稍后重试", Toast.LENGTH_SHORT).show()
-            }
             is Resource.Error -> {
-                isSubscribed = false
                 Toast.makeText(context, "收藏失败: ${result.message}", Toast.LENGTH_SHORT).show()
             }
             else -> Unit
@@ -97,24 +94,19 @@ fun AlbumDetailScreen(
     LaunchedEffect(unSubscribeState) {
         when (val result = unSubscribeState) {
             is Resource.Success -> {
-                if (result.data.code == 200) {
-                    isSubscribed = false
-                    Toast.makeText(context, "取消收藏成功", Toast.LENGTH_SHORT).show()
-                } else {
-                    isSubscribed = true
-                    Toast.makeText(context, "取消收藏失败，请稍后重试", Toast.LENGTH_SHORT).show()
-                }
+                Toast.makeText(context, "取消收藏成功", Toast.LENGTH_SHORT).show()
             }
             is Resource.Error -> {
-                isSubscribed = true
                 Toast.makeText(context, "取消收藏失败: ${result.message}", Toast.LENGTH_SHORT).show()
             }
             else -> Unit
         }
     }
 
-    LaunchedEffect(isSubscribeState) {
-        isSubscribed=isSubscribeState
+    LaunchedEffect(subscriptionState) {
+        (subscriptionState as? Resource.Error)?.let {
+            Toast.makeText(context, "获取专辑收藏状态失败: ${it.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     val detail = (albumDetail as? Resource.Success)?.data
@@ -275,7 +267,10 @@ fun AlbumDetailScreen(
                 coverColor = coverColor,
                 songs = result.data.songs,
                 displayedSongs = displayedSongs,
-                isSubscribed = isSubscribed,
+                isSubscribed = (subscriptionState as? Resource.Success)?.data,
+                isSubscriptionLoading = subscriptionState is Resource.Loading,
+                canSubscribe = cookie.isNotBlank() && !subscriptionPending &&
+                    subscriptionState !is Resource.Loading,
                 canPlay = playerConnection != null,
                 searchQuery = albumSearchQuery,
                 isSearchActive = isAlbumSearchActive,
@@ -292,10 +287,11 @@ fun AlbumDetailScreen(
                     buildListQueue(0)?.let { playerConnection?.playQueue(it) }
                 },
                 onSubscribe = {
-                    val newState = !isSubscribed
-                    isSubscribed = newState
-                    if (newState) viewModel.subscribeAlbum(result.data.album)
-                    else viewModel.unSubscribeAlbum(id.toString())
+                    when ((subscriptionState as? Resource.Success)?.data) {
+                        false -> viewModel.subscribeAlbum(result.data.album)
+                        true -> viewModel.unSubscribeAlbum(id.toString())
+                        null -> viewModel.isSubscribe(id)
+                    }
                 },
                 onDownload = { handleDownload() },
                 onTrackClick = { song, index ->

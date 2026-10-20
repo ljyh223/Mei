@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -141,6 +142,22 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     description = "占用空间与清理",
                     icon = Icons.Rounded.Storage,
                     onClick = { Screen.CacheSettings.navigate(navController) }
+                )
+            }
+
+            Text(
+                text = "实验",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 8.dp, top = 18.dp, bottom = 2.dp),
+            )
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))) {
+                SettingNavigationRow(
+                    title = "Beta 功能",
+                    description = "试用中的效果与参数",
+                    icon = Icons.Rounded.Science,
+                    onClick = { Screen.BetaSettings.navigate(navController) },
                 )
             }
 

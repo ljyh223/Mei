@@ -16,15 +16,9 @@
   @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# 保留所有带有 @SerializedName 注解的字段
--keepclassmembers class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
 
-# 保留类的所有构造函数
--keepclassmembers class * {
-    <init>(...);
-}
+
+
 
 
 -keep class * extends com.google.gson.TypeAdapter {
@@ -67,81 +61,3 @@
 -dontwarn javax.imageio.ImageWriter
 -dontwarn javax.imageio.stream.ImageOutputStream
 -dontwarn javax.swing.filechooser.FileFilter
-
-# 保留四大组件、自定义 Application
--keep public class * extends android.app.Activity
--keep public class * extends android.app.Service
--keep public class * extends android.content.BroadcastReceiver
--keep public class * extends android.content.ContentProvider
--keep public class * extends android.app.Application
-
-# Generic signatures and exceptions used by runtime libraries
--keepattributes Signature
--keepattributes Exceptions
-
-# Gson
--keep class com.google.gson.** { *; }
--keep class com.google.gson.stream.** { *; }
--dontwarn com.google.gson.**
-
--keepclasseswithmembernames class * {
-    native <methods>;
-}
-
-# 保留枚举和注解类
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
--keepattributes *Annotation*
-
--keepattributes Signature
-
-# 保持 Log 方法不被移除
--assumenosideeffects class android.util.Log {
-    public static *** d(...);
-    public static *** e(...);
-}
-
-# Dagger Hilt 注解相关规则
--keep,allowobfuscation,allowshrinking @dagger.hilt.EntryPoint class * { <init>(); }
--keep,allowobfuscation,allowshrinking @dagger.hilt.android.EarlyEntryPoint class * { <init>(); }
--keep,allowobfuscation,allowshrinking @dagger.hilt.internal.ComponentEntryPoint class * { <init>(); }
--keep,allowobfuscation,allowshrinking @dagger.hilt.internal.GeneratedEntryPoint class * { <init>(); }
-
-
-# WorkManager 相关规则
--keep,allowshrinking class * extends androidx.work.ListenableWorker { <init>(); }
--keep class androidx.work.WorkerParameters { <init>(); }
--keep,allowshrinking class * extends androidx.work.InputMerger { <init>(); }
-
-# Navigation 相关规则
--keep,allowobfuscation,allowshrinking class * extends androidx.navigation.Navigator { <init>(); }
-
-# AndroidX Startup 相关规则
--keep,allowshrinking class * extends androidx.startup.Initializer { <init>(); }
-
-# OkHttp 相关规则
--keep,allowshrinking class okhttp3.internal.publicsuffix.PublicSuffixDatabase { <init>(); }
-
-# Ktor 相关规则
--keep class io.ktor.client.engine.** implements io.ktor.client.HttpClientEngineContainer { <init>(); }
-
-# VersionedParcelable 相关规则
--keep class * implements androidx.versionedparcelable.VersionedParcelable { <init>(); }
--keep public class androidx.versionedparcelable.ParcelImpl { <init>(); }
-
-# AndroidX Annotations 相关规则
--keep,allowobfuscation @interface androidx.annotation.Keep
-
-# Compose 相关规则
--keep,allowshrinking class * extends androidx.compose.ui.node.ModifierNodeElement { <init>(); }
-
--keepattributes Signature
--keep class com.google.gson.reflect.TypeToken { *; }
--keep class * extends com.google.gson.reflect.TypeToken
--keepattributes AnnotationDefault,RuntimeVisibleAnnotations
-
-
-# 奇怪的问题，ArtistDetail需要免去r8混淆，但是其他类正常s com.google.common.reflect.** { *; }
--keep class com.ljyh.mei.data.model.api.** { *; }

@@ -15,6 +15,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.datastore.preferences.core.edit
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -32,6 +34,7 @@ import com.ljyh.mei.ui.screen.main.library.component.LibraryMobileLayout
 import com.ljyh.mei.ui.screen.main.library.component.LibraryTabletLayout
 import com.ljyh.mei.ui.screen.main.library.component.PhotoPickerSheet
 import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.utils.preferences.dataStore
 
 @Composable
 fun LibraryScreen(
@@ -39,6 +42,7 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val navController = LocalNavController.current
+    val context = LocalContext.current
     val device = rememberDeviceInfo()
     val account by viewModel.account.collectAsStateWithLifecycle()
     val libraryUiState by viewModel.libraryUiState.collectAsStateWithLifecycle()
@@ -71,9 +75,13 @@ fun LibraryScreen(
     }
 
     LaunchedEffect(photoAlbum) {
-        if (userPhoto.isEmpty() && photoAlbum is Resource.Success) {
-            (photoAlbum as Resource.Success).data.data.records.firstOrNull()?.imageUrl?.let {
-                setUserPhoto(it)
+        val defaultPhoto = (photoAlbum as? Resource.Success)
+            ?.data?.data?.records?.firstOrNull()?.imageUrl.orEmpty()
+        if (defaultPhoto.isNotBlank()) {
+            context.dataStore.edit { preferences ->
+                if (preferences[UserPhotoKey].isNullOrBlank()) {
+                    preferences[UserPhotoKey] = defaultPhoto
+                }
             }
         }
     }

@@ -17,6 +17,7 @@ sealed class Screen(val route:String) {
     data object Setting:Screen("setting")
     data object ContentSettings:Screen(("setting/content"))
     data object AppearanceSettings:Screen("setting/appearance")
+    data object BetaSettings:Screen("setting/beta")
     data object LyricsSettings:Screen("setting/lyrics")
     data object PlaySettings:Screen("setting/play")
     data object DeveloperSettings:Screen("setting/developer")

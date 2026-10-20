@@ -23,6 +23,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.PlayerRepository
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.data.repository.DynamicCoverRepository
+import com.ljyh.mei.constants.DynamicCoverSources
 import com.ljyh.mei.data.repository.LikedSongsRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
@@ -72,20 +73,27 @@ class PlayerViewModel @Inject constructor(
     val dynamicCover: StateFlow<DynamicCover?> = _dynamicCover.asStateFlow()
     private var coverJob: Job? = null
     private var preloadCoverJob: Job? = null
-    private var coverRequest: Pair<Long, Boolean>? = null
+    private data class CoverRequest(
+        val songId: Long,
+        val englishTitlesOnly: Boolean,
+        val sources: DynamicCoverSources,
+    )
+    private var coverRequest: CoverRequest? = null
 
     fun loadDynamicCover(
-        song: MediaMetadata?, next: MediaMetadata?, nextId: Long?, enabled: Boolean,
+        song: MediaMetadata?, next: MediaMetadata?, nextId: Long?, sources: DynamicCoverSources,
         englishTitlesOnly: Boolean,
     ) {
-        val request = if (enabled && song != null) song.id to englishTitlesOnly else null
+        val request = if (sources.anyEnabled && song != null) {
+            CoverRequest(song.id, englishTitlesOnly, sources)
+        } else null
         if (request != coverRequest) {
             coverJob?.cancel()
             coverRequest = request
             _dynamicCover.value = null
             if (request != null && song != null) {
                 coverJob = viewModelScope.launch {
-                    val cover = dynamicCoverRepository.resolve(song, englishTitlesOnly)
+                    val cover = dynamicCoverRepository.resolve(song, englishTitlesOnly, sources)
                     if (coverRequest == request) _dynamicCover.value = cover
                 }
             }
@@ -96,10 +104,10 @@ class PlayerViewModel @Inject constructor(
             // Give rapid skips time to settle before issuing a request for the next song.
             delay(5_000)
             if (next != null && next.id != song.id) {
-                dynamicCoverRepository.resolve(next, englishTitlesOnly)?.let {
+                dynamicCoverRepository.resolve(next, englishTitlesOnly, sources)?.let {
                     dynamicCoverRepository.prefetch(it.portraitVariant() ?: it)
                 }
-            } else if (next == null && nextId != null && nextId != song.id) {
+            } else if (sources.netease && next == null && nextId != null && nextId != song.id) {
                 dynamicCoverRepository.prefetchNetease(nextId)
             }
         }
@@ -108,11 +116,12 @@ class PlayerViewModel @Inject constructor(
     fun fallbackDynamicCover(song: MediaMetadata) {
         val current = _dynamicCover.value ?: return
         if (current.songId != song.id) return
+        val request = coverRequest ?: return
         viewModelScope.launch {
-            val fallback = if (current.source == DynamicCover.Source.APPLE_MUSIC) {
+            val fallback = if (current.source == DynamicCover.Source.APPLE_MUSIC && request.sources.netease) {
                 dynamicCoverRepository.neteaseFallback(song)
             } else null
-            if (_dynamicCover.value == current) _dynamicCover.value = fallback
+            if (coverRequest == request && _dynamicCover.value == current) _dynamicCover.value = fallback
         }
     }
     val searchResult: StateFlow<Resource<List<MusicTrack>>> = lyricManager.qqSearchResult

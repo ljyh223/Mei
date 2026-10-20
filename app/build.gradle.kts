@@ -2,12 +2,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-//    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
-
     kotlin("plugin.serialization") version "2.3.20"
-
 }
 
 
@@ -140,8 +137,6 @@ dependencies {
 
     implementation("com.google.crypto.tink:tink:1.7.0")
     implementation(libs.logging.interceptor)
-    // implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.21")
     ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.20")
 
 
@@ -160,13 +155,3 @@ dependencies {
 
 
 }
-
-//kotlin {
-//    sourceSets {
-//        getByName("main") {
-//            dependencies {
-//                implementation(kotlin("reflect"))
-//            }
-//        }
-//    }
-//}

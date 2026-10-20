@@ -10,6 +10,15 @@
     "hide": "on_success"
   },
   {
+    "label": "Android: Build Release",
+    "command": "./gradlew",
+    "args": [":app:assembleRelease", "--console=plain"],
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "save": "all",
+    "reveal": "always",
+    "hide": "on_success"
+  },
+  {
     "label": "Android: Install Debug",
     "command": "./gradlew",
     "args": [":app:installDebug", "--console=plain"],

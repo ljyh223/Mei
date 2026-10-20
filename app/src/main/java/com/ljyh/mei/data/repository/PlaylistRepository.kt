@@ -5,6 +5,7 @@ import com.ljyh.mei.constants.checkToken
 import com.ljyh.mei.data.model.domain.AlbumContent
 import com.ljyh.mei.data.model.domain.FeaturedPlaylistPage
 import com.ljyh.mei.data.model.response.MiniPlaylistDetail
+import com.ljyh.mei.data.model.response.AlbumDynamic
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.response.SongUrl
 import com.ljyh.mei.data.model.domain.toMediaMetadata
@@ -37,6 +38,16 @@ class PlaylistRepository(
     private val weApiService: WeApiService,
     private val eApiService: EApiService
 ) {
+    suspend fun getAlbumDynamic(id: Long): Resource<AlbumDynamic> = withContext(Dispatchers.IO) {
+        safeApiCall {
+            val response = weApiService.getAlbumDynamic(id)
+            check(response.code == 200 && response.isSubscribed != null) {
+                "专辑收藏状态请求失败 (${response.code})"
+            }
+            response
+        }
+    }
+
     suspend fun getPlaylistDetail(id: String): Resource<MiniPlaylistDetail> {
         return withContext(Dispatchers.IO) {
             safeApiCall {

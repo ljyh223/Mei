@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.C
-import com.ljyh.mei.constants.DynamicCoverKey
+import com.ljyh.mei.constants.DynamicCoverSources
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.KeepPlayerScreenOnKey
 import com.ljyh.mei.data.model.domain.metadata
@@ -35,6 +35,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.kyant.backdrop.Backdrop
 import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberDynamicCoverSettings
 
 @OptIn(UnstableApi::class)
 @RequiresApi(Build.VERSION_CODES.S)
@@ -64,7 +65,7 @@ fun BottomSheetPlayer(
         playerViewModel = playerViewModel,
         playerConnection = playerConnection
     )
-    val dynamicCoverEnabled by rememberPreference(DynamicCoverKey, defaultValue = false)
+    val dynamicCoverSettings by rememberDynamicCoverSettings()
     val appleEnglishTitlesOnly by rememberPreference(AppleMotionEnglishTitlesOnlyKey, defaultValue = false)
     val keepPlayerScreenOn by rememberPreference(KeepPlayerScreenOnKey, defaultValue = false)
     val batteryIntensiveFeaturesAllowed = rememberBatteryIntensiveFeaturesAllowed()
@@ -89,11 +90,13 @@ fun BottomSheetPlayer(
     } else null
     val nextMetadata = nextItem?.metadata
     val nextId = nextItem?.mediaId?.toLongOrNull()
-    val shouldLoadDynamicCover = dynamicCoverEnabled && batteryIntensiveFeaturesAllowed
+    val activeCoverSources = if (batteryIntensiveFeaturesAllowed) {
+        dynamicCoverSettings.activeSources
+    } else DynamicCoverSources.Disabled
     LaunchedEffect(currentMetadata?.id, nextId, nextMetadata?.album?.title,
-        shouldLoadDynamicCover, appleEnglishTitlesOnly) {
+        activeCoverSources, appleEnglishTitlesOnly) {
         playerViewModel.loadDynamicCover(
-            currentMetadata, nextMetadata, nextId, shouldLoadDynamicCover, appleEnglishTitlesOnly
+            currentMetadata, nextMetadata, nextId, activeCoverSources, appleEnglishTitlesOnly
         )
     }
 

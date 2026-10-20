@@ -30,6 +30,7 @@ import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
 import com.ljyh.mei.ui.screen.search.SearchResultScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettings
+import com.ljyh.mei.ui.screen.setting.BetaSettingsScreen
 import com.ljyh.mei.ui.screen.setting.LyricsSettingsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.artist.ArtistSongsScreen
@@ -79,6 +80,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.AppearanceSettings.route) {
         AppearanceSettings(scrollBehavior)
+    }
+
+    composable(Screen.BetaSettings.route) {
+        BetaSettingsScreen(scrollBehavior)
     }
 
     composable(Screen.LyricsSettings.route) {

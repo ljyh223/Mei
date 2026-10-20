@@ -61,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -81,10 +82,15 @@ import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ThumbnailCornerRadius
+import com.ljyh.mei.constants.CoverBackgroundEnabledKey
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.ui.component.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.OverlayState
 import com.ljyh.mei.ui.component.player.component.FluidBackground
+import com.ljyh.mei.ui.component.player.component.CoverEdgeExtensionBackdrop
+import com.ljyh.mei.utils.image.CoverExtensionMode
+import com.ljyh.mei.ui.component.player.component.coverEdgeFeather
+import com.ljyh.mei.ui.component.player.component.rememberCoverEdgeArtwork
 import com.ljyh.mei.ui.component.player.component.DynamicCoverView
 import com.ljyh.mei.ui.component.player.component.LocalPlayerForegroundColor
 import com.ljyh.mei.ui.component.FullScreenImageViewer
@@ -104,6 +110,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.UnitUtils.toPx
+import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlin.math.min
 import com.kyant.backdrop.Backdrop
 
@@ -164,6 +171,12 @@ fun AppleMusicPlayer(
         it.source == DynamicCover.Source.APPLE_MUSIC && it.songId == mediaMetadata?.id
     }?.portraitVariant()
     val coverUrl = mediaMetadata?.coverUrl
+    val coverBackgroundEnabled by rememberPreference(CoverBackgroundEnabledKey, defaultValue = false)
+    val coverEdgeArtwork = if (
+        coverBackgroundEnabled && state.progress > 0.05f &&
+        dynamicCover?.songId != mediaMetadata?.id
+    ) rememberCoverEdgeArtwork(coverUrl) else null
+    val coverEdgeColor = coverEdgeArtwork?.controlsColor
     var readyCoverId by remember { mutableStateOf<Long?>(null) }
     var readyFluidUrl by remember { mutableStateOf<String?>(null) }
     var readyPortraitKey by remember { mutableStateOf<String?>(null) }
@@ -227,6 +240,16 @@ fun AppleMusicPlayer(
         (portraitCover == null || portraitReady)) {
         meshBackgroundAlpha * portraitReveal * (1f - lyricAnimFraction)
     } else 0f
+    val edgeExtensionAlpha by animateFloatAsState(
+        targetValue = if (
+            coverEdgeArtwork?.mode?.let { it != CoverExtensionMode.NONE } == true &&
+            staticArtworkReady && state.isExpanded &&
+            !detailsVisible && portraitCover == null && portraitAlpha < 0.001f &&
+            dynamicCover?.takeIf { it.songId == mediaMetadata?.id } == null
+        ) 1f else 0f,
+        animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis),
+        label = "StaticCoverEdgeExtension",
+    )
     SideEffect {
         if (portraitCover != null && coverUrl != null) {
             retainedPortrait = RetainedPortrait(portraitCover, coverUrl)
@@ -253,8 +276,13 @@ fun AppleMusicPlayer(
     DisposableEffect(portraitBackdropState) {
         onDispose { portraitBackdropState.bind(null) }
     }
-    val playerForegroundColor = Color.White
-    val playerSecondaryColor = Color.White.copy(alpha = 0.7f + 0.12f * portraitAlpha)
+    val edgeForeground = if (coverEdgeColor?.luminance()?.let { it > 0.179f } == true) {
+        Color.Black
+    } else Color.White
+    val playerForegroundColor = lerp(Color.White, edgeForeground, edgeExtensionAlpha)
+    val playerSecondaryColor = playerForegroundColor.copy(
+        alpha = lerp(0.7f + 0.12f * portraitAlpha, 0.88f, edgeExtensionAlpha),
+    )
 
     val activity = context as? Activity
     DisposableEffect(activity, isSystemInDarkTheme) {
@@ -268,7 +296,9 @@ fun AppleMusicPlayer(
     SideEffect {
         activity?.let {
             WindowCompat.getInsetsController(it.window, it.window.decorView)
-                .isAppearanceLightStatusBars = portraitAlpha <= 0.5f && !isSystemInDarkTheme
+                .isAppearanceLightStatusBars = if (edgeExtensionAlpha > 0.5f && coverEdgeColor != null) {
+                    coverEdgeColor.luminance() > 0.179f
+                } else portraitAlpha <= 0.5f && !isSystemInDarkTheme
         }
     }
 
@@ -369,7 +399,7 @@ fun AppleMusicPlayer(
         } else {
             0f
         }
-        var mShadowElevation = 16.dp * shadowAlpha
+        val mShadowElevation = 16.dp * shadowAlpha * (1f - edgeExtensionAlpha)
 
         // --- 3. UI Structure ---
         BottomSheet(
@@ -465,7 +495,7 @@ fun AppleMusicPlayer(
                                 scaleX = coverScale
                                 scaleY = coverScale
                                 shadowElevation = mShadowElevation.toPx()
-                                shape = RoundedCornerShape(finalRadius)
+                                shape = RoundedCornerShape(finalRadius * (1f - edgeExtensionAlpha))
                                 clip = true
                             }
                             .size(
@@ -519,7 +549,10 @@ fun AppleMusicPlayer(
                                 onError = {
                                     if (currentMetadata.id == mediaMetadata?.id) readyCoverId = currentMetadata.id
                                 },
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize().coverEdgeFeather(
+                                    coverEdgeArtwork.takeIf { currentMetadata.coverUrl == coverUrl },
+                                    edgeExtensionAlpha,
+                                ),
                             )
                         }
                     }
@@ -532,7 +565,9 @@ fun AppleMusicPlayer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(playerBackgroundHeight)
-                    .background(lerp(
+                    .background(if (state.isExpanded && staticArtworkReady && portraitCover == null &&
+                        portraitAlpha < 0.001f && coverEdgeColor != null
+                    ) coverEdgeColor else lerp(
                         portraitBackdropState.edgeColor ?: portraitFallbackColor,
                         backgroundColor,
                         fluidReveal,
@@ -542,9 +577,18 @@ fun AppleMusicPlayer(
             FluidBackground(
                 imageUrl = coverUrl,
                 isPlaying = isPlaying,
-                renderAlpha = meshBackgroundAlpha * fluidReveal,
+                renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
                 onArtworkReady = { readyFluidUrl = it },
             )
+            coverEdgeArtwork?.let { artwork ->
+                CoverEdgeExtensionBackdrop(
+                    artwork = artwork,
+                    alpha = edgeExtensionAlpha,
+                    coverLeft = visualStart,
+                    coverTop = visualTop,
+                    coverSize = visualSize,
+                )
+            }
             if (displayedPortrait != null && sheetProgress > 0f && mediaMetadata != null) {
                 val backgroundTap = if (portraitAlpha > 0.5f) {
                     Modifier.clickable { showLyrics = true; overlayHandler.showLyrics() }

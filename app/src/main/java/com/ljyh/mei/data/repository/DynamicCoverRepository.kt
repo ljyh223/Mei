@@ -17,6 +17,7 @@ import com.ljyh.mei.BuildConfig
 import com.ljyh.mei.constants.AppleMusicAlbumMatchCacheKey
 import com.ljyh.mei.constants.AppleMusicWebTokenKey
 import com.ljyh.mei.constants.AppleMusicWebTokenRefreshAtKey
+import com.ljyh.mei.constants.DynamicCoverSources
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.repository.artwork.AlbumMatchEntry
@@ -169,7 +170,7 @@ class DynamicCoverRepository @Inject constructor(
     private val tokenMutex = Mutex()
     private var webToken: String? = null
     private var webTokenUntil = 0L
-    private val memory = mutableMapOf<Pair<Long, Boolean>, Pair<Long, DynamicCover?>>()
+    private val memory = mutableMapOf<Triple<Long, Boolean, DynamicCoverSources>, Pair<Long, DynamicCover?>>()
     private val neteaseMemory = mutableMapOf<Long, Pair<Long, DynamicCover>>()
     private val artworkDownloadSemaphore = Semaphore(ArtworkDownloadConcurrency)
     private val artworkHashes = object : LinkedHashMap<String, Long>(ArtworkHashCacheSize, 0.75f, true) {
@@ -195,13 +196,18 @@ class DynamicCoverRepository @Inject constructor(
         Unit
     }
 
-    suspend fun resolve(song: MediaMetadata, englishTitlesOnly: Boolean = false): DynamicCover? = withContext(Dispatchers.IO) {
+    suspend fun resolve(
+        song: MediaMetadata,
+        englishTitlesOnly: Boolean,
+        sources: DynamicCoverSources,
+    ): DynamicCover? = withContext(Dispatchers.IO) {
+        if (!sources.anyEnabled) return@withContext null
         if (!song.coverUrl.startsWith("http")) {
             appleMatchLog { "skip song=${song.id} reason=no-http-cover" }
             return@withContext null
         }
         val now = System.currentTimeMillis()
-        val key = song.id to englishTitlesOnly
+        val key = Triple(song.id, englishTitlesOnly, sources)
         synchronized(memory) {
             memory[key]?.takeIf { it.first > now }
         }?.let {
@@ -209,7 +215,7 @@ class DynamicCoverRepository @Inject constructor(
             return@withContext it.second
         }
 
-        val searchApple = shouldSearchAppleMusic(song, englishTitlesOnly)
+        val searchApple = sources.appleMusic && shouldSearchAppleMusic(song, englishTitlesOnly)
         appleMatchLog {
             "resolve song=${song.id} title='${song.title}' album='${song.album.title}' " +
                 "artist='${song.artists.firstOrNull()?.name.orEmpty()}' " +
@@ -225,7 +231,7 @@ class DynamicCoverRepository @Inject constructor(
                 null
             }
         } else null
-        val result = appleResult ?: optional { neteaseCover(song) }
+        val result = appleResult ?: if (sources.netease) optional { neteaseCover(song) } else null
         appleMatchLog { "resolve result song=${song.id} source=${result?.source ?: "none"}" }
         synchronized(memory) {
             val validUntil = when (result?.source) {

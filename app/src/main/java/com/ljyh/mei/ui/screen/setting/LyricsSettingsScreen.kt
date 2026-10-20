@@ -166,7 +166,7 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     valueText = { it.text.toString() },
                 )
                 SwitchPreference(
-                    title = { Text("显示罗马音／粤语发音") },
+                    title = { Text("显示音译") },
                     description = "歌词提供发音时显示",
                     icon = { Icon(Icons.Rounded.Lyrics, null) },
                     checked = showPhonetic,

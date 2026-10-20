@@ -9,7 +9,7 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import com.ljyh.mei.constants.DynamicCoverKey
+import com.ljyh.mei.constants.dynamicCoverSources
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.UserIdKey
@@ -68,7 +68,7 @@ class AppContext : Application(), SingletonImageLoader.Factory {
         }
         startupScope.launch {
             try {
-                if (dataStore.data.first()[DynamicCoverKey] == true &&
+                if (dataStore.data.first().dynamicCoverSources().appleMusic &&
                     canUseBatteryIntensiveFeatures()) {
                     dynamicCoverRepository.warmWebToken()
                 }

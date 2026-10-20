@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -80,7 +81,9 @@ internal fun AlbumDetailContent(
     coverColor: Color?,
     songs: List<MediaMetadata>,
     displayedSongs: List<MediaMetadata>,
-    isSubscribed: Boolean,
+    isSubscribed: Boolean?,
+    isSubscriptionLoading: Boolean,
+    canSubscribe: Boolean,
     canPlay: Boolean,
     searchQuery: String,
     isSearchActive: Boolean,
@@ -147,6 +150,8 @@ internal fun AlbumDetailContent(
                     hasSongs = songs.isNotEmpty(),
                     canPlay = canPlay,
                     isSubscribed = isSubscribed,
+                    isSubscriptionLoading = isSubscriptionLoading,
+                    canSubscribe = canSubscribe,
                     onPlayAll = onPlayAll,
                     onSubscribe = onSubscribe,
                     onDownload = onDownload,
@@ -157,14 +162,18 @@ internal fun AlbumDetailContent(
                     AlbumDescription(album.id, album.description, onExpand = { showDescriptionSheet = true })
                 }
             }
-            item(key = "album_tracks_title") {
-                Text(
-                    text = if (searchQuery.isBlank()) "歌曲 · ${songs.size}" else "搜索结果 · ${displayedSongs.size}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
-                )
+            if (searchQuery.isNotBlank()) {
+                item(key = "album_search_results_title") {
+                    Text(
+                        text = "搜索结果 · ${displayedSongs.size}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
+                    )
+                }
+            } else {
+                item(key = "album_tracks_spacing") { Spacer(Modifier.height(16.dp)) }
             }
             itemsIndexed(displayedSongs, key = { _, song -> song.id }) { index, song ->
                 AlbumTrackRow(
@@ -303,7 +312,7 @@ private fun AlbumHeader(
                         text = if (artists.size > 1) "${firstArtist.name} 等" else firstArtist.name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (artists.size > 1 || firstArtist.id > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.heightIn(min = 48.dp)
@@ -320,7 +329,10 @@ private fun AlbumHeader(
                     }
                 }
                 Text(
-                    text = listOfNotNull("专辑", year?.toString(), "${album.size.takeIf { it > 0 } ?: trackCount} 首").joinToString(" · "),
+                    text = listOfNotNull(
+                        "专辑",
+                        year?.toString(),
+                        "${album.size.takeIf { it > 0 } ?: trackCount} 首").joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -334,35 +346,47 @@ private fun AlbumActions(
     tint: Color,
     hasSongs: Boolean,
     canPlay: Boolean,
-    isSubscribed: Boolean,
+    isSubscribed: Boolean?,
+    isSubscriptionLoading: Boolean,
+    canSubscribe: Boolean,
     onPlayAll: () -> Unit,
     onSubscribe: () -> Unit,
     onDownload: () -> Unit,
 ) {
     val surface = MaterialTheme.colorScheme.surface
-    Box(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface)))) {
+    Box(
+        modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface))),
+        contentAlignment = Alignment.Center,
+    ) {
         Row(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
-                .widthIn(max = 300.dp).fillMaxWidth(),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Button(
                 onClick = onPlayAll,
                 enabled = hasSongs && canPlay,
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier.widthIn(min = 144.dp).height(48.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("播放全部")
             }
-            FilledTonalIconButton(onClick = onSubscribe, modifier = Modifier.size(48.dp)) {
-                Icon(
-                    if (isSubscribed) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isSubscribed) "取消收藏专辑" else "收藏专辑",
-                    modifier = Modifier.size(20.dp),
-                )
+            FilledTonalIconButton(onClick = onSubscribe, enabled = canSubscribe, modifier = Modifier.size(48.dp)) {
+                if (isSubscribed == null && isSubscriptionLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(
+                        if (isSubscribed == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = when (isSubscribed) {
+                            true -> "取消收藏专辑"
+                            false -> "收藏专辑"
+                            null -> "重试获取收藏状态"
+                        },
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
             FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Default.Download, contentDescription = "下载专辑", modifier = Modifier.size(20.dp))

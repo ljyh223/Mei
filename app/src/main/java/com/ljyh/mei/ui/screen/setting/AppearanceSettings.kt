@@ -12,7 +12,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
-import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LinearScale
 import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Palette
@@ -32,10 +31,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.constants.DefaultThemeColor
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshPlayingKey
@@ -45,7 +47,9 @@ import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.ThemeColorKey
-import com.ljyh.mei.constants.DynamicCoverKey
+import com.ljyh.mei.constants.AppleDynamicCoverKey
+import com.ljyh.mei.constants.DynamicCoverEnabledKey
+import com.ljyh.mei.constants.NeteaseDynamicCoverKey
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
@@ -62,7 +66,6 @@ import com.ljyh.mei.ui.component.ColorPreset
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.component.ListPreference
 import com.ljyh.mei.ui.component.PreferenceSection
-import com.ljyh.mei.ui.component.PreferenceSubsection
 import com.ljyh.mei.ui.component.PreferenceEntry
 import com.ljyh.mei.ui.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
@@ -70,7 +73,10 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
+import com.ljyh.mei.utils.preferences.rememberDynamicCoverSettings
 import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.utils.preferences.dataStore
+import kotlinx.coroutines.launch
 
 private val themeColorPresets = listOf(
     ColorPreset("蓝色", Color(0xFF0061A4)),
@@ -89,6 +95,8 @@ fun AppearanceSettings(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val navController = LocalNavController.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
@@ -108,10 +116,7 @@ fun AppearanceSettings(
         OriginalCoverKey,
         defaultValue = false
     )
-    val (dynamicCover, onDynamicCoverChange) = rememberPreference(
-        DynamicCoverKey,
-        defaultValue = false
-    )
+    val dynamicCoverSettings by rememberDynamicCoverSettings()
     val (appleEnglishTitlesOnly, onAppleEnglishTitlesOnlyChange) = rememberPreference(
         AppleMotionEnglishTitlesOnlyKey,
         defaultValue = false
@@ -231,22 +236,20 @@ fun AppearanceSettings(
                     checked = originalCover,
                     onCheckedChange = onOriginalCover
                 )
-                SwitchPreference(
-                    title = { Text("动态封面") },
-                    description = "播放时自动加载，优先 Apple Music，其次网易云；省电模式或未充电且电量低于 20% 时暂停",
-                    icon = { Icon(Icons.Rounded.MusicVideo, null) },
-                    checked = dynamicCover,
-                    onCheckedChange = onDynamicCoverChange
+                DynamicCoverPreference(
+                    settings = dynamicCoverSettings,
+                    englishTitlesOnly = appleEnglishTitlesOnly,
+                    onEnabledChange = { enabled ->
+                        scope.launch { context.dataStore.edit { it[DynamicCoverEnabledKey] = enabled } }
+                    },
+                    onAppleMusicChange = { enabled ->
+                        scope.launch { context.dataStore.edit { it[AppleDynamicCoverKey] = enabled } }
+                    },
+                    onNeteaseChange = { enabled ->
+                        scope.launch { context.dataStore.edit { it[NeteaseDynamicCoverKey] = enabled } }
+                    },
+                    onEnglishTitlesOnlyChange = onAppleEnglishTitlesOnlyChange,
                 )
-                if (dynamicCover) {
-                    SwitchPreference(
-                        title = { Text("Apple Music 仅搜索英文标题") },
-                        description = "只有在专辑名是全英文的时候才会搜索",
-                        icon = { Icon(Icons.Rounded.Language, null) },
-                        checked = appleEnglishTitlesOnly,
-                        onCheckedChange = onAppleEnglishTitlesOnlyChange
-                    )
-                }
                 EnumListPreference(
                     title = { Text("进度条样式") },
                     icon = { Icon(Icons.Rounded.LinearScale, null) },
