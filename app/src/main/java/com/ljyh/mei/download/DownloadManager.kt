@@ -5,7 +5,6 @@ import androidx.core.net.toUri
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.google.gson.Gson
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.data.model.room.DownloadTask
@@ -66,7 +65,7 @@ object DownloadManager {
 
             db.downloadDao().insertAll(tasks)
 
-            val songIdsJson = Gson().toJson(songs.map { it.songId })
+            val songIdsJson = DownloadSongIdsCodec.encode(songs.map { it.songId })
 
             val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
                 .addTag("download")

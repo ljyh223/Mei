@@ -3,13 +3,16 @@ package com.ljyh.mei.playback.queue
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import java.util.UUID
+import kotlinx.serialization.Serializable
 
 /** The page or collection from which one occurrence of a song entered the queue. */
+@Serializable
 data class QueueSource(
     val type: Type,
     val id: String? = null,
     val title: String? = null,
 ) {
+    @Serializable
     enum class Type { PLAYLIST, ALBUM, DAILY, LOCAL, SEARCH, ARTIST, HISTORY, RADIO, RECOMMENDATION, RECOGNITION, MANUAL, OTHER }
 
     val displayText: String

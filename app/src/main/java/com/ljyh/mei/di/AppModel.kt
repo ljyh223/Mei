@@ -1,7 +1,6 @@
 package com.ljyh.mei.di
 
 import android.content.Context
-import com.google.gson.Gson
 import com.ljyh.mei.di.dao.SongDao
 import com.ljyh.mei.di.repository.AlbumsRepository
 import com.ljyh.mei.di.repository.CachedLyricRepository
@@ -70,7 +69,4 @@ object AppModule {
     @Provides
     fun provideCachedLyricDao(db: AppDatabase): CachedLyricRepository =
         CachedLyricRepository(db.cachedLyricDao())
-
-    @Provides @Singleton
-    fun provideGson(): Gson = Gson()
 }

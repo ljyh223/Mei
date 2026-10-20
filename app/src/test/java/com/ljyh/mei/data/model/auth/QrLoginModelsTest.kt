@@ -1,6 +1,6 @@
 package com.ljyh.mei.data.model.auth
 
-import com.google.gson.Gson
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -8,9 +8,8 @@ import org.junit.Test
 class QrLoginModelsTest {
     @Test
     fun decodesBusinessErrorWithoutQrKey() {
-        val response = Gson().fromJson(
+        val response = Json.decodeFromString<QrLoginKeyResponse>(
             """{"code":400,"message":"risk control"}""",
-            QrLoginKeyResponse::class.java,
         )
 
         assertEquals(400, response.code)

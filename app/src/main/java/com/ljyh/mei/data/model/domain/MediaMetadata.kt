@@ -14,8 +14,10 @@ import com.ljyh.mei.data.model.response.AlbumDetail
 import com.ljyh.mei.data.model.response.PlaylistDetail
 import com.ljyh.mei.data.model.weapi.EveryDaySongs
 import com.ljyh.mei.utils.netease.NeteaseUtils.getResourceLink
+import kotlinx.serialization.Serializable
 
 @Immutable
+@Serializable
 data class MediaMetadata(
     val id: Long,
     val title: String,
@@ -26,6 +28,7 @@ data class MediaMetadata(
     val explicit: Boolean = false,
     val tns:String?=null
 ) {
+    @Serializable
     data class Artist(
         val id: Long,
         val name: String,
@@ -33,6 +36,7 @@ data class MediaMetadata(
         val alias: List<String>? = null
     )
 
+    @Serializable
     data class Album(
         val id: Long,
         val title: String

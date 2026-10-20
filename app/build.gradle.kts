@@ -100,7 +100,6 @@ dependencies {
     implementation(libs.coil.core)
     implementation(libs.coil.gif)
     implementation(libs.coil.network.okhttp)
-    implementation(libs.gson)
     implementation(libs.kotlinx.coroutines.guava)
     ksp(libs.androidx.room.compiler)
 
@@ -133,9 +132,11 @@ dependencies {
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(project(":UnblockNeteaseMusic"))
-    implementation(libs.serialization.android)
 
-    implementation("com.google.crypto.tink:tink:1.7.0")
+    implementation("com.google.crypto.tink:tink:1.7.0") {
+        // Only the standalone X25519 primitive is used, not Tink's JSON keyset APIs.
+        exclude(group = "com.google.code.gson", module = "gson")
+    }
     implementation(libs.logging.interceptor)
     ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.20")
 

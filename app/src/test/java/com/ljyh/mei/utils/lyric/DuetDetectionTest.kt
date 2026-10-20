@@ -1,25 +1,24 @@
 package com.ljyh.mei.utils.lyric
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.*
 import org.junit.Test
-import java.io.File
 
 /**
- * 本地对唱检测集成测试 — 使用 temp/ 中完整的真实歌词 JSON 数据
+ * 对唱检测集成测试 — 使用仓库内的合成歌词 JSON 样本
  *
  * 直接内联算法逻辑，不依赖 AiLyricProcessor 实例。
  */
 class DuetDetectionTest {
 
-    private val gson = Gson()
-
     private fun loadLrc(filename: String): String {
-        val projectRoot = File(System.getProperty("user.dir")).parentFile
-        val json = File(projectRoot, "temp/$filename").readText()
-        val obj = gson.fromJson(json, JsonObject::class.java)
-        return obj.getAsJsonObject("lrc").get("lyric").asString
+        val json = requireNotNull(javaClass.getResource("/lyrics/$filename")) {
+            "Missing lyric fixture: $filename"
+        }.readText()
+        return Json.parseToJsonElement(json).jsonObject.getValue("lrc")
+            .jsonObject.getValue("lyric").jsonPrimitive.content
     }
 
     // ==================== 本地对唱检测算法（镜像 AiLyricProcessor） ====================

@@ -1,28 +1,36 @@
 package com.ljyh.mei.playback.queue
 
-import com.google.gson.Gson
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /** The current song includes its metadata so the mini player is usable before network requests. */
+@Serializable
 internal data class PlaybackQueueSnapshot(
     val ids: List<String>,
-    val currentIndex: Int,
-    val positionMs: Long,
-    val currentSong: MediaMetadata?,
+    val currentIndex: Int = 0,
+    val positionMs: Long = 0,
+    val currentSong: MediaMetadata? = null,
     val isFmMode: Boolean = false,
     /** Null in snapshots written before per-song sources were introduced. */
     val entries: List<QueueEntrySnapshot>? = null,
 )
 
-internal data class QueueEntrySnapshot(val entryId: String, val source: QueueSource?)
+@Serializable
+internal data class QueueEntrySnapshot(val entryId: String, val source: QueueSource? = null)
 
 internal object PlaybackQueueSnapshotCodec {
-    private val gson = Gson()
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        explicitNulls = false
+    }
 
-    fun encode(snapshot: PlaybackQueueSnapshot): String = gson.toJson(snapshot)
+    fun encode(snapshot: PlaybackQueueSnapshot): String = json.encodeToString(snapshot)
 
     fun decode(value: String?): PlaybackQueueSnapshot? = runCatching {
-        value?.let { gson.fromJson(it, PlaybackQueueSnapshot::class.java) }
+        value?.let { json.decodeFromString<PlaybackQueueSnapshot>(it) }
             ?.takeIf { snapshot ->
                 snapshot.ids.isNotEmpty() &&
                     snapshot.ids.all { it.isNotBlank() } &&

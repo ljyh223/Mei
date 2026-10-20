@@ -16,8 +16,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.ljyh.mei.MainActivity
 import com.ljyh.mei.R
 import com.ljyh.mei.data.model.room.DownloadTask
@@ -120,7 +118,7 @@ open class DownloadWorker(
         val saveSeparateLyrics = inputData.getBoolean(KEY_SAVE_SEPARATE_LYRICS, false)
 
         val songIds: List<String> = try {
-            Gson().fromJson(songIdsJson, object : TypeToken<List<String>>() {}.type)
+            DownloadSongIdsCodec.decode(songIdsJson)
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse songIds")
             return Result.failure()
