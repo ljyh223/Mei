@@ -11,13 +11,13 @@ import android.hardware.display.DisplayManager
 import android.os.Build
 import android.provider.Settings
 import android.text.TextUtils
+import android.util.DisplayMetrics
 import android.util.TypedValue
 import android.view.Display
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -289,17 +289,34 @@ internal class DesktopLyricsController(
         lastLine = null
         lastPlaying = null
         val bounds = screenBounds()
+        val geometry = desktopLyricsWindowGeometry(
+            screenWidth = bounds.width(),
+            screenHeight = bounds.height(),
+            desiredWidth = overlayWidth(),
+            desiredHeight = overlayHeight(),
+            x = savedX ?: (bounds.width() - overlayWidth()) / 2,
+            y = savedY ?: (bounds.height() * 0.18f).roundToInt(),
+        )
         val layout = WindowManager.LayoutParams(
-            overlayWidth(),
-            overlayHeight(),
+            geometry.width,
+            geometry.height,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = savedX ?: (bounds.width() - dp(300)) / 2
-            y = savedY ?: (bounds.height() * 0.18f).roundToInt()
+            x = geometry.x
+            y = geometry.y
+            // Positions and drag limits use the full display, including system-bar areas.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                setFitInsetsTypes(0)
+                layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            } else {
+                flags = flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
             if (locked) flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         }
 
@@ -347,25 +364,23 @@ internal class DesktopLyricsController(
         val view = window ?: return
         val layout = params ?: return
         val bounds = screenBounds()
-        val width = view.width.takeIf { it > 0 } ?: dp(300)
-        val x = layout.x.coerceIn(0, (bounds.width() - width).coerceAtLeast(0))
-        val topInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            windowManager.currentWindowMetrics.windowInsets
-                .getInsetsIgnoringVisibility(WindowInsets.Type.systemBars()).top
-        } else {
-            dp(24)
-        }
-        val bottomInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            windowManager.currentWindowMetrics.windowInsets
-                .getInsetsIgnoringVisibility(WindowInsets.Type.systemBars()).bottom
-        } else {
-            dp(24)
-        }
-        val maxY = (bounds.height() - bottomInset - view.height).coerceAtLeast(topInset)
-        val y = layout.y.coerceIn(topInset, maxY)
-        if (!force && layout.x == x && layout.y == y) return
-        layout.x = x
-        layout.y = y
+        // Use the requested size immediately; view measurements can still reflect the old
+        // orientation, font size or lock state until the next layout pass.
+        val geometry = desktopLyricsWindowGeometry(
+            screenWidth = bounds.width(),
+            screenHeight = bounds.height(),
+            desiredWidth = overlayWidth(),
+            desiredHeight = overlayHeight(),
+            x = layout.x,
+            y = layout.y,
+        )
+        if (!force && layout.width == geometry.width && layout.height == geometry.height &&
+            layout.x == geometry.x && layout.y == geometry.y
+        ) return
+        layout.width = geometry.width
+        layout.height = geometry.height
+        layout.x = geometry.x
+        layout.y = geometry.y
         try {
             windowManager.updateViewLayout(view, layout)
         } catch (error: RuntimeException) {
@@ -627,7 +642,6 @@ internal class DesktopLyricsController(
             LinearLayout.LayoutParams(-1, lyricAreaHeightPx())
         translationText?.layoutParams = LinearLayout.LayoutParams(-1, translationAreaHeightPx())
         view.requestLayout()
-        applyFixedGeometry()
         updateBounds(force = true)
         scheduleControlsHide()
     }
@@ -669,7 +683,6 @@ internal class DesktopLyricsController(
             controlsHideJob?.cancel()
             window?.background = null
         }
-        applyFixedGeometry()
     }
 
     private fun revealControls() {
@@ -746,24 +759,14 @@ internal class DesktopLyricsController(
 
     private fun fontScale(): Float = windowContext.resources.configuration.fontScale
 
-    private fun applyFixedGeometry() {
-        val view = window ?: return
-        val layout = params ?: return
-        val width = overlayWidth()
-        val height = overlayHeight()
-        if (layout.width != width || layout.height != height) {
-            layout.width = width
-            layout.height = height
-            runCatching { windowManager.updateViewLayout(view, layout) }
-                .onFailure { Timber.w(it, "Could not resize desktop lyrics overlay") }
-        }
-    }
-
+    @Suppress("DEPRECATION")
     private fun screenBounds(): Rect =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             windowManager.currentWindowMetrics.bounds
         } else {
-            windowContext.resources.displayMetrics.let { Rect(0, 0, it.widthPixels, it.heightPixels) }
+            val metrics = DisplayMetrics()
+            windowManager.defaultDisplay.getRealMetrics(metrics)
+            Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
         }
 
     private fun dp(value: Int) = (value * windowContext.resources.displayMetrics.density).roundToInt()
