@@ -4,9 +4,13 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Binder
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -138,6 +142,13 @@ class MusicService : MediaLibraryService(),
     private val firstTransitionProbe = TransitionAudioProbe()
     private val secondTransitionProbe = TransitionAudioProbe()
     @Volatile private var usbExclusiveEnabled = false
+    private lateinit var usbAudioManager: AudioManager
+    private var usbDevices: Map<Int, String> = emptyMap()
+    private var usbReconfigureJob: Job? = null
+    private val usbDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) = refreshUsbDevices()
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) = refreshUsbDevices()
+    }
     val context = this
     private lateinit var mediaSession: MediaLibrarySession
     private val desktopLyricsToggleCommand = SessionCommand(DESKTOP_LYRICS_TOGGLE_ACTION, Bundle.EMPTY)
@@ -181,6 +192,9 @@ class MusicService : MediaLibraryService(),
     override fun onCreate() {
         super.onCreate()
         usbExclusiveEnabled = runBlocking { dataStore.data.first()[UsbExclusivePlaybackKey] ?: false }
+        usbAudioManager = getSystemService(AudioManager::class.java)
+        usbDevices = connectedUsbDevices()
+        updateUsbEnvironment()
         baseMediaSourceFactory = DefaultMediaSourceFactory(createDataSourceFactory())
             .setLoadErrorHandlingPolicy(MusicLoadErrorHandlingPolicy()) // 应用自定义错误策略
 
@@ -248,6 +262,7 @@ class MusicService : MediaLibraryService(),
                 })
             }
 
+        usbAudioManager.registerAudioDeviceCallback(usbDeviceCallback, Handler(Looper.getMainLooper()))
         sleepDetectionController = SleepDetectionController(this, scope, sleepTimer)
 
 
@@ -275,7 +290,9 @@ class MusicService : MediaLibraryService(),
                 .collect { enabled ->
                     if (enabled == usbExclusiveEnabled) return@collect
                     usbExclusiveEnabled = enabled
-                    UsbOutputState.status.value = UsbOutputStatus()
+                    usbReconfigureJob?.cancel()
+                    usbDevices = connectedUsbDevices()
+                    updateUsbEnvironment()
                     audioPlayer.cancelFade()
                     player.volume = 1f
                     if (enabled) {
@@ -568,6 +585,35 @@ class MusicService : MediaLibraryService(),
         standbyEqualizerProcessor.setProfile(profile)
     }
 
+    private fun connectedUsbDevices(): Map<Int, String> =
+        usbAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            .filter { it.isUsbAudioOutput() }
+            .associate { it.id to it.productName.toString().ifBlank { "USB 解码器" } }
+
+    private fun updateUsbEnvironment() {
+        UsbOutputState.store.updateEnvironment(usbExclusiveEnabled, Build.VERSION.SDK_INT >= 34, usbDevices)
+    }
+
+    private fun refreshUsbDevices() {
+        val devices = connectedUsbDevices()
+        val change = usbDeviceChange(
+            usbDevices.keys, devices.keys, usbExclusiveEnabled, UsbOutputState.status.value.deviceId,
+        )
+        usbDevices = devices
+        updateUsbEnvironment()
+        if (!change.reconfigure || Build.VERSION.SDK_INT < 34) return
+        // Pause immediately on disconnection; reconnecting must never resume playback by itself.
+        if (change.pause) player.pause()
+        usbReconfigureJob?.cancel()
+        usbReconfigureJob = scope.launch {
+            // USB enumeration may deliver several callbacks for a single plug/unplug operation.
+            delay(250)
+            if (shouldReconfigureUsbPlayback(player.playbackState, player.playerError?.errorCode)) {
+                reprepareCurrentTrack()
+            }
+        }
+    }
+
     private fun reprepareCurrentTrack() {
         if (player.mediaItemCount == 0) return
         val index = player.currentMediaItemIndex
@@ -580,6 +626,9 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
+        usbAudioManager.unregisterAudioDeviceCallback(usbDeviceCallback)
+        usbReconfigureJob?.cancel()
+        UsbOutputState.store.updateEnvironment(false, Build.VERSION.SDK_INT >= 34, emptyMap())
         sleepDetectionController.close()
         queueSaveJob?.cancel()
         if (!restoringQueue) {

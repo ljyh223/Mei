@@ -21,6 +21,7 @@ class SwitchingAudioSink(
     private val useUsb: () -> Boolean,
 ) : AudioSink {
     private var current: AudioSink = regular
+    private var playing = false
 
     override fun setListener(listener: AudioSink.Listener) {
         regular.setListener(listener)
@@ -47,11 +48,13 @@ class SwitchingAudioSink(
     override fun configure(format: Format, specifiedBufferSize: Int, outputChannels: IntArray?) {
         switchIfNeeded(format)
         current.configure(format, specifiedBufferSize, outputChannels)
+        if (playing) current.play()
     }
 
     override fun configure(audioSinkConfig: AudioSink.AudioSinkConfig) {
         switchIfNeeded(audioSinkConfig.format)
         current.configure(audioSinkConfig)
+        if (playing) current.play()
     }
 
     private fun selected() = if (useUsb()) usb else regular
@@ -67,13 +70,16 @@ class SwitchingAudioSink(
             current = next
         }
         if (needsStereoDownmix) {
-            UsbOutputState.status.value = UsbOutputStatus(message = "多声道歌曲已转为立体声，使用普通输出")
+            usbProvider.reportFallback("多声道歌曲已转为立体声，使用普通输出")
         } else if (useUsb() && !canUseUsb) {
-            UsbOutputState.status.value = fallbackStatus
+            usbProvider.reportFallback(fallbackStatus.message)
         }
     }
 
-    override fun play() = current.play()
+    override fun play() {
+        playing = true
+        current.play()
+    }
     override fun handleDiscontinuity() = current.handleDiscontinuity()
     override fun handleBuffer(buffer: ByteBuffer, presentationTimeUs: Long, encodedAccessUnitCount: Int) =
         current.handleBuffer(buffer, presentationTimeUs, encodedAccessUnitCount)
@@ -133,9 +139,13 @@ class SwitchingAudioSink(
         regular.setVolume(volume)
         usb.setVolume(1f)
     }
-    override fun pause() = current.pause()
+    override fun pause() {
+        playing = false
+        current.pause()
+    }
     override fun flush() = current.flush()
     override fun reset() {
+        playing = false
         regular.reset()
         usb.reset()
         usbProvider.clearPreferredFormat()
