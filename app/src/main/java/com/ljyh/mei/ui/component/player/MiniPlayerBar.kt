@@ -71,7 +71,7 @@ fun MiniPlayerBarContent(
                     .fillMaxWidth()
                     .height(MiniPlayerBarHeight)
                     .clickable(onClick = onClick)
-                    .padding(start = 8.dp, end = 4.dp),
+                    .padding(start = 8.dp, end = 2.dp),
             ) {
                 MiniPlayerSongContent(
                     title = title.orEmpty(),
@@ -83,12 +83,12 @@ fun MiniPlayerBarContent(
 
                 IconButton(
                     onClick = onPlayPause,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "暂停" else "播放",
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
@@ -96,12 +96,12 @@ fun MiniPlayerBarContent(
                 IconButton(
                     onClick = onNext,
                     enabled = canSkipNext,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
                         contentDescription = "下一首",
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = MaterialTheme.colorScheme.onSurface.copy(
                             alpha = if (canSkipNext) 1f else 0.38f,
                         ),
@@ -123,7 +123,7 @@ private fun MiniPlayerSongContent(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(horizontal = 4.dp),
+        modifier = modifier.padding(horizontal = 8.dp),
     ) {
         Box(
             modifier = Modifier
@@ -147,7 +147,7 @@ private fun MiniPlayerSongContent(
                 Icon(
                     imageVector = Icons.Rounded.MusicNote,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -161,7 +161,7 @@ private fun MiniPlayerSongContent(
             Text(
                 text = title,
                 color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -170,7 +170,7 @@ private fun MiniPlayerSongContent(
             if (LocalDensity.current.fontScale <= 1.4f) Text(
                 text = artist,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

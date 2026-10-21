@@ -321,9 +321,9 @@ fun AppleMusicPlayer(
 
         // A. Mini player artwork shares the floating bar inset.
         val miniSize = with(density) { MiniPlayerCoverSize.toPx() }
-        val miniStart = with(density) { (MiniPlayerHorizontalMargin + 12.dp).toPx() }
+        val miniStart = with(density) { (MiniPlayerHorizontalMargin + 16.dp).toPx() }
         val miniRadius = with(density) { MiniPlayerCoverCornerRadius.toPx() }
-        val miniTop = with(density) { 12.dp.toPx() }
+        val miniTop = with(density) { ((MiniPlayerBarHeight - MiniPlayerCoverSize) / 2).toPx() }
 
         // B. Normal Expanded
         val topSafeArea = with(density) { WindowInsets.statusBars.getTop(this).toFloat() }

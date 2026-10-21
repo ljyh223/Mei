@@ -31,9 +31,10 @@ MeiloX 用于理解完整材质和交互的一致性，NeriPlayer Clean 用于�
 - 歌曲列表：分页失败的重试按钮接入 Paging retry；首屏加载失败、加载中和空歌曲列表有明确状态。排序时的 headerOffset 和歌曲索引逻辑保留。
 - 所有变化已整合到 `bate` 分支，继续保留不安装 APK、不进行设备视觉测试的约定。
 
-## Haze 与 Neri mini player 试验
+## Haze 与 mini player 试验
 
 - 玻璃底座从 Backdrop 迁到 Haze：`NavHost` 作为页面 source，底部导航、mini player 和搜索采样页面；播放器背景作为独立 source，仅服务 like / more。
 - 实时玻璃仍受“流体玻璃”开关、低内存和省电策略控制，默认在 SDK 33+ 启用；更低版本保留静态表面。
-- mini player 先按 NeriPlayer Clean 的信息结构实现：64dp 高、40dp 封面、标题/歌手两行、播放和下一首两个纯图标按钮，外形使用与底部导航一致的胶囊。
-- 该试验在 `test/neri-mini-player` 分支进行，待设备视觉确认后再决定是否合并回 `bate`。
+- Neri 版本（`test/neri-mini-player`）：64dp 高、40dp 封面、标题/歌手两行、播放和下一首两个纯图标按钮，外形使用与底部导航一致的胶囊。
+- MeiloX 版本（`test/meilox-mini-player`，基于 Neri 基线）：48dp 高、32dp 封面、40dp 播放/下一首、22dp 图标，标题/歌手改用更紧凑的字号，同样使用 Haze 胶囊。
+- 两个版本保留相同的折叠背景隐藏、sheet 圆角和 20dp 侧边留白，只比较 mini player 本身的高度、封面和控件密度。
