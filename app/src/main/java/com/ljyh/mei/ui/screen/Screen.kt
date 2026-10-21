@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MusicVideo
 import androidx.compose.material.icons.rounded.Recommend
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
 
@@ -46,7 +47,7 @@ sealed class Screen(val route:String) {
     }
 
     companion object {
-        val MainScreens = listOf(Home, Library, FindMusic)
+        val MainScreens = listOf(Home, FindMusic, Library, Setting)
     }
 }
 
@@ -57,7 +58,8 @@ enum class Index(
 ) {
     Home("home", "推荐", Icons.Rounded.Recommend),
     FindMusic("find_music","发现",Icons.Rounded.MusicVideo),
-    Library("library", "音乐库", Icons.Rounded.LibraryMusic)
+    Library("library", "音乐库", Icons.Rounded.LibraryMusic),
+    Setting("setting", "设置", Icons.Rounded.Settings),
 }
 
 

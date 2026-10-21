@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Info
@@ -42,11 +41,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.theme.MeiCategory
 import com.ljyh.mei.ui.theme.MeiCategoryIcon
 
@@ -58,11 +55,6 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
         topBar = {
             TopAppBar(
                 title = { Text("设置", style = MaterialTheme.typography.headlineSmall) },
-                navigationIcon = {
-                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 scrollBehavior = scrollBehavior,
             )
         },

@@ -29,6 +29,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -82,6 +83,7 @@ import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
+import com.ljyh.mei.ui.screen.search.recordSearchHistory
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
 import dev.chrisbanes.haze.hazeSource
@@ -93,6 +95,7 @@ import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.rememberPreference
 import okhttp3.OkHttpClient
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.math.abs
@@ -230,8 +233,10 @@ fun MeiApp(
             val routeBottomChromeAnimationSpec = remember {
                 PlayerMotionSpec.tween<Float>()
             }
+            val showBottomBar = shellState.showBottomNavigation ||
+                (searchActive && !useTabletSidebar)
             val routeBottomNavigationProgress by animateFloatAsState(
-                targetValue = if (shellState.showBottomNavigation) 1f else 0f,
+                targetValue = if (showBottomBar) 1f else 0f,
                 animationSpec = routeBottomChromeAnimationSpec,
                 label = "routeBottomNavigationProgress",
             )
@@ -246,12 +251,24 @@ fun MeiApp(
             val searchBarScrollBehavior = appBarScrollBehavior(canScroll = canScrollAppBar)
             val topAppBarScrollBehavior = appBarScrollBehavior(canScroll = canScrollAppBar)
             val searchBarFocusRequester = remember { FocusRequester() }
+            val bottomSearchFocusRequester = remember { FocusRequester() }
             val (query, onQueryChange) = rememberSaveable(stateSaver = TextFieldValue.Saver) {
                 mutableStateOf(TextFieldValue())
             }
             val onActiveChange: (Boolean) -> Unit = { active ->
                 searchActive = active
                 if (!active) focusManager.clearFocus()
+            }
+            val searchScope = rememberCoroutineScope()
+            val submitBottomSearch: (String, Int) -> Unit = { searchQuery, type ->
+                if (searchQuery.isNotBlank()) {
+                    searchScope.launch { context.recordSearchHistory(searchQuery) }
+                    onActiveChange(false)
+                    Screen.SearchResult.navigate(navController) {
+                        addPath(searchQuery)
+                        addPath(type.toString())
+                    }
+                }
             }
             val topLevelScreens = remember {
                 setOf(
@@ -278,6 +295,10 @@ fun MeiApp(
                 if (searchActive) {
                     searchBarScrollBehavior.state.resetHeightOffset()
                     topAppBarScrollBehavior.state.resetHeightOffset()
+                    navigationExpanded = true
+                    if (!useTabletSidebar) {
+                        runCatching { bottomSearchFocusRequester.requestFocus() }
+                    }
                 }
             }
 
@@ -302,12 +323,18 @@ fun MeiApp(
                             AppBottomNavigationBar(
                                 visibilityProgress = bottomNavigationProgress,
                                 alphaProgress = routeBottomNavigationProgress,
-                                interactive = shellState.showBottomNavigation &&
-                                    playerBottomNavigationProgress >= 1f,
+                                interactive = showBottomBar && playerBottomNavigationProgress >= 1f,
                                 selectedRoute = route,
                                 onTabSelect = navController::selectMainDestination,
                                 compactProgress = compactNavigationProgress,
                                 onExpand = { navigationExpanded = true },
+                                searchActive = searchActive,
+                                searchQuery = query,
+                                onSearchQueryChange = onQueryChange,
+                                onSearchActivate = { onActiveChange(true) },
+                                onSearchClose = { onActiveChange(false) },
+                                onSearchSubmit = { submitBottomSearch(it, 1) },
+                                searchFocusRequester = bottomSearchFocusRequester,
                             )
                         }
                     },
@@ -355,31 +382,33 @@ fun MeiApp(
                             navigationBuilder(navController, topAppBarScrollBehavior)
                         }
 
-                        AppSearchOverlay(
-                            shellState = shellState,
-                            query = query,
-                            onQueryChange = onQueryChange,
-                            onActiveChange = onActiveChange,
-                            onSubmit = { searchQuery, type ->
-                                if (searchQuery.isNotEmpty()) {
-                                    onActiveChange(false)
-                                    Screen.SearchResult.navigate(navController) {
-                                        addPath(searchQuery)
-                                        addPath(type.toString())
+                        if (useTabletSidebar) {
+                            AppSearchOverlay(
+                                shellState = shellState,
+                                query = query,
+                                onQueryChange = onQueryChange,
+                                onActiveChange = onActiveChange,
+                                onSubmit = { searchQuery, type ->
+                                    if (searchQuery.isNotEmpty()) {
+                                        onActiveChange(false)
+                                        Screen.SearchResult.navigate(navController) {
+                                            addPath(searchQuery)
+                                            addPath(type.toString())
+                                        }
                                     }
-                                }
-                            },
-                            onNavigateUp = { navController.navigateUp() },
-                            onBackToMain = { navController.backToMain() },
-                            onOpenSettings = { navController.navigate(Screen.Setting.route) },
-                            onOpenAudioMatch = {
-                                onActiveChange(false)
-                                Screen.AudioMatch.navigate(navController)
-                            },
-                            isTopLevelRoute = route in topLevelScreens,
-                            scrollBehavior = searchBarScrollBehavior,
-                            focusRequester = searchBarFocusRequester,
-                        )
+                                },
+                                onNavigateUp = { navController.navigateUp() },
+                                onBackToMain = { navController.backToMain() },
+                                onOpenSettings = { navController.navigate(Screen.Setting.route) },
+                                onOpenAudioMatch = {
+                                    onActiveChange(false)
+                                    Screen.AudioMatch.navigate(navController)
+                                },
+                                isTopLevelRoute = route in topLevelScreens,
+                                scrollBehavior = searchBarScrollBehavior,
+                                focusRequester = searchBarFocusRequester,
+                            )
+                        }
 
                         AdaptiveMainNavigationRail(
                             useSidebar = useTabletSidebar,
@@ -390,11 +419,18 @@ fun MeiApp(
                         )
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
-                            collapsedBottomOffset = (playerNavigationOffset - 10.dp * compactNavigationProgress)
+                            collapsedBottomOffset = (playerNavigationOffset - 66.dp * compactNavigationProgress)
                                 .coerceAtLeast(0.dp),
                             systemBottomInset = bottomInset,
                             bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
                             compactProgress = compactNavigationProgress,
+                        )
+                        BottomSearchOverlay(
+                            active = searchActive && !useTabletSidebar,
+                            query = query,
+                            onQueryChange = onQueryChange,
+                            onSubmit = submitBottomSearch,
+                            onDismiss = { onActiveChange(false) },
                         )
                     }
                 }
