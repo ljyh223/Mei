@@ -29,6 +29,8 @@ internal class UsbPcmAudioOutput(
     private val onActiveChanged: (Boolean) -> Unit,
     private val onFailure: (String) -> Unit,
     private val onRelease: () -> Unit,
+    private val outputRate: Int = rate,
+    private val prerollMs: () -> Int = { 300 },
 ) : AudioOutput {
     private val listeners = linkedSetOf<AudioOutput.Listener>()
     private var playing = false
@@ -78,7 +80,7 @@ internal class UsbPcmAudioOutput(
     private fun startIfReady() {
         if (!playing || started || closed || failed) return
         val queued = transport.queuedFrames()
-        val threshold = min(rate * 300L / 1000, (transport.capacityFrames() * 3 / 4).coerceAtLeast(1))
+        val threshold = min(outputRate * prerollMs().toLong() / 1000, (transport.capacityFrames() * 3 / 4).coerceAtLeast(1))
         if (queued <= 0 || (!draining && !resuming && queued < threshold)) return
         val startedSuccessfully = try { transport.play() } catch (_: Exception) { false }
         if (!startedSuccessfully) {
@@ -122,14 +124,14 @@ internal class UsbPcmAudioOutput(
     }
 
     override fun getPositionUs(): Long {
-        if (closed) return lastCompleted * 1_000_000 / rate
+        if (closed) return lastCompleted * 1_000_000 / outputRate
         checkProgress()
-        return lastCompleted * 1_000_000 / rate
+        return lastCompleted * 1_000_000 / outputRate
     }
 
     private fun checkProgress() {
         if (closed || failed) return
-        val completed = transport.completedFrames().coerceIn(0, acceptedFrames)
+        val completed = transport.completedFrames().coerceIn(0, acceptedOutputFrames())
         if (completed > lastCompleted) {
             lastCompleted = completed
             lastProgressMs = nowMs()
@@ -146,8 +148,10 @@ internal class UsbPcmAudioOutput(
         else if (((started && queued > 0) || (!started && queued == 0L && writeAttempted)) &&
             nowMs() - lastProgressMs >= 3_000
         ) fail("USB transfer made no progress for 3000 ms")
-        if (draining && lastCompleted >= acceptedFrames) onActiveChanged(false)
+        if (draining && lastCompleted >= acceptedOutputFrames()) onActiveChanged(false)
     }
+
+    private fun acceptedOutputFrames() = acceptedFrames * outputRate / rate
 
     private fun fail(reason: String) {
         if (failed || closed) return
@@ -168,7 +172,7 @@ internal class UsbPcmAudioOutput(
 
     override fun getAudioSessionId() = sessionId
     override fun getSampleRate() = rate
-    override fun getBufferSizeInFrames() = transport.capacityFrames()
+    override fun getBufferSizeInFrames() = transport.capacityFrames() * rate / outputRate
     override fun isOffloadedPlayback() = false
     // Recovery is owned by the service; do not let DefaultAudioSink reopen the same failing route forever.
     override fun isStalled() = false

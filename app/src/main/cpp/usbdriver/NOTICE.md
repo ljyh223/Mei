@@ -6,7 +6,8 @@ Original author: cwuom / ouom. Imported from revision 113699bb.
 The imported `usb/exclusive`, `usb/feedback`, `usb/iso`, `usb/pcm`,
 `usb/uac1` and `usb/uac2` sources use the NeriPlayer Native Attribution
 License reproduced in NERI_LICENSE.md. JNI symbol names and build integration
-are adapted for Mei. Kotlin integration and `usb/control` are Mei implementations;
+are adapted for Mei. Mei also adds a read-only playback-format/clock-range probe
+to the device selection and session files. Kotlin integration and `usb/control` are Mei implementations;
 NeriPlayer Kotlin/Java sources were not copied.
 
 `third_party/libusb` keeps its original LGPL-2.1-or-later notices and source;

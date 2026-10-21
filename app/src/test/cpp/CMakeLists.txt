@@ -11,3 +11,13 @@ target_compile_features(mei_usb_tests PRIVATE cxx_std_17)
 target_compile_options(mei_usb_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG -fsanitize=address,undefined)
 target_link_options(mei_usb_tests PRIVATE -fsanitize=address,undefined)
 add_test(NAME usb_control_and_pcm COMMAND mei_usb_tests)
+
+add_executable(mei_usb_pipeline_tests usb_pipeline_test.cpp
+    ${USB_SOURCE}/usb/pcm/usb_pcm_codec.cpp
+    ${USB_SOURCE}/usb/pcm/usb_pcm_pipeline.cpp
+    ${USB_SOURCE}/usb/pcm/usb_pcm_resampler.cpp)
+target_include_directories(mei_usb_pipeline_tests PRIVATE ${USB_SOURCE})
+target_compile_features(mei_usb_pipeline_tests PRIVATE cxx_std_17)
+target_compile_options(mei_usb_pipeline_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG -fsanitize=address,undefined)
+target_link_options(mei_usb_pipeline_tests PRIVATE -fsanitize=address,undefined)
+add_test(NAME usb_resampling_channels_and_queue COMMAND mei_usb_pipeline_tests)

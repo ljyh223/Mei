@@ -67,6 +67,8 @@ int computeMaxPacketBytes(
     int frameBytes,
     int endpointMaxPacketBytes
 );
+std::string describeOutputFormats(libusb_device_handle* deviceHandle);
+
 bool findStreamingAlt(
     libusb_device_handle* devh,
     int sampleRate,

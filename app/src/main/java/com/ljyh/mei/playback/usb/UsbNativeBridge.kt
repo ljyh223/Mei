@@ -12,6 +12,7 @@ internal object UsbNativeBridge {
             true
         } catch (_: LinkageError) { false }
     }
+    @JvmStatic external fun nativeOutputFormats(fd: Int): String
     @JvmStatic external fun nativeOpen(fd: Int, sampleRate: Int, channelCount: Int, bitsPerSample: Int, subslotBytes: Int): Long
     @JvmStatic external fun nativePreparePlayerPcm(handle: Long, inputSampleRate: Int, inputChannelCount: Int, inputEncoding: Int): Boolean
     @JvmStatic external fun nativeWritePlayerPcm(handle: Long, buffer: ByteBuffer, offset: Int, size: Int, volume: Float): Int

@@ -63,7 +63,7 @@ fun PlaySettingScreen(
         key = MusicQualityKey,
         defaultValue = MusicQuality.EXHIGH,
     )
-    val (usbExclusive, onUsbExclusiveChange) = rememberPreference(
+    val (usbExclusive) = rememberPreference(
         key = UsbExclusivePlaybackKey,
         defaultValue = false,
     )
@@ -120,15 +120,11 @@ fun PlaySettingScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             PreferenceSection("音频输出") {
-                SwitchPreference(
+                PreferenceEntry(
                     title = { Text("USB 独占播放") },
-                    description = when {
-                        usbExclusive -> usbStatus.message.ifEmpty { "播放时检测 USB 解码器并尝试独占输出" }
-                        else -> "连接 USB 解码器后，按歌曲采样率尝试独占输出"
-                    },
+                    description = if (usbExclusive) usbStatus.message.ifEmpty { "已开启" } else "已关闭 · 输出、缓冲与后台运行设置",
                     icon = { Icon(Icons.Rounded.Usb, null) },
-                    checked = usbExclusive,
-                    onCheckedChange = onUsbExclusiveChange,
+                    onClick = { Screen.UsbExclusiveSettings.navigate(navController) },
                 )
                 PreferenceEntry(
                     title = { Text("均衡器与音效") },

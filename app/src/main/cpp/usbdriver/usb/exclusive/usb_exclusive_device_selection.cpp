@@ -5,6 +5,8 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -1565,5 +1567,71 @@ bool readUac2CurrentSampleRate(
     return true;
 }
 
+
+// Mei adapter: read each playback alternate as a tuple, including its clock range.
+// This probe never claims interfaces, sets a clock, or detaches a kernel driver.
+std::string describeOutputFormats(libusb_device_handle* deviceHandle) {
+    libusb_config_descriptor* rawConfig = nullptr;
+    libusb_device* device = libusb_get_device(deviceHandle);
+    if (libusb_get_active_config_descriptor(device, &rawConfig) != LIBUSB_SUCCESS &&
+        libusb_get_config_descriptor(device, 0, &rawConfig) != LIBUSB_SUCCESS) return "";
+    const std::unique_ptr<libusb_config_descriptor, decltype(&libusb_free_config_descriptor)>
+        config(rawConfig, libusb_free_config_descriptor);
+    std::string report;
+    std::map<std::pair<int, int>, std::vector<neri::usb::uac2::SampleRateSubrange>> clockRanges;
+    for (int i = 0; i < config->bNumInterfaces; ++i) {
+        const auto& iface = config->interface[i];
+        for (int a = 0; a < iface.num_altsetting; ++a) {
+            const auto& alt = iface.altsetting[a];
+            if (alt.bInterfaceClass != LIBUSB_CLASS_AUDIO || alt.bInterfaceSubClass != 2) continue;
+            bool playback = false;
+            for (int e = 0; e < alt.bNumEndpoints; ++e) playback |= isIsoOutEndpoint(alt.endpoint[e]);
+            if (!playback) continue;
+            int bits = 0, bytes = 0, channels = 0;
+            std::vector<neri::usb::uac2::SampleRateSubrange> ranges;
+            std::string error;
+            if (alt.bInterfaceProtocol == 0) {
+                neri::usb::uac1::TypeIFormat format;
+                if (!neri::usb::uac1::parseTypeIFormat(alt.extra, alt.extra_length, &format, &error) || !format.isPcm()) continue;
+                bits = format.bitsPerSample; bytes = format.subslotBytes; channels = format.channels;
+                if (format.sampleRateKind == neri::usb::uac1::SampleRateKind::Discrete) {
+                    for (int rate : format.discreteSampleRates) ranges.push_back({rate, rate, 0});
+                } else if (format.sampleRateKind == neri::usb::uac1::SampleRateKind::Continuous) {
+                    ranges.push_back({format.minimumSampleRate, format.maximumSampleRate, 0});
+                }
+            } else if (alt.bInterfaceProtocol == 0x20) {
+                neri::usb::uac2::TypeIFormat format;
+                if (!neri::usb::uac2::parseTypeIFormat(alt.extra, alt.extra_length, &format, &error) || !format.isPcm()) continue;
+                bits = format.bitsPerSample; bytes = format.subslotBytes; channels = format.channels;
+                Uac2ClockPath clock;
+                if (!findUac2ClockPath(deviceHandle, config.get(), format.terminalLink, &clock, &error)) continue;
+                const auto key = std::make_pair(clock.audioControlInterface, clock.clockSourceId);
+                auto cached = clockRanges.find(key);
+                if (cached == clockRanges.end()) {
+                    if (clock.sampleRateControl == neri::usb::uac2::ControlCapability::ReadWrite) {
+                        std::array<uint8_t, 512> data {};
+                        const int count = libusb_control_transfer(deviceHandle, makeClassInterfaceRequestType(kLibusbEndpointIn),
+                            0x02, 0x0100, makeClockEntityIndex(clock.clockSourceId, clock.audioControlInterface),
+                            data.data(), data.size(), 1000);
+                        if (count > 0) neri::usb::uac2::parseSampleRateRanges(data.data(), count, &ranges, &error);
+                    }
+                    if (ranges.empty()) {
+                        int current = 0;
+                        if (readUac2CurrentSampleRate(deviceHandle, clock.audioControlInterface, clock.clockSourceId, &current, &error))
+                            ranges.push_back({current, current, 0});
+                    }
+                    // Unknown rates permit an exact source-rate attempt, never a guessed resampling rate.
+                    if (ranges.empty()) ranges.push_back({0, 0, 0});
+                    clockRanges.emplace(key, ranges);
+                } else ranges = cached->second;
+            } else continue;
+            for (const auto& range : ranges) {
+                report += std::to_string(bits) + "," + std::to_string(bytes) + "," + std::to_string(channels) + "," +
+                    std::to_string(range.minimum) + "," + std::to_string(range.maximum) + "," + std::to_string(range.resolution) + "\n";
+            }
+        }
+    }
+    return report;
+}
 
 } // namespace neri::usb::exclusive
