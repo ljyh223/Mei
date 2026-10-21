@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -151,7 +152,7 @@ fun HomeScreen(
                                 )
                             }
                         }
-                        sortedBlocks.forEachIndexed { index, block ->
+                        sortedBlocks.forEach { block ->
                             item(key = block.positionCode) {
                                 HomeBlockItem(
                                     block = block,
@@ -160,15 +161,6 @@ fun HomeScreen(
                                     playerViewModel = playerViewModel,
                                     device = device,
                                 )
-                            }
-                            if (index == 0) {
-                                item(key = "home_shortcuts") {
-                                    HomeQuickActions(
-                                        onDaily = { Screen.EveryDay.navigate(navController) },
-                                        onAudioMatch = { Screen.AudioMatch.navigate(navController) },
-                                        onLocal = { Screen.LocalMusic.navigate(navController) },
-                                    )
-                                }
                             }
                         }
                     }
@@ -613,6 +605,18 @@ private fun SongRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+internal fun HomeStatus(title: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        TextButton(onClick = onRetry) { Text("重新加载") }
     }
 }
 

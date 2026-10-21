@@ -79,7 +79,7 @@ import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCornerRadius
 import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.PlayerHorizontalPadding
-import com.ljyh.mei.constants.ThumbnailCornerRadius
+import com.ljyh.mei.constants.MiniPlayerCoverCornerRadius
 import com.ljyh.mei.constants.CoverBackgroundEnabledKey
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.utils.image.CoverExtensionMode
@@ -99,12 +99,11 @@ import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlin.math.min
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.constants.MiniPlayerHorizontalMargin
-import com.ljyh.mei.ui.component.player.controls.LocalPlayerControlsBackdrop
-import com.kyant.backdrop.Backdrop
+import com.ljyh.mei.ui.component.player.controls.LocalPlayerControlsHazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.player.cover.rememberCoverEdgeArtwork
 import androidx.core.graphics.toColorInt
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
@@ -138,7 +137,6 @@ fun AppleMusicPlayer(
     overlayHandler: PlayerOverlayHandler,
     collapsedBottomOffset: Dp = 0.dp,
     miniPlayerBottomInset: Dp = 0.dp,
-    backdrop: Backdrop? = null,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -323,8 +321,8 @@ fun AppleMusicPlayer(
 
         // A. Mini player artwork shares the floating bar inset.
         val miniSize = with(density) { MiniPlayerCoverSize.toPx() }
-        val miniStart = with(density) { (MiniPlayerHorizontalMargin + 16.dp).toPx() }
-        val miniRadius = with(density) { ThumbnailCornerRadius.toPx() }
+        val miniStart = with(density) { (MiniPlayerHorizontalMargin + 12.dp).toPx() }
+        val miniRadius = with(density) { MiniPlayerCoverCornerRadius.toPx() }
         val miniTop = with(density) { 12.dp.toPx() }
 
         // B. Normal Expanded
@@ -409,8 +407,8 @@ fun AppleMusicPlayer(
         }
         val mShadowElevation = 16.dp * shadowAlpha * (1f - edgeExtensionAlpha)
 
-        val controlsBackdrop = rememberLayerBackdrop()
-        val captureControlsBackdrop = LocalMeiGlassEnabled.current && expandedUiAlpha > 0f
+        val controlsHazeState = rememberHazeState()
+        val captureControlsHaze = LocalMeiGlassEnabled.current && expandedUiAlpha > 0f
 
         // --- 3. UI Structure ---
         BottomSheet(
@@ -581,10 +579,10 @@ fun AppleMusicPlayer(
             },
         ) {
             CompositionLocalProvider(
-                LocalPlayerControlsBackdrop provides controlsBackdrop.takeIf { captureControlsBackdrop },
+                LocalPlayerControlsHazeState provides controlsHazeState.takeIf { captureControlsHaze },
             ) {
                 Box(Modifier.fillMaxSize().then(
-                    if (captureControlsBackdrop) Modifier.layerBackdrop(controlsBackdrop) else Modifier,
+                    if (captureControlsHaze) Modifier.hazeSource(controlsHazeState) else Modifier,
                 )) {
                     // This OpenGL surface now keeps its full-screen size for the entire transition. The
                     // sheet moves as one fixed page, avoiding the SurfaceView resize seam seen on devices.
@@ -592,6 +590,7 @@ fun AppleMusicPlayer(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(playerBackgroundHeight)
+                            .graphicsLayer { alpha = sheetProgress }
                             .background(if (state.isExpanded && staticArtworkReady && portraitCover == null &&
                                 portraitAlpha < 0.001f && coverEdgeColor != null && edgeExtensionAlpha > 0.001f
                             ) coverEdgeColor else lerp(
@@ -600,13 +599,16 @@ fun AppleMusicPlayer(
                                 fluidReveal,
                             )),
                     )
-                    // Keep the GL surface and its last album frame alive across cover changes.
-                    FluidBackground(
-                        imageUrl = coverUrl,
-                        isPlaying = isPlaying,
-                        renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
-                        onArtworkReady = { readyFluidUrl = it },
-                    )
+                    // A GLSurfaceView cannot be hidden reliably with alpha; keep it out of the
+                    // collapsed width so it cannot paint a sheet-like rectangle beside the capsule.
+                    if (sheetProgress > 0f) {
+                        FluidBackground(
+                            imageUrl = coverUrl,
+                            isPlaying = isPlaying,
+                            renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
+                            onArtworkReady = { readyFluidUrl = it },
+                        )
+                    }
                     coverEdgeArtwork?.let { artwork ->
                         CoverEdgeExtensionBackdrop(
                             artwork = artwork,

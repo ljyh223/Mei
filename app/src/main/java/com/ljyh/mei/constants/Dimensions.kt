@@ -14,10 +14,11 @@ val PlaylistCardSpacing = 20.dp
 val PlaylistCardSize = 120.dp
 val PlaylistCardSizeTablet = 170.dp
 
-val MiniPlayerHorizontalMargin = 12.dp
+val MiniPlayerHorizontalMargin = 20.dp
 val MiniPlayerBarHeight = 64.dp
 val MiniPlayerCornerRadius = 12.dp
 val MiniPlayerCoverSize = 40.dp
+val MiniPlayerCoverCornerRadius = 10.dp
 val QueuePeekHeight = 64.dp
 val AppBarHeight = 64.dp
 

@@ -108,7 +108,8 @@ fun RecommendCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title.orEmpty(),
-                        maxLines = 2,
+                        maxLines = 1,
+                        softWrap = false,
                         style = MaterialTheme.typography.titleMedium,
                         color = foregroundColor,
                         fontWeight = FontWeight.Bold,

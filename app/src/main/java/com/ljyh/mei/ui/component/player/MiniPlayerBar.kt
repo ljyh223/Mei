@@ -1,7 +1,6 @@
 package com.ljyh.mei.ui.component.player
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
@@ -25,20 +25,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import com.ljyh.mei.ui.component.glass.MeiGlassSurface
-import com.ljyh.mei.ui.component.glass.MeiGlassRole
-import com.ljyh.mei.constants.MiniPlayerHorizontalMargin
 import com.ljyh.mei.constants.MiniPlayerBarHeight
+import com.ljyh.mei.constants.MiniPlayerCoverCornerRadius
 import com.ljyh.mei.constants.MiniPlayerCoverSize
-import com.ljyh.mei.constants.ThumbnailCornerRadius
+import com.ljyh.mei.constants.MiniPlayerHorizontalMargin
+import com.ljyh.mei.ui.component.glass.MeiGlassRole
+import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.utils.image.smallImage
 
 @Composable
@@ -60,7 +61,7 @@ fun MiniPlayerBarContent(
             modifier = Modifier.fillMaxWidth()
                 .padding(horizontal = MiniPlayerHorizontalMargin)
                 .height(MiniPlayerBarHeight),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
             role = MeiGlassRole.MiniPlayer,
         ) {
             // Insets stay outside the floating surface; cover coordinates remain sheet-local.
@@ -69,10 +70,8 @@ fun MiniPlayerBarContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(MiniPlayerBarHeight)
-                    .clickable(
-                        onClick = onClick,
-                    )
-                    .padding(end = 6.dp),
+                    .clickable(onClick = onClick)
+                    .padding(start = 8.dp, end = 4.dp),
             ) {
                 MiniPlayerSongContent(
                     title = title.orEmpty(),
@@ -84,13 +83,12 @@ fun MiniPlayerBarContent(
 
                 IconButton(
                     onClick = onPlayPause,
-                    modifier = Modifier.size(48.dp)
-                        .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "暂停" else "播放",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(26.dp),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
@@ -103,8 +101,10 @@ fun MiniPlayerBarContent(
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
                         contentDescription = "下一首",
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (canSkipNext) 1f else 0.38f),
+                        modifier = Modifier.size(26.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(
+                            alpha = if (canSkipNext) 1f else 0.38f,
+                        ),
                     )
                 }
             }
@@ -123,48 +123,54 @@ private fun MiniPlayerSongContent(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(horizontal = 6.dp),
+        modifier = modifier.padding(horizontal = 4.dp),
     ) {
-        coverUrl?.let {
-            Box(
-                modifier = Modifier.padding(6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Spacer(modifier = Modifier.size(48.dp))
-                if (drawCover) {
-                    val thumbnailUrl = it.smallImage()
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(thumbnailUrl)
-                            .memoryCacheKey(thumbnailUrl)
-                            .build(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(MiniPlayerCoverSize)
-                            .clip(RoundedCornerShape(ThumbnailCornerRadius)),
-                    )
-                }
+        Box(
+            modifier = Modifier
+                .size(MiniPlayerCoverSize)
+                .clip(RoundedCornerShape(MiniPlayerCoverCornerRadius))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (drawCover && coverUrl != null) {
+                val thumbnailUrl = coverUrl.smallImage()
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(thumbnailUrl)
+                        .memoryCacheKey(thumbnailUrl)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(MiniPlayerCoverSize),
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Rounded.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 6.dp),
+                .padding(horizontal = 12.dp),
         ) {
             Text(
                 text = title,
                 color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.basicMarquee()
+                modifier = Modifier.basicMarquee(),
             )
             if (LocalDensity.current.fontScale <= 1.4f) Text(
                 text = artist,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

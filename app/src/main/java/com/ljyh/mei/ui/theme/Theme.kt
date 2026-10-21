@@ -4,10 +4,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
@@ -93,10 +95,19 @@ fun MusicTheme(
         typography = MeiTypography,
         shapes = MeiShapes,
     ) {
-        MaterialTheme(
-            colorScheme = meiColorScheme(MaterialTheme.colorScheme, isDark),
-            shapes = MeiShapes,
-            typography = MeiTypography,
+        MusicThemeContent(isDark = isDark, content = content)
+    }
+}
+
+@Composable
+private fun MusicThemeContent(isDark: Boolean, content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = meiColorScheme(MaterialTheme.colorScheme, isDark),
+        shapes = MeiShapes,
+        typography = MeiTypography,
+    ) {
+        CompositionLocalProvider(
+            LocalContentColor provides MaterialTheme.colorScheme.onBackground,
             content = content,
         )
     }

@@ -151,7 +151,8 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.compose.cloudy)
 
-    implementation(libs.backdrop)
+    implementation(libs.haze)
+    implementation(libs.haze.glass)
     implementation(libs.zxing.core)
 
 

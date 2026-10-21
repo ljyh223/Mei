@@ -2,7 +2,7 @@ package com.ljyh.mei.ui.component.player.controls
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
@@ -13,13 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.kyant.backdrop.Backdrop
 import com.ljyh.mei.ui.component.glass.MeiGlassRole
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
+import dev.chrisbanes.haze.HazeState
 
 // Full-screen controls sample their own background, never the underlying browsing page.
-val LocalPlayerControlsBackdrop = staticCompositionLocalOf<Backdrop?> { null }
+val LocalPlayerControlsHazeState = staticCompositionLocalOf<HazeState?> { null }
 
 @Composable
 fun PlayerControlButton(
@@ -32,9 +32,9 @@ fun PlayerControlButton(
 ) {
     MeiGlassSurface(
         modifier = modifier.size(size),
-        shape = CircleShape,
+        shape = RoundedCornerShape(size / 2),
         role = MeiGlassRole.PlayerControl,
-        backdrop = LocalPlayerControlsBackdrop.current,
+        hazeState = LocalPlayerControlsHazeState.current,
         tintColor = foreground,
     ) {
         IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(size)) {

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +21,7 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -31,6 +33,7 @@ fun PlayerControls(
     isPlaying: Boolean,
     playbackState: Int,
 ){
+    val foreground = LocalPlayerForegroundColor.current
     Box(modifier = modifier){
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -41,25 +44,24 @@ fun PlayerControls(
 
             //previous
             Box(modifier = Modifier.weight(1f)) {
-                PlayerControlButton(
+                IconButton(
                     enabled = canSkipPrevious,
                     onClick = playerConnection::seekToPrevious,
                     modifier = Modifier
                         .align(Alignment.Center)
+                        .size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.SkipPrevious,
                         contentDescription = "上一首",
-                        tint = androidx.compose.material3.LocalContentColor.current,
-                        modifier = Modifier.align(Alignment.Center)
-                            .size(28.dp)
-
+                        tint = foreground.copy(alpha = if (canSkipPrevious) 1f else 0.38f),
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
             //play/pause
             Box(modifier = Modifier.weight(1f)) {
-                PlayerControlButton(
+                IconButton(
                     onClick = {
                         if (playbackState == STATE_ENDED) {
                             playerConnection.player.seekTo(0, 0)
@@ -69,16 +71,14 @@ fun PlayerControls(
                         }
                     },
                     modifier = Modifier
-                        .align(Alignment.Center),
-                    size = 76.dp
+                        .align(Alignment.Center)
+                        .size(84.dp)
                 ) {
                     Icon(
                         imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "暂停" else "播放",
-                        tint = androidx.compose.material3.LocalContentColor.current,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(42.dp)
+                        tint = foreground,
+                        modifier = Modifier.size(44.dp)
                     )
                 }
             }
@@ -86,18 +86,18 @@ fun PlayerControls(
 
             //next
             Box(modifier = Modifier.weight(1f)) {
-                PlayerControlButton(
+                IconButton(
                     enabled = canSkipNext,
                     onClick = playerConnection::seekToNext,
                     modifier = Modifier
                         .align(Alignment.Center)
+                        .size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
                         contentDescription = "下一首",
-                        tint = androidx.compose.material3.LocalContentColor.current,
-                        modifier = Modifier.align(Alignment.Center)
-                            .size(28.dp)
+                        tint = foreground.copy(alpha = if (canSkipNext) 1f else 0.38f),
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }

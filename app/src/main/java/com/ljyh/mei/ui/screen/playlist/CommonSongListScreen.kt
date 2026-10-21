@@ -113,6 +113,7 @@ fun CommonSongListScreen(
 
         Scaffold(
             containerColor = if (uiData.cover.isBlank()) MaterialTheme.colorScheme.surface else Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 val title: @Composable () -> Unit = {
                     if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {

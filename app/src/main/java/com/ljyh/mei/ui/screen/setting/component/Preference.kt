@@ -136,8 +136,12 @@ fun PreferenceEntry(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.weight(1f)
         ) {
-            ProvideTextStyle(MaterialTheme.typography.bodyLarge) {
-                title()
+            CompositionLocalProvider(
+                LocalContentColor provides MaterialTheme.colorScheme.onSurface,
+            ) {
+                ProvideTextStyle(MaterialTheme.typography.bodyLarge) {
+                    title()
+                }
             }
 
             if (description != null) {

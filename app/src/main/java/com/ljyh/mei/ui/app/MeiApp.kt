@@ -75,10 +75,10 @@ import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.ljyh.mei.ui.component.glass.LocalMeiBackdrop
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
+import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.utils.rememberBatteryIntensiveFeaturesAllowed
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.ui.theme.rememberPlayerThemeColor
@@ -245,20 +245,21 @@ fun MeiApp(
                 }
             }
 
-            val pageBackdrop = rememberLayerBackdrop()
+            val pageHazeState = rememberHazeState()
             val batteryAllowsGlass = rememberBatteryIntensiveFeaturesAllowed()
             val lowRam = remember(context) {
                 context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
             }
-            val useGlass = glassEnabled && batteryAllowsGlass && !lowRam && Build.VERSION.SDK_INT >= 31
+            val useGlass = glassEnabled && batteryAllowsGlass && !lowRam && Build.VERSION.SDK_INT >= 33
             SyncPlayerSheetVisibility(playerConnection, playerBottomSheetState)
             CompositionLocalProvider(
-                LocalMeiBackdrop provides pageBackdrop,
+                LocalMeiHazeState provides pageHazeState,
                 LocalMeiGlassEnabled provides useGlass,
             ) {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onBackground,
                     contentWindowInsets = WindowInsets(0),
                     bottomBar = {
                         if (!useTabletSidebar) {
@@ -305,7 +306,7 @@ fun MeiApp(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(start = navigationStartPadding)
-                                .then(if (useGlass) Modifier.layerBackdrop(pageBackdrop) else Modifier)
+                                .then(if (useGlass) Modifier.hazeSource(pageHazeState) else Modifier)
                                 .background(MaterialTheme.colorScheme.background),
                             navController = navController,
                             startDestination = when (startTab) {

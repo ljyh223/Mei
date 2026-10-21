@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -250,15 +251,11 @@ fun ShadowedIconButton(
     enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    PlayerControlButton(
+    IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier,
+        modifier = modifier.size(48.dp),
     ) {
-        Box(
-            modifier = Modifier
-        ) {
-            content()
-        }
+        content()
     }
 }

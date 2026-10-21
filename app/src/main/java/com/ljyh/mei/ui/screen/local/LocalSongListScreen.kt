@@ -129,6 +129,7 @@ fun LocalSongListScreen(
 
         Scaffold(
             containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {

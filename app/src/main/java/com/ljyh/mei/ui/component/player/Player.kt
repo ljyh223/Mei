@@ -30,7 +30,6 @@ import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
-import com.kyant.backdrop.Backdrop
 import com.ljyh.mei.ui.component.player.applemusic.AppleMusicPlayer
 import com.ljyh.mei.ui.component.player.classic.ClassicPlayer
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
@@ -45,7 +44,6 @@ fun BottomSheetPlayer(
     collapsedBottomOffset: Dp = 0.dp,
     systemBottomInset: Dp = 0.dp,
     bottomNavigationVisibilityProgress: Float = 1f,
-    backdrop: Backdrop? = null,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
@@ -130,7 +128,6 @@ fun BottomSheetPlayer(
             overlayHandler = overlayHandler,
             collapsedBottomOffset = collapsedBottomOffset,
             miniPlayerBottomInset = miniPlayerBottomInset,
-            backdrop = backdrop,
         )
     }
 

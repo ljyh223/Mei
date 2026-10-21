@@ -165,7 +165,11 @@ fun BigUserHeader(nickname: String, avatarUrl: String, onAvatarClick: () -> Unit
                 contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         Column(Modifier.weight(1f)) {
-            Text("音乐库", style = MaterialTheme.typography.headlineLarge)
+            Text(
+                "音乐库",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             Text(nickname.ifBlank { "我的收藏" }, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
