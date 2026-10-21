@@ -180,7 +180,6 @@ class MusicService : MediaLibraryService(),
     lateinit var mediaUriProvider: MediaUriProvider
 
     private var consecutiveFailedItems = 0
-    private var retriedMediaId: String? = null
 
     private val binder = MusicBinder()
 
@@ -722,7 +721,7 @@ class MusicService : MediaLibraryService(),
             runBlocking {
                 val quality = context.dataStore[MusicQualityKey]?.lowercase(getDefault()) ?: MusicQuality.EXHIGH.text
                 val mediaId = dataSpec.key ?: throw SourceNotFoundException("Missing media cache key")
-                val cacheKey = "$mediaId|$quality"
+                val cacheKey = "$mediaId|$quality|full-v1"
                 if (isContentFullyCached(simpleCache, cacheKey)) {
                     Timber.tag("ResolvingDataSource").d("Fully cached on disk: $cacheKey")
                     return@runBlocking dataSpec.buildUpon().setKey(cacheKey).build()
@@ -789,14 +788,10 @@ class MusicService : MediaLibraryService(),
         Timber.tag("MusicService").e( "Player Error: ${error.errorCodeName}, ${error.message}")
         val mediaId = player.currentMediaItem?.mediaId
         if (isSourceError(error) && mediaId != null) {
-            // A signed URL may have expired between preloading and playback. Refresh it once for
-            // the same item before deciding the item is unavailable.
-            if (retriedMediaId != mediaId) {
-                retriedMediaId = mediaId
-                mediaUriProvider.invalidateRemoteUrl(mediaId)
-                Timber.tag("MusicService").i("Refreshing playback URL for $mediaId")
+            // Refresh an expired official URL once, then exclude failing candidates before retrying.
+            if (connectivityManager.activeNetwork != null && mediaUriProvider.recoverAfterError(mediaId)) {
+                Timber.tag("MusicService").i("Trying another playback URL for $mediaId")
                 player.prepare()
-                player.play()
                 return
             }
 
@@ -805,7 +800,6 @@ class MusicService : MediaLibraryService(),
             if (consecutiveFailedItems > MAX_CONSECUTIVE_FAILED_ITEMS) {
                 Toast.makeText(context, "播放失败，已连续跳过多首歌曲", Toast.LENGTH_LONG).show()
                 player.stop()
-                retriedMediaId = null
                 return
             }
 
@@ -841,7 +835,6 @@ class MusicService : MediaLibraryService(),
     override fun onPlaybackStateChanged(playbackState: Int) {
         if (playbackState == Player.STATE_READY && player.playerError == null) {
             consecutiveFailedItems = 0
-            retriedMediaId = null
         }
     }
 

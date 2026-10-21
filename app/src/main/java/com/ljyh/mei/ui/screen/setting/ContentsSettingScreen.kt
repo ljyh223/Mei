@@ -51,6 +51,7 @@ import com.ljyh.mei.ui.screen.setting.component.dialog.QrLoginDialog
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -193,6 +194,12 @@ fun ContentsSettingScreen(
                 )
             }
             PreferenceSection("其他音源与歌词") {
+                PreferenceEntry(
+                    title = { Text("自定义音源") },
+                    description = "导入洛雪 JS 音源与调整优先级",
+                    icon = { Icon(Icons.Rounded.Lyrics, contentDescription = null) },
+                    onClick = { Screen.LxSources.navigate(navController) },
+                )
                 val (qqLyricApi, onQqLyricApi) = rememberEnumPreference(QqLyricApiKey, QqLyricApi.Auto)
                 ListPreference(
                     title = { Text("QQ 搜索与歌词接口") },

@@ -40,6 +40,7 @@ import com.ljyh.mei.ui.screen.setting.DownloadSettingScreen
 import com.ljyh.mei.ui.screen.setting.CacheSettingsScreen
 import com.ljyh.mei.ui.screen.setting.PlaySettingScreen
 import com.ljyh.mei.ui.screen.setting.EqualizerSettingScreen
+import com.ljyh.mei.ui.screen.setting.LxSourcesScreen
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 import com.ljyh.mei.ui.screen.setting.DeveloperSettingsScreen
 import com.ljyh.mei.ui.screen.log.LogScreen
@@ -86,6 +87,8 @@ fun NavGraphBuilder.navigationBuilder(
     composable(Screen.LyricsSettings.route) {
         LyricsSettingsScreen(scrollBehavior)
     }
+
+    composable(Screen.LxSources.route) { LxSourcesScreen(scrollBehavior) }
 
     composable(Screen.ContentSettings.route) {
         ContentsSettingScreen(scrollBehavior)
