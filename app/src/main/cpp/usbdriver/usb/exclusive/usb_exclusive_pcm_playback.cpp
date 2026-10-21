@@ -386,6 +386,10 @@ Java_com_ljyh_mei_playback_usb_UsbNativeBridge_nativeWritePlayerPcm(
     } catch (const std::exception& error) {
         pipelineError = std::string("pcm_write_failed:") + error.what();
     }
+    if (written == static_cast<size_t>(-1)) {
+        setError(holder.get(), "rust_pcm_write_failed");
+        return -1;
+    }
     if (!pipelineError.empty()) {
         setError(holder.get(), pipelineError);
         LOGW("nativeWritePlayerPcm pipeline warning: %s", pipelineError.c_str());

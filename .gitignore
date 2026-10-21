@@ -27,3 +27,6 @@ accompanist-lyrics-ui/
 tools/*
 research/singer-diarization/
 video/
+
+# Rust USB core outputs are reproducible build artifacts.
+/app/src/main/rust/mei-usb-core/target/

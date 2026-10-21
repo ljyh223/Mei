@@ -1,6 +1,9 @@
 #include "usb_uac2_format.h"
 
 #include <algorithm>
+#ifdef MEI_USB_RUST_PCM
+#include "mei_usb_pcm.h"
+#endif
 #include <limits>
 #include <utility>
 
@@ -9,8 +12,8 @@ namespace {
 
 constexpr uint8_t kClassSpecificInterface = 0x24;
 constexpr uint8_t kClassSpecificEndpoint = 0x25;
-constexpr uint8_t kAsGeneralSubtype = 0x01;
-constexpr uint8_t kFormatTypeSubtype = 0x02;
+[[maybe_unused]] constexpr uint8_t kAsGeneralSubtype = 0x01;
+[[maybe_unused]] constexpr uint8_t kFormatTypeSubtype = 0x02;
 constexpr uint8_t kEndpointGeneralSubtype = 0x01;
 constexpr uint8_t kInputTerminalSubtype = 0x02;
 constexpr uint8_t kOutputTerminalSubtype = 0x03;
@@ -65,7 +68,7 @@ bool validateDescriptorBounds(
     return true;
 }
 
-bool parseAsGeneralDescriptor(
+[[maybe_unused]] bool parseAsGeneralDescriptor(
     const uint8_t* descriptor,
     int length,
     TypeIFormat* output,
@@ -86,7 +89,7 @@ bool parseAsGeneralDescriptor(
     return true;
 }
 
-bool parseFormatDescriptor(
+[[maybe_unused]] bool parseFormatDescriptor(
     const uint8_t* descriptor,
     int length,
     TypeIFormat* output,
@@ -174,6 +177,18 @@ bool parseTypeIFormat(
     TypeIFormat* output,
     std::string* error
 ) {
+#ifdef MEI_USB_RUST_PCM
+    MeiUacFormat format {};
+    if (output == nullptr || extraLength < 0 || !mei_usb_parse_format(extra,static_cast<size_t>(extraLength),2,&format)) {
+        assignError(error,"rust_uac2_streaming_descriptor_invalid"); return false;
+    }
+    TypeIFormat parsed;
+    parsed.terminalLink=static_cast<int>(format.terminal); parsed.formatType=static_cast<uint8_t>(format.format_type);
+    parsed.formats=format.format; parsed.channels=static_cast<int>(format.channels);
+    parsed.subslotBytes=static_cast<int>(format.subslot); parsed.bitsPerSample=static_cast<int>(format.bits);
+    *output=parsed; if(error) error->clear(); return true;
+#else
+
     if (output == nullptr || extraLength < 0 || (extra == nullptr && extraLength > 0)) {
         assignError(error, "invalid_streaming_descriptor_input");
         return false;
@@ -226,6 +241,7 @@ bool parseTypeIFormat(
         error->clear();
     }
     return true;
+#endif
 }
 
 bool parseEndpointControls(

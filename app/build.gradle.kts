@@ -155,3 +155,11 @@ dependencies {
 
 
 }
+
+// Cargo sources are outside AGP's C/C++ source discovery. Changes must invalidate each ABI build.
+val usbRustInputs = fileTree("src/main/rust/mei-usb-core") {
+    include("src/**/*.rs", "include/**/*.h", "cmake/**/*.cmake", "Cargo.toml", "Cargo.lock")
+}
+tasks.configureEach {
+    if (name.startsWith("buildCMake")) inputs.files(usbRustInputs).withPropertyName("usbRustCore")
+}
