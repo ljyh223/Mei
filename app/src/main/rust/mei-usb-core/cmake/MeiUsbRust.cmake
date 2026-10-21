@@ -3,6 +3,9 @@ function(mei_add_usb_rust)
     find_program(MEI_CARGO_EXECUTABLE cargo HINTS "$ENV{HOME}/.cargo/bin" REQUIRED)
     get_filename_component(MEI_USB_RUST_ROOT "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
     set(MEI_RUST_TARGET_ARGS)
+    if(MEI_USB_FULL_RUST)
+        list(APPEND MEI_RUST_TARGET_ARGS --features full-usb)
+    endif()
     set(MEI_RUST_TARGET_DIR "${CMAKE_CURRENT_BINARY_DIR}/rust-target")
     if(ANDROID)
         if(ANDROID_ABI STREQUAL "arm64-v8a")
@@ -28,7 +31,7 @@ function(mei_add_usb_rust)
             "${MEI_CARGO_EXECUTABLE}" build --manifest-path "${MEI_USB_RUST_ROOT}/Cargo.toml"
             --release --offline --locked ${MEI_RUST_TARGET_ARGS}
         DEPENDS ${MEI_RUST_SOURCES} "${MEI_USB_RUST_ROOT}/Cargo.toml" "${MEI_USB_RUST_ROOT}/Cargo.lock"
-        COMMENT "Building Rust USB PCM core (${ANDROID_ABI})" VERBATIM)
+        COMMENT "Building Rust USB backend (${ANDROID_ABI})" VERBATIM)
     add_custom_target(mei_usb_rust_build DEPENDS "${MEI_RUST_LIBRARY}")
     add_library(mei_usb_rust STATIC IMPORTED GLOBAL)
     set_target_properties(mei_usb_rust PROPERTIES IMPORTED_LOCATION "${MEI_RUST_LIBRARY}"

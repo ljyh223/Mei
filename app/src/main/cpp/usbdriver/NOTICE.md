@@ -19,3 +19,10 @@ Rust branch: the PCM codec/pipeline, polyphase sinc resampler and AudioStreaming
 Type-I descriptor parsers have been adapted into app/src/main/rust/mei-usb-core.
 These ports retain the NeriPlayer native attribution license and attribution above.
 The original C++ implementations remain as a selectable reference backend.
+
+Full Rust branch: JNI, USB fd/session/interface ownership, UAC clock/rate negotiation,
+playback feature controls, isochronous scheduling/completion/cancellation and explicit
+feedback have also been ported into that Rust crate. The default USB backend no
+longer compiles any C++ USB implementation. The same native attribution and no-
+endorsement terms apply to these derivative implementations. The CMake C anchor
+contains only ABI assertions and a data symbol; libusb is still the separate C library.
