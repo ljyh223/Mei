@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
@@ -24,7 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -32,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.ljyh.mei.constants.MiniPlayerBarHeight
@@ -55,11 +59,15 @@ fun MiniPlayerBarContent(
     modifier: Modifier = Modifier,
     drawCover: Boolean = true,
     bottomInset: Dp = 0.dp,
+    compactProgress: Float = 0f,
 ) {
+    val compact = compactProgress.coerceIn(0f, 1f)
+    val horizontalMargin = lerp(MiniPlayerHorizontalMargin, 80.dp, compact)
+    val nextWidth = lerp(40.dp, 0.dp, compact)
     Column(modifier = modifier.fillMaxWidth()) {
         MeiGlassSurface(
             modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = MiniPlayerHorizontalMargin)
+                .padding(horizontal = horizontalMargin)
                 .height(MiniPlayerBarHeight),
             shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
             role = MeiGlassRole.MiniPlayer,
@@ -93,19 +101,27 @@ fun MiniPlayerBarContent(
                     )
                 }
 
-                IconButton(
-                    onClick = onNext,
-                    enabled = canSkipNext,
-                    modifier = Modifier.size(40.dp),
+                Box(
+                    modifier = Modifier
+                        .width(nextWidth)
+                        .height(40.dp)
+                        .clipToBounds()
+                        .alpha(1f - compact),
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.SkipNext,
-                        contentDescription = "下一首",
-                        modifier = Modifier.size(22.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(
-                            alpha = if (canSkipNext) 1f else 0.38f,
-                        ),
-                    )
+                    IconButton(
+                        onClick = onNext,
+                        enabled = canSkipNext,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.SkipNext,
+                            contentDescription = "下一首",
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = if (canSkipNext) 1f else 0.38f,
+                            ),
+                        )
+                    }
                 }
             }
         }

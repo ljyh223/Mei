@@ -4,8 +4,10 @@ import android.os.Build
 import android.app.ActivityManager
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -27,12 +29,17 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -88,6 +95,7 @@ import okhttp3.OkHttpClient
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import kotlin.math.abs
 
 private enum class NavigationTab { Home, Library }
 
@@ -180,6 +188,34 @@ fun MeiApp(
                 expandedBound = maxHeight,
                 allowDismissGesture = false,
             )
+            var navigationExpanded by rememberSaveable { mutableStateOf(true) }
+            val compactNavigationProgress by animateFloatAsState(
+                targetValue = if (navigationExpanded) 0f else 1f,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "compactNavigation",
+            )
+            val compactNavigationAllowed = rememberUpdatedState(
+                shellState.showBottomNavigation && !searchActive && !device.isLandscape &&
+                    (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed),
+            )
+            val navigationScrollConnection = remember {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                        if (!compactNavigationAllowed.value) return Offset.Zero
+                        if (abs(available.y) <= abs(available.x) || abs(available.y) < 10f) {
+                            return Offset.Zero
+                        }
+                        navigationExpanded = available.y > 0f
+                        return Offset.Zero
+                    }
+                }
+            }
+            LaunchedEffect(route) {
+                navigationExpanded = true
+            }
+            LaunchedEffect(device.isLandscape) {
+                if (device.isLandscape) navigationExpanded = true
+            }
             val activity = context as? Activity
             val requestedOrientation = if (device.isTablet || playerBottomSheetState.isExpanded) {
                 ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
@@ -257,7 +293,7 @@ fun MeiApp(
                 LocalMeiGlassEnabled provides useGlass,
             ) {
                 Scaffold(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().nestedScroll(navigationScrollConnection),
                     containerColor = Color.Transparent,
                     contentColor = MaterialTheme.colorScheme.onBackground,
                     contentWindowInsets = WindowInsets(0),
@@ -270,6 +306,8 @@ fun MeiApp(
                                     playerBottomNavigationProgress >= 1f,
                                 selectedRoute = route,
                                 onTabSelect = navController::selectMainDestination,
+                                compactProgress = compactNavigationProgress,
+                                onExpand = { navigationExpanded = true },
                             )
                         }
                     },
@@ -352,9 +390,11 @@ fun MeiApp(
                         )
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
-                            collapsedBottomOffset = playerNavigationOffset,
+                            collapsedBottomOffset = (playerNavigationOffset - 10.dp * compactNavigationProgress)
+                                .coerceAtLeast(0.dp),
                             systemBottomInset = bottomInset,
                             bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
+                            compactProgress = compactNavigationProgress,
                         )
                     }
                 }

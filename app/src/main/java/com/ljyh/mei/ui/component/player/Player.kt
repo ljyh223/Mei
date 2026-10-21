@@ -44,6 +44,7 @@ fun BottomSheetPlayer(
     collapsedBottomOffset: Dp = 0.dp,
     systemBottomInset: Dp = 0.dp,
     bottomNavigationVisibilityProgress: Float = 1f,
+    compactProgress: Float = 0f,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
@@ -128,6 +129,7 @@ fun BottomSheetPlayer(
             overlayHandler = overlayHandler,
             collapsedBottomOffset = collapsedBottomOffset,
             miniPlayerBottomInset = miniPlayerBottomInset,
+            compactProgress = compactProgress,
         )
     }
 

@@ -137,6 +137,7 @@ fun AppleMusicPlayer(
     overlayHandler: PlayerOverlayHandler,
     collapsedBottomOffset: Dp = 0.dp,
     miniPlayerBottomInset: Dp = 0.dp,
+    compactProgress: Float = 0f,
 ) {
     val density = LocalDensity.current
     val context = LocalContext.current
@@ -321,7 +322,9 @@ fun AppleMusicPlayer(
 
         // A. Mini player artwork shares the floating bar inset.
         val miniSize = with(density) { MiniPlayerCoverSize.toPx() }
-        val miniStart = with(density) { (MiniPlayerHorizontalMargin + 16.dp).toPx() }
+        val miniStart = with(density) {
+            (MiniPlayerHorizontalMargin + 16.dp + 60.dp * compactProgress).toPx()
+        }
         val miniRadius = with(density) { MiniPlayerCoverCornerRadius.toPx() }
         val miniTop = with(density) { ((MiniPlayerBarHeight - MiniPlayerCoverSize) / 2).toPx() }
 
@@ -462,6 +465,7 @@ fun AppleMusicPlayer(
                     onNext = stateContainer.playerConnection::seekToNext,
                     drawCover = true,
                     bottomInset = miniPlayerBottomInset,
+                    compactProgress = compactProgress,
                 )
             },
             overlayContent = {
