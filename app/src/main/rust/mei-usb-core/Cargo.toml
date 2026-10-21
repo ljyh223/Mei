@@ -1,0 +1,22 @@
+[package]
+name = "mei-usb-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+publish = false
+license-file = "../../cpp/usbdriver/NERI_LICENSE.md"
+description = "Rust native driver for Mei USB exclusive playback"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[features]
+default = []
+full-usb = ["dep:jni-sys"]
+
+[dependencies]
+jni-sys = { version = "=0.3.0", optional = true }

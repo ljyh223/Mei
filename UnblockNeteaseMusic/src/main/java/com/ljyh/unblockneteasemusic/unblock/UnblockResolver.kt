@@ -18,7 +18,7 @@ class UnblockResolver(
             ?.let { audio -> catalog to audio }
     }
 
-    suspend fun resolve(target: MusicTrack): PlayableAudio? {
+    suspend fun resolve(target: MusicTrack, accept: suspend (PlayableAudio) -> Boolean = { true }): PlayableAudio? {
         fun emit(event: UnblockEvent) = onEvent(event.copy(targetId = target.id.value))
         val artistNames = target.artists.map { it.name }.filter(String::isNotBlank)
         val query = listOf(stripCoverTag(target.title), artistNames.take(2).joinToString(" / "))
@@ -51,6 +51,10 @@ class UnblockResolver(
                     }
                     if (matcher.score(target, playable.track) < matcher.minimumScore) {
                         emit(UnblockEvent(UnblockStage.DURATION_REJECTED, catalog.sourceId, candidateId = candidate.id.value))
+                        continue
+                    }
+                    if (!accept(playable)) {
+                        emit(UnblockEvent(UnblockStage.URL_UNAVAILABLE, catalog.sourceId, candidateId = candidate.id.value))
                         continue
                     }
                     emit(UnblockEvent(UnblockStage.SELECTED, catalog.sourceId, candidateId = candidate.id.value))

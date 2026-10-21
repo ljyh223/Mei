@@ -123,6 +123,16 @@ class UsbOutputStateTest {
         assertEquals(UsbOutputStatus(), store.status.value)
     }
 
+    @Test fun changingFormatPolicyAllowsRetryAndRejectsPreviousAttemptFailure() {
+        val store = connectedStore()
+        val old = store.beginAttempt()
+        store.blockNative(old, "failed")
+        store.resetNativeRetry()
+        assertTrue(store.nativeUsable())
+        assertFalse(store.blockNative(old, "late error"))
+        assertNotNull(store.beginAttempt())
+    }
+
     private fun connectedStore() = UsbOutputStatusStore().apply {
         updateEnvironment(true, true, devices)
     }

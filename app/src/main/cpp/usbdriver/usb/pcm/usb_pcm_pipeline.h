@@ -64,6 +64,12 @@ struct PcmPipelineSnapshot {
 
 class PcmPipeline final {
 public:
+#ifdef MEI_USB_RUST_PCM
+    PcmPipeline();
+    ~PcmPipeline();
+    PcmPipeline(const PcmPipeline&) = delete;
+    PcmPipeline& operator=(const PcmPipeline&) = delete;
+#endif
     bool configure(const PcmPipelineConfig& config, std::string* error);
     bool resizeRingDuration(
         int ringDurationMs,
@@ -90,6 +96,10 @@ public:
     [[nodiscard]] PcmPipelineSnapshot snapshot() const;
 
 private:
+#ifdef MEI_USB_RUST_PCM
+    // Rust owns all PCM memory. Session shared_ptr ownership keeps this handle alive through USB cancellation.
+    void* rustCore_ = nullptr;
+#else
     [[nodiscard]] size_t freeBytesLocked() const;
     [[nodiscard]] bool canCopyIntegerFrames(
         int inputSampleBytes,
@@ -168,6 +178,7 @@ private:
     int gainRampFramesRemaining_ = 0;
     int transportStartRampFramesTotal_ = 0;
     std::atomic<int> transportStartRampFramesRemaining_ { 0 };
+#endif
 };
 
 } // namespace neri::usb

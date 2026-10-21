@@ -30,6 +30,24 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Prepare Rust USB toolchain
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.97.0
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Prepare USB test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+          cargo fetch --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
+
+      - name: Check Rust USB core
+        run: |
+          cargo fmt --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml -- --check
+          cargo test --offline --locked --all-features --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
+          cargo clippy --offline --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml --all-targets --all-features -- -D warnings
+
       - uses: gradle/gradle-build-action@v2
         with:
           gradle-version: current

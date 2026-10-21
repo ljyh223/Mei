@@ -64,6 +64,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.quickjs)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -86,6 +87,7 @@ dependencies {
     implementation(libs.androidx.core.animation)
     implementation(libs.androidx.compose.material3.window.size.class1)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
     testImplementation(libs.ktor.client.mock)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -156,4 +158,20 @@ dependencies {
     implementation(libs.zxing.core)
 
 
+}
+
+// Local tests load the desktop native library; devices keep the Android AAR.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("io.github.dokar3:quickjs-kt-android"))
+            .using(module("io.github.dokar3:quickjs-kt-jvm:${libs.versions.quickjs.get()}"))
+    }
+}
+
+// Cargo sources are outside AGP's C/C++ source discovery. Changes must invalidate each ABI build.
+val usbRustInputs = fileTree("src/main/rust/mei-usb-core") {
+    include("src/**/*.rs", "include/**/*.h", "cmake/**/*.cmake", "Cargo.toml", "Cargo.lock")
+}
+tasks.configureEach {
+    if (name.startsWith("buildCMake")) inputs.files(usbRustInputs).withPropertyName("usbRustCore")
 }

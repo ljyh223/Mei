@@ -1,4 +1,6 @@
 [versions]
+quickjs = "1.0.14"
+robolectric = "4.16.1"
 agp = "9.2.0"
 haze = "2.0.1"
 coil = "3.6.3"
@@ -46,6 +48,9 @@ zxing = "3.5.4"
 jetbrainsKotlinJvm = "2.4.21"
 
 [libraries]
+quickjs = { module = "io.github.dokar3:quickjs-kt-android", version.ref = "quickjs" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }

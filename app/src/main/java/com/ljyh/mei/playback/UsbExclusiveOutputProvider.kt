@@ -14,6 +14,11 @@ import androidx.media3.common.util.Util
 import androidx.media3.exoplayer.audio.AudioOutput
 import androidx.media3.exoplayer.audio.AudioOutputProvider
 import androidx.media3.exoplayer.audio.AudioTrackAudioOutputProvider
+import com.ljyh.mei.playback.usb.UsbAppVisibility
+import com.ljyh.mei.playback.usb.UsbPlaybackPreferences
+import com.ljyh.mei.playback.usb.parseUsbOutputFormats
+import com.ljyh.mei.playback.usb.usbOutputTargets
+import com.ljyh.mei.playback.usb.usbWritableBytes
 import com.ljyh.mei.playback.usb.UsbNativeBridge
 import com.ljyh.mei.playback.usb.UsbNativeOwnership
 import com.ljyh.mei.playback.usb.UsbPcmAudioOutput
@@ -28,6 +33,7 @@ internal fun AudioDeviceInfo.isUsbAudioOutput() =
 class UsbExclusiveOutputProvider(
     context: Context,
     private val onFailure: () -> Unit,
+    private val preferences: () -> UsbPlaybackPreferences = { UsbPlaybackPreferences() },
     private val enabled: () -> Boolean,
 ) : AudioOutputProvider {
     private val audioManager = context.getSystemService(AudioManager::class.java)
@@ -98,19 +104,26 @@ class UsbExclusiveOutputProvider(
         val attempt = UsbOutputState.store.beginAttempt()
         try {
             connection = checkNotNull(usbManager.openDevice(device)) { "USB permission lost" }
-            val formats = when (sourceBits) {
-                16 -> listOf(16 to 2, 24 to 3, 24 to 4, 32 to 4)
-                24 -> listOf(24 to 3, 24 to 4, 32 to 4)
-                else -> listOf(32 to 4, 24 to 4, 24 to 3)
+            val policy = preferences()
+            val inputChannels = Integer.bitCount(config.channelMask)
+            val formats = parseUsbOutputFormats(UsbNativeBridge.nativeOutputFormats(connection.fileDescriptor))
+            val targets = usbOutputTargets(formats, config.sampleRate, sourceBits, inputChannels, policy)
+            check(targets.isNotEmpty()) { "No compatible USB format under current compatibility settings" }
+            var selected: com.ljyh.mei.playback.usb.UsbOutputTarget? = null
+            for (target in targets) {
+                handle = UsbNativeBridge.nativeOpen(connection.fileDescriptor, target.rate, target.channels, target.bits, target.bytes)
+                if (handle != 0L) { selected = target; break }
+                val error = UsbNativeBridge.nativeLastOpenError()
+                // Only a format rejection may try the next advertised tuple; transport/permission errors are terminal.
+                if (!error.startsWith("no_compatible_usb_audio_format:") && !error.startsWith("sample_rate_negotiation_failed:")) break
             }
-            var outputBits = 0
-            var outputBytes = 0
-            for ((bits, bytes) in formats) {
-                handle = UsbNativeBridge.nativeOpen(connection.fileDescriptor, config.sampleRate, 2, bits, bytes)
-                if (handle != 0L) { outputBits = bits; outputBytes = bytes; break }
-            }
-            check(handle != 0L) { UsbNativeBridge.nativeLastOpenError() }
-            check(UsbNativeBridge.nativeConfigurePlayerBufferDuration(handle, 600)) { "USB buffer configuration failed" }
+            check(handle != 0L && selected != null) { UsbNativeBridge.nativeLastOpenError() }
+            val outputRate = selected.rate
+            val outputBits = selected.bits
+            val outputBytes = selected.bytes
+            val outputChannels = selected.channels
+            // Reserve once. Shrinking an occupied native ring drops queued audio; vary the write watermark instead.
+            check(UsbNativeBridge.nativeConfigurePlayerBufferDuration(handle, 3000)) { "USB buffer configuration failed" }
             check(UsbNativeBridge.nativePreparePlayerPcm(handle, config.sampleRate, Integer.bitCount(config.channelMask), config.encoding)) {
                 "USB PCM configuration failed"
             }
@@ -135,13 +148,17 @@ class UsbExclusiveOutputProvider(
             val transport = object : UsbPcmTransport {
                 private var lastHealthCheck = 0L
                 private var lastFailure: String? = null
-                private val capacity = UsbNativeBridge.nativeGetPlayerPcmFreeBytes(nativeHandle) / (2 * outputBytes)
-                override fun write(buffer: ByteBuffer) = UsbNativeBridge.nativeWritePlayerPcm(
-                    nativeHandle, buffer, buffer.position(), buffer.remaining(), updateHardwareVolume(),
-                )
+                private val inputFrameBytes = Util.getPcmFrameSize(config.encoding, inputChannels)
+                override fun write(buffer: ByteBuffer): Int {
+                    val volume = updateHardwareVolume()
+                    val bytes = usbWritableBytes(buffer.remaining(), queuedFrames(), capacityFrames(),
+                        config.sampleRate, outputRate, inputFrameBytes)
+                    if (bytes <= 0) return 0
+                    return UsbNativeBridge.nativeWritePlayerPcm(nativeHandle, buffer, buffer.position(), bytes, volume)
+                }
                 override fun queuedFrames() = UsbNativeBridge.nativeGetQueuedPlayerFrames(nativeHandle)
                 override fun completedFrames() = UsbNativeBridge.nativeGetCompletedAudioFrames(nativeHandle)
-                override fun capacityFrames() = capacity
+                override fun capacityFrames() = outputRate.toLong() * preferences().bufferMs(UsbAppVisibility.foreground.value) / 1000
                 override fun play(): Boolean {
                     updateHardwareVolume()
                     return UsbNativeBridge.nativePlayPlayerPcm(nativeHandle)
@@ -165,7 +182,7 @@ class UsbExclusiveOutputProvider(
                     }
                 }
             }
-            val detail = "${device.productName ?: "USB 解码器"} · ${config.sampleRate / 1000.0} kHz · $outputBits bit" +
+            val detail = "${device.productName ?: "USB 解码器"} · ${outputRate / 1000.0} kHz · $outputBits bit · $outputChannels 声道" +
                 if (hardwareVolume) " · 硬件音量" else " · 软件音量"
             UsbOutputState.store.update(attempt, UsbOutputStatus(message = "USB 已就绪，等待播放 · $detail", deviceId = device.deviceId))
             val output = UsbPcmAudioOutput(
@@ -173,6 +190,8 @@ class UsbExclusiveOutputProvider(
                 rate = config.sampleRate,
                 inputFrameBytes = Util.getPcmFrameSize(config.encoding, Integer.bitCount(config.channelMask)),
                 sessionId = config.audioSessionId,
+                outputRate = outputRate,
+                prerollMs = { minOf(300, preferences().bufferMs(UsbAppVisibility.foreground.value) / 2) },
                 nowMs = SystemClock::elapsedRealtime,
                 onActiveChanged = { active ->
                     UsbOutputState.store.update(attempt, UsbOutputStatus(
@@ -197,7 +216,10 @@ class UsbExclusiveOutputProvider(
 
     private fun fail(error: String, attempt: Any?) {
         Log.w("UsbExclusiveOutput", error)
-        if (UsbOutputState.store.blockNative(attempt, "USB 独占启动或传输失败，已暂停；可关闭独占后重试")) onFailure()
+        val message = if (error.startsWith("No compatible USB format"))
+            "当前格式与解码器不匹配，已暂停；请开启格式兼容或关闭独占后重试"
+        else "USB 独占启动或传输失败，已暂停；可关闭独占后重试"
+        if (UsbOutputState.store.blockNative(attempt, message)) onFailure()
     }
 
     fun reportFallback(message: String) = UsbOutputState.store.fallback(message)

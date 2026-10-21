@@ -78,6 +78,9 @@ import com.ljyh.mei.di.repository.HistoryRepository
 import com.ljyh.mei.di.repository.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.mediaItems
+import com.ljyh.mei.playback.usb.UsbPlaybackPreferences
+import com.ljyh.mei.playback.usb.UsbFloatingKeepAlive
+import com.ljyh.mei.playback.usb.usbPlaybackPreferences
 import com.ljyh.mei.playback.usb.UsbNativeBridge
 import com.ljyh.mei.playback.usb.hasPcmOutput
 import com.ljyh.mei.playback.equalizer.AudioEffectsController
@@ -145,6 +148,8 @@ class MusicService : MediaLibraryService(),
     private val firstTransitionProbe = TransitionAudioProbe()
     private val secondTransitionProbe = TransitionAudioProbe()
     @Volatile private var usbExclusiveEnabled = false
+    @Volatile private var usbPreferences = UsbPlaybackPreferences()
+    private lateinit var usbKeepAlive: UsbFloatingKeepAlive
     private lateinit var usbManager: UsbManager
     @Volatile private var usbDevices: Map<Int, String> = emptyMap()
     private var usbReconfigureJob: Job? = null
@@ -180,7 +185,6 @@ class MusicService : MediaLibraryService(),
     lateinit var mediaUriProvider: MediaUriProvider
 
     private var consecutiveFailedItems = 0
-    private var retriedMediaId: String? = null
 
     private val binder = MusicBinder()
 
@@ -202,7 +206,9 @@ class MusicService : MediaLibraryService(),
     lateinit var lyricManager: LyricManager
     override fun onCreate() {
         super.onCreate()
-        usbExclusiveEnabled = runBlocking { dataStore.data.first()[UsbExclusivePlaybackKey] ?: false }
+        val usbInitialSettings = runBlocking { dataStore.data.first() }
+        usbExclusiveEnabled = usbInitialSettings[UsbExclusivePlaybackKey] ?: false
+        usbPreferences = usbInitialSettings.usbPlaybackPreferences()
         usbManager = getSystemService(UsbManager::class.java)
         usbDevices = connectedUsbDevices()
         updateUsbEnvironment()
@@ -290,6 +296,8 @@ class MusicService : MediaLibraryService(),
 
         desktopLyricsController = DesktopLyricsController(this, player, lyricManager, scope)
         desktopLyricsController.start()
+        usbKeepAlive = UsbFloatingKeepAlive(this, player) { usbPreferences.floatingKeepAlive }
+        usbKeepAlive.start(scope)
         audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor)
         standbyAudioEffectsController = AudioEffectsController(this, scope, standbyEqualizerProcessor)
 
@@ -305,14 +313,19 @@ class MusicService : MediaLibraryService(),
             },
         )
         scope.launch {
-            dataStore.data.map { it[UsbExclusivePlaybackKey] ?: false }
+            dataStore.data.map { (it[UsbExclusivePlaybackKey] ?: false) to it.usbPlaybackPreferences() }
                 .distinctUntilChanged()
-                .collect { enabled ->
-                    if (enabled == usbExclusiveEnabled) return@collect
+                .collect { (enabled, settings) ->
+                    val reconfigure = enabled != usbExclusiveEnabled || (enabled && settings.formatPolicy() != usbPreferences.formatPolicy())
+                    usbPreferences = settings
                     usbExclusiveEnabled = enabled
+                    usbKeepAlive.update()
+                    if (!reconfigure) return@collect
                     usbReconfigureJob?.cancel()
                     usbPermissionRequested.clear()
                     usbDevices = connectedUsbDevices()
+                    // A changed format policy is an explicit fresh attempt, including after a format rejection.
+                    UsbOutputState.store.resetNativeRetry()
                     updateUsbEnvironment()
                     requestUsbPermissionIfNeeded()
                     audioPlayer.cancelFade()
@@ -700,6 +713,7 @@ class MusicService : MediaLibraryService(),
         audioPlayer.release()
         audioEffectsController.release()
         standbyAudioEffectsController.release()
+        usbKeepAlive.close()
         desktopLyricsController.close()
         player.release()
         CacheManager.release()
@@ -722,7 +736,7 @@ class MusicService : MediaLibraryService(),
             runBlocking {
                 val quality = context.dataStore[MusicQualityKey]?.lowercase(getDefault()) ?: MusicQuality.EXHIGH.text
                 val mediaId = dataSpec.key ?: throw SourceNotFoundException("Missing media cache key")
-                val cacheKey = "$mediaId|$quality"
+                val cacheKey = "$mediaId|$quality|full-v1"
                 if (isContentFullyCached(simpleCache, cacheKey)) {
                     Timber.tag("ResolvingDataSource").d("Fully cached on disk: $cacheKey")
                     return@runBlocking dataSpec.buildUpon().setKey(cacheKey).build()
@@ -768,6 +782,7 @@ class MusicService : MediaLibraryService(),
                             }
                         }
                     },
+                    preferences = { usbPreferences },
                 ) { usbExclusiveEnabled }
                 val usb = DefaultAudioSink.Builder(this@MusicService)
                     .setEnableFloatOutput(true)
@@ -789,14 +804,10 @@ class MusicService : MediaLibraryService(),
         Timber.tag("MusicService").e( "Player Error: ${error.errorCodeName}, ${error.message}")
         val mediaId = player.currentMediaItem?.mediaId
         if (isSourceError(error) && mediaId != null) {
-            // A signed URL may have expired between preloading and playback. Refresh it once for
-            // the same item before deciding the item is unavailable.
-            if (retriedMediaId != mediaId) {
-                retriedMediaId = mediaId
-                mediaUriProvider.invalidateRemoteUrl(mediaId)
-                Timber.tag("MusicService").i("Refreshing playback URL for $mediaId")
+            // Refresh an expired official URL once, then exclude failing candidates before retrying.
+            if (connectivityManager.activeNetwork != null && mediaUriProvider.recoverAfterError(mediaId)) {
+                Timber.tag("MusicService").i("Trying another playback URL for $mediaId")
                 player.prepare()
-                player.play()
                 return
             }
 
@@ -805,7 +816,6 @@ class MusicService : MediaLibraryService(),
             if (consecutiveFailedItems > MAX_CONSECUTIVE_FAILED_ITEMS) {
                 Toast.makeText(context, "播放失败，已连续跳过多首歌曲", Toast.LENGTH_LONG).show()
                 player.stop()
-                retriedMediaId = null
                 return
             }
 
@@ -841,7 +851,6 @@ class MusicService : MediaLibraryService(),
     override fun onPlaybackStateChanged(playbackState: Int) {
         if (playbackState == Player.STATE_READY && player.playerError == null) {
             consecutiveFailedItems = 0
-            retriedMediaId = null
         }
     }
 

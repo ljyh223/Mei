@@ -1,8 +1,13 @@
 # USB transport adapted from NeriPlayer 113699bb; see NOTICE.md and NERI_LICENSE.md.
+# JNI, session, UAC controls and isochronous transport are Rust; libusb provides the usbfs layer.
 add_subdirectory(third_party/libusb)
 target_link_libraries(neri_libusb PRIVATE log)
-file(GLOB_RECURSE MEI_USB_SOURCES CONFIGURE_DEPENDS usb/*.cpp)
-add_library(mei_usb SHARED ${MEI_USB_SOURCES})
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../rust/mei-usb-core/cmake/MeiUsbRust.cmake")
+mei_add_usb_rust(ON)
+add_library(mei_usb SHARED rust_usb_link.c)
+target_link_libraries(mei_usb PRIVATE -Wl,--whole-archive mei_usb_rust -Wl,--no-whole-archive dl m)
+target_link_options(mei_usb PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/rust_usb.exports")
+set_property(TARGET mei_usb APPEND PROPERTY LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/rust_usb.exports")
 target_include_directories(mei_usb PRIVATE . third_party)
 target_compile_features(mei_usb PRIVATE cxx_std_17)
 target_compile_options(mei_usb PRIVATE -Wall -Wextra)
