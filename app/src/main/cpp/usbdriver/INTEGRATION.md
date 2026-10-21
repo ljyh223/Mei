@@ -71,11 +71,13 @@ Host tests use AddressSanitizer and UndefinedBehaviorSanitizer for the control a
 native PCM codec. ABI builds and unit tests cannot establish real DAC playback or reconnect
 behavior. Installation and on-device playback verification remain separate steps.
 
-## Rust branch
+## Rust backend
 
-On codex/usb-exclusive-rust, MEI_USB_RUST_PCM defaults ON. The PCM pipeline,
-polyphase resampler and UAC1/UAC2 AudioStreaming Type-I parsers execute in Rust;
-JNI, USB sessions, clock controls, isochronous/feedback transfers and libusb remain
-in the existing C++/C transport. See ../../rust/mei-usb-core/README.md for build,
-FFI ownership, reference-backend selection and validation details. Runtime reports
-identify the PCM backend. Existing Kotlin settings and permission flows are unchanged.
+JNI, USB sessions, clock controls, isochronous/feedback transfers, the PCM pipeline,
+polyphase resampler and UAC1/UAC2 AudioStreaming Type-I parsers all execute in Rust;
+libusb remains the C usbfs layer. The former C++ transport (`usb/exclusive`,
+`usb/feedback`, `usb/iso` and the UAC2 feedback/clock helpers) was removed, so there is
+no backend switch any more; `usb/pcm`, `usb/uac1` and `usb/uac2` format sources are kept
+for the host parity tests only. See ../../rust/mei-usb-core/README.md for build,
+FFI ownership and validation details. Runtime reports identify the PCM backend.
+Existing Kotlin settings and permission flows are unchanged.

@@ -1,6 +1,6 @@
 # Mei native USB backend in Rust
 
-The default backend on `codex/usb-exclusive-full-rust` implements JNI, USB session/fd
+The USB backend implements JNI, USB session/fd
 ownership, interface claims, UAC1/UAC2 Type-I descriptors, clock selection and sample
 rate controls, hardware volume, isochronous transfers, explicit feedback, cancellation,
 PCM conversion/ring/resampling and gain in Rust. Android permissions, settings and
@@ -8,9 +8,10 @@ playback integration continue to use the existing Kotlin interface.
 
 libusb remains a separate C shared library (`libmei_libusb.so`), including its Linux
 usbfs backend. This is not a rewrite of libusb or of the kernel USB driver. No C++ USB
-implementation is compiled into the default `libmei_usb.so`. `rust_usb_link.c` contains
+implementation is compiled into `libmei_usb.so`. `rust_usb_link.c` contains
 ABI assertions and a link anchor only; the separate BeatNet component still uses C++.
-The previous C++ sources remain selectable for comparisons.
+The C++ transport sources were removed after the port; `usb/pcm`, `usb/uac1` and
+`usb/uac2` format sources stay for host parity tests.
 
 The native algorithms and behavior are adapted from NeriPlayer revision 113699bb,
 by cwuom / ouom: https://github.com/cwuom/NeriPlayer. The derivative Rust implementation
@@ -36,16 +37,13 @@ minimal declarations for the bundled header, avoiding a second libusb build/down
 C and Rust layout assertions cover pointer widths, transfer flexible-array offsets
 and event timeouts on all four Android architectures.
 
-CMake options (use separate build directories):
+CMake integration:
 
-| Backend | MEI_USB_FULL_RUST | MEI_USB_RUST_PCM |
-| --- | --- | --- |
-| Full Rust, default here | ON | ignored |
-| C++ USB transport / Rust PCM | OFF | ON |
-| Original C++ USB / PCM | OFF | OFF |
+- `mei_add_usb_rust(ON)` (app build) enables the crate's `full-usb` feature so the
+  JNI/session/transport code is linked into `libmei_usb.so`.
+- `mei_add_usb_rust()` (host parity tests) builds the PCM-only crate so the Rust core
+  can be compared against the C++ algorithms kept under `usb/pcm` and `usb/uac*`.
 
-Android full builds enable the crate's `full-usb` feature. Existing host parity tests
-build the PCM-only crate to compare the Rust core against the original C++ algorithms.
 Host full-driver tests require the system libusb development package (Ubuntu:
 `libusb-1.0-0-dev`). Android always links the project's bundled library.
 
