@@ -1,15 +1,18 @@
 #include "usb_uac1_format.h"
 
 #include <algorithm>
+#ifdef MEI_USB_RUST_PCM
+#include "mei_usb_pcm.h"
+#endif
 #include <utility>
 
 namespace neri::usb::uac1 {
 namespace {
 
-constexpr uint8_t kClassSpecificInterface = 0x24;
+[[maybe_unused]] constexpr uint8_t kClassSpecificInterface = 0x24;
 constexpr uint8_t kClassSpecificEndpoint = 0x25;
-constexpr uint8_t kAsGeneralSubtype = 0x01;
-constexpr uint8_t kFormatTypeSubtype = 0x02;
+[[maybe_unused]] constexpr uint8_t kAsGeneralSubtype = 0x01;
+[[maybe_unused]] constexpr uint8_t kFormatTypeSubtype = 0x02;
 constexpr uint8_t kEndpointGeneralSubtype = 0x01;
 constexpr uint8_t kFormatTypeI = 0x01;
 constexpr uint8_t kSamplingFrequencyControlMask = 0x01;
@@ -18,12 +21,12 @@ constexpr uint8_t kIsoAsyncSyncType = 0x04;
 constexpr uint8_t kIsoUsageTypeMask = 0x30;
 constexpr uint8_t kIsoImplicitUsageType = 0x20;
 
-uint16_t readLe16(const uint8_t* data) {
+[[maybe_unused]] uint16_t readLe16(const uint8_t* data) {
     return static_cast<uint16_t>(data[0]) |
         static_cast<uint16_t>(static_cast<uint16_t>(data[1]) << 8);
 }
 
-int readLe24(const uint8_t* data) {
+[[maybe_unused]] int readLe24(const uint8_t* data) {
     return static_cast<int>(data[0]) |
         (static_cast<int>(data[1]) << 8) |
         (static_cast<int>(data[2]) << 16);
@@ -59,7 +62,7 @@ bool validateDescriptorBounds(
     return true;
 }
 
-bool parseFormatDescriptor(
+[[maybe_unused]] bool parseFormatDescriptor(
     const uint8_t* descriptor,
     int length,
     TypeIFormat* output,
@@ -201,6 +204,20 @@ bool parseTypeIFormat(
     TypeIFormat* output,
     std::string* error
 ) {
+#ifdef MEI_USB_RUST_PCM
+    MeiUacFormat format {};
+    if (output == nullptr || extraLength < 0 || !mei_usb_parse_format(extra,static_cast<size_t>(extraLength),1,&format)) {
+        assignError(error,"rust_uac1_streaming_descriptor_invalid"); return false;
+    }
+    TypeIFormat parsed;
+    parsed.formatTag=static_cast<uint16_t>(format.format); parsed.channels=static_cast<int>(format.channels);
+    parsed.subslotBytes=static_cast<int>(format.subslot); parsed.bitsPerSample=static_cast<int>(format.bits);
+    parsed.sampleRateKind=static_cast<SampleRateKind>(format.rate_kind);
+    parsed.minimumSampleRate=static_cast<int>(format.minimum); parsed.maximumSampleRate=static_cast<int>(format.maximum);
+    parsed.discreteSampleRates.assign(format.rates,format.rates+format.rate_count);
+    *output=std::move(parsed); if(error) error->clear(); return true;
+#else
+
     if (output == nullptr || extraLength < 0 || (extra == nullptr && extraLength > 0)) {
         assignError(error, "invalid_streaming_descriptor_input");
         return false;
@@ -255,6 +272,7 @@ bool parseTypeIFormat(
         error->clear();
     }
     return true;
+#endif
 }
 
 bool parseEndpointControls(

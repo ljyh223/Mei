@@ -78,6 +78,9 @@ import com.ljyh.mei.di.repository.HistoryRepository
 import com.ljyh.mei.di.repository.SongRepository
 import com.ljyh.mei.extensions.currentMetadata
 import com.ljyh.mei.extensions.mediaItems
+import com.ljyh.mei.playback.usb.UsbPlaybackPreferences
+import com.ljyh.mei.playback.usb.UsbFloatingKeepAlive
+import com.ljyh.mei.playback.usb.usbPlaybackPreferences
 import com.ljyh.mei.playback.usb.UsbNativeBridge
 import com.ljyh.mei.playback.usb.hasPcmOutput
 import com.ljyh.mei.playback.equalizer.AudioEffectsController
@@ -145,6 +148,8 @@ class MusicService : MediaLibraryService(),
     private val firstTransitionProbe = TransitionAudioProbe()
     private val secondTransitionProbe = TransitionAudioProbe()
     @Volatile private var usbExclusiveEnabled = false
+    @Volatile private var usbPreferences = UsbPlaybackPreferences()
+    private lateinit var usbKeepAlive: UsbFloatingKeepAlive
     private lateinit var usbManager: UsbManager
     @Volatile private var usbDevices: Map<Int, String> = emptyMap()
     private var usbReconfigureJob: Job? = null
@@ -201,7 +206,9 @@ class MusicService : MediaLibraryService(),
     lateinit var lyricManager: LyricManager
     override fun onCreate() {
         super.onCreate()
-        usbExclusiveEnabled = runBlocking { dataStore.data.first()[UsbExclusivePlaybackKey] ?: false }
+        val usbInitialSettings = runBlocking { dataStore.data.first() }
+        usbExclusiveEnabled = usbInitialSettings[UsbExclusivePlaybackKey] ?: false
+        usbPreferences = usbInitialSettings.usbPlaybackPreferences()
         usbManager = getSystemService(UsbManager::class.java)
         usbDevices = connectedUsbDevices()
         updateUsbEnvironment()
@@ -289,6 +296,8 @@ class MusicService : MediaLibraryService(),
 
         desktopLyricsController = DesktopLyricsController(this, player, lyricManager, scope)
         desktopLyricsController.start()
+        usbKeepAlive = UsbFloatingKeepAlive(this, player) { usbPreferences.floatingKeepAlive }
+        usbKeepAlive.start(scope)
         audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor)
         standbyAudioEffectsController = AudioEffectsController(this, scope, standbyEqualizerProcessor)
 
@@ -304,14 +313,19 @@ class MusicService : MediaLibraryService(),
             },
         )
         scope.launch {
-            dataStore.data.map { it[UsbExclusivePlaybackKey] ?: false }
+            dataStore.data.map { (it[UsbExclusivePlaybackKey] ?: false) to it.usbPlaybackPreferences() }
                 .distinctUntilChanged()
-                .collect { enabled ->
-                    if (enabled == usbExclusiveEnabled) return@collect
+                .collect { (enabled, settings) ->
+                    val reconfigure = enabled != usbExclusiveEnabled || (enabled && settings.formatPolicy() != usbPreferences.formatPolicy())
+                    usbPreferences = settings
                     usbExclusiveEnabled = enabled
+                    usbKeepAlive.update()
+                    if (!reconfigure) return@collect
                     usbReconfigureJob?.cancel()
                     usbPermissionRequested.clear()
                     usbDevices = connectedUsbDevices()
+                    // A changed format policy is an explicit fresh attempt, including after a format rejection.
+                    UsbOutputState.store.resetNativeRetry()
                     updateUsbEnvironment()
                     requestUsbPermissionIfNeeded()
                     audioPlayer.cancelFade()
@@ -699,6 +713,7 @@ class MusicService : MediaLibraryService(),
         audioPlayer.release()
         audioEffectsController.release()
         standbyAudioEffectsController.release()
+        usbKeepAlive.close()
         desktopLyricsController.close()
         player.release()
         CacheManager.release()
@@ -767,6 +782,7 @@ class MusicService : MediaLibraryService(),
                             }
                         }
                     },
+                    preferences = { usbPreferences },
                 ) { usbExclusiveEnabled }
                 val usb = DefaultAudioSink.Builder(this@MusicService)
                     .setEnableFloatOutput(true)

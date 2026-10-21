@@ -39,6 +39,13 @@ internal class UsbOutputStatusStore {
     }
 
     @Synchronized
+    fun resetNativeRetry() {
+        nativeBlocked = false
+        attempt = null
+        mutableStatus.value = idleStatus()
+    }
+
+    @Synchronized
     fun nativeUsable(): Boolean = enabled && supported && devices.isNotEmpty() && !nativeBlocked
 
     @Synchronized

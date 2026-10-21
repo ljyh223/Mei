@@ -40,6 +40,27 @@ class UsbPcmAudioOutputTest {
         fun write(frames: Int): ByteBuffer = ByteBuffer.allocateDirect(frames * 4).also { output.write(it, 1, 0) }
     }
 
+    @Test fun lowLatencyPrerollCanStartWithoutWaitingFor300Ms() {
+        val t = Transport()
+        val output = UsbPcmAudioOutput(t, 1000, 4, 0, { 0 }, {}, {}, {}, prerollMs = { 50 })
+        output.play()
+        output.write(ByteBuffer.allocateDirect(49 * 4), 1, 0)
+        assertEquals(0, t.starts)
+        output.write(ByteBuffer.allocateDirect(4), 1, 0)
+        assertEquals(1, t.starts)
+    }
+
+    @Test fun resampledClockUsesOutputRateAndStillReportsInputBufferFrames() {
+        val t = Transport()
+        val output = UsbPcmAudioOutput(t, 1000, 4, 0, { 0 }, {}, {}, {}, outputRate = 2000)
+        output.write(ByteBuffer.allocateDirect(1000 * 4), 1, 0)
+        t.completed = 1500
+        assertEquals(750000L, output.positionUs)
+        assertEquals(300L, output.bufferSizeInFrames)
+        t.completed = 3000
+        assertEquals(1000000L, output.positionUs)
+    }
+
     @Test fun playWaitsForRealPcmPrerollBeforeStartingTransport() {
         val f = Fixture()
         f.output.play()

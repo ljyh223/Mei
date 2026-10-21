@@ -38,6 +38,7 @@ import com.ljyh.mei.ui.screen.setting.ContentsSettingScreen
 import com.ljyh.mei.ui.screen.setting.DownloadManageScreen
 import com.ljyh.mei.ui.screen.setting.DownloadSettingScreen
 import com.ljyh.mei.ui.screen.setting.CacheSettingsScreen
+import com.ljyh.mei.ui.screen.setting.UsbExclusiveSettingsScreen
 import com.ljyh.mei.ui.screen.setting.PlaySettingScreen
 import com.ljyh.mei.ui.screen.setting.EqualizerSettingScreen
 import com.ljyh.mei.ui.screen.setting.LxSourcesScreen
@@ -92,6 +93,9 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable(Screen.ContentSettings.route) {
         ContentsSettingScreen(scrollBehavior)
+    }
+    composable(Screen.UsbExclusiveSettings.route) {
+        UsbExclusiveSettingsScreen(scrollBehavior)
     }
     composable(Screen.PlaySettings.route){
         PlaySettingScreen(scrollBehavior)

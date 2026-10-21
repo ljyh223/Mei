@@ -973,6 +973,34 @@ void finishClosedUsbResources(UsbExclusiveHandle* handle) {
     LOGI("closeHandleInternal done");
 }
 
+// Mei capability probe, scoped independently of a streaming session.
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_ljyh_mei_playback_usb_UsbNativeBridge_nativeOutputFormats(JNIEnv* env, jclass, jint fd) {
+    struct Probe {
+        int fd = -1;
+        libusb_context* context = nullptr;
+        libusb_device_handle* device = nullptr;
+        ~Probe() {
+            if (device != nullptr) libusb_close(device);
+            if (context != nullptr) libusb_exit(context);
+            if (fd >= 0) close(fd);
+        }
+    } probe;
+    std::string report;
+    try {
+        std::lock_guard<std::mutex> transitionGuard(g_usbInterfaceTransitionLock);
+        probe.fd = dup(fd);
+        if (probe.fd >= 0 &&
+            libusb_set_option(nullptr, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, nullptr) == LIBUSB_SUCCESS &&
+            libusb_init(&probe.context) == LIBUSB_SUCCESS &&
+            libusb_wrap_sys_device(probe.context, static_cast<intptr_t>(probe.fd), &probe.device) == LIBUSB_SUCCESS)
+            report = describeOutputFormats(probe.device);
+    } catch (const std::exception& error) {
+        LOGW("USB capability probe failed: %s", error.what());
+    }
+    return env->NewStringUTF(report.c_str());
+}
+
 extern "C"
 JNIEXPORT jlong JNICALL
 Java_com_ljyh_mei_playback_usb_UsbNativeBridge_nativeOpen(

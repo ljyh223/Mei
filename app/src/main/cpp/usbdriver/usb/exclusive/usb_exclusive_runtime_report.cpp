@@ -200,7 +200,9 @@ Java_com_ljyh_mei_playback_usb_UsbNativeBridge_nativeRuntimeReport(
             holder->transfer.feedbackRuntime.snapshot();
         const bool feedbackTerminalFailure = explicitFeedback &&
             feedbackRuntime.terminalFailure;
-        const bool terminalFailure = holder->recovery.transportFailed.load() ||
+        // A poisoned Rust core returns an empty snapshot: fail closed even after the last source write.
+        const bool pcmCoreFailure = holder->transfer.streamSource.load() == StreamSource::PlayerPcm && pcm.capacityBytes == 0;
+        const bool terminalFailure = pcmCoreFailure || holder->recovery.transportFailed.load() ||
             !holder->recovery.deviceOnline.load() || feedbackTerminalFailure;
         if (terminalFailure) {
             refreshTerminalRecoveryAction(holder.get(), feedbackTerminalFailure);
@@ -442,8 +444,13 @@ Java_com_ljyh_mei_playback_usb_UsbNativeBridge_nativeRuntimeReport(
         if (claimedInterfaceSummary.empty()) {
             claimedInterfaceSummary = "none";
         }
+#ifdef MEI_USB_RUST_PCM
+        const std::string pcmBackend = " pcmBackend=rust";
+#else
+        const std::string pcmBackend = " pcmBackend=cpp";
+#endif
         const std::string report =
-            v2Fields +
+            v2Fields + pcmBackend +
             " iface=" + std::to_string(holder->device.audioStreamingInterface) +
             " acIface=" + std::to_string(holder->device.audioControlInterface) +
             " alt=" + std::to_string(holder->device.alternateSetting) +

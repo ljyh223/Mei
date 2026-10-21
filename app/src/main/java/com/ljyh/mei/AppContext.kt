@@ -45,6 +45,7 @@ class AppContext : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        registerActivityLifecycleCallbacks(com.ljyh.mei.playback.usb.UsbAppVisibility)
         startupScope.launch {
             dataStore.data
                 .map { preferences -> preferences[CookieKey].orEmpty() to preferences[UserIdKey].orEmpty() }
