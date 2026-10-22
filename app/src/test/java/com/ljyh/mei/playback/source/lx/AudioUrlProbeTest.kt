@@ -43,4 +43,21 @@ class AudioUrlProbeTest {
             assertFalse(PreviewPolicy.isPreview(full))
         } finally { server.stop(0) }
     }
+    @Test fun anHttpFailureIsNotRetriedByEveryExtractor() = runBlocking {
+        val requests = java.util.concurrent.atomic.AtomicInteger()
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/missing") { exchange ->
+            requests.incrementAndGet()
+            val bytes = "<html>Not found</html>".toByteArray()
+            exchange.responseHeaders.add("Content-Type", "text/html")
+            exchange.sendResponseHeaders(404, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        }
+        server.start()
+        try {
+            assertNull(AudioUrlProbe().durationMs("http://127.0.0.1:${server.address.port}/missing"))
+            assertEquals(1, requests.get())
+        } finally { server.stop(0) }
+    }
+
 }

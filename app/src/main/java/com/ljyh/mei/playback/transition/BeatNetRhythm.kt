@@ -82,14 +82,16 @@ internal object BeatNetRhythmPlanner {
 
     fun plan(outgoing: BeatNetRhythm, incoming: BeatNetRhythm, durationMs: Long): BeatNetTransitionPlan? {
         val confidence = min(outgoing.confidence, incoming.confidence)
-        if (confidence < 0.08 || outgoing.beatsMs.isEmpty() || incoming.beatsMs.isEmpty()) return null
+        if (confidence < 0.35 || outgoing.beatsMs.isEmpty() || incoming.beatsMs.isEmpty()) return null
         val candidateBpm = listOf(incoming.bpm / 2, incoming.bpm, incoming.bpm * 2)
             .minByOrNull { abs(it - outgoing.bpm) } ?: return null
         if (candidateBpm <= 0 || !candidateBpm.isFinite() || !outgoing.bpm.isFinite()) return null
         val ratio = outgoing.bpm / candidateBpm
+        // More than ~10% tempo difference cannot be blended cleanly inside a few bars.
+        if (abs(ratio - 1) > 0.10) return null
         val rate = if (abs(ratio - 1) <= 0.06) ratio.toFloat() else 1f
         val barMs = (4 * 60_000.0 / outgoing.bpm).roundToLong()
-        val overlapMs = (4 * barMs).coerceIn(4_000L, 16_000L)
+        val overlapMs = (4 * barMs).coerceIn(4_000L, 12_000L)
         val wantedStart = (durationMs - overlapMs).coerceAtLeast(0L)
         val outgoingMarkers = outgoing.downbeatsMs.takeIf { it.isNotEmpty() } ?: outgoing.beatsMs
         val outgoingStart = outgoingMarkers.minByOrNull { abs(it - wantedStart) } ?: return null

@@ -30,6 +30,7 @@ sealed class Screen(val route:String) {
     data object UsbExclusiveSettings:Screen("setting/play/usb")
     data object DeveloperSettings:Screen("setting/developer")
     data object Equalizer:Screen("setting/play/equalizer")
+    data object ReverbSettings:Screen("setting/play/reverb")
     data object DownloadSettings:Screen("setting/download")
     data object CacheSettings:Screen("setting/cache")
     data object DownloadManage:Screen("download_manage")

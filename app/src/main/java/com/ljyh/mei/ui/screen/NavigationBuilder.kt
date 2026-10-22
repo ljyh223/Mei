@@ -43,6 +43,7 @@ import com.ljyh.mei.ui.screen.setting.CacheSettingsScreen
 import com.ljyh.mei.ui.screen.setting.UsbExclusiveSettingsScreen
 import com.ljyh.mei.ui.screen.setting.PlaySettingScreen
 import com.ljyh.mei.ui.screen.setting.EqualizerSettingScreen
+import com.ljyh.mei.ui.screen.setting.ReverbSettingScreen
 import com.ljyh.mei.ui.screen.setting.LxSourcesScreen
 import com.ljyh.mei.ui.screen.setting.SettingScreen
 import com.ljyh.mei.ui.screen.setting.DeveloperSettingsScreen
@@ -130,6 +131,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     pageDestination(Screen.Equalizer.route) {
         EqualizerSettingScreen(scrollBehavior)
+    }
+
+    pageDestination(Screen.ReverbSettings.route) {
+        ReverbSettingScreen(scrollBehavior)
     }
 
     pageDestination(Screen.DownloadSettings.route) {

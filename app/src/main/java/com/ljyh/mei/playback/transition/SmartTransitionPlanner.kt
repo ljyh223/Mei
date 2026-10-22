@@ -5,31 +5,44 @@ import kotlin.math.max
 
 internal data class TransitionPlan(val durationMs: Long, val incomingStartMs: Long = 0L)
 
-/** Builds a conservative plan from 100 ms RMS windows measured by the audio sinks. */
+/**
+ * Builds a conservative plan from 100 ms RMS windows measured by the audio sinks.
+ *
+ * Returns null when a crossfade would sound forced: no measurements, a track that already ends
+ * in silence, two dense tracks without a shared pulse, or incompatible tempos. Letting the track
+ * end naturally is a better outcome than overlapping everything.
+ */
 internal object SmartTransitionPlanner {
-    fun plan(outgoing: List<Float>, incoming: List<Float>, availableMs: Long): TransitionPlan {
-        if (outgoing.size < 30 || incoming.size < 12) return TransitionPlan(6_000L)
-        val outgoingLevel = outgoing.takeLast(30).average().toFloat()
+    fun plan(outgoing: List<Float>, incoming: List<Float>, availableMs: Long): TransitionPlan? {
+        if (availableMs < 2_500L) return null
+        if (outgoing.size < 30 || incoming.size < 12) return null
+        val tail = outgoing.takeLast(20)
+        val outgoingLevel = tail.average().toFloat()
+        // Already fading to silence: no crossfade needed.
+        if (outgoingLevel < 0.008f) return null
         val incomingLevel = incoming.dropWhile { it < 0.012f }
         val introSilenceMs = ((incoming.size - incomingLevel.size) * 100L).coerceAtMost(2_000L)
         val incomingStart = (introSilenceMs - 200L).coerceAtLeast(0L)
         val introLevel = incomingLevel.take(20).average().toFloat()
 
-        // A quiet outro should hand over promptly; dense material needs a longer overlap.
-        var duration = when {
-            outgoingLevel < 0.025f -> 3_500L
-            outgoingLevel > 0.17f && introLevel > 0.17f -> 8_000L
-            else -> 6_000L
-        }
         val outgoingBeat = estimateBeatMs(outgoing)
         val incomingBeat = estimateBeatMs(incoming)
-        if (outgoingBeat != null && incomingBeat != null &&
-            abs(outgoingBeat - incomingBeat) < max(outgoingBeat, incomingBeat) * 0.12f
-        ) {
-            // End after four bars when both songs have a compatible pulse.
-            duration = (16 * ((outgoingBeat + incomingBeat) / 2L)).coerceIn(4_000L, 10_000L)
+        val matchedPulse = outgoingBeat != null && incomingBeat != null &&
+            abs(outgoingBeat - incomingBeat) < max(outgoingBeat, incomingBeat) * 0.10f
+        // Different tempos cannot be blended musically without time-stretching.
+        if (outgoingBeat != null && incomingBeat != null && !matchedPulse) return null
+
+        val duration = when {
+            matchedPulse -> (16 * ((outgoingBeat + incomingBeat) / 2L)).coerceIn(3_500L, 8_000L)
+            // Without a reliable pulse, only blend when at least one side is sparse.
+            outgoingLevel > 0.12f && introLevel > 0.12f -> return null
+            outgoingLevel < 0.03f -> 3_000L
+            else -> 2_500L
         }
-        return TransitionPlan(duration.coerceAtMost((availableMs - 500L).coerceAtLeast(2_000L)), incomingStart)
+        return TransitionPlan(
+            durationMs = duration.coerceAtMost((availableMs - 500L).coerceAtLeast(1_500L)),
+            incomingStartMs = incomingStart,
+        )
     }
 
     internal fun estimateBeatMs(values: List<Float>): Long? {

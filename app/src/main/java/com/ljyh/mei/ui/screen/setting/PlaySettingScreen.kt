@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Usb
@@ -127,6 +128,13 @@ fun PlaySettingScreen(
                     onClick = { Screen.Equalizer.navigate(navController) },
                     isEnabled = !usbExclusive,
                 )
+                PreferenceEntry(
+                    title = { Text("混响") },
+                    description = if (usbExclusive) "USB 独占播放时不可用" else "房间、大厅、板式与自定义参数",
+                    icon = { Icon(Icons.Rounded.Waves, null) },
+                    onClick = { Screen.ReverbSettings.navigate(navController) },
+                    isEnabled = !usbExclusive,
+                )
                 EnumListPreference(
                     title = { Text("音乐质量") },
                     icon = { Icon(Icons.Rounded.HighQuality, null) },
@@ -144,7 +152,7 @@ fun PlaySettingScreen(
                 )
                 SwitchPreference(
                     title = { Text("歌曲过渡") },
-                    description = if (usbExclusive) "USB 独占播放时不可用" else "根据音乐节奏衔接歌曲；同专辑歌曲保持原有间隔",
+                    description = if (usbExclusive) "USB 独占播放时不可用" else "仅在节奏匹配时衔接；同专辑与不匹配的歌曲自然结束",
                     icon = { Icon(Icons.Rounded.GraphicEq, null) },
                     checked = transitionEnabled,
                     onCheckedChange = onTransitionEnabledChange,
