@@ -472,25 +472,6 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.weight(1f))
-                    TextButton(onClick = { autoEqPicker.launch(arrayOf("*/*")) }) {
-                        Text("导入")
-                    }
-                    TextButton(onClick = {
-                        val clipboard = context.getSystemService(ClipboardManager::class.java)
-                        clipboard?.setPrimaryClip(
-                            ClipData.newPlainText("AutoEQ", AutoEqFormat.export(profile))
-                        )
-                        Toast.makeText(context, "曲线已复制", Toast.LENGTH_SHORT).show()
-                    }) {
-                        Text("导出")
-                    }
-                    TextButton(onClick = { showBundleDialog = true }) { Text("整套") }
-                    TextButton(onClick = {
-                        bulkMode = !bulkMode
-                        if (!bulkMode) bulkSelection = emptySet()
-                    }) {
-                        Text(if (bulkMode) "完成" else "批量")
-                    }
                     TextButton(onClick = { showSaveDialog = true }) {
                         Icon(Icons.Rounded.Save, null)
                         Spacer(Modifier.width(4.dp))
@@ -514,6 +495,33 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                             selectedId = id
                         },
                     ) { Icon(Icons.Rounded.Add, null); Text("添加") }
+                }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TextButton(onClick = { autoEqPicker.launch(arrayOf("*/*")) }) {
+                        Text("导入")
+                    }
+                    TextButton(onClick = {
+                        val clipboard = context.getSystemService(ClipboardManager::class.java)
+                        clipboard?.setPrimaryClip(
+                            ClipData.newPlainText("AutoEQ", AutoEqFormat.export(profile))
+                        )
+                        Toast.makeText(context, "曲线已复制", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Text("导出")
+                    }
+                    TextButton(onClick = { showBundleDialog = true }) { Text("整套") }
+                    TextButton(onClick = {
+                        bulkMode = !bulkMode
+                        if (!bulkMode) bulkSelection = emptySet()
+                    }) {
+                        Text(if (bulkMode) "完成" else "批量")
+                    }
                 }
 
                 if (bulkMode) {
