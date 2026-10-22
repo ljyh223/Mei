@@ -33,13 +33,13 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Prepare Android SDK
         run: |
           sdkmanager_path="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           (yes || true) | "$sdkmanager_path" --licenses >/dev/null
-          "$sdkmanager_path" 'platforms;android-37' 'build-tools;34.0.0' 'cmake;3.22.1'
+          "$sdkmanager_path" 'platforms;android-37.0' 'build-tools;34.0.0' 'cmake;3.22.1'
 
       - name: Prepare Rust USB toolchain
         run: |
