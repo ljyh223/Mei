@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.screen.main.home
 
 import com.ljyh.mei.playback.queue.QueueSource
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,6 +70,9 @@ import com.ljyh.mei.data.model.eapi.homeResourcePositionComparator
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.ui.component.glass.LocalMeiPageProgress
+import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.track.PlayingImageView
@@ -74,7 +81,6 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.utils.DateUtils.getGreeting
 import com.ljyh.mei.utils.preferences.rememberPreference
 import java.util.UUID
 import kotlinx.serialization.json.Json
@@ -83,6 +89,8 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,6 +111,11 @@ fun HomeScreen(
 
     val homePageResourceShowPage1 by viewModel.homePageResourceShow.collectAsState()
     val userId by rememberPreference(UserIdKey, "")
+    val sortedBlocks = remember(homePageResourceShowPage1) {
+        val result = homePageResourceShowPage1
+        if (result is Resource.Success) result.data.sortedWith(homeResourcePositionComparator)
+        else emptyList()
+    }
     val isRefreshing by remember { mutableStateOf(false) }
     val device = rememberDeviceInfo()
 
@@ -119,74 +132,84 @@ fun HomeScreen(
     }
 
     val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
-    // 首页没有 top bar，只让状态栏占位，避免顶部再空出一条 AppBarHeight。
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val pageHaze = rememberHazeState()
+    val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
+    val titleProgress by remember(listState, collapseDistance) {
+        derivedStateOf {
+            if (listState.firstVisibleItemIndex > 0) 1f
+            else (listState.firstVisibleItemScrollOffset / collapseDistance).coerceIn(0f, 1f)
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) {
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.homePageResourceShow(true) },
-        ) {
-            when (val result = homePageResourceShowPage1) {
-                is Resource.Success -> {
-                    // 排序逻辑移出 LazyColumn，减少重组时的计算
-                    val sortedBlocks = remember(result.data) {
-                        result.data.sortedWith(homeResourcePositionComparator)
-                    }
-
-
+        // Capture the page and its base colour; the compact bar stays outside this source.
+        Box(Modifier.fillMaxSize().hazeSource(pageHaze).background(MaterialTheme.colorScheme.surface)) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.homePageResourceShow(true) },
+            ) {
+                CompositionLocalProvider(LocalMeiPageProgress provides titleProgress) {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
                             top = statusBarTop + 12.dp,
-                            bottom = playerAwarePadding.calculateBottomPadding() + 16.dp
+                            bottom = playerAwarePadding.calculateBottomPadding() + 16.dp,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(28.dp)
                     ) {
-                        if (sortedBlocks.isEmpty()) {
-                            item(key = "home_empty") {
-                                HomeStatus(
-                                    title = "还没有推荐内容",
-                                    onRetry = { viewModel.homePageResourceShow(true) },
-                                )
-                            }
+                        item(key = "home_title") {
+                            MeiLargeTitle("推荐", modifier = Modifier.padding(bottom = 16.dp))
                         }
-                        sortedBlocks.forEach { block ->
-                            item(key = block.positionCode) {
-                                HomeBlockItem(
-                                    block = block,
-                                    navController = navController,
-                                    viewModel = viewModel,
-                                    playerViewModel = playerViewModel,
-                                    device = device,
-                                )
+                        when (homePageResourceShowPage1) {
+                            is Resource.Success -> {
+                                if (sortedBlocks.isEmpty()) {
+                                    item(key = "home_empty") {
+                                        Box(Modifier.fillParentMaxHeight(0.65f), contentAlignment = Alignment.Center) {
+                                            HomeStatus(
+                                                title = "还没有推荐内容",
+                                                onRetry = { viewModel.homePageResourceShow(true) },
+                                            )
+                                        }
+                                    }
+                                }
+                                sortedBlocks.forEach { block ->
+                                    item(key = block.positionCode) {
+                                        Box(Modifier.padding(bottom = 28.dp)) {
+                                            HomeBlockItem(
+                                                block = block,
+                                                navController = navController,
+                                                viewModel = viewModel,
+                                                playerViewModel = playerViewModel,
+                                                device = device,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            is Resource.Error -> {
+                                item(key = "home_error") {
+                                    Box(Modifier.fillParentMaxHeight(0.65f), contentAlignment = Alignment.Center) {
+                                        HomeStatus(
+                                            title = "暂时无法加载推荐",
+                                            onRetry = { viewModel.homePageResourceShow(true) },
+                                        )
+                                    }
+                                }
+                            }
+                            Resource.Loading -> {
+                                item(key = "home_loading") { HomeShimmer(viewModel = viewModel) }
                             }
                         }
                     }
-                }
-
-                is Resource.Error -> {
-                    Box(
-                        Modifier.fillMaxSize().padding(playerAwarePadding),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        HomeStatus(
-                            title = "暂时无法加载推荐",
-                            onRetry = { viewModel.homePageResourceShow(true) },
-                        )
-                    }
-                }
-
-                Resource.Loading -> {
-                    HomeShimmer(viewModel = viewModel)
                 }
             }
         }
+        MeiHazeTopBar(state = pageHaze, title = "推荐", progress = titleProgress)
     }
 }
 
@@ -286,7 +309,7 @@ private fun HomeBlockItem(
             }
 
             BlockWithTitle(
-                title = getGreeting(),
+                title = null,
                 resources = resources
             ) { resource ->
 
@@ -456,12 +479,12 @@ private fun HomeBlockItem(
  */
 @Composable
 private fun <T> BlockWithTitle(
-    title: String,
+    title: String?,
     resources: List<T>,
     content: @Composable (T) -> Unit
 ) {
     Column {
-        Title(title)
+        if (!title.isNullOrBlank()) Title(title)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 20.dp), // 左右留白

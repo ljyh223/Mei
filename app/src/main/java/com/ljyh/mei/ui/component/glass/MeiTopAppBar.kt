@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -37,7 +40,7 @@ import dev.chrisbanes.haze.HazeState
 fun MeiTopAppBar(
     title: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    navigationIcon: @Composable () -> Unit = {},
+    navigationIcon: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
     large: Boolean = false,
@@ -52,19 +55,19 @@ fun MeiTopAppBar(
         // The shared backdrop owns the surface in both live and fallback modes.
         val barColors = colors.copy(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent)
         val icon: @Composable () -> Unit = {
-            if (glassNavigationIcon) {
-                MeiGlassSurface(
-                    modifier = Modifier.padding(start = 8.dp).size(48.dp),
-                    shape = RoundedCornerShape(50),
-                    role = MeiGlassRole.PlayerControl,
-                    hazeState = source,
-                ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { navigationIcon() }
+            if (navigationIcon != null) {
+                if (glassNavigationIcon) {
+                    MeiToolbarIconContainer(
+                        modifier = Modifier.padding(start = 8.dp),
+                        hazeState = source,
+                        content = navigationIcon,
+                    )
+                } else {
+                    navigationIcon()
                 }
-            } else {
-                navigationIcon()
             }
         }
+
         when {
             large -> LargeTopAppBar(
                 title = title,
@@ -100,22 +103,43 @@ fun MeiGlassBackButton(
     contentDescription: String = "返回",
     hazeState: HazeState? = null,
 ) {
-    MeiGlassSurface(
-        modifier = modifier.padding(horizontal = 8.dp, vertical = 4.dp).size(40.dp),
-        shape = RoundedCornerShape(50),
-        role = MeiGlassRole.Group,
-        tintColor = MaterialTheme.colorScheme.surface,
-        hazeState = hazeState,
+    MeiToolbarIconContainer(
+        modifier = modifier.padding(horizontal = 4.dp, vertical = 3.dp),
+        hazeState = hazeState ?: LocalMeiHazeState.current,
     ) {
         Box(
-            Modifier.fillMaxSize().combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            Modifier.fillMaxSize().clip(CircleShape).combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                role = Role.Button,
+                onClickLabel = contentDescription,
+            ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp),
             )
         }
+    }
+}
+
+/** One quiet 40dp lens with a separate, full-sized 48dp interaction/content slot. */
+@Composable
+private fun MeiToolbarIconContainer(
+    modifier: Modifier = Modifier,
+    hazeState: HazeState?,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier.size(48.dp), contentAlignment = Alignment.Center) {
+        MeiGlassSurface(
+            modifier = Modifier.size(40.dp),
+            shape = RoundedCornerShape(50),
+            role = MeiGlassRole.ToolbarControl,
+            hazeState = hazeState,
+        ) {}
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
     }
 }

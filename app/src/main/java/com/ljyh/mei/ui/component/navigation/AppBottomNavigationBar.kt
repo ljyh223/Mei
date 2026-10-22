@@ -176,10 +176,10 @@ private fun NavigationTabs(
                     val itemX = lerp(start, 0.dp, compact)
                     val itemWidth = lerp(expandedItemWidth, 48.dp, compact)
                     val fill by animateColorAsState(
-                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                        if (selected) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.65f) else Color.Transparent,
                         label = "navigationSelection",
                     )
-                    val ink = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                    val ink = if (selected) MaterialTheme.colorScheme.onSurface
                         else if (strongContent) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     val action = if (selected && compact >= 0.5f) {
@@ -266,7 +266,7 @@ private fun SearchField(
     MeiGlassSurface(
         modifier = modifier.height(bottomNavigationContentHeight(LocalDensity.current.fontScale)),
         shape = CircleShape,
-        role = MeiGlassRole.Navigation,
+        role = MeiGlassRole.Search,
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -283,6 +283,7 @@ private fun SearchField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f)
+                    .semantics { contentDescription = SearchPlaceholder }
                     .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
                 singleLine = true,
                 enabled = enabled,

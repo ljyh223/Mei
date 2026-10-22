@@ -182,7 +182,7 @@ fun SearchBar(
 
         MeiGlassSurface(
             shape = animatedShape,
-            role = MeiGlassRole.Navigation,
+            role = MeiGlassRole.Search,
             hazeState = if (animationProgress == 0f) LocalMeiHazeState.current else null,
             modifier = Modifier
                 .padding(

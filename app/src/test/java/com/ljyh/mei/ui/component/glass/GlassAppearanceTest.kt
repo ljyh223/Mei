@@ -43,17 +43,22 @@ class GlassAppearanceTest {
     @Test
     fun defaultForegroundRetainsContrastOverExtremeBackdropColors() {
         val backgrounds = listOf(Color.White, Color.Black, Color.Red, Color.Cyan, Color.Yellow)
-        val roles = listOf(MeiGlassRole.Navigation, MeiGlassRole.MiniPlayer, MeiGlassRole.Group)
+        val roles = listOf(MeiGlassRole.Navigation, MeiGlassRole.MiniPlayer, MeiGlassRole.Search, MeiGlassRole.Group, MeiGlassRole.ToolbarControl)
         for (dark in listOf(false, true)) for (accent in listOf(Color.Yellow, Color.Cyan, Color.Red)) {
             val scheme = meiColorScheme(if (dark) darkColorScheme(primary = accent)
                 else lightColorScheme(primary = accent), dark)
             for (role in roles) for (background in backgrounds) {
                 val surface = scheme.surfaceContainerLow.copy(alpha = GlassAppearance.Balanced.opacityFor(role))
                     .compositeOver(background)
-                val a = scheme.onSurface.luminance()
-                val b = surface.luminance()
-                val ratio = (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
-                assertTrue("Contrast $ratio below 4.5 for $role, dark=$dark", ratio >= 4.5f)
+                val readingSurfaces = if (role == MeiGlassRole.Navigation) {
+                    listOf(surface, scheme.surfaceContainerHighest.copy(alpha = 0.65f).compositeOver(surface))
+                } else listOf(surface)
+                for (readingSurface in readingSurfaces) {
+                    val a = scheme.onSurface.luminance()
+                    val b = readingSurface.luminance()
+                    val ratio = (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
+                    assertTrue("Contrast $ratio below 4.5 for $role, dark=$dark", ratio >= 4.5f)
+                }
             }
         }
     }

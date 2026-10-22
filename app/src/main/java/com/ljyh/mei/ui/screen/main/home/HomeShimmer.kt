@@ -3,9 +3,7 @@ package com.ljyh.mei.ui.screen.main.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +16,6 @@ import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.constants.RecommendCardWidthTablet
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 
 @Composable
 fun HomeShimmer(viewModel: HomeViewModel) {
@@ -26,35 +23,21 @@ fun HomeShimmer(viewModel: HomeViewModel) {
     val recommendCardWidth = if (device.isTablet) RecommendCardWidthTablet else RecommendCardWidth
     val recommendCardHeight = if (device.isTablet) RecommendCardHeightTablet else RecommendCardHeight
     val playlistCardSize = if (device.isTablet) PlaylistCardSizeTablet else PlaylistCardSize
-    val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
 
-    SkeletonShimmerHost(
-        enabled = true,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+    // The page owns the title, scroll state and safe areas in every loading state.
+    SkeletonShimmerHost(enabled = true, modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(28.dp),
-            contentPadding = PaddingValues(
-                top = systemBarsPadding.calculateTopPadding() + 16.dp,
-                bottom = systemBarsPadding.calculateBottomPadding() + 16.dp
-            )
         ) {
-            item {
-                RecommendRowShimmer(
-                    cardWidth = recommendCardWidth,
-                    cardHeight = recommendCardHeight,
-                    count = 3,
-                    viewModel = viewModel,
-                )
-            }
+            RecommendRowShimmer(
+                cardWidth = recommendCardWidth,
+                cardHeight = recommendCardHeight,
+                count = 3,
+                viewModel = viewModel,
+            )
             repeat(3) {
-                item {
-                    PlaylistBlockShimmer(
-                        cardSize = playlistCardSize,
-                        count = 4
-                    )
-                }
+                PlaylistBlockShimmer(cardSize = playlistCardSize, count = 4)
             }
         }
     }
@@ -68,7 +51,6 @@ private fun RecommendRowShimmer(
     viewModel: HomeViewModel,
 ) {
     Column {
-        Title(text = "", isLoading = true)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(horizontal = 20.dp)

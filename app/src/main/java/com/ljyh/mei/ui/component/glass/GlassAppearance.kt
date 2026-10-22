@@ -27,6 +27,7 @@ data class GlassAppearance(
         // Contrast mode still allows every opacity adjustment to have a visible effect.
         val base = when (role) {
             MeiGlassRole.MiniPlayer -> value.opacity + (1f - value.opacity) * 0.10f
+            MeiGlassRole.Search -> value.opacity + (1f - value.opacity) * 0.15f
             MeiGlassRole.Group -> value.opacity + (1f - value.opacity) * 0.25f
             else -> value.opacity
         }
