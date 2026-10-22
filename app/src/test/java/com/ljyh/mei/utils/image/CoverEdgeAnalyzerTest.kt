@@ -67,6 +67,16 @@ class CoverEdgeAnalyzerTest {
     }
 
     @Test
+    fun fullyOccupiedBottomEdgeStillExtendsSoftly() {
+        val pixels = IntArray(side * side) { background }
+        for (y in 100 until side) for (x in 0 until side) pixels[y * side + x] = foreground
+        val result = requireNotNull(analyzeCoverBackground(pixels, side, side))
+        assertTrue(result.isSolidBackground)
+        assertEquals(0f, result.sideMatches[2], 0.01f)
+        assertEquals(CoverExtensionMode.SOFT, result.mode)
+    }
+
+    @Test
     fun fineGrainTextureIsRejected() {
         var seed = 7
         val pixels = IntArray(side * side) {

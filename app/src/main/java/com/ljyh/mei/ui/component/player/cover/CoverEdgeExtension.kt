@@ -138,6 +138,7 @@ internal fun rememberCoverEdgeArtwork(imageUrl: String?): CoverEdgeArtwork? {
                     }
                     val textures = buildCoverEdgeTexture(
                         texturePixels, TextureSize, TextureSize, analysis.color, analysis.mode,
+                        analysis.sideMatches,
                     )
                     CoverEdgeArtwork(
                         texture = Bitmap.createBitmap(

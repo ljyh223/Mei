@@ -16,6 +16,7 @@ internal fun buildCoverEdgeTexture(
     height: Int,
     backgroundColor: Int,
     mode: CoverExtensionMode,
+    sideMatches: List<Float> = listOf(1f, 1f, 1f, 1f),
 ): CoverEdgeTexturePixels {
     require(width > 0 && height > 0 && pixels.size >= width * height)
     val extension = pixels.copyOf(width * height)
@@ -26,18 +27,30 @@ internal fun buildCoverEdgeTexture(
         }
     }
 
-    val featherWidth = (min(width, height) * when (mode) {
+    val baseWidth = (min(width, height) * when (mode) {
         CoverExtensionMode.SOFT -> 0.15f
         else -> 0.07f
     }).roundToInt().coerceAtLeast(3)
+    // A side covered by artwork gets a narrow feather: it still hides the flat rim, but does not
+    // wash the subject with the background color.
+    val widths = listOf(0, 1, 2, 3).map { side ->
+        if ((sideMatches.getOrNull(side) ?: 1f) >= 0.5f) baseWidth
+        else (min(width, height) * 0.04f).roundToInt().coerceAtLeast(2)
+    }
     val feather = IntArray(width * height)
     val rgb = backgroundColor and 0x00ffffff
     for (y in 0 until height) for (x in 0 until width) {
-        val distance = min(min(x, width - 1 - x), min(y, height - 1 - y))
-        if (distance >= featherWidth) continue
-        val fraction = (1f - distance.toFloat() / featherWidth).coerceIn(0f, 1f)
-        val alpha = (fraction * fraction * 255f).roundToInt()
-        feather[y * width + x] = (alpha shl 24) or rgb
+        val distances = intArrayOf(y, width - 1 - x, height - 1 - y, x)
+        var alpha = 0f
+        for (side in 0..3) {
+            val width = widths[side]
+            val distance = distances[side]
+            if (distance >= width) continue
+            val fraction = (1f - distance.toFloat() / width).coerceIn(0f, 1f)
+            alpha = maxOf(alpha, fraction * fraction)
+        }
+        if (alpha <= 0f) continue
+        feather[y * width + x] = ((alpha * 255f).roundToInt() shl 24) or rgb
     }
     return CoverEdgeTexturePixels(extension, feather, backgroundColor)
 }

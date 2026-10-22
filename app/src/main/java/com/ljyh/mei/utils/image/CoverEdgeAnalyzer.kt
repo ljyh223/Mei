@@ -175,9 +175,10 @@ internal fun analyzeCoverBackground(
         extensionConfidence >= config.softEdgeMatch &&
             weakestSide >= config.minimumSingleEdgeMatch && longestGap <= 0.35f ->
             CoverExtensionMode.SOFT
-        // Artwork crossing a single edge still leaves a usable flat rim on the other three.
-        occupiedSides == 1 && weakestSide >= 0.30f &&
-            (sideMatches.maxOrNull() ?: 0f) >= 0.85f -> CoverExtensionMode.SOFT
+        // Artwork crossing a single edge still leaves a usable flat rim on the other three,
+        // even when the subject covers that whole edge.
+        occupiedSides == 1 && (sideMatches.maxOrNull() ?: 0f) >= 0.85f &&
+            flatEnough -> CoverExtensionMode.SOFT
         else -> CoverExtensionMode.NONE
     }
     return AlbumBackgroundAnalysis(
