@@ -24,8 +24,9 @@ class FreeverbProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat =
-        if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) inputAudioFormat
-        else AudioProcessor.AudioFormat.NOT_SET
+        if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT ||
+            inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        ) inputAudioFormat else AudioProcessor.AudioFormat.NOT_SET
 
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
         core = null
@@ -55,16 +56,18 @@ class FreeverbProcessor : BaseAudioProcessor() {
         inputBuffer.order(ByteOrder.LITTLE_ENDIAN)
         val output = replaceOutputBuffer(inputBuffer.remaining()).order(ByteOrder.LITTLE_ENDIAN)
         val frame = FloatArray(channels)
-        val frameBytes = channels * 2
+        val isFloat = inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        val frameBytes = channels * if (isFloat) 4 else 2
         val engine = core
         while (inputBuffer.remaining() >= frameBytes) {
             for (channel in 0 until channels) {
-                frame[channel] = inputBuffer.short / 32768f
+                frame[channel] = if (isFloat) inputBuffer.float else inputBuffer.short / 32768f
             }
             engine?.process(frame)
             for (channel in 0 until channels) {
-                val value = frame[channel].coerceIn(-1f, 32767f / 32768f)
-                output.putShort((value * 32768f).roundToInt().toShort())
+                if (isFloat) output.putFloat(frame[channel])
+                else output.putShort((frame[channel].coerceIn(-1f, 32767f / 32768f) * 32768f)
+                    .roundToInt().toShort())
             }
         }
         while (inputBuffer.hasRemaining()) output.put(inputBuffer.get())

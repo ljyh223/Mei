@@ -87,6 +87,7 @@ import com.ljyh.mei.playback.equalizer.AudioEffectsController
 import com.ljyh.mei.playback.equalizer.EqualizerProfile
 import com.ljyh.mei.playback.equalizer.FreeverbProcessor
 import com.ljyh.mei.playback.equalizer.ParametricEqualizerProcessor
+import com.ljyh.mei.playback.equalizer.SoftLimiterProcessor
 import com.ljyh.mei.playback.lyrics.DesktopLyricsController
 import com.ljyh.mei.playback.queue.PlaybackQueueManager
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshot
@@ -148,6 +149,8 @@ class MusicService : MediaLibraryService(),
     private val standbyEqualizerProcessor = ParametricEqualizerProcessor()
     private val reverbProcessor = FreeverbProcessor()
     private val standbyReverbProcessor = FreeverbProcessor()
+    private val limiterProcessor = SoftLimiterProcessor()
+    private val standbyLimiterProcessor = SoftLimiterProcessor()
     private val firstTransitionProbe = TransitionAudioProbe()
     private val secondTransitionProbe = TransitionAudioProbe()
     @Volatile private var usbExclusiveEnabled = false
@@ -234,12 +237,13 @@ class MusicService : MediaLibraryService(),
         fun buildDeck(
             processor: ParametricEqualizerProcessor,
             reverb: FreeverbProcessor,
+            limiter: SoftLimiterProcessor,
             probe: TransitionAudioProbe,
             focused: Boolean,
         ) =
             ExoPlayer.Builder(this)
                 .setMediaSourceFactory(baseMediaSourceFactory)
-                .setRenderersFactory(createRenderersFactory(processor, reverb, probe, audioAttributes))
+                .setRenderersFactory(createRenderersFactory(processor, reverb, limiter, probe, audioAttributes))
                 .setHandleAudioBecomingNoisy(focused)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(audioAttributes, focused)
@@ -248,8 +252,8 @@ class MusicService : MediaLibraryService(),
                 .build().apply {
                     setPreloadConfiguration(ExoPlayer.PreloadConfiguration(PLAYLIST_PRELOAD_DURATION_US))
                 }
-        val firstDeck = buildDeck(parametricEqualizerProcessor, reverbProcessor, firstTransitionProbe, true)
-        val secondDeck = buildDeck(standbyEqualizerProcessor, standbyReverbProcessor, secondTransitionProbe, false)
+        val firstDeck = buildDeck(parametricEqualizerProcessor, reverbProcessor, limiterProcessor, firstTransitionProbe, true)
+        val secondDeck = buildDeck(standbyEqualizerProcessor, standbyReverbProcessor, standbyLimiterProcessor, secondTransitionProbe, false)
         player = TransitionDeckPlayer(firstDeck, secondDeck, audioAttributes).apply {
                 addListener(this@MusicService)
                 sleepTimer = SleepTimer(scope, this)
@@ -306,7 +310,7 @@ class MusicService : MediaLibraryService(),
         desktopLyricsController.start()
         usbKeepAlive = UsbFloatingKeepAlive(this, player) { usbPreferences.floatingKeepAlive }
         usbKeepAlive.start(scope)
-        audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor, reverbProcessor)
+        audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor, reverbProcessor, limiterProcessor)
         standbyAudioEffectsController = AudioEffectsController(this, scope, standbyEqualizerProcessor)
 
         audioPlayer = AudioPlayer(player)
@@ -763,6 +767,7 @@ class MusicService : MediaLibraryService(),
     private fun createRenderersFactory(
         equalizer: ParametricEqualizerProcessor,
         reverb: FreeverbProcessor,
+        limiter: SoftLimiterProcessor,
         probe: TransitionAudioProbe,
         audioAttributes: AudioAttributes,
     ) =
@@ -780,7 +785,7 @@ class MusicService : MediaLibraryService(),
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     .setAudioProcessorChain(
                         DefaultAudioSink.DefaultAudioProcessorChain(
-                            arrayOf(stereoDownmix, equalizer, reverb, probe),
+                            arrayOf(stereoDownmix, equalizer, reverb, limiter, probe),
                             SilenceSkippingAudioProcessor(2_000_000, 0.01f, 2_000_000, 0, 256),
                             SonicAudioProcessor()
                         )

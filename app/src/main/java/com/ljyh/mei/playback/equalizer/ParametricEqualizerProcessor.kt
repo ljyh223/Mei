@@ -22,8 +22,9 @@ class ParametricEqualizerProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        return if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) inputAudioFormat
-        else AudioProcessor.AudioFormat.NOT_SET
+        return if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT ||
+            inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        ) inputAudioFormat else AudioProcessor.AudioFormat.NOT_SET
     }
 
     override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
@@ -60,11 +61,13 @@ class ParametricEqualizerProcessor : BaseAudioProcessor() {
 
         inputBuffer.order(ByteOrder.LITTLE_ENDIAN)
         val output = replaceOutputBuffer(inputBuffer.remaining()).order(ByteOrder.LITTLE_ENDIAN)
-        val frameBytes = channels * 2
+        val isFloat = inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        val frameBytes = channels * if (isFloat) 4 else 2
         while (inputBuffer.remaining() >= frameBytes) {
             val blend = if (fadeFramesRemaining > 0) 1.0 - fadeFramesRemaining.toDouble() / fadeFramesTotal else 1.0
             repeat(channels) { channel ->
-                val sample = inputBuffer.short.toDouble() / 32768.0
+                val sample = if (isFloat) inputBuffer.float.toDouble()
+                else inputBuffer.short.toDouble() / 32768.0
                 val processed = current?.process(sample, channel) ?: sample
                 val mixed = if (fadeFramesRemaining > 0) {
                     val old = previous?.process(sample, channel) ?: sample
@@ -72,7 +75,11 @@ class ParametricEqualizerProcessor : BaseAudioProcessor() {
                 } else processed
                 // Saturation is the last safety net. Input gain is user controlled and no automatic
                 // limiter is inserted, so the editor recommends negative headroom for boosts.
-                output.putShort((mixed.coerceIn(-1.0, 32767.0 / 32768.0) * 32768.0).roundToInt().toShort())
+                if (isFloat) output.putFloat(mixed.toFloat())
+                else output.putShort(
+                    (softKneeSample(mixed, 0.944).coerceIn(-1.0, 32767.0 / 32768.0) * 32768.0)
+                        .roundToInt().toShort()
+                )
             }
             if (fadeFramesRemaining > 0 && --fadeFramesRemaining == 0) previous = null
         }

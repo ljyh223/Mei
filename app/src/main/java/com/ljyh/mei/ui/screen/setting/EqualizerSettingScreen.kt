@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.constants.EqualizerBandLevelsKey
 import com.ljyh.mei.constants.EqualizerEnabledKey
+import com.ljyh.mei.constants.OutputLimiterEnabledKey
 import com.ljyh.mei.constants.ParametricEqualizerProfileKey
 import com.ljyh.mei.constants.UserEqualizerPresetsKey
 import com.ljyh.mei.playback.equalizer.AudioEffectsController
@@ -122,6 +123,10 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     var deleteFilterId by remember { mutableStateOf<Int?>(null) }
     var deletePresetId by remember { mutableStateOf<String?>(null) }
     var customPresets by remember { mutableStateOf(emptyList<EqualizerPreset>()) }
+    var bulkMode by remember { mutableStateOf(false) }
+    var bulkSelection by remember { mutableStateOf(emptySet<Int>()) }
+    var bulkGain by remember { mutableStateOf(0f) }
+    var limiterEnabled by remember { mutableStateOf(true) }
 
     LaunchedEffect(context) {
         launch {
@@ -145,6 +150,11 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
             context.dataStore.data.map { it[UserEqualizerPresetsKey].orEmpty() }
                 .distinctUntilChanged()
                 .collectLatest { customPresets = EqualizerPresets.decodeCustom(it) }
+        }
+        launch {
+            context.dataStore.data.map { it[OutputLimiterEnabledKey] ?: true }
+                .distinctUntilChanged()
+                .collectLatest { limiterEnabled = it }
         }
     }
 
@@ -173,6 +183,25 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
             profile = next
             playerConnection?.service?.previewEqualizerProfile(next)
         }
+    }
+
+    fun commitBulk(transform: (EqFilter) -> EqFilter) {
+        val next = profile.copy(
+            presetId = "custom",
+            filters = profile.filters.map { if (it.id in bulkSelection) transform(it) else it },
+        )
+        commit(next)
+    }
+
+    fun autoPreamp() {
+        val peakBoost = profile.filters.filter { it.enabled && it.type.usesGain }
+            .maxOfOrNull { it.gainDb } ?: 0f
+        if (peakBoost <= 0f) {
+            Toast.makeText(context, "当前没有正增益频段", Toast.LENGTH_SHORT).show()
+            return
+        }
+        commit(profile.copy(presetId = "custom", inputGainDb = (-peakBoost).coerceIn(-24f, 12f)))
+        Toast.makeText(context, "前级已设为 -${peakBoost.roundToInt()} dB", Toast.LENGTH_SHORT).show()
     }
 
     fun importAutoEq(uri: Uri) {
@@ -315,6 +344,35 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("输出限幅", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "提升频段后用软限幅防止削波",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = limiterEnabled,
+                            onCheckedChange = { enabled ->
+                                limiterEnabled = enabled
+                                scope.launch {
+                                    context.dataStore.edit { it[OutputLimiterEnabledKey] = enabled }
+                                }
+                            },
+                        )
+                    }
+                }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
                         ParameterSlider(
                             "输入增益",
@@ -368,6 +426,12 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     }) {
                         Text("导出")
                     }
+                    TextButton(onClick = {
+                        bulkMode = !bulkMode
+                        if (!bulkMode) bulkSelection = emptySet()
+                    }) {
+                        Text(if (bulkMode) "完成" else "批量")
+                    }
                     TextButton(onClick = { showSaveDialog = true }) {
                         Icon(Icons.Rounded.Save, null)
                         Spacer(Modifier.width(4.dp))
@@ -393,6 +457,48 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     ) { Icon(Icons.Rounded.Add, null); Text("添加") }
                 }
 
+                if (bulkMode) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    ) {
+                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("已选 ${bulkSelection.size} 段", modifier = Modifier.weight(1f))
+                                TextButton(onClick = {
+                                    bulkSelection = profile.filters.map(EqFilter::id).toSet()
+                                }) { Text("全选") }
+                                TextButton(onClick = { bulkSelection = emptySet() }) { Text("清空") }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("批量增益", style = MaterialTheme.typography.bodySmall)
+                                Slider(
+                                    value = bulkGain,
+                                    onValueChange = { value ->
+                                        bulkGain = value
+                                        if (bulkSelection.isNotEmpty()) {
+                                            profile = profile.copy(
+                                                presetId = "custom",
+                                                filters = profile.filters.map {
+                                                    if (it.id in bulkSelection) it.copy(gainDb = value) else it
+                                                },
+                                            )
+                                        }
+                                    },
+                                    onValueChangeFinished = { commit(profile) },
+                                    valueRange = -12f..12f,
+                                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                                )
+                                Text("${bulkGain.roundToInt()} dB", style = MaterialTheme.typography.labelMedium)
+                            }
+                            Row {
+                                TextButton(onClick = { commitBulk { it.copy(gainDb = 0f) } }) { Text("选中归零") }
+                                TextButton(onClick = { autoPreamp() }) { Text("自动前级") }
+                            }
+                        }
+                    }
+                }
+
                 if (profile.filters.isNotEmpty()) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -403,8 +509,16 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                             FilterCard(
                                 filter = filter,
                                 number = index + 1,
-                                selected = filter.id == selectedId,
-                                onSelect = { selectedId = filter.id },
+                                selected = if (bulkMode) filter.id in bulkSelection else filter.id == selectedId,
+                                onSelect = {
+                                    if (bulkMode) {
+                                        bulkSelection = if (filter.id in bulkSelection) {
+                                            bulkSelection - filter.id
+                                        } else bulkSelection + filter.id
+                                    } else {
+                                        selectedId = filter.id
+                                    }
+                                },
                                 onEnabledChange = { enabled ->
                                     changeFilter(
                                         filter.id,
