@@ -11,6 +11,7 @@ import androidx.navigation.NavController
 sealed class Screen(val route:String) {
     data object Home:Screen("home")
     data object Library:Screen("library")
+    data object LibraryCollection:Screen("library/collection")
     data object FindMusic: Screen("find_music")
     data object DiscoverPlaylists: Screen("discover/playlists")
     data object DiscoverAlbums: Screen("discover/albums")

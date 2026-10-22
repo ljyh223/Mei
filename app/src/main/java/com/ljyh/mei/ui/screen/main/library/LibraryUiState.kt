@@ -87,6 +87,11 @@ data class LibraryContentUiState(
     val collectedPlaylists: List<Playlist>,
     val albums: List<Album>,
     val listeningFootprint: ListeningFootprintUi = ListeningFootprintUi(),
+    val albumsLoading: Boolean = false,
+    val albumsError: String? = null,
+    val playlistsLoading: Boolean = false,
+    val playlistsError: String? = null,
+    val recentCollectedPlaylists: List<Playlist> = emptyList(),
 ) {
     val createdCount: Int get() = createdPlaylists.size
     val collectedCount: Int get() = collectedPlaylists.size
@@ -147,13 +152,6 @@ internal fun resolveLibraryUiState(
             Resource.Loading -> LibraryUiState.Loading
         }
     }
-    if (section == LibrarySection.Albums) {
-        when (albumResource) {
-            Resource.Loading -> return LibraryUiState.Loading
-            is Resource.Error -> return LibraryUiState.Error(albumResource.message)
-            is Resource.Success -> Unit
-        }
-    }
     val albums = (albumResource as? Resource.Success)
         ?.data
         ?.data
@@ -172,6 +170,9 @@ internal fun resolveLibraryUiState(
             albums = albums,
             now = now,
             listeningFootprint = listeningFootprint,
+        ).copy(
+            albumsLoading = albumResource is Resource.Loading,
+            albumsError = (albumResource as? Resource.Error)?.message,
         ),
         warning = warning,
     )

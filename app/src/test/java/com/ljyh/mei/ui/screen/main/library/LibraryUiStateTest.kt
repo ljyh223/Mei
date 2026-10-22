@@ -103,19 +103,24 @@ class LibraryUiStateTest {
     }
 
     @Test
-    fun albumSectionDoesNotReportEmptyWhileItsRequestIsUnfinishedOrFailed() {
+    fun albumStatusKeepsCachedPlaylistsAvailableWhileLoadingOrOffline() {
         val profile = LibraryProfileUi("owner", "name", "avatar", "")
         fun state(albums: Resource<UserAlbumList>) = resolveLibraryUiState(
             accountResource = Resource.Loading,
             profile = profile,
-            playlists = emptyList(),
+            playlists = listOf(playlist("cached", "owner")),
             albumResource = albums,
             section = LibrarySection.Albums,
             now = 1_000L,
         )
 
-        assertEquals(LibraryUiState.Loading, state(Resource.Loading))
-        assertEquals(LibraryUiState.Error("请求失败"), state(Resource.Error("请求失败")))
+        val loading = (state(Resource.Loading) as LibraryUiState.Content).data
+        assertEquals(true, loading.albumsLoading)
+        assertEquals(listOf("cached"), loading.createdPlaylists.map { it.id })
+        val failed = (state(Resource.Error("请求失败")) as LibraryUiState.Content).data
+        assertEquals("请求失败", failed.albumsError)
+        assertEquals(false, failed.albumsLoading)
+        assertEquals(listOf("cached"), failed.createdPlaylists.map { it.id })
         assertEquals(
             listOf(42L),
             (state(Resource.Success(UserAlbumList(code = 200, data = listOf(

@@ -1,5 +1,12 @@
 package com.ljyh.mei.ui.screen.main.library
 
+import android.content.Context
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.ljyh.mei.utils.preferences.dataStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.data.model.response.AlbumPhoto
@@ -12,6 +19,10 @@ import com.ljyh.mei.data.model.response.ListenDataReportResponse
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.UserRepository
+import com.ljyh.mei.data.repository.PlaylistRepository
+import com.ljyh.mei.playback.queue.ListQueue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -24,12 +35,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val repository: UserRepository,
+    private val playlistRepository: PlaylistRepository,
     private val localPlaylistRepository: LocalPlaylistRepository,
 ):ViewModel() {
     private val _account = MutableStateFlow<Resource<UserAccountSummary>>(Resource.Loading)
@@ -92,6 +106,12 @@ class LibraryViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000L), // 5秒内无订阅者则停止
             initialValue = emptyList() // 初始值为空列表
         )
+    private val playlistSync = MutableStateFlow<Resource<Unit>>(Resource.Loading)
+    private val recentCollectedOrder = MutableStateFlow<List<String>>(emptyList())
+    private val _likedArtwork = MutableStateFlow<String?>(null)
+    val likedArtwork: StateFlow<String?> = _likedArtwork
+    private var likedArtworkId: String? = null
+    private var likedArtworkJob: Job? = null
     private val selectedSection = MutableStateFlow(LibrarySection.Created)
 
     private val listeningFootprint: StateFlow<ListeningFootprintUi> = combine(
@@ -125,10 +145,18 @@ class LibraryViewModel @Inject constructor(
     val libraryUiState: StateFlow<LibraryUiState> = combine(
         coreLibraryUiState,
         listeningFootprint,
-    ) { state, footprint ->
+        playlistSync,
+        recentCollectedOrder,
+    ) { state, footprint, sync, recentIds ->
         when (state) {
             is LibraryUiState.Content -> state.copy(
-                data = state.data.copy(listeningFootprint = footprint),
+                data = state.data.copy(
+                    listeningFootprint = footprint,
+                    playlistsLoading = sync is Resource.Loading,
+                    playlistsError = (sync as? Resource.Error)?.message,
+                    recentCollectedPlaylists = recentIds.mapNotNull { id -> state.data.collectedPlaylists.firstOrNull { it.id == id } },
+                ),
+                warning = state.warning ?: (sync as? Resource.Error)?.message,
             )
             else -> state
         }
@@ -195,6 +223,7 @@ class LibraryViewModel @Inject constructor(
         loadedUid = uid
         libraryLoadJob?.cancel()
         if (userChanged) {
+            recentCollectedOrder.value = emptyList()
             _userDetail.value = Resource.Loading
             _userVipInfo.value = Resource.Loading
             _photoAlbum.value = Resource.Loading
@@ -205,6 +234,7 @@ class LibraryViewModel @Inject constructor(
         } else if (_albumList.value is Resource.Error) {
             _albumList.value = Resource.Loading
         }
+        playlistSync.value = Resource.Loading
         libraryLoadJob = viewModelScope.launch {
             coroutineScope {
                 launch { _userDetail.value = repository.getUserDetail(uid) }
@@ -243,12 +273,60 @@ class LibraryViewModel @Inject constructor(
         selectedSection.value = section
     }
 
+    fun loadLikedArtwork(id: String?) {
+        if (likedArtworkId == id && likedArtworkJob?.isActive == true) return
+        likedArtworkJob?.cancel()
+        if (likedArtworkId != id) _likedArtwork.value = null
+        likedArtworkId = id
+        if (id == null) return
+        likedArtworkJob = viewModelScope.launch {
+            val result = playlistRepository.getPlaylistDetail(id)
+            if (result is Resource.Success) {
+                val firstId = firstLikedTrackId(result.data) ?: return@launch
+                val known = result.data.tracks.firstOrNull { it.id == firstId }
+                val cover = if (known != null) known.coverUrl else try {
+                    playlistRepository.getSongDetails(listOf(firstId.toString())).firstOrNull()?.coverUrl
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) { null }
+                if (currentCoroutineContext().isActive && likedArtworkId == id) {
+                    _likedArtwork.value = cover?.takeIf(String::isNotBlank)
+                }
+            }
+        }
+    }
+
+    suspend fun preparePlaylistPlayback(id: String): Resource<ListQueue> =
+        when (val result = playlistRepository.getPlaylistDetail(id)) {
+            is Resource.Success -> withContext(Dispatchers.Default) {
+                buildLibraryPlaylistQueue(result.data)?.let { Resource.Success(it) }
+                    ?: Resource.Error("歌单中暂无可播放的歌曲")
+            }
+            is Resource.Error -> Resource.Error("暂时无法播放，请稍后重试")
+            Resource.Loading -> Resource.Loading
+        }
+
+    fun recordPlaylistPlayback(id: String) {
+        viewModelScope.launch { localPlaylistRepository.touchPlaylist(id, System.currentTimeMillis()) }
+    }
+
     private suspend fun syncUserPlaylists(uid: String, limit: Int = 100) {
+        val orderKey = stringPreferencesKey("library.recentCollected.$uid")
+        val cachedOrder = try { context.dataStore.data.first()[orderKey].orEmpty() }
+            catch (_: IOException) { "" }
+        val cached = cachedOrder.split(',')
+            .mapNotNull { it.toLongOrNull()?.takeIf { id -> id > 0 }?.toString() }.distinct().take(2)
+        if (recentCollectedOrder.value.isEmpty()) recentCollectedOrder.value = cached
         when (val networkResult = repository.getUserPlaylist(uid, limit)) {
             is Resource.Success -> {
                 localPlaylistRepository.mergeUserPlaylists(networkResult.data.playlists)
+                val recentIds = recentCollectedIds(networkResult.data.playlists, uid)
+                recentCollectedOrder.value = recentIds
+                playlistSync.value = Resource.Success(Unit)
+                try { context.dataStore.edit { it[orderKey] = recentIds.joinToString(",") } }
+                catch (_: IOException) { /* Collection data is still available for this session. */ }
             }
-            is Resource.Error -> Unit
+            is Resource.Error -> playlistSync.value = Resource.Error(networkResult.message)
             Resource.Loading -> Unit
         }
     }

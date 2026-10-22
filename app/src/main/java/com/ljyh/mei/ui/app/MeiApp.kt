@@ -72,6 +72,8 @@ import com.ljyh.mei.data.model.domain.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.component.navigation.AdaptiveMainNavigationRail
+import com.ljyh.mei.ui.screen.main.library.LibrarySearchState
+import com.ljyh.mei.ui.screen.main.library.LocalLibrarySearchState
 import com.ljyh.mei.ui.component.navigation.AppBottomNavigationBar
 import com.ljyh.mei.ui.component.navigation.compactPlayerVerticalDrop
 import com.ljyh.mei.ui.component.navigation.TabletNavigationRailWidth
@@ -125,6 +127,7 @@ fun MeiApp(
     val context = LocalContext.current
     val navController = rememberNavController()
     var searchActive by rememberSaveable { mutableStateOf(false) }
+    val librarySearchState = remember { LibrarySearchState() }
     val glassEnabled by rememberPreference(LiquidGlassEnabledKey, defaultValue = true)
     val glassAppearance by rememberGlassAppearance()
     val pageTransitionStyle by rememberEnumPreference(PageTransitionStyleKey, PageTransitionStyle.Slide)
@@ -276,9 +279,12 @@ fun MeiApp(
                 searchActive = active
                 if (!active) focusManager.clearFocus()
             }
+            val librarySearch = route == Screen.Library.route
             val searchScope = rememberCoroutineScope()
             val submitBottomSearch: (String, Int) -> Unit = { searchQuery, type ->
-                if (searchQuery.isNotBlank()) {
+                if (librarySearch) {
+                    focusManager.clearFocus()
+                } else if (searchQuery.isNotBlank()) {
                     searchScope.launch { context.recordSearchHistory(searchQuery) }
                     onActiveChange(false)
                     Screen.SearchResult.navigate(navController) {
@@ -350,6 +356,7 @@ fun MeiApp(
                                 compactProgress = compactNavigationProgress,
                                 onExpand = { navigationExpanded = true },
                                 searchActive = searchActive,
+                                searchPlaceholder = if (librarySearch) "搜索歌单、专辑" else "搜索歌曲、歌手、专辑",
                                 searchQuery = query,
                                 onSearchQueryChange = onQueryChange,
                                 onSearchActivate = { onActiveChange(true) },
@@ -382,6 +389,7 @@ fun MeiApp(
                     }
 
                     CompositionLocalProvider(
+                        LocalLibrarySearchState provides librarySearchState,
                         LocalDatabase provides database,
                         LocalNavController provides navController,
                         LocalPlayerConnection provides playerConnection,
@@ -410,11 +418,14 @@ fun MeiApp(
                         if (useTabletSidebar) {
                             AppSearchOverlay(
                                 shellState = shellState,
+                                librarySearch = librarySearch,
                                 query = query,
                                 onQueryChange = onQueryChange,
                                 onActiveChange = onActiveChange,
                                 onSubmit = { searchQuery, type ->
-                                    if (searchQuery.isNotEmpty()) {
+                                    if (librarySearch) {
+                                        focusManager.clearFocus()
+                                    } else if (searchQuery.isNotEmpty()) {
                                         onActiveChange(false)
                                         Screen.SearchResult.navigate(navController) {
                                             addPath(searchQuery)
@@ -452,6 +463,7 @@ fun MeiApp(
                         )
                         BottomSearchOverlay(
                             active = searchActive && !useTabletSidebar,
+                            librarySearch = librarySearch,
                             bottomBarClearance = scaffoldBottomInset,
                             query = query,
                             onQueryChange = onQueryChange,

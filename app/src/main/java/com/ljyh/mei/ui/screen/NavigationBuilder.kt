@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen
 
+import androidx.compose.runtime.remember
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.ui.util.fastAny
@@ -17,6 +19,8 @@ import com.ljyh.mei.ui.screen.local.LocalMusicScreen
 import com.ljyh.mei.ui.screen.local.LocalSongListScreen
 import com.ljyh.mei.ui.screen.main.home.HomeScreen
 import com.ljyh.mei.ui.screen.main.library.LibraryScreen
+import com.ljyh.mei.ui.screen.main.library.LibraryCollection
+import com.ljyh.mei.ui.screen.main.library.LibraryCollectionScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
 import com.ljyh.mei.ui.screen.search.SearchResultScreen
@@ -57,6 +61,17 @@ fun NavGraphBuilder.navigationBuilder(
 
     pageDestination(Screen.Library.route) {
         LibraryScreen(scrollBehavior = scrollBehavior)
+    }
+
+    pageDestination(
+        "${Screen.LibraryCollection.route}/{collection}",
+        arguments = listOf(navArgument("collection") { type = NavType.StringType }),
+    ) { entry ->
+        val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.Library.route) }
+        val collection = LibraryCollection.entries.firstOrNull {
+            it.name == entry.arguments?.getString("collection")
+        } ?: LibraryCollection.Created
+        LibraryCollectionScreen(collection = collection, viewModel = hiltViewModel(parentEntry))
     }
 
     pageDestination(Screen.FindMusic.route) {

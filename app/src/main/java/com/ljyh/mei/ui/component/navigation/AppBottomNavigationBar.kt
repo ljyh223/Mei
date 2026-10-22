@@ -78,6 +78,7 @@ fun AppBottomNavigationBar(
     compactProgress: Float = 0f,
     onExpand: () -> Unit = {},
     searchActive: Boolean = false,
+    searchPlaceholder: String = SearchPlaceholder,
     searchQuery: TextFieldValue = TextFieldValue(),
     onSearchQueryChange: (TextFieldValue) -> Unit = {},
     onSearchActivate: () -> Unit = {},
@@ -109,6 +110,7 @@ fun AppBottomNavigationBar(
             if (searchActive) {
                 SearchField(
                     query = searchQuery,
+                    placeholder = searchPlaceholder,
                     onQueryChange = onSearchQueryChange,
                     onSubmit = onSearchSubmit,
                     focusRequester = searchFocusRequester,
@@ -135,7 +137,7 @@ fun AppBottomNavigationBar(
                 Spacer(Modifier.width(8.dp))
                 SearchActionButton(
                     icon = Icons.Rounded.Search,
-                    contentDescription = "搜索",
+                    contentDescription = searchPlaceholder,
                     size = lerp(64.dp, 48.dp, compact),
                     onClick = onSearchActivate,
                     enabled = interactive,
@@ -256,6 +258,7 @@ private fun SearchActionButton(
 @Composable
 private fun SearchField(
     query: TextFieldValue,
+    placeholder: String,
     onQueryChange: (TextFieldValue) -> Unit,
     onSubmit: (String) -> Unit,
     focusRequester: FocusRequester?,
@@ -284,7 +287,7 @@ private fun SearchField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f)
-                    .semantics { contentDescription = SearchPlaceholder }
+                    .semantics { contentDescription = placeholder }
                     .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
                 singleLine = true,
                 enabled = enabled,
@@ -298,7 +301,7 @@ private fun SearchField(
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.text.isEmpty()) {
                             Text(
-                                text = SearchPlaceholder,
+                                text = placeholder,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = ink,
                                 maxLines = 1,

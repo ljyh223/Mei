@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.screen.search.SearchScreen
+import com.ljyh.mei.ui.screen.main.library.LibrarySearchResults
 
 /**
  * Results layer for the bottom search field. It is drawn above the page and mini player,
@@ -26,6 +27,7 @@ import com.ljyh.mei.ui.screen.search.SearchScreen
 @Composable
 fun BottomSearchOverlay(
     active: Boolean,
+    librarySearch: Boolean = false,
     bottomBarClearance: Dp,
     query: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
@@ -49,7 +51,7 @@ fun BottomSearchOverlay(
                 ),
         ) {
             // 提示从搜索框上方往上堆叠，而不是从屏幕顶部开始。
-            SearchScreen(
+            if (librarySearch) LibrarySearchResults(query.text, onDismiss) else SearchScreen(
                 modifier = Modifier.fillMaxSize(),
                 query = query.text,
                 onQueryChange = onQueryChange,

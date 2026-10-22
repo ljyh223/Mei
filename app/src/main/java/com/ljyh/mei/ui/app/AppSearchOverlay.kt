@@ -28,12 +28,14 @@ import com.ljyh.mei.ui.component.navigation.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.IconButton as CombinedClickableIconButton
 
 import com.ljyh.mei.ui.screen.search.SearchScreen
+import com.ljyh.mei.ui.screen.main.library.LibrarySearchResults
 import com.ljyh.mei.ui.screen.search.recordSearchHistory
 import kotlinx.coroutines.launch
 
 @Composable
 fun BoxScope.AppSearchOverlay(
     shellState: MainShellState,
+    librarySearch: Boolean = false,
     query: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
     onActiveChange: (Boolean) -> Unit,
@@ -49,7 +51,7 @@ fun BoxScope.AppSearchOverlay(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val submitSearch: (String, Int) -> Unit = { searchQuery, type ->
-        if (searchQuery.isNotBlank()) {
+        if (!librarySearch && searchQuery.isNotBlank()) {
             coroutineScope.launch { context.recordSearchHistory(searchQuery) }
         }
         onSubmit(searchQuery, type)
@@ -67,7 +69,7 @@ fun BoxScope.AppSearchOverlay(
             active = shellState.isSearchActive,
             onActiveChange = onActiveChange,
             scrollBehavior = scrollBehavior,
-            placeholder = { Text("搜索歌曲、歌手、专辑", maxLines = 1,
+            placeholder = { Text(if (librarySearch) "搜索歌单、专辑" else "搜索歌曲、歌手、专辑", maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             leadingIcon = {
                 CombinedClickableIconButton(
@@ -101,7 +103,7 @@ fun BoxScope.AppSearchOverlay(
                                 Icon(Icons.Rounded.Close, contentDescription = "清空搜索")
                             }
                         }
-                        IconButton(onClick = onOpenAudioMatch) {
+                        if (!librarySearch) IconButton(onClick = onOpenAudioMatch) {
                             Icon(
                                 imageVector = Icons.Rounded.GraphicEq,
                                 contentDescription = "听歌识曲",
@@ -124,7 +126,7 @@ fun BoxScope.AppSearchOverlay(
                     },
                 ),
         ) {
-            SearchScreen(
+            if (librarySearch) LibrarySearchResults(query.text) { onActiveChange(false) } else SearchScreen(
                 query = query.text,
                 onQueryChange = onQueryChange,
                 onSearch = submitSearch,
