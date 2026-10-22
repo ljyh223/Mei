@@ -142,6 +142,10 @@ internal fun analyzeCoverBackground(
     var blue = 0L
     var matchCount = 0
     var distanceTotal = 0f
+    var rimRed = 0L
+    var rimGreen = 0L
+    var rimBlue = 0L
+    var rimCount = 0
     for (index in 0 until total) {
         if (!ensure(index)) continue
         val distance = distance(labL, labA, labB, index, seed)
@@ -149,14 +153,33 @@ internal fun analyzeCoverBackground(
         matches[index] = true
         matchCount++
         distanceTotal += distance
-        red += (pixels[index] ushr 16) and 0xff
-        green += (pixels[index] ushr 8) and 0xff
-        blue += pixels[index] and 0xff
+        val r = (pixels[index] ushr 16) and 0xff
+        val g = (pixels[index] ushr 8) and 0xff
+        val b = pixels[index] and 0xff
+        red += r
+        green += g
+        blue += b
+        val x = index % width
+        val y = index / width
+        if (x == 0 || y == 0 || x == width - 1 || y == height - 1) {
+            rimRed += r
+            rimGreen += g
+            rimBlue += b
+            rimCount++
+        }
     }
     if (matchCount == 0) return null
-    val background = (0xff shl 24) or
-        ((red / matchCount).toInt() shl 16) or
-        ((green / matchCount).toInt() shl 8) or (blue / matchCount).toInt()
+    // The rim is what the shader replicates outwards, so prefer it over the whole matched area:
+    // averaging interior pixels produces a slightly different tone and leaves a visible square.
+    val background = if (rimCount > 0) {
+        (0xff shl 24) or
+            ((rimRed / rimCount).toInt() shl 16) or
+            ((rimGreen / rimCount).toInt() shl 8) or (rimBlue / rimCount).toInt()
+    } else {
+        (0xff shl 24) or
+            ((red / matchCount).toInt() shl 16) or
+            ((green / matchCount).toInt() shl 8) or (blue / matchCount).toInt()
+    }
     val wholeShare = matchCount.toFloat() / total
     val purity = (1f - distanceTotal / matchCount / tolerance).coerceIn(0f, 1f)
     val backgroundConfidence = (0.45f * bandShare + 0.40f * wholeShare + 0.15f * purity)

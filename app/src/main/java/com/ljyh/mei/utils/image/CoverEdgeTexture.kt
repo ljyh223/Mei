@@ -28,14 +28,14 @@ internal fun buildCoverEdgeTexture(
     }
 
     val baseWidth = (min(width, height) * when (mode) {
-        CoverExtensionMode.SOFT -> 0.15f
-        else -> 0.07f
+        CoverExtensionMode.SOFT -> 0.06f
+        else -> 0.03f
     }).roundToInt().coerceAtLeast(3)
     // A side covered by artwork gets a narrow feather: it still hides the flat rim, but does not
     // wash the subject with the background color.
     val widths = listOf(0, 1, 2, 3).map { side ->
         if ((sideMatches.getOrNull(side) ?: 1f) >= 0.5f) baseWidth
-        else (min(width, height) * 0.04f).roundToInt().coerceAtLeast(2)
+        else (min(width, height) * 0.02f).roundToInt().coerceAtLeast(2)
     }
     val feather = IntArray(width * height)
     val rgb = backgroundColor and 0x00ffffff
