@@ -1,0 +1,99 @@
+name: Beta Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Name build artifact
+        id: metadata
+        run: |
+          short_sha=$(git rev-parse --short=8 HEAD)
+          echo "name=Mei_beta_${GITHUB_RUN_NUMBER}_${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare Android SDK
+        run: |
+          sdkmanager_path="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          (yes || true) | "$sdkmanager_path" --licenses >/dev/null
+          "$sdkmanager_path" 'platforms;android-37' 'build-tools;34.0.0' 'cmake;3.22.1'
+
+      - name: Prepare Rust USB toolchain
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal --component rustfmt --component clippy
+          rustup default 1.97.0
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Prepare USB test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev
+          cargo fetch --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
+
+      - name: Check Rust USB core
+        run: |
+          cargo fmt --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml -- --check
+          cargo test --offline --locked --all-features --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
+          cargo clippy --offline --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Build test APK with project wrapper
+        run: bash ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Sign APK
+        id: sign_app
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '34.0.0'
+
+      - name: Prepare test APK
+        env:
+          ARTIFACT_NAME: ${{ steps.metadata.outputs.name }}
+          SIGNED_APK: ${{ steps.sign_app.outputs.signedReleaseFile }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$SIGNED_APK" || ! -f "$SIGNED_APK" ]]; then
+            echo '::error::未找到签名后的 APK。'
+            exit 1
+          fi
+          mkdir -p build-artifacts
+          cp "$SIGNED_APK" "build-artifacts/${ARTIFACT_NAME}.apk"
+          (
+            cd build-artifacts
+            sha256sum "${ARTIFACT_NAME}.apk" > "${ARTIFACT_NAME}.apk.sha256"
+          )
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.metadata.outputs.name }}
+          path: build-artifacts/*
+          if-no-files-found: error
+          retention-days: 14
