@@ -143,7 +143,9 @@ internal class SmartTransitionController(
         if (incoming.playbackState != Player.STATE_READY) return
 
         val rhythmPlan = beatPlan
-        if (settings.mode == SmartTransitionMode.Smart && rhythmPlan != null) {
+        if (settings.mode == SmartTransitionMode.Smart && rhythmPlan != null &&
+            rhythmPlan.confidence >= 0.35
+        ) {
             if (preparedBeatStartMs != rhythmPlan.incomingStartMs) {
                 incoming.pause()
                 incoming.seekTo(rhythmPlan.incomingStartMs)
@@ -180,6 +182,12 @@ internal class SmartTransitionController(
         val plan = if (settings.mode == SmartTransitionMode.Smart) {
             SmartTransitionPlanner.plan(probes[active]?.envelope.orEmpty(), incomingEnvelope, remaining)
         } else TransitionPlan(settings.fixedMs)
+        if (plan == null) {
+            // Nothing worth blending here; wait for BeatNet if it is still analysing this pair.
+            if (settings.mode == SmartTransitionMode.Smart && analysisAttempt == key) return
+            cancel()
+            return
+        }
         if (remaining <= plan.durationMs + 150L) beginFade(key, plan)
     }
 

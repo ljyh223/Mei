@@ -158,7 +158,7 @@ fun PlaySettingScreen(
                 )
                 SwitchPreference(
                     title = { Text("歌曲过渡") },
-                    description = if (usbExclusive) "USB 独占播放时不可用" else "根据音乐节奏衔接歌曲；同专辑歌曲保持原有间隔",
+                    description = if (usbExclusive) "USB 独占播放时不可用" else "仅在节奏匹配时衔接；同专辑与不匹配的歌曲自然结束",
                     icon = { Icon(Icons.Rounded.GraphicEq, null) },
                     checked = transitionEnabled,
                     onCheckedChange = onTransitionEnabledChange,
