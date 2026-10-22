@@ -190,6 +190,7 @@ internal fun analyzeCoverBackground(
     val longestGap = longestGap(matches, width, height)
     val extensionConfidence = (edgeConsistency * 0.7f + weakestSide * 0.3f).coerceIn(0f, 1f)
     val occupiedSides = sideMatches.count { it < config.minimumSingleEdgeMatch }
+    val strongSides = sideMatches.count { it >= config.solidEdgeMatch }
     val mode = when {
         !solidBackground || !flatEnough -> CoverExtensionMode.NONE
         extensionConfidence >= config.solidEdgeMatch &&
@@ -199,9 +200,10 @@ internal fun analyzeCoverBackground(
             weakestSide >= config.minimumSingleEdgeMatch && longestGap <= 0.35f ->
             CoverExtensionMode.SOFT
         // Artwork crossing a single edge still leaves a usable flat rim on the other three,
-        // even when the subject covers that whole edge.
-        occupiedSides == 1 && (sideMatches.maxOrNull() ?: 0f) >= 0.85f &&
-            flatEnough -> CoverExtensionMode.SOFT
+        // even when the subject covers that whole edge or leaves a long contiguous gap.
+        occupiedSides == 1 && (sideMatches.maxOrNull() ?: 0f) >= 0.85f && flatEnough ->
+            CoverExtensionMode.SOFT
+        strongSides >= 3 && weakestSide >= 0.30f && flatEnough -> CoverExtensionMode.SOFT
         else -> CoverExtensionMode.NONE
     }
     return AlbumBackgroundAnalysis(
