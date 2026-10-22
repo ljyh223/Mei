@@ -12,13 +12,11 @@ import com.ljyh.unblockneteasemusic.model.MusicAlbum
 import com.ljyh.unblockneteasemusic.model.MusicArtist
 import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.unblockneteasemusic.model.TrackId
-import com.ljyh.unblockneteasemusic.unblock.UnblockResolver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -35,7 +33,6 @@ class MediaUriProvider @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val apiService: ApiService,
     private val songRepository: SongRepository,
-    private val unblockResolver: UnblockResolver,
     private val lxSources: LxSourceResolver,
     private val scriptStore: LxScriptStore,
     private val probe: AudioUrlProbe,
@@ -96,21 +93,7 @@ class MediaUriProvider @Inject constructor(
                     urlCache[lookupKey] = resolved
                     return@withLock selected(mediaId, resolved, recordPlayback)
                 }
-                val legacy = withTimeoutOrNull(15_000) {
-                    unblockResolver.resolve(target) { candidate ->
-                        val identity = "legacy|${candidate.track.id.source}|${candidate.track.id.value}"
-                        if (identity in excluded) false else {
-                            val duration = probe.durationMs(candidate.url)
-                            duration != null && !PreviewPolicy.isPreview(duration) &&
-                                (target.durationMs <= 0 || kotlin.math.abs(target.durationMs - duration) <= 15_000)
-                        }
-                    }
-                } ?: throw SourceNotFoundException("未找到可播放的完整音频")
-                val identity = "legacy|${legacy.track.id.source}|${legacy.track.id.value}"
-                val resolved = CachedUrl(legacy.url, System.currentTimeMillis() + 2 * 60_000,
-                    "$baseKey|$identity", identity, PlaybackSourceInfo("备用音源 · ${sourceDisplayName(legacy.track.id.source)}", null))
-                urlCache[lookupKey] = resolved
-                selected(mediaId, resolved, recordPlayback)
+                throw SourceNotFoundException("LX 音源未找到可播放的完整音频")
             } catch (c: CancellationException) { throw c }
             catch (e: SourceNotFoundException) { throw e }
             catch (e: Exception) {
