@@ -1,54 +1,20 @@
 package com.ljyh.mei.ui.screen.artist
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -58,7 +24,6 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.api.ArtistAlbum
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.domain.MediaMetadata
@@ -66,15 +31,16 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.collection.MeiCollectionPage
+import com.ljyh.mei.ui.component.collection.MeiCollectionLoadMore
 import com.ljyh.mei.ui.component.track.Track
 import com.ljyh.mei.ui.component.track.TrackPlaceholder
 import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
 import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 import java.util.UUID
 
 @OptIn(UnstableApi::class, ExperimentalMaterial3Api::class)
@@ -88,11 +54,14 @@ fun ArtistSongsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewMo
     var menuTrack by remember { mutableStateOf<TrackMenuTarget?>(null) }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+    val normalScroll = rememberLazyGridState()
+    val searchScroll = rememberLazyGridState()
     val searching = isSearchActive && searchQuery.isNotBlank()
     val currentSearch = searchState.takeIf { it.query == searchQuery.trim() }
         ?: ArtistCatalogSearchState<ArtistSong.HotSong>(query = searchQuery.trim(), isSearching = true)
-
+    val focusManager = LocalFocusManager.current
+    fun closeSearch() { focusManager.clearFocus(); searchQuery = ""; isSearchActive = false }
+    BackHandler(enabled = isSearchActive, onBack = ::closeSearch)
     LaunchedEffect(searchQuery) { viewModel.searchSongs(searchQuery) }
     val playSong: (ArtistSong.HotSong, List<ArtistSong.HotSong>) -> Unit = { song, loaded ->
         val startIndex = loaded.indexOfFirst { it.id == song.id }
@@ -111,85 +80,35 @@ fun ArtistSongsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewMo
         )
     }
 
-    Scaffold(topBar = {
-        ArtistCatalogTopBar(
-            title = "全部歌曲",
-            searchHint = "搜索歌手歌曲",
-            searchQuery = searchQuery,
-            isSearchActive = isSearchActive,
-            onSearchQueryChange = { searchQuery = it },
-            onSearchToggle = {
-                if (isSearchActive) searchQuery = ""
-                isSearchActive = !isSearchActive
-            },
-            onBack = {
-                if (isSearchActive) {
-                    searchQuery = ""
-                    isSearchActive = false
-                } else navController.popBackStack()
-            },
+    MeiCollectionPage(
+        title = "全部歌曲",
+        itemCount = if (searching) currentSearch.matches.size else songs.itemCount,
+        itemKey = if (searching) ({ index -> currentSearch.matches[index].id }) else songs.itemKey { it.id },
+        onNavigateBack = { if (isSearchActive) closeSearch() else navController.popBackStack() },
+        onRetry = { if (searching) viewModel.searchSongs(searchQuery) else songs.retry() },
+        state = if (searching) searchScroll else normalScroll,
+        loading = if (searching) currentSearch.isSearching else songs.loadState.refresh is LoadState.Loading,
+        failed = if (searching) currentSearch.error != null else songs.loadState.refresh is LoadState.Error,
+        emptyText = if (searching) "没有找到匹配的歌曲" else "暂无歌曲", emptyActionLabel = null,
+        horizontalContentPadding = 0.dp, verticalItemSpacing = 0.dp,
+        showLargeTitle = !isSearchActive,
+        titleContent = if (isSearchActive) ({ ArtistCatalogSearchField(searchQuery, { searchQuery = it }, "搜索歌手歌曲") }) else null,
+        actions = { CatalogSearchAction(isSearchActive) { if (isSearchActive) closeSearch() else isSearchActive = true } },
+        footer = {
+            if (searching) CatalogSearchStatus(currentSearch) { viewModel.searchSongs(searchQuery) }
+            else CatalogAppendState(songs)
+        },
+    ) { index ->
+        val song = if (searching) currentSearch.matches[index] else songs[index]
+        if (song == null) TrackPlaceholder(index = index) else ArtistSongItem(
+            song = song,
+            onClick = { playSong(song, if (searching) currentSearch.matches else songs.itemSnapshotList.items) },
+            onMore = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, source) },
         )
-    }) { padding ->
-        if (searching) {
-            when {
-                currentSearch.isSearching && currentSearch.matches.isEmpty() ->
-                    Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                currentSearch.error != null && currentSearch.matches.isEmpty() ->
-                    CatalogMessage("搜索失败：${currentSearch.error}", "重试", {
-                        viewModel.searchSongs(searchQuery)
-                    }, Modifier.fillMaxSize().padding(padding))
-                currentSearch.matches.isEmpty() ->
-                    CatalogMessage("没有找到匹配的歌曲", null, null, Modifier.fillMaxSize().padding(padding))
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(bottom = bottomInset + 16.dp),
-                ) {
-                    items(count = currentSearch.matches.size, key = { currentSearch.matches[it].id }) { index ->
-                        val song = currentSearch.matches[index]
-                        ArtistSongItem(
-                            song = song,
-                            onClick = { playSong(song, currentSearch.matches) },
-                            onMore = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, source) },
-                        )
-                    }
-                    if (currentSearch.isSearching || currentSearch.error != null) {
-                        item(key = "search_status") {
-                            CatalogSearchStatus(currentSearch) { viewModel.searchSongs(searchQuery) }
-                        }
-                    }
-                }
-            }
-        } else when (songs.loadState.refresh) {
-            is LoadState.Loading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            is LoadState.Error -> CatalogMessage("歌曲加载失败", "重试", { songs.retry() }, Modifier.fillMaxSize().padding(padding))
-            is LoadState.NotLoading -> if (songs.itemCount == 0) {
-                CatalogMessage("暂无歌曲", null, null, Modifier.fillMaxSize().padding(padding))
-            } else LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(bottom = bottomInset + 16.dp),
-            ) {
-                items(count = songs.itemCount, key = songs.itemKey { it.id }) { index ->
-                    val song = songs[index]
-                    if (song == null) TrackPlaceholder(index = index) else {
-                        ArtistSongItem(
-                            song = song,
-                            onClick = { playSong(song, songs.itemSnapshotList.items) },
-                            onMore = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, source) },
-                        )
-                    }
-                }
-                item { CatalogAppendState(songs) }
-            }
-        }
     }
     BasicTrackActionMenu(menuTrack) { menuTrack = null }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
@@ -197,209 +116,76 @@ fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewM
     val searchState by viewModel.albumSearchState.collectAsStateWithLifecycle()
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+    val normalScroll = rememberLazyGridState()
+    val searchScroll = rememberLazyGridState()
     val searching = isSearchActive && searchQuery.isNotBlank()
     val currentSearch = searchState.takeIf { it.query == searchQuery.trim() }
         ?: ArtistCatalogSearchState<ArtistAlbum.HotAlbum>(query = searchQuery.trim(), isSearching = true)
-
+    val focusManager = LocalFocusManager.current
+    fun closeSearch() { focusManager.clearFocus(); searchQuery = ""; isSearchActive = false }
+    BackHandler(enabled = isSearchActive, onBack = ::closeSearch)
     LaunchedEffect(searchQuery) { viewModel.searchAlbums(searchQuery) }
-
-    Scaffold(topBar = {
-        ArtistCatalogTopBar(
-            title = "全部专辑",
-            searchHint = "搜索歌手专辑",
-            searchQuery = searchQuery,
-            isSearchActive = isSearchActive,
-            onSearchQueryChange = { searchQuery = it },
-            onSearchToggle = {
-                if (isSearchActive) searchQuery = ""
-                isSearchActive = !isSearchActive
-            },
-            onBack = {
-                if (isSearchActive) {
-                    searchQuery = ""
-                    isSearchActive = false
-                } else navController.popBackStack()
-            },
-        )
-    }) { padding ->
-        if (searching) {
-            when {
-                currentSearch.isSearching && currentSearch.matches.isEmpty() ->
-                    Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                currentSearch.error != null && currentSearch.matches.isEmpty() ->
-                    CatalogMessage("搜索失败：${currentSearch.error}", "重试", {
-                        viewModel.searchAlbums(searchQuery)
-                    }, Modifier.fillMaxSize().padding(padding))
-                currentSearch.matches.isEmpty() ->
-                    CatalogMessage("没有找到匹配的专辑", null, null, Modifier.fillMaxSize().padding(padding))
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(148.dp),
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = bottomInset + 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
-                    items(count = currentSearch.matches.size, key = { currentSearch.matches[it].id }) { index ->
-                        val album = currentSearch.matches[index]
-                        ArtistAlbumGridItem(album) {
-                            Screen.Album.navigate(navController) { addPath(album.id.toString()) }
-                        }
-                    }
-                    if (currentSearch.isSearching || currentSearch.error != null) {
-                        item(key = "search_status", span = { GridItemSpan(maxLineSpan) }) {
-                            CatalogSearchStatus(currentSearch) { viewModel.searchAlbums(searchQuery) }
-                        }
-                    }
-                }
-            }
-        } else when (albums.loadState.refresh) {
-            is LoadState.Loading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            is LoadState.Error -> CatalogMessage("专辑加载失败", "重试", { albums.retry() }, Modifier.fillMaxSize().padding(padding))
-            is LoadState.NotLoading -> if (albums.itemCount == 0) {
-                CatalogMessage("暂无专辑", null, null, Modifier.fillMaxSize().padding(padding))
-            } else LazyVerticalGrid(
-                columns = GridCells.Adaptive(148.dp),
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = bottomInset + 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                items(count = albums.itemCount, key = albums.itemKey { it.id }) { index ->
-                    albums[index]?.let { album ->
-                        ArtistAlbumGridItem(album) {
-                            Screen.Album.navigate(navController) { addPath(album.id.toString()) }
-                        }
-                    }
-                }
-                item(span = { GridItemSpan(maxLineSpan) }) { CatalogAppendState(albums) }
+    MeiCollectionPage(
+        title = "全部专辑",
+        itemCount = if (searching) currentSearch.matches.size else albums.itemCount,
+        itemKey = if (searching) ({ index -> currentSearch.matches[index].id }) else albums.itemKey { it.id },
+        onNavigateBack = { if (isSearchActive) closeSearch() else navController.popBackStack() },
+        onRetry = { if (searching) viewModel.searchAlbums(searchQuery) else albums.retry() },
+        state = if (searching) searchScroll else normalScroll,
+        columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(148.dp),
+        loading = if (searching) currentSearch.isSearching else albums.loadState.refresh is LoadState.Loading,
+        failed = if (searching) currentSearch.error != null else albums.loadState.refresh is LoadState.Error,
+        emptyText = if (searching) "没有找到匹配的专辑" else "暂无专辑", emptyActionLabel = null,
+        showLargeTitle = !isSearchActive,
+        titleContent = if (isSearchActive) ({ ArtistCatalogSearchField(searchQuery, { searchQuery = it }, "搜索歌手专辑") }) else null,
+        actions = { CatalogSearchAction(isSearchActive) { if (isSearchActive) closeSearch() else isSearchActive = true } },
+        footer = {
+            if (searching) CatalogSearchStatus(currentSearch) { viewModel.searchAlbums(searchQuery) }
+            else CatalogAppendState(albums)
+        },
+    ) { index ->
+        val album = if (searching) currentSearch.matches[index] else albums[index]
+        album?.let {
+            ArtworkCard(title = album.name, subtitle = "${album.size} 首", coverUrl = album.picUrl, modifier = Modifier.fillMaxWidth()) {
+                Screen.Album.navigate(navController) { addPath(album.id.toString()) }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ArtistCatalogTopBar(
-    title: String,
-    searchHint: String,
-    searchQuery: String,
-    isSearchActive: Boolean,
-    onSearchQueryChange: (String) -> Unit,
-    onSearchToggle: () -> Unit,
-    onBack: () -> Unit,
-) {
+private fun ArtistCatalogSearchField(query: String, onQueryChange: (String) -> Unit, hint: String) {
     val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    LaunchedEffect(isSearchActive) {
-        if (isSearchActive) focusRequester.requestFocus()
-    }
-    CenterAlignedTopAppBar(
-        title = {
-            if (isSearchActive) {
-                TextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    placeholder = { Text(searchHint) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                    ),
-                )
-            } else Text(title)
-        },
-        navigationIcon = {
-            IconButton(onClick = {
-                focusManager.clearFocus()
-                onBack()
-            }) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-            }
-        },
-        actions = {
-            IconButton(onClick = {
-                if (isSearchActive) focusManager.clearFocus()
-                onSearchToggle()
-            }) {
-                Icon(
-                    if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                    contentDescription = if (isSearchActive) "关闭搜索" else searchHint,
-                )
-            }
-        },
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    TextField(
+        value = query, onValueChange = onQueryChange, placeholder = { Text(hint) }, singleLine = true,
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+        ),
     )
 }
 
 @Composable
-private fun ArtistSongItem(
-    song: ArtistSong.HotSong,
-    onClick: () -> Unit,
-    onMore: (MediaMetadata, IntRect) -> Unit,
-) {
+private fun CatalogSearchAction(active: Boolean, onToggle: () -> Unit) {
+    IconButton(onClick = onToggle) {
+        Icon(if (active) Icons.Default.Close else Icons.Default.Search, contentDescription = if (active) "关闭搜索" else "搜索")
+    }
+}
+
+@Composable
+private fun ArtistSongItem(song: ArtistSong.HotSong, onClick: () -> Unit, onMore: (MediaMetadata, IntRect) -> Unit) {
     val track = remember(song) { song.toMediaMetadata() }
     Track(track = track, onClick = onClick, onMoreClick = { anchor -> onMore(track, anchor) })
 }
 
 @Composable
 private fun <T> CatalogSearchStatus(state: ArtistCatalogSearchState<T>, onRetry: () -> Unit) {
-    when {
-        state.isSearching -> Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        state.error != null -> CatalogMessage("搜索中断：${state.error}", "继续搜索", onRetry, Modifier.fillMaxWidth().padding(16.dp))
-    }
-}
-
-@Composable
-private fun ArtistAlbumGridItem(album: ArtistAlbum.HotAlbum, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        AsyncImage(
-            model = album.picUrl.sizedNeteaseImage(400),
-            contentDescription = "专辑《${album.name}》封面",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        )
-        Text(
-            album.name,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Text(
-            "${album.size} 首",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp),
-        )
-    }
-}
-
-@Composable
-private fun CatalogMessage(message: String, action: String?, onAction: (() -> Unit)?, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (action != null && onAction != null) TextButton(onClick = onAction) { Text(action) }
-    }
+    MeiCollectionLoadMore(false, state.isSearching, state.error != null, onRetry)
 }
 
 @Composable
 private fun <T : Any> CatalogAppendState(items: LazyPagingItems<T>) {
-    when (items.loadState.append) {
-        is LoadState.Loading -> Box(Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        is LoadState.Error -> CatalogMessage("加载更多失败", "重试", { items.retry() }, Modifier.fillMaxWidth().padding(16.dp))
-        is LoadState.NotLoading -> Unit
-    }
+    MeiCollectionLoadMore(false, items.loadState.append is LoadState.Loading, items.loadState.append is LoadState.Error, items::retry)
 }

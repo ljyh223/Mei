@@ -59,51 +59,53 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val navController = LocalNavController.current
     MeiPinnedPage(
         title = "设置",
+        contentTopPadding = 12.dp,
     ) { paddingValues ->
         Column(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+                .padding(horizontal = 20.dp),
         ) {
-            MeiLargeTitle("设置")
+            MeiLargeTitle("设置", modifier = Modifier.padding(bottom = 16.dp), startPadding = 0.dp)
 
-            SettingsGroup("聆听") {
-                SettingRow("播放", "音质、音效与播放行为", Icons.Rounded.LibraryMusic, MeiCategory.Playback) {
-                    Screen.PlaySettings.navigate(navController)
+            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                SettingsGroup("聆听") {
+                    SettingRow("播放", "音质、音效与播放行为", Icons.Rounded.LibraryMusic, MeiCategory.Playback) {
+                        Screen.PlaySettings.navigate(navController)
+                    }
+                    SettingsDivider()
+                    SettingRow("歌词", "显示、翻译与桌面歌词", Icons.Rounded.Lyrics, MeiCategory.Lyrics) {
+                        Screen.LyricsSettings.navigate(navController)
+                    }
                 }
-                SettingsDivider()
-                SettingRow("歌词", "显示、翻译与桌面歌词", Icons.Rounded.Lyrics, MeiCategory.Lyrics) {
-                    Screen.LyricsSettings.navigate(navController)
+                SettingsGroup("个性化") {
+                    SettingRow("外观", "主题、封面与界面", Icons.Rounded.Palette, MeiCategory.Appearance) {
+                        Screen.AppearanceSettings.navigate(navController)
+                    }
+                    SettingsDivider()
+                    SettingRow("账号与内容", "登录、音源与内容偏好", Icons.Rounded.Language, MeiCategory.Content) {
+                        Screen.ContentSettings.navigate(navController)
+                    }
                 }
-            }
-            SettingsGroup("个性化") {
-                SettingRow("外观", "主题、封面与界面", Icons.Rounded.Palette, MeiCategory.Appearance) {
-                    Screen.AppearanceSettings.navigate(navController)
+                SettingsGroup("离线与存储") {
+                    SettingRow("下载", "音质与保存位置", Icons.Rounded.Download, MeiCategory.Offline) {
+                        Screen.DownloadSettings.navigate(navController)
+                    }
+                    SettingsDivider()
+                    SettingRow("缓存", "占用空间与清理", Icons.Rounded.Storage, MeiCategory.Storage) {
+                        Screen.CacheSettings.navigate(navController)
+                    }
                 }
-                SettingsDivider()
-                SettingRow("账号与内容", "登录、音源与内容偏好", Icons.Rounded.Language, MeiCategory.Content) {
-                    Screen.ContentSettings.navigate(navController)
-                }
-            }
-            SettingsGroup("离线与存储") {
-                SettingRow("下载", "音质与保存位置", Icons.Rounded.Download, MeiCategory.Offline) {
-                    Screen.DownloadSettings.navigate(navController)
-                }
-                SettingsDivider()
-                SettingRow("缓存", "占用空间与清理", Icons.Rounded.Storage, MeiCategory.Storage) {
-                    Screen.CacheSettings.navigate(navController)
-                }
-            }
-            SettingsGroup("更多") {
-                SettingRow("Beta 功能", "试用中的效果与参数", Icons.Rounded.Science, MeiCategory.Experimental) {
-                    Screen.BetaSettings.navigate(navController)
-                }
-                SettingsDivider()
-                SettingRow("关于 Mei", null, Icons.Rounded.Info, MeiCategory.About) {
-                    Screen.About.navigate(navController)
+                SettingsGroup("更多") {
+                    SettingRow("Beta 功能", "试用中的效果与参数", Icons.Rounded.Science, MeiCategory.Experimental) {
+                        Screen.BetaSettings.navigate(navController)
+                    }
+                    SettingsDivider()
+                    SettingRow("关于 Mei", null, Icons.Rounded.Info, MeiCategory.About) {
+                        Screen.About.navigate(navController)
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))

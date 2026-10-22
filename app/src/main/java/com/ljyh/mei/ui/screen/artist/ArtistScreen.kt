@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.artist
 
+import com.ljyh.mei.ui.component.card.ArtworkCard
 import com.ljyh.mei.playback.queue.QueueSource
 
 import androidx.annotation.OptIn
@@ -534,52 +535,15 @@ private fun ExpertiseChip(name: String, count: Int) {
 // ─── Album Card ───────────────────────────────────────────────────────────────
 
 @Composable
-fun AlbumCard(
-    album: Album? = null,
-    isLoading: Boolean = false,
-    onClick: (Long) -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .width(116.dp)
-            .clickable(enabled = !isLoading && album != null) {
-                album?.id?.let(onClick)
-            }
-    ) {
-        if (isLoading) {
-            Spacer(
-                modifier = Modifier
-                    .size(116.dp)
-                    .skeleton(true, RoundedCornerShape(8.dp))
-            )
-        } else {
-            AsyncImage(
-                model = album?.cover?.sizedNeteaseImage(300),
-                contentDescription = album?.title,
-                modifier = Modifier
-                    .size(116.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Crop
-            )
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = album?.title ?: "正在加载的专辑标题\n专辑标题",
-            modifier = Modifier.skeleton(isLoading),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = album?.let { "${it.size} 首" } ?: "00 首",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.42f),
-            modifier = Modifier.padding(top = 2.dp).skeleton(isLoading)
-        )
-    }
+fun AlbumCard(album: Album? = null, isLoading: Boolean = false, onClick: (Long) -> Unit) {
+    ArtworkCard(
+        title = album?.title.orEmpty(), coverUrl = album?.cover,
+        subtitle = album?.let { "${it.size} 首" } ?: "00 首",
+        modifier = Modifier.width(116.dp), isLoading = isLoading, enabled = album != null,
+        cornerRadius = 8.dp, textSpacing = 6.dp,
+        titleStyle = MaterialTheme.typography.labelMedium, subtitleStyle = MaterialTheme.typography.labelSmall,
+        onClick = { album?.id?.let(onClick) },
+    )
 }
 
 @Composable

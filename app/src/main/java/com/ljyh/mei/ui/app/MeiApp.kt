@@ -62,6 +62,10 @@ import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.LiquidGlassEnabledKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.DefaultThemeColor
+import com.ljyh.mei.constants.PageTransitionStyle
+import com.ljyh.mei.constants.PageTransitionStyleKey
+import com.ljyh.mei.constants.PageTransitionSpeed
+import com.ljyh.mei.constants.PageTransitionSpeedKey
 import com.ljyh.mei.constants.ThemeColorKey
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.data.model.domain.UserData
@@ -83,6 +87,8 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.local.LocalUserData
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
+import com.ljyh.mei.ui.motion.PageNavigationMotion
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.navigationBuilder
@@ -121,6 +127,11 @@ fun MeiApp(
     var searchActive by rememberSaveable { mutableStateOf(false) }
     val glassEnabled by rememberPreference(LiquidGlassEnabledKey, defaultValue = true)
     val glassAppearance by rememberGlassAppearance()
+    val pageTransitionStyle by rememberEnumPreference(PageTransitionStyleKey, PageTransitionStyle.Slide)
+    val pageTransitionSpeed by rememberEnumPreference(PageTransitionSpeedKey, PageTransitionSpeed.Standard)
+    val pageMotion = remember(pageTransitionStyle, pageTransitionSpeed) {
+        PageNavigationMotion(pageTransitionStyle, pageTransitionSpeed)
+    }
     val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
     val themeColor by rememberPreference(ThemeColorKey, defaultValue = DefaultThemeColor)
     val staticThemeColor = remember(themeColor) {
@@ -384,6 +395,10 @@ fun MeiApp(
                                 .then(if (useGlass) Modifier.hazeSource(pageHazeState) else Modifier)
                                 .background(MaterialTheme.colorScheme.background),
                             navController = navController,
+                            enterTransition = { pageMotion.enter(this) },
+                            exitTransition = { pageMotion.exit(this) },
+                            popEnterTransition = { pageMotion.enter(this, isPop = true) },
+                            popExitTransition = { pageMotion.exit(this, isPop = true) },
                             startDestination = when (startTab) {
                                 NavigationTab.Home -> Screen.Home.route
                                 NavigationTab.Library -> Screen.Library.route

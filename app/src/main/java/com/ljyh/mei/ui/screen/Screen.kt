@@ -12,6 +12,9 @@ sealed class Screen(val route:String) {
     data object Home:Screen("home")
     data object Library:Screen("library")
     data object FindMusic: Screen("find_music")
+    data object DiscoverPlaylists: Screen("discover/playlists")
+    data object DiscoverAlbums: Screen("discover/albums")
+    data object DiscoverCharts: Screen("discover/charts")
     data object AudioMatch: Screen("audio_match")
     data object SearchResult:Screen("search_result")
     data object PlayList:Screen("playlist")
@@ -50,7 +53,8 @@ sealed class Screen(val route:String) {
     }
 
     companion object {
-        val MainScreens = listOf(Home, FindMusic, Library, Setting)
+        // Nested route objects can initialize this base class first; defer reading their instances.
+        val MainScreens: List<Screen> by lazy { listOf(Home, FindMusic, Library, Setting) }
     }
 }
 

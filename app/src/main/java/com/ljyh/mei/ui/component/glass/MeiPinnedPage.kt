@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.HazeState
@@ -129,6 +130,7 @@ fun MeiPinnedPage(
     onNavigateBack: (() -> Unit)? = null,
     @Suppress("UNUSED_PARAMETER") onBackLongClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
+    contentTopPadding: Dp = BarHeight + 10.dp,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val state = rememberHazeState()
@@ -142,7 +144,7 @@ fun MeiPinnedPage(
                 LocalMeiPageScroll provides scroll,
                 LocalMeiPageProgress provides progress,
             ) {
-                content(PaddingValues(top = statusTop + BarHeight + 10.dp, bottom = bottomInset + 24.dp))
+                content(PaddingValues(top = statusTop + contentTopPadding, bottom = bottomInset + 24.dp))
             }
         }
         MeiHazeTopBar(

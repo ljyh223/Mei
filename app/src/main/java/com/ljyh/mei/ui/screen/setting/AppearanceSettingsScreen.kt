@@ -61,6 +61,10 @@ import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.constants.TabletAnimationStyle
 import com.ljyh.mei.constants.TabletAnimationStyleKey
+import com.ljyh.mei.constants.PageTransitionStyle
+import com.ljyh.mei.constants.PageTransitionStyleKey
+import com.ljyh.mei.constants.PageTransitionSpeed
+import com.ljyh.mei.constants.PageTransitionSpeedKey
 import com.ljyh.mei.ui.screen.setting.component.EnumListPreference
 import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPickerDialog
 import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPreset
@@ -144,6 +148,13 @@ fun AppearanceSettingsScreen(
         defaultValue = TabletAnimationStyle.FLIP_3D
     )
 
+    val (pageTransitionStyle, onPageTransitionStyleChange) = rememberEnumPreference(
+        PageTransitionStyleKey, PageTransitionStyle.Slide,
+    )
+    val (pageTransitionSpeed, onPageTransitionSpeedChange) = rememberEnumPreference(
+        PageTransitionSpeedKey, PageTransitionSpeed.Standard,
+    )
+
     val (playlistStyle, onPlaylistStyleChange) = rememberEnumPreference(
         key = PlaylistCoverStyleKey,
         defaultValue = PlaylistCoverStyle.Cover
@@ -204,6 +215,23 @@ fun AppearanceSettingsScreen(
                         onClick = { showThemeColorPicker = true },
                     )
                 }
+            }
+            PreferenceSection("页面动画") {
+                EnumListPreference(
+                    title = { Text("切换样式") },
+                    icon = { Icon(Icons.Rounded.SwapHoriz, null) },
+                    selectedValue = pageTransitionStyle,
+                    onValueSelected = onPageTransitionStyleChange,
+                    valueText = { it.label },
+                )
+                EnumListPreference(
+                    title = { Text("动画速度") },
+                    icon = { Icon(Icons.Rounded.Speed, null) },
+                    selectedValue = pageTransitionSpeed,
+                    onValueSelected = onPageTransitionSpeedChange,
+                    valueText = { it.label },
+                    isEnabled = pageTransitionStyle != PageTransitionStyle.None,
+                )
             }
             PreferenceSection("歌单") {
 

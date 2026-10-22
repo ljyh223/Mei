@@ -1,71 +1,74 @@
 package com.ljyh.mei.ui.screen.main.findmusic
 
 import androidx.lifecycle.ViewModel
-import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.data.repository.PlaylistRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.data.model.domain.FeaturedPlaylistPage
+import com.ljyh.mei.data.model.domain.*
+import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.data.repository.DiscoverDataSource
+import com.ljyh.mei.data.repository.DiscoverRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class FindMusicViewModel @Inject constructor(
-    private val repository: PlaylistRepository
+class FindMusicViewModel internal constructor(
+    private val source: DiscoverDataSource,
+    private val scopeOverride: CoroutineScope?,
 ) : ViewModel() {
-
-    // 分类列表
-    val categories = "全部,华语,欧美,日语,韩语,粤语,小语种,流行,摇滚,民谣,电子,舞曲,说唱,轻音乐,爵士,乡村,R&B/Soul,古典,民族,英伦,金属,朋克,蓝调,雷鬼,世界音乐,拉丁,另类/独立,New Age,古风,后摇,Bossa Nova,清晨,夜晚,学习,工作,午休,下午茶,地铁,驾车,运动,旅行,散步,酒吧,怀旧,清新,浪漫,性感,伤感,治愈,放松,孤独,感动,兴奋,快乐,安静,思念,影视原声,ACG,儿童,校园,游戏,70后,80后,90后,网络歌曲,KTV,经典,翻唱,吉他,钢琴,器乐,榜单,00后".split(",")
-
-    private val _selectedCategory = MutableStateFlow("全部")
-    val selectedCategory = _selectedCategory.asStateFlow()
-
-    private val _highQualityPlaylist = MutableStateFlow<Resource<FeaturedPlaylistPage>>(Resource.Loading)
-    val highQualityPlaylist = _highQualityPlaylist.asStateFlow()
-    private val _playlistCache = mutableMapOf<String, FeaturedPlaylistPage>()
+    @Inject constructor(repository: DiscoverRepository) : this(repository, null)
+    private val requestScope get() = scopeOverride ?: viewModelScope
+    private val _categories = MutableStateFlow<Resource<List<DiscoverCategory>>>(Resource.Loading)
+    val categories = _categories.asStateFlow()
+    private val _hotCategories = MutableStateFlow<Resource<List<String>>>(Resource.Loading)
+    val hotCategories = _hotCategories.asStateFlow()
+    private val _featured = MutableStateFlow<Resource<List<DiscoverPlaylist>>>(Resource.Loading)
+    val featured = _featured.asStateFlow()
+    private val _albums = MutableStateFlow<Resource<List<DiscoverAlbum>>>(Resource.Loading)
+    val albums = _albums.asStateFlow()
+    private var categoriesJob: Job? = null
+    private var hotJob: Job? = null
+    private var featuredJob: Job? = null
+    private var albumsJob: Job? = null
 
     init {
-        // 初始化加载
-        loadCategoryData("全部")
+        loadCategories()
+        loadHotCategories()
+        loadFeatured()
+        loadAlbums()
     }
 
-    /**
-     * 用户点击分类时调用
-     */
-    fun onCategorySelected(cat: String) {
-        // 1. 更新选中的 Tag UI
-        _selectedCategory.value = cat
-
-        // 2. 检查缓存
-        if (_playlistCache.containsKey(cat)) {
-            // 【命中缓存】：直接使用缓存数据，不发网络请求
-            _highQualityPlaylist.value = Resource.Success(_playlistCache[cat]!!)
-        } else {
-            // 【未命中缓存】：发起网络请求
-            loadCategoryData(cat)
+    fun loadCategories() {
+        categoriesJob?.cancel()
+        categoriesJob = requestScope.launch {
+            _categories.value = Resource.Loading
+            _categories.value = source.categories()
         }
     }
-
-    /**
-     * 执行实际的数据加载逻辑
-     * @param forceRefresh 是否强制刷新（哪怕有缓存也重新请求）
-     */
-    fun loadCategoryData(cat: String, limit: Int = 30, forceRefresh: Boolean = false) {
-        viewModelScope.launch {
-            _highQualityPlaylist.value = Resource.Loading
-
-            // 调用 Repository
-            val result = repository.getHighQualityPlaylist(cat, limit)
-
-            // 如果请求成功，写入缓存
-            if (result is Resource.Success) {
-                _playlistCache[cat] = result.data
+    fun loadHotCategories() {
+        hotJob?.cancel()
+        hotJob = requestScope.launch { _hotCategories.value = source.hotCategories() }
+    }
+    fun loadFeatured() {
+        featuredJob?.cancel()
+        featuredJob = requestScope.launch {
+            _featured.value = Resource.Loading
+            when (val result = source.playlists(DiscoverPlaylistQuery(), 0)) {
+                is Resource.Success -> _featured.value = Resource.Success(result.data.items)
+                is Resource.Error -> _featured.value = result
+                Resource.Loading -> Unit
             }
-
-            // 更新 UI
-            _highQualityPlaylist.value = result
         }
     }
+    fun loadAlbums() {
+        albumsJob?.cancel()
+        albumsJob = requestScope.launch {
+            _albums.value = Resource.Loading
+            _albums.value = source.albums()
+        }
+    }
+
 }

@@ -126,6 +126,8 @@ val MeshSubdivisionKey = intPreferencesKey("meshSubdivision")
 val PlaylistCoverStyleKey = stringPreferencesKey("playlistCoverStyle")
 val PlaylistTrackTableHeaderKey = booleanPreferencesKey("playlistTrackTableHeader")
 val TabletAnimationStyleKey = stringPreferencesKey("tabletAnimationStyle")
+val PageTransitionStyleKey = stringPreferencesKey("pageTransitionStyle")
+val PageTransitionSpeedKey = stringPreferencesKey("pageTransitionSpeed")
 
 val DownloadPathKey = stringPreferencesKey("downloadPath")
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
@@ -227,4 +229,17 @@ enum class TabletAnimationStyle(val label: String) {
     CROSSFADE("渐变"),
     ZOOM("缩放"),
     FLIP_3D("3D翻转")
+}
+
+
+enum class PageTransitionStyle(val label: String) {
+    Slide("横向推进"),
+    Fade("淡入淡出"),
+    None("无动画"),
+}
+
+enum class PageTransitionSpeed(val label: String, val slideMillis: Int, val fadeMillis: Int) {
+    Fast("快速", 200, 120),
+    Standard("标准", 300, 180),
+    Relaxed("舒缓", 400, 240),
 }

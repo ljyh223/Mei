@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.main.home
 
+import com.ljyh.mei.ui.component.card.PlaylistCard
 import com.ljyh.mei.playback.queue.QueueSource
 
 import androidx.compose.foundation.background
@@ -74,7 +75,7 @@ import com.ljyh.mei.ui.component.glass.LocalMeiPageProgress
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
-import com.ljyh.mei.ui.component.shimmer.skeleton
+import com.ljyh.mei.ui.component.MeiSectionTitle
 import com.ljyh.mei.ui.component.track.PlayingImageView
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
@@ -179,7 +180,7 @@ fun HomeScreen(
                                 }
                                 sortedBlocks.forEach { block ->
                                     item(key = block.positionCode) {
-                                        Box(Modifier.padding(bottom = 28.dp)) {
+                                        Column(Modifier.padding(bottom = 28.dp)) {
                                             HomeBlockItem(
                                                 block = block,
                                                 navController = navController,
@@ -499,15 +500,10 @@ private fun <T> BlockWithTitle(
 
 @Composable
 fun Title(text: String, isLoading: Boolean = false) {
-    Text(
-        text = if (isLoading) "正在加载" else text,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground,
-        maxLines = 1,
-        modifier = Modifier
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-            .skeleton(isLoading)
+    MeiSectionTitle(
+        text = text,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+        isLoading = isLoading,
     )
 }
 

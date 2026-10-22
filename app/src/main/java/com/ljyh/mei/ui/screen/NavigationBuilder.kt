@@ -1,10 +1,5 @@
 package com.ljyh.mei.ui.screen
 
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.ui.util.fastAny
@@ -12,7 +7,6 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
-import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.compose.ui.platform.LocalContext
 import java.net.URLDecoder
@@ -33,6 +27,9 @@ import com.ljyh.mei.ui.screen.setting.LyricsSettingsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.artist.ArtistSongsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistAlbumsScreen
+import com.ljyh.mei.ui.screen.main.findmusic.DiscoverPlaylistsScreen
+import com.ljyh.mei.ui.screen.main.findmusic.DiscoverAlbumsScreen
+import com.ljyh.mei.ui.screen.main.findmusic.DiscoverChartsScreen
 import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
 import com.ljyh.mei.ui.screen.main.findmusic.AudioMatchScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSettingScreen
@@ -54,82 +51,89 @@ fun NavGraphBuilder.navigationBuilder(
     navController: NavHostController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    composable(Screen.Home.route) {
+    pageDestination(Screen.Home.route) {
         HomeScreen(scrollBehavior = scrollBehavior)
     }
 
-    composable(Screen.Library.route) {
+    pageDestination(Screen.Library.route) {
         LibraryScreen(scrollBehavior = scrollBehavior)
     }
 
-    composable(Screen.FindMusic.route) {
+    pageDestination(Screen.FindMusic.route) {
         FindMusicScreen(scrollBehavior = scrollBehavior)
     }
 
-    composable(Screen.AudioMatch.route) {
+    pageDestination(
+        route = "${Screen.DiscoverPlaylists.route}?category={category}",
+        arguments = listOf(navArgument("category") { type = NavType.StringType; defaultValue = "全部" }),
+    ) { DiscoverPlaylistsScreen() }
+    pageDestination(Screen.DiscoverAlbums.route) { DiscoverAlbumsScreen() }
+    pageDestination(Screen.DiscoverCharts.route) { DiscoverChartsScreen() }
+
+    pageDestination(Screen.AudioMatch.route) {
         AudioMatchScreen(scrollBehavior = scrollBehavior)
     }
 
-    composable(Screen.Test.route) {
+    pageDestination(Screen.Test.route) {
         Test()
     }
 
-    composable(Screen.Setting.route) {
+    pageDestination(Screen.Setting.route) {
         SettingScreen(scrollBehavior)
     }
 
-    composable(Screen.GlassSettings.route) {
+    pageDestination(Screen.GlassSettings.route) {
         GlassSettingsScreen()
     }
-    composable(Screen.AppearanceSettings.route) {
+    pageDestination(Screen.AppearanceSettings.route) {
         AppearanceSettingsScreen(scrollBehavior)
     }
 
-    composable(Screen.BetaSettings.route) {
+    pageDestination(Screen.BetaSettings.route) {
         BetaSettingsScreen(scrollBehavior)
     }
 
-    composable(Screen.LyricsSettings.route) {
+    pageDestination(Screen.LyricsSettings.route) {
         LyricsSettingsScreen(scrollBehavior)
     }
 
-    composable(Screen.LxSources.route) { LxSourcesScreen(scrollBehavior) }
+    pageDestination(Screen.LxSources.route) { LxSourcesScreen(scrollBehavior) }
 
-    composable(Screen.ContentSettings.route) {
+    pageDestination(Screen.ContentSettings.route) {
         ContentsSettingScreen(scrollBehavior)
     }
-    composable(Screen.UsbExclusiveSettings.route) {
+    pageDestination(Screen.UsbExclusiveSettings.route) {
         UsbExclusiveSettingsScreen(scrollBehavior)
     }
-    composable(Screen.PlaySettings.route){
+    pageDestination(Screen.PlaySettings.route){
         PlaySettingScreen(scrollBehavior)
     }
 
-    composable(Screen.DeveloperSettings.route) {
+    pageDestination(Screen.DeveloperSettings.route) {
         DeveloperSettingsScreen(scrollBehavior)
     }
 
-    composable(Screen.Equalizer.route) {
+    pageDestination(Screen.Equalizer.route) {
         EqualizerSettingScreen(scrollBehavior)
     }
 
-    composable(Screen.DownloadSettings.route) {
+    pageDestination(Screen.DownloadSettings.route) {
         DownloadSettingScreen(scrollBehavior)
     }
 
-    composable(Screen.CacheSettings.route) {
+    pageDestination(Screen.CacheSettings.route) {
         CacheSettingsScreen(scrollBehavior)
     }
 
-    composable(Screen.DownloadManage.route) {
+    pageDestination(Screen.DownloadManage.route) {
         DownloadManageScreen(scrollBehavior)
     }
 
-    composable(Screen.LocalMusic.route) {
+    pageDestination(Screen.LocalMusic.route) {
         LocalMusicScreen(scrollBehavior)
     }
 
-    composable(
+    pageDestination(
         route = "${Screen.LocalSongList.route}/{type}/{name}",
         arguments = listOf(
             navArgument("type") { type = NavType.StringType },
@@ -173,16 +177,16 @@ fun NavGraphBuilder.navigationBuilder(
         )
     }
 
-    composable(Screen.EveryDay.route){
+    pageDestination(Screen.EveryDay.route){
         EveryDay()
     }
-    composable(Screen.About.route) {
+    pageDestination(Screen.About.route) {
         AboutScreen()
     }
-    composable(Screen.Log.route) {
+    pageDestination(Screen.Log.route) {
         LogScreen()
     }
-    composable(
+    pageDestination(
         route = "${Screen.SearchResult.route}/{query}/{type}",
         arguments = listOf(
             navArgument("query") {
@@ -193,33 +197,13 @@ fun NavGraphBuilder.navigationBuilder(
                 type = NavType.IntType
             }
         ),
-        enterTransition = {
-            fadeIn(tween(250))
-        },
-        exitTransition = {
-            if (targetState.destination.route?.startsWith("search/") == true) {
-                fadeOut(tween(200))
-            } else {
-                fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
-            }
-        },
-        popEnterTransition = {
-            if (initialState.destination.route?.startsWith("search/") == true) {
-                fadeIn(tween(250))
-            } else {
-                fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
-            }
-        },
-        popExitTransition = {
-            fadeOut(tween(200))
-        }
     ) {
         SearchResultScreen(
             query = it.arguments!!.getString("query")!!,
             type= it.arguments!!.getInt("type"),
         )
     }
-    composable(
+    pageDestination(
         route = "${Screen.PlayList.route}/{id}",
         arguments = listOf(
             navArgument("id") {
@@ -231,7 +215,7 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
 
-    composable(
+    pageDestination(
         route = "${Screen.Album.route}/{id}",
         arguments = listOf(
             navArgument("id") {
@@ -242,7 +226,7 @@ fun NavGraphBuilder.navigationBuilder(
         AlbumDetailScreen(id = it.arguments!!.getLong("id"))
     }
     
-    composable(
+    pageDestination(
         route = "${Screen.Artist.route}/{id}",
         arguments = listOf(
             navArgument("id") {
@@ -253,25 +237,25 @@ fun NavGraphBuilder.navigationBuilder(
         ArtistScreen(id = it.arguments!!.getString("id")!!)
     }
 
-    composable(
+    pageDestination(
         route = "${Screen.ArtistSongs.route}/{id}",
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
         ArtistSongsScreen(id = it.arguments!!.getString("id")!!)
     }
 
-    composable(
+    pageDestination(
         route = "${Screen.ArtistAlbums.route}/{id}",
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
         ArtistAlbumsScreen(id = it.arguments!!.getString("id")!!)
     }
 
-    composable(Screen.History.route) {
+    pageDestination(Screen.History.route) {
         HistoryScreen()
     }
 
-    composable(
+    pageDestination(
         route = "${Screen.Comment.route}/{songId}",
         arguments = listOf(
             navArgument("songId") { type = NavType.StringType }
