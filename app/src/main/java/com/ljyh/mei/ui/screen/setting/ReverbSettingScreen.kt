@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.setting
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -129,14 +130,16 @@ fun ReverbSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
         ) {
             PreferenceSection("房间预设") {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    Modifier.fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ReverbPresets.all.forEach { preset ->
                         FilterChip(
                             selected = profile.presetId == preset.id,
                             onClick = { commit(preset.profile) },
-                            label = { Text(preset.label) },
+                            label = { Text(preset.label, maxLines = 1, softWrap = false) },
                         )
                     }
                 }
