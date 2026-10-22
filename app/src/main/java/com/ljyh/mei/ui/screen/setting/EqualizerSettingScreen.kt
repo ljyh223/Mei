@@ -42,6 +42,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import com.ljyh.mei.playback.equalizer.AutoEqFormat
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.widget.Toast
+import android.net.Uri
+import android.content.ClipboardManager
+import android.content.ClipData
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -164,6 +173,35 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
             profile = next
             playerConnection?.service?.previewEqualizerProfile(next)
         }
+    }
+
+    fun importAutoEq(uri: Uri) {
+        scope.launch {
+            val text = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                }.getOrNull()
+            }
+            val parsed = text?.let { AutoEqFormat.parse(it) }
+            if (parsed == null || parsed.filters.isEmpty()) {
+                Toast.makeText(context, "无法解析 AutoEQ 文件", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val id = "user_autoeq_${System.currentTimeMillis()}"
+            val name = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')
+                ?.takeIf { it.isNotBlank() } ?: "AutoEQ"
+            val preset = EqualizerPreset(id, name, parsed.copy(presetId = id))
+            customPresets = customPresets + preset
+            context.dataStore.edit {
+                it[UserEqualizerPresetsKey] = EqualizerPresets.encodeCustom(customPresets)
+            }
+            commit(parsed.copy(presetId = id, enabled = true))
+            selectedId = parsed.filters.firstOrNull()?.id ?: -1
+            Toast.makeText(context, "已导入 ${parsed.filters.size} 段", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val autoEqPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importAutoEq(uri)
     }
 
     val selected = profile.filters.firstOrNull { it.id == selectedId }
@@ -318,6 +356,18 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { autoEqPicker.launch(arrayOf("*/*")) }) {
+                        Text("导入")
+                    }
+                    TextButton(onClick = {
+                        val clipboard = context.getSystemService(ClipboardManager::class.java)
+                        clipboard?.setPrimaryClip(
+                            ClipData.newPlainText("AutoEQ", AutoEqFormat.export(profile))
+                        )
+                        Toast.makeText(context, "曲线已复制", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Text("导出")
+                    }
                     TextButton(onClick = { showSaveDialog = true }) {
                         Icon(Icons.Rounded.Save, null)
                         Spacer(Modifier.width(4.dp))
