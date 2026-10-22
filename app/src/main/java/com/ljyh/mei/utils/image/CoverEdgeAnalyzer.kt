@@ -17,14 +17,7 @@ internal data class AlbumBackgroundAnalysis(
     val mode: CoverExtensionMode,
 )
 
-private data class Lab(val l: Float, val a: Float, val b: Float) {
-    fun distance(other: Lab): Float {
-        val dl = l - other.l
-        val da = a - other.a
-        val db = b - other.b
-        return sqrt(dl * dl + da * da + db * db)
-    }
-}
+private data class Lab(val l: Float, val a: Float, val b: Float)
 
 private data class ColorBin(var count: Int = 0, var l: Float = 0f, var a: Float = 0f, var b: Float = 0f) {
     fun add(value: Lab) {
@@ -37,7 +30,13 @@ private data class ColorBin(var count: Int = 0, var l: Float = 0f, var a: Float 
     fun center() = Lab(l / count, a / count, b / count)
 }
 
-/** Finds a dominant flat color without requiring a continuous border on all four sides. */
+/**
+ * Finds a dominant flat color without requiring a continuous border on all four sides.
+ *
+ * Only the edge band is converted to OKLab up front; the interior is converted lazily and only
+ * when the band already looks like a solid background. Patterned covers therefore skip the full
+ * image pass entirely, and no per-pixel Lab objects are allocated.
+ */
 internal fun analyzeCoverBackground(
     pixels: IntArray,
     width: Int,
@@ -46,21 +45,37 @@ internal fun analyzeCoverBackground(
 ): AlbumBackgroundAnalysis? {
     if (width < 32 || height < 32 || pixels.size < width * height) return null
     val total = width * height
-    val lab = Array(total) { index -> pixels[index].takeIf { it ushr 24 >= 248 }?.let(::toOKLab) }
+    val labL = FloatArray(total)
+    val labA = FloatArray(total)
+    val labB = FloatArray(total)
+    val valid = BooleanArray(total)
+    fun ensure(index: Int): Boolean {
+        if (valid[index]) return true
+        val pixel = pixels[index]
+        if (pixel ushr 24 < 248) return false
+        val color = toOKLab(pixel)
+        labL[index] = color.l
+        labA[index] = color.a
+        labB[index] = color.b
+        valid[index] = true
+        return true
+    }
+
     val band = (min(width, height) * 0.08f).roundToInt().coerceAtLeast(3)
     val bandIndices = ArrayList<Int>(total / 3)
     val bins = HashMap<Int, ColorBin>()
     for (y in 0 until height) for (x in 0 until width) {
         if (x >= band && x < width - band && y >= band && y < height - band) continue
         val index = y * width + x
-        val color = lab[index] ?: continue
+        if (!ensure(index)) continue
         bandIndices.add(index)
         // Coarse bins only provide seeds. The final match uses perceptual distance, so
         // colors near a bin boundary still join the same cluster.
-        val l = (color.l / 0.04f).roundToInt()
-        val a = ((color.a + 0.5f) / 0.04f).roundToInt()
-        val b = ((color.b + 0.5f) / 0.04f).roundToInt()
-        bins.getOrPut((l shl 10) or (a shl 5) or b) { ColorBin() }.add(color)
+        val l = (labL[index] / 0.04f).roundToInt()
+        val a = ((labA[index] + 0.5f) / 0.04f).roundToInt()
+        val b = ((labB[index] + 0.5f) / 0.04f).roundToInt()
+        bins.getOrPut((l shl 10) or (a shl 5) or b) { ColorBin() }
+            .add(Lab(labL[index], labA[index], labB[index]))
     }
     if (bandIndices.size < total / 10 || bins.isEmpty()) return null
 
@@ -69,21 +84,62 @@ internal fun analyzeCoverBackground(
     var bestSupport = -1
     for (bin in bins.values.sortedByDescending { it.count }.take(12)) {
         val seed = bin.center()
-        val support = bandIndices.count { lab[it]!!.distance(seed) <= tolerance }
+        val support = bandIndices.count { index -> distance(labL, labA, labB, index, seed) <= tolerance }
         if (support > bestSupport) {
             bestSupport = support
             bestSeed = seed
         }
     }
     val seed = bestSeed ?: return null
+
+    val matches = BooleanArray(total)
+    var bandRed = 0L
+    var bandGreen = 0L
+    var bandBlue = 0L
+    var bandMatches = 0
+    var bandDistanceTotal = 0f
+    for (index in bandIndices) {
+        val distance = distance(labL, labA, labB, index, seed)
+        if (distance > tolerance) continue
+        matches[index] = true
+        bandMatches++
+        bandDistanceTotal += distance
+        bandRed += (pixels[index] ushr 16) and 0xff
+        bandGreen += (pixels[index] ushr 8) and 0xff
+        bandBlue += pixels[index] and 0xff
+    }
+    val bandShare = bandMatches.toFloat() / bandIndices.size
+    val sideMatches = sideMatches(matches, width, height)
+    val edgeConsistency = sideMatches.average().toFloat()
+    val weakestSide = sideMatches.minOrNull() ?: 0f
+
+    // A solid background needs at least 55% of the band; below that the interior pass cannot
+    // change the decision, so stop before converting and scanning the whole image.
+    if (bandMatches == 0 || bandShare < 0.55f) {
+        val color = if (bandMatches == 0) 0 else {
+            (0xff shl 24) or
+                ((bandRed / bandMatches).toInt() shl 16) or
+                ((bandGreen / bandMatches).toInt() shl 8) or (bandBlue / bandMatches).toInt()
+        }
+        return AlbumBackgroundAnalysis(
+            color = color,
+            isSolidBackground = false,
+            backgroundConfidence = (0.45f * bandShare).coerceIn(0f, 1f),
+            extensionConfidence = edgeConsistency,
+            edgeConsistency = edgeConsistency,
+            sideMatches = sideMatches,
+            mode = CoverExtensionMode.NONE,
+        )
+    }
+
     var red = 0L
     var green = 0L
     var blue = 0L
     var matchCount = 0
     var distanceTotal = 0f
-    val matches = BooleanArray(total)
     for (index in 0 until total) {
-        val distance = lab[index]?.distance(seed) ?: continue
+        if (!ensure(index)) continue
+        val distance = distance(labL, labA, labB, index, seed)
         if (distance > tolerance) continue
         matches[index] = true
         matchCount++
@@ -96,7 +152,6 @@ internal fun analyzeCoverBackground(
     val background = (0xff shl 24) or
         ((red / matchCount).toInt() shl 16) or
         ((green / matchCount).toInt() shl 8) or (blue / matchCount).toInt()
-    val bandShare = bandIndices.count { matches[it] }.toFloat() / bandIndices.size
     val wholeShare = matchCount.toFloat() / total
     val purity = (1f - distanceTotal / matchCount / tolerance).coerceIn(0f, 1f)
     val backgroundConfidence = (0.45f * bandShare + 0.40f * wholeShare + 0.15f * purity)
@@ -104,27 +159,8 @@ internal fun analyzeCoverBackground(
     val solidBackground = bandShare >= 0.55f && wholeShare >= 0.30f &&
         backgroundConfidence >= config.minimumBackgroundConfidence
 
-    // The actual seam is at the outermost pixels, not at the inner edge of the sample band.
-    val sides = listOf(
-        IntArray(width) { x -> x },
-        IntArray(height) { y -> y * width + width - 1 },
-        IntArray(width) { x -> (height - 1) * width + x },
-        IntArray(height) { y -> y * width },
-    )
-    val sideMatches = sides.map { side -> side.count { matches[it] }.toFloat() / side.size }
-    val edgeConsistency = sideMatches.average().toFloat()
-    val weakestSide = sideMatches.minOrNull() ?: 0f
-    val longestGap = sides.maxOf { side ->
-        var current = 0
-        var longest = 0
-        side.forEach { index ->
-            current = if (matches[index]) 0 else current + 1
-            longest = max(longest, current)
-        }
-        longest.toFloat() / side.size
-    }
-    val extensionConfidence = (edgeConsistency * 0.7f + weakestSide * 0.3f)
-        .coerceIn(0f, 1f)
+    val longestGap = longestGap(matches, width, height)
+    val extensionConfidence = (edgeConsistency * 0.7f + weakestSide * 0.3f).coerceIn(0f, 1f)
     val mode = when {
         !solidBackground -> CoverExtensionMode.NONE
         extensionConfidence >= config.solidEdgeMatch &&
@@ -144,6 +180,41 @@ internal fun analyzeCoverBackground(
         sideMatches = sideMatches,
         mode = mode,
     )
+}
+
+private fun distance(l: FloatArray, a: FloatArray, b: FloatArray, index: Int, seed: Lab): Float {
+    val dl = l[index] - seed.l
+    val da = a[index] - seed.a
+    val db = b[index] - seed.b
+    return sqrt(dl * dl + da * da + db * db)
+}
+
+private fun sideMatches(matches: BooleanArray, width: Int, height: Int): List<Float> {
+    val sides = listOf(
+        IntArray(width) { x -> x },
+        IntArray(height) { y -> y * width + width - 1 },
+        IntArray(width) { x -> (height - 1) * width + x },
+        IntArray(height) { y -> y * width },
+    )
+    return sides.map { side -> side.count { matches[it] }.toFloat() / side.size }
+}
+
+private fun longestGap(matches: BooleanArray, width: Int, height: Int): Float {
+    val sides = listOf(
+        IntArray(width) { x -> x },
+        IntArray(height) { y -> y * width + width - 1 },
+        IntArray(width) { x -> (height - 1) * width + x },
+        IntArray(height) { y -> y * width },
+    )
+    return sides.maxOf { side ->
+        var current = 0
+        var longest = 0
+        side.forEach { index ->
+            current = if (matches[index]) 0 else current + 1
+            longest = max(longest, current)
+        }
+        longest.toFloat() / side.size
+    }
 }
 
 private fun toOKLab(pixel: Int): Lab {

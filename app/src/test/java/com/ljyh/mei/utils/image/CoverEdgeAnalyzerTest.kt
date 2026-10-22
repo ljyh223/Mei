@@ -56,6 +56,16 @@ class CoverEdgeAnalyzerTest {
     }
 
     @Test
+    fun busyEdgesAreRejectedWithoutScanningTheInterior() {
+        val pixels = IntArray(side * side) {
+            if (((it / side) + (it % side)) % 2 == 0) background else foreground
+        }
+        val result = requireNotNull(analyzeCoverBackground(pixels, side, side))
+        assertFalse(result.isSolidBackground)
+        assertEquals(CoverExtensionMode.NONE, result.mode)
+    }
+
+    @Test
     fun confidenceThresholdCanBeAdjusted() {
         val pixels = IntArray(side * side) { background }
         for (y in 30 until 98) for (x in 36 until 92) pixels[y * side + x] = foreground

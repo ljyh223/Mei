@@ -35,7 +35,6 @@ import com.ljyh.mei.utils.image.CoverBackgroundConfig
 import com.ljyh.mei.utils.image.CoverExtensionMode
 import com.ljyh.mei.utils.image.analyzeCoverBackground
 import com.ljyh.mei.utils.image.buildCoverEdgeTexture
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +44,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 private const val AnalysisSize = 128
+private const val TextureSize = 64
 
 private data class CoverEdgeResult(
     val url: String,
@@ -61,7 +61,7 @@ internal class CoverEdgeArtwork(
 
 private object CoverEdgeDecisions {
     private data class Key(val url: String, val config: CoverBackgroundConfig)
-    private val values = LinkedHashMap<Key, CoverEdgeArtwork?>(64, 0.75f, true)
+    private val values = LinkedHashMap<Key, CoverEdgeArtwork?>(32, 0.75f, true)
 
     fun get(url: String, config: CoverBackgroundConfig): Pair<Boolean, CoverEdgeArtwork?> = synchronized(values) {
         val key = Key(url, config)
@@ -70,7 +70,7 @@ private object CoverEdgeDecisions {
 
     fun put(url: String, config: CoverBackgroundConfig, artwork: CoverEdgeArtwork?) = synchronized(values) {
         values[Key(url, config)] = artwork
-        if (values.size > 64) values.remove(values.keys.first())
+        if (values.size > 32) values.remove(values.keys.first())
     }
 }
 
@@ -102,7 +102,7 @@ internal fun rememberCoverEdgeArtwork(imageUrl: String?): CoverEdgeArtwork? {
             val result = withContext(Dispatchers.IO) {
                 context.imageLoader.execute(
                     ImageRequest.Builder(context)
-                        .data(imageUrl.sizedNeteaseImage(256))
+                        .data(imageUrl)
                         .size(256)
                         .allowHardware(false)
                         .build()
@@ -121,15 +121,30 @@ internal fun rememberCoverEdgeArtwork(imageUrl: String?): CoverEdgeArtwork? {
                     if (analysis == null || !analysis.isSolidBackground) {
                         return@withContext null
                     }
+                    // Extension and feather are low-frequency; a 64² texture quarters the
+                    // retained bitmap memory without a visible difference.
+                    val texturePixels = IntArray(TextureSize * TextureSize)
+                    if (AnalysisSize == TextureSize) {
+                        pixels.copyInto(texturePixels)
+                    } else {
+                        val textureBitmap = Bitmap.createScaledBitmap(reduced, TextureSize, TextureSize, true)
+                        try {
+                            textureBitmap.getPixels(
+                                texturePixels, 0, TextureSize, 0, 0, TextureSize, TextureSize,
+                            )
+                        } finally {
+                            if (textureBitmap !== reduced) textureBitmap.recycle()
+                        }
+                    }
                     val textures = buildCoverEdgeTexture(
-                        pixels, AnalysisSize, AnalysisSize, analysis.color, analysis.mode,
+                        texturePixels, TextureSize, TextureSize, analysis.color, analysis.mode,
                     )
                     CoverEdgeArtwork(
                         texture = Bitmap.createBitmap(
-                            textures.extension, AnalysisSize, AnalysisSize, Bitmap.Config.ARGB_8888,
+                            textures.extension, TextureSize, TextureSize, Bitmap.Config.ARGB_8888,
                         ),
                         feather = Bitmap.createBitmap(
-                            textures.feather, AnalysisSize, AnalysisSize, Bitmap.Config.ARGB_8888,
+                            textures.feather, TextureSize, TextureSize, Bitmap.Config.ARGB_8888,
                         ).asImageBitmap(),
                         controlsColor = Color(textures.controlsColor),
                         mode = analysis.mode,
