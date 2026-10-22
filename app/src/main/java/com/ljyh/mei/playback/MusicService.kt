@@ -85,6 +85,7 @@ import com.ljyh.mei.playback.usb.UsbNativeBridge
 import com.ljyh.mei.playback.usb.hasPcmOutput
 import com.ljyh.mei.playback.equalizer.AudioEffectsController
 import com.ljyh.mei.playback.equalizer.EqualizerProfile
+import com.ljyh.mei.playback.equalizer.FreeverbProcessor
 import com.ljyh.mei.playback.equalizer.ParametricEqualizerProcessor
 import com.ljyh.mei.playback.lyrics.DesktopLyricsController
 import com.ljyh.mei.playback.queue.PlaybackQueueManager
@@ -145,6 +146,8 @@ class MusicService : MediaLibraryService(),
     private lateinit var desktopLyricsController: DesktopLyricsController
     private val parametricEqualizerProcessor = ParametricEqualizerProcessor()
     private val standbyEqualizerProcessor = ParametricEqualizerProcessor()
+    private val reverbProcessor = FreeverbProcessor()
+    private val standbyReverbProcessor = FreeverbProcessor()
     private val firstTransitionProbe = TransitionAudioProbe()
     private val secondTransitionProbe = TransitionAudioProbe()
     @Volatile private var usbExclusiveEnabled = false
@@ -228,10 +231,15 @@ class MusicService : MediaLibraryService(),
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
-        fun buildDeck(processor: ParametricEqualizerProcessor, probe: TransitionAudioProbe, focused: Boolean) =
+        fun buildDeck(
+            processor: ParametricEqualizerProcessor,
+            reverb: FreeverbProcessor,
+            probe: TransitionAudioProbe,
+            focused: Boolean,
+        ) =
             ExoPlayer.Builder(this)
                 .setMediaSourceFactory(baseMediaSourceFactory)
-                .setRenderersFactory(createRenderersFactory(processor, probe, audioAttributes))
+                .setRenderersFactory(createRenderersFactory(processor, reverb, probe, audioAttributes))
                 .setHandleAudioBecomingNoisy(focused)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(audioAttributes, focused)
@@ -240,8 +248,8 @@ class MusicService : MediaLibraryService(),
                 .build().apply {
                     setPreloadConfiguration(ExoPlayer.PreloadConfiguration(PLAYLIST_PRELOAD_DURATION_US))
                 }
-        val firstDeck = buildDeck(parametricEqualizerProcessor, firstTransitionProbe, true)
-        val secondDeck = buildDeck(standbyEqualizerProcessor, secondTransitionProbe, false)
+        val firstDeck = buildDeck(parametricEqualizerProcessor, reverbProcessor, firstTransitionProbe, true)
+        val secondDeck = buildDeck(standbyEqualizerProcessor, standbyReverbProcessor, secondTransitionProbe, false)
         player = TransitionDeckPlayer(firstDeck, secondDeck, audioAttributes).apply {
                 addListener(this@MusicService)
                 sleepTimer = SleepTimer(scope, this)
@@ -298,7 +306,7 @@ class MusicService : MediaLibraryService(),
         desktopLyricsController.start()
         usbKeepAlive = UsbFloatingKeepAlive(this, player) { usbPreferences.floatingKeepAlive }
         usbKeepAlive.start(scope)
-        audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor)
+        audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor, reverbProcessor)
         standbyAudioEffectsController = AudioEffectsController(this, scope, standbyEqualizerProcessor)
 
         audioPlayer = AudioPlayer(player)
@@ -620,6 +628,11 @@ class MusicService : MediaLibraryService(),
         standbyEqualizerProcessor.setProfile(profile)
     }
 
+    fun previewReverbProfile(profile: com.ljyh.mei.playback.equalizer.ReverbProfile) {
+        reverbProcessor.setProfile(profile)
+        standbyReverbProcessor.setProfile(profile)
+    }
+
     private fun connectedUsbDevices(): Map<Int, String> =
         usbManager.deviceList.values.filter { it.hasPcmOutput() }
             .associate { it.deviceId to (it.productName ?: "USB 解码器") }
@@ -749,6 +762,7 @@ class MusicService : MediaLibraryService(),
 
     private fun createRenderersFactory(
         equalizer: ParametricEqualizerProcessor,
+        reverb: FreeverbProcessor,
         probe: TransitionAudioProbe,
         audioAttributes: AudioAttributes,
     ) =
@@ -766,7 +780,7 @@ class MusicService : MediaLibraryService(),
                     .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                     .setAudioProcessorChain(
                         DefaultAudioSink.DefaultAudioProcessorChain(
-                            arrayOf(stereoDownmix, equalizer, probe),
+                            arrayOf(stereoDownmix, equalizer, reverb, probe),
                             SilenceSkippingAudioProcessor(2_000_000, 0.01f, 2_000_000, 0, 256),
                             SonicAudioProcessor()
                         )

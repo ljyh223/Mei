@@ -83,6 +83,7 @@ val EqualizerPresetKey = stringPreferencesKey("equalizerPreset")
 val EqualizerBandLevelsKey = stringPreferencesKey("equalizerBandLevels")
 val LoudnessEnhancerGainKey = intPreferencesKey("loudnessEnhancerGain")
 val ParametricEqualizerProfileKey = stringPreferencesKey("parametricEqualizerProfile")
+val ReverbProfileKey = stringPreferencesKey("reverbProfile")
 val UserEqualizerPresetsKey = stringPreferencesKey("userEqualizerPresets")
 
 val DeviceIdKey = stringPreferencesKey("deviceId")

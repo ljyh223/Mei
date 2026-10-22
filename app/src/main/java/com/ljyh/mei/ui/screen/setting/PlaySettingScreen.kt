@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
 import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Usb
@@ -131,6 +132,13 @@ fun PlaySettingScreen(
                     description = if (usbExclusive) "USB 独占播放时不可用" else "参数均衡器、频响曲线与预设",
                     icon = { Icon(Icons.Rounded.Equalizer, null) },
                     onClick = { Screen.Equalizer.navigate(navController) },
+                    isEnabled = !usbExclusive,
+                )
+                PreferenceEntry(
+                    title = { Text("混响") },
+                    description = if (usbExclusive) "USB 独占播放时不可用" else "房间、大厅、板式与自定义参数",
+                    icon = { Icon(Icons.Rounded.Waves, null) },
+                    onClick = { Screen.ReverbSettings.navigate(navController) },
                     isEnabled = !usbExclusive,
                 )
                 EnumListPreference(

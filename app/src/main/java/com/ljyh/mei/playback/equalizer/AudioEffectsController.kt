@@ -4,6 +4,7 @@ import android.content.Context
 import com.ljyh.mei.constants.EqualizerBandLevelsKey
 import com.ljyh.mei.constants.EqualizerEnabledKey
 import com.ljyh.mei.constants.ParametricEqualizerProfileKey
+import com.ljyh.mei.constants.ReverbProfileKey
 import com.ljyh.mei.playback.equalizer.EqFilter
 import com.ljyh.mei.playback.equalizer.EqualizerProfile
 import com.ljyh.mei.playback.equalizer.EqualizerProfileCodec
@@ -20,12 +21,16 @@ class AudioEffectsController(
     context: Context,
     scope: CoroutineScope,
     private val processor: ParametricEqualizerProcessor,
+    private val reverb: FreeverbProcessor? = null,
 ) {
     private val preferenceJob: Job = scope.launch {
         context.dataStore.data.collectLatest { preferences ->
             val profile = EqualizerProfileCodec.decode(preferences[ParametricEqualizerProfileKey])
                 ?: legacyProfile(preferences[EqualizerEnabledKey] ?: false, preferences[EqualizerBandLevelsKey])
             processor.setProfile(profile)
+            reverb?.setProfile(
+                ReverbProfileCodec.decode(preferences[ReverbProfileKey]) ?: ReverbProfile.Off
+            )
         }
     }
 
