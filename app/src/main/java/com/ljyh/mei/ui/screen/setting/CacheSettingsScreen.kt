@@ -47,6 +47,10 @@ import com.ljyh.mei.ui.screen.setting.component.ListPreference
 import com.ljyh.mei.ui.screen.setting.component.PreferenceEntry
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.cache.CacheCategory
@@ -123,54 +127,18 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("缓存") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                actions = {
-                    androidx.compose.material3.IconButton(onClick = {
-                        scope.launch {
-                            loadFailed = false
-                            runCatching {
-                                withContext(Dispatchers.IO) {
-                                    StorageCacheManager.usage(
-                                        context
-                                    )
-                                }
-                            }
-                                .onSuccess { usage = it }
-                                .onFailure {
-                                    loadFailed = true
-                                    snackbar.showSnackbar("无法读取缓存占用，请稍后重试")
-                                }
-                        }
-                    }, enabled = !busy) {
-                        Icon(Icons.Rounded.Cached, contentDescription = "刷新缓存占用")
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbar) },
+    MeiPinnedPage(
+        title = "缓存",
+        onNavigateBack = navController::navigateUp,
     ) { paddingValues ->
         Column(
             Modifier
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
         ) {
+            MeiLargeTitle("缓存")
+
             PreferenceSection("占用空间") {
                 PreferenceEntry(
                     title = { Text("缓存总计") },

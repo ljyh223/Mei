@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.comment.component
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,7 +34,7 @@ fun CommentTopBar(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    TopAppBar(
+    MeiTopAppBar(
         title = {
             Text(
                 text = if (total > 0) "评论 ($total)" else "评论",

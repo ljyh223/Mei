@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.history
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import com.ljyh.mei.playback.queue.QueueSource
 
 import android.text.format.DateUtils
@@ -56,6 +57,8 @@ import com.ljyh.mei.constants.TrackThumbnailSize
 import com.ljyh.mei.data.model.room.HistoryItem
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 
@@ -66,6 +69,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val context = LocalNavController.current.context
     val playerConnection = LocalPlayerConnection.current
     val historyList by viewModel.historyList.collectAsState(
@@ -74,7 +78,7 @@ fun HistoryScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            MeiTopAppBar(hazeState = pageHaze,
                 title = {
                     Text(
                         "最近播放",
@@ -109,7 +113,7 @@ fun HistoryScreen(
             EmptyHistoryState()
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.hazeSource(pageHaze).fillMaxSize(),
                 contentPadding = PaddingValues(
                     top = paddingValues.calculateTopPadding(),
                     bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 16.dp

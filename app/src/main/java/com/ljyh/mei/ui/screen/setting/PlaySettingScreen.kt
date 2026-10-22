@@ -1,6 +1,12 @@
 package com.ljyh.mei.ui.screen.setting
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -27,6 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.constants.KeepPlayerScreenOnKey
 import com.ljyh.mei.constants.MusicQuality
@@ -46,6 +54,8 @@ import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSubsection
 import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.asPaddingValues
+import com.ljyh.mei.ui.component.glass.MeiPinnedLazyPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
@@ -92,33 +102,16 @@ fun PlaySettingScreen(
     )
 
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("播放体验") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
-    ) { paddingValues ->
+    MeiPinnedLazyPage(
+        title = "播放体验",
+        bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
+        horizontalContentPadding = 0.dp,
+        largeTitleHorizontalPadding = 20.dp,
+        onNavigateBack = navController::navigateUp,
+    ) {
+        item(key = "page-content") {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-        Column(
-            Modifier
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
-        ) {
             PreferenceSection("音频输出") {
                 PreferenceEntry(
                     title = { Text("USB 独占播放") },
@@ -193,4 +186,4 @@ fun PlaySettingScreen(
             }
         }
     }
-}
+}}

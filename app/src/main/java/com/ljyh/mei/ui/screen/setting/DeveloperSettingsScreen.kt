@@ -71,6 +71,9 @@ import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.data.repository.MotionArtworkClip
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
@@ -113,33 +116,18 @@ fun DeveloperSettingsScreen(
         }
     }
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("动态封面调试") },
-            navigationIcon = {
-                IconButton(
-                    onClick = navController::navigateUp,
-                    onLongClick = navController::backToMain
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        contentDescription = null
-                    )
-                }
-            },
-            scrollBehavior = scrollBehavior
-        )
-    }) { padding ->
+    MeiPinnedPage(
+        title = "动态封面调试",
+        onNavigateBack = navController::navigateUp,
+    ) { paddingValues ->
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .onGloballyPositioned { viewportBounds = it.boundsInWindow() }
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .verticalScroll(LocalMeiPageScroll.current!!)
+                .padding(paddingValues)
         ) {
+            MeiLargeTitle("动态封面调试")
+
             Text(
                 "Apple Music 搜索匹配", style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp)

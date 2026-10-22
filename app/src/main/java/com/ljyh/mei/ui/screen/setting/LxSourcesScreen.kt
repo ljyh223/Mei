@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.setting
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
@@ -30,6 +32,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.LxOnlyPlaybackKey
 import com.ljyh.mei.playback.source.lx.sourceDisplayName
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.asPaddingValues
+import com.ljyh.mei.ui.component.glass.MeiPinnedLazyPage
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.utils.preferences.rememberPreference
 
@@ -37,6 +43,7 @@ import com.ljyh.mei.utils.preferences.rememberPreference
 @Composable
 fun LxSourcesScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: LxSourcesViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val scripts by viewModel.scripts.collectAsState()
     val statuses by viewModel.status.collectAsState()
     val busy by viewModel.busy.collectAsState()
@@ -108,18 +115,13 @@ fun LxSourcesScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: LxSource
             dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("取消") } },
         )
     }
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("自定义音源") }, scrollBehavior = scrollBehavior,
-                navigationIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回") } })
-        },
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-            ),
-            contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
+    Scaffold(containerColor = Color.Transparent, snackbarHost = { SnackbarHost(snackbar) }) {
+        MeiPinnedLazyPage(
+            title = "自定义音源",
+            bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
+            horizontalContentPadding = 16.dp,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            onNavigateBack = navController::navigateUp,
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

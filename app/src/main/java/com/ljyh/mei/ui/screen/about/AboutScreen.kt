@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.about
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -65,6 +66,8 @@ import com.ljyh.mei.R
 import com.ljyh.mei.constants.DevModeKey
 import com.ljyh.mei.constants.Github
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.preferences.rememberPreference
@@ -75,6 +78,7 @@ import java.time.LocalDate
 fun AboutScreen() {
     val context = LocalContext.current
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val viewModel: AboutViewModel = hiltViewModel()
 
     val (devMode, onDevModeChange) = rememberPreference(DevModeKey, defaultValue = false)
@@ -83,7 +87,7 @@ fun AboutScreen() {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            MeiTopAppBar(hazeState = pageHaze,
                 title = { Text("关于") },
                 navigationIcon = {
                     IconButton(onClick = {
@@ -96,7 +100,7 @@ fun AboutScreen() {
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
+            modifier = Modifier.hazeSource(pageHaze)
                 .fillMaxSize()
                 .padding(padding)
                 .windowInsetsPadding(

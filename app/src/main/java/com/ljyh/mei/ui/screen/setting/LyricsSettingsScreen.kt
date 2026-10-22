@@ -64,6 +64,10 @@ import com.ljyh.mei.ui.screen.setting.component.ListPreference
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
@@ -134,22 +138,18 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
     }
     val desktopOptionsEnabled = enabled && permissionGranted
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("歌词") },
-            navigationIcon = {
-                IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
-                }
-            },
-            scrollBehavior = scrollBehavior,
-        )
-    }) { padding ->
+    MeiPinnedPage(
+        title = "歌词",
+        onNavigateBack = navController::navigateUp,
+    ) { paddingValues ->
         Column(
-            Modifier.padding(padding)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState()),
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
+                .padding(paddingValues)
         ) {
+            MeiLargeTitle("歌词")
+
             PreferenceSection("主歌词") {
                 SwitchPreference(
                     title = { Text("主歌词字体加粗") },

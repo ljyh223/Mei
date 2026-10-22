@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.component.glass.MeiGlassRole
+import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.component.item.AlbumItem
 import com.ljyh.mei.ui.component.item.PlaylistItem
 import com.ljyh.mei.ui.local.LocalNavController
@@ -88,10 +90,10 @@ fun LibraryMobileLayout(
         stickyHeader {
             // 之前的吸顶 Tab 逻辑
             Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                MeiGlassSurface(
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(50),
-                    tonalElevation = 0.dp
+                    role = MeiGlassRole.Navigation,
                 ) {
                     ModernCapsuleTabs(tabTitles, selectedTabIndex, onTabSelect)
                 }

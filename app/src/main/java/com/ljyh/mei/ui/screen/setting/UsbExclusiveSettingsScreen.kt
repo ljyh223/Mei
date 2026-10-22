@@ -55,6 +55,10 @@ import com.ljyh.mei.playback.UsbOutputState
 import com.ljyh.mei.playback.usb.*
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.setting.component.ListPreference
@@ -117,20 +121,18 @@ fun UsbExclusiveSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
             }) { Text("电池优化") }
         },
     )
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("USB 独占播放") },
-            navigationIcon = {
-                IconButton(onClick = nav::navigateUp, onLongClick = nav::backToMain) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-                }
-            },
-            scrollBehavior = scrollBehavior,
-        )
-    }) { padding ->
-        Column(Modifier.padding(padding)
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-            .verticalScroll(rememberScrollState())) {
+    MeiPinnedPage(
+        title = "USB 独占播放",
+        onNavigateBack = nav::navigateUp,
+    ) { paddingValues ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
+                .padding(paddingValues)
+        ) {
+            MeiLargeTitle("USB 独占播放")
+
             PreferenceSection("音频输出") {
                 SwitchPreference(
                     title = { Text("USB 独占播放") },

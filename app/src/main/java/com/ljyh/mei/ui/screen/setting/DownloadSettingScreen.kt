@@ -31,6 +31,10 @@ import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.download.DownloadManager
@@ -60,32 +64,18 @@ fun DownloadSettingScreen(
         defaultValue = false
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("下载") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
+    MeiPinnedPage(
+        title = "下载",
+        onNavigateBack = navController::navigateUp,
     ) { paddingValues ->
         Column(
             Modifier
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
         ) {
+            MeiLargeTitle("下载")
+
             PreferenceSection("下载文件") {
 
                 EditTextPreference(

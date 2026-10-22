@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,9 +73,10 @@ fun SearchResultScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = LocalPlayerAwareWindowInsets.current
-            .add(WindowInsets(top = 4.dp))
-            .asPaddingValues()
+        contentPadding = PaddingValues(
+            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
+            bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
+        )
     ) {
         // Tab 过滤器
         item {

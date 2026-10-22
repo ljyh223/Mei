@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.local
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -45,6 +46,8 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
@@ -61,6 +64,7 @@ fun LocalMusicScreen(
     viewModel: LocalMusicViewModel = hiltViewModel(),
 ) {
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val context = LocalContext.current
     val db = AppDatabase.getDatabase(context)
     val scanState by viewModel.scanState.collectAsState()
@@ -101,7 +105,7 @@ fun LocalMusicScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            MeiTopAppBar(hazeState = pageHaze,
                 title = { Text("本地音乐") },
                 navigationIcon = {
                     com.ljyh.mei.ui.component.IconButton(
@@ -125,7 +129,7 @@ fun LocalMusicScreen(
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
+            modifier = Modifier.hazeSource(pageHaze)
                 .fillMaxSize()
                 .padding(paddingValues)
                 .windowInsetsPadding(

@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.log
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -25,6 +26,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,6 +40,7 @@ fun LogScreen(
     val fileList by viewModel.logFiles.collectAsState()
     val content by viewModel.currentFileContent.collectAsState()
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val darkTheme = isSystemInDarkTheme()
 
     val crashColor = if (darkTheme) Color(0xFFCF6679) else Color.Red
@@ -46,7 +50,7 @@ fun LogScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            MeiTopAppBar(hazeState = pageHaze,
                 title = { Text("日志收集") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -76,7 +80,7 @@ fun LogScreen(
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
+            modifier = Modifier.hazeSource(pageHaze)
                 .fillMaxSize()
                 .padding(padding)
         ) {
@@ -181,7 +185,7 @@ fun LogDetailDialog(
             color = MaterialTheme.colorScheme.background
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                TopAppBar(
+                MeiTopAppBar(
                     title = { Text(fileName, style = MaterialTheme.typography.titleSmall) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,

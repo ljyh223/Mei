@@ -25,6 +25,9 @@ import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.setting.component.CoverBackgroundSettings
@@ -38,35 +41,18 @@ fun BetaSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
         CoverBackgroundEnabledKey, defaultValue = false,
     )
 
-    Scaffold(topBar = {
-        TopAppBar(
-            title = { Text("Beta 功能") },
-            navigationIcon = {
-                IconButton(
-                    onClick = navController::navigateUp,
-                    onLongClick = navController::backToMain,
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            },
-            scrollBehavior = scrollBehavior,
-        )
-    }) { padding ->
+    MeiPinnedPage(
+        title = "Beta 功能",
+        onNavigateBack = navController::navigateUp,
+    ) { paddingValues ->
         Column(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-                    ),
-                )
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(LocalMeiPageScroll.current!!)
+                .padding(paddingValues)
         ) {
+            MeiLargeTitle("Beta 功能")
+
             PreferenceSection("播放器") {
                 SwitchPreference(
                     title = { Text("封面底色扩展") },

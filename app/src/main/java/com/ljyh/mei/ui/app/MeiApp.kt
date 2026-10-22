@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
@@ -67,6 +69,7 @@ import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
 import com.ljyh.mei.ui.component.navigation.AdaptiveMainNavigationRail
 import com.ljyh.mei.ui.component.navigation.AppBottomNavigationBar
+import com.ljyh.mei.ui.component.navigation.compactPlayerVerticalDrop
 import com.ljyh.mei.ui.component.navigation.TabletNavigationRailWidth
 import com.ljyh.mei.ui.component.navigation.selectMainDestination
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
@@ -86,6 +89,8 @@ import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.screen.search.recordSearchHistory
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
+import com.ljyh.mei.utils.preferences.rememberGlassAppearance
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.utils.rememberBatteryIntensiveFeaturesAllowed
@@ -115,6 +120,7 @@ fun MeiApp(
     val navController = rememberNavController()
     var searchActive by rememberSaveable { mutableStateOf(false) }
     val glassEnabled by rememberPreference(LiquidGlassEnabledKey, defaultValue = true)
+    val glassAppearance by rememberGlassAppearance()
     val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
     val themeColor by rememberPreference(ThemeColorKey, defaultValue = DefaultThemeColor)
     val staticThemeColor = remember(themeColor) {
@@ -312,9 +318,13 @@ fun MeiApp(
             CompositionLocalProvider(
                 LocalMeiHazeState provides pageHazeState,
                 LocalMeiGlassEnabled provides useGlass,
+                LocalMeiGlassAppearance provides glassAppearance,
             ) {
                 Scaffold(
-                    modifier = Modifier.fillMaxSize().nestedScroll(navigationScrollConnection),
+                    // One owner resizes the search viewport and consumes IME insets for its children.
+                    modifier = Modifier.fillMaxSize()
+                        .windowInsetsPadding(if (searchActive && !useTabletSidebar) WindowInsets.ime else WindowInsets(0))
+                        .nestedScroll(navigationScrollConnection),
                     containerColor = Color.Transparent,
                     contentColor = MaterialTheme.colorScheme.onBackground,
                     contentWindowInsets = WindowInsets(0),
@@ -419,7 +429,7 @@ fun MeiApp(
                         )
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
-                            collapsedBottomOffset = (playerNavigationOffset - 66.dp * compactNavigationProgress)
+                            collapsedBottomOffset = (playerNavigationOffset - compactPlayerVerticalDrop(density.fontScale) * compactNavigationProgress)
                                 .coerceAtLeast(0.dp),
                             systemBottomInset = bottomInset,
                             bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
@@ -427,6 +437,7 @@ fun MeiApp(
                         )
                         BottomSearchOverlay(
                             active = searchActive && !useTabletSidebar,
+                            bottomBarClearance = scaffoldBottomInset,
                             query = query,
                             onQueryChange = onQueryChange,
                             onSubmit = submitBottomSearch,

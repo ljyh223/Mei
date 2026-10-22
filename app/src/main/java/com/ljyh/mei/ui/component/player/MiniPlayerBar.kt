@@ -44,6 +44,7 @@ import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.MiniPlayerHorizontalMargin
 import com.ljyh.mei.ui.component.glass.MeiGlassRole
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
 import com.ljyh.mei.utils.image.smallImage
 
 @Composable
@@ -63,7 +64,7 @@ fun MiniPlayerBarContent(
 ) {
     val compact = compactProgress.coerceIn(0f, 1f)
     val horizontalMargin = lerp(MiniPlayerHorizontalMargin, 80.dp, compact)
-    val nextWidth = lerp(40.dp, 0.dp, compact)
+    val nextWidth = lerp(48.dp, 0.dp, compact)
     Column(modifier = modifier.fillMaxWidth()) {
         MeiGlassSurface(
             modifier = Modifier.fillMaxWidth()
@@ -91,7 +92,7 @@ fun MiniPlayerBarContent(
 
                 IconButton(
                     onClick = onPlayPause,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -104,14 +105,14 @@ fun MiniPlayerBarContent(
                 Box(
                     modifier = Modifier
                         .width(nextWidth)
-                        .height(40.dp)
+                        .height(48.dp)
                         .clipToBounds()
                         .alpha(1f - compact),
                 ) {
                     IconButton(
                         onClick = onNext,
-                        enabled = canSkipNext,
-                        modifier = Modifier.size(40.dp),
+                        enabled = canSkipNext && compact < 0.5f,
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.SkipNext,
@@ -185,7 +186,8 @@ private fun MiniPlayerSongContent(
             )
             if (LocalDensity.current.fontScale <= 1.4f) Text(
                 text = artist,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (LocalMeiGlassAppearance.current.strongContent) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -42,3 +42,7 @@ MeiloX 用于理解完整材质和交互的一致性，NeriPlayer Clean 用于�
 - 底栏外层测量高度保持不变，mini player 向下移动 66dp 后与 tabbar/搜索按钮同一水平中心，避免页面底部 inset 和播放器锚点跳动。
 - 搜索激活时 tabbar 隐藏，左侧变成底部搜索输入框，右侧搜索图标变成关闭；搜索结果层覆盖页面和 mini player，但保留底部输入框。
 - 两个版本保留相同的折叠背景隐藏、sheet 圆角和 Haze 胶囊，只比较 mini player 的高度、封面、控件密度和紧凑联动。
+
+## MeiloX 分支阅读性调整
+
+`test/meilox-mini-player` 的材质调节与后续问题整理见 [分支检查](meilox-mini-player-review.md)。保留本分支的紧凑联动，不把旧的 bate 排版重新覆盖回来。

@@ -13,17 +13,15 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -42,12 +40,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -89,12 +96,13 @@ fun AppBottomNavigationBar(
                 alpha = alphaProgress.coerceIn(0f, 1f)
                 translationY = measuredHeight * (1f - progress)
             }
+            // IME is handled and consumed by the app's search viewport.
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 20.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
-            modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().height(64.dp),
+            modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth().height(bottomNavigationContentHeight(LocalDensity.current.fontScale)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (searchActive) {
@@ -104,6 +112,7 @@ fun AppBottomNavigationBar(
                     onSubmit = onSearchSubmit,
                     focusRequester = searchFocusRequester,
                     modifier = Modifier.weight(1f),
+                    enabled = interactive,
                 )
                 Spacer(Modifier.width(8.dp))
                 SearchActionButton(
@@ -111,6 +120,7 @@ fun AppBottomNavigationBar(
                     contentDescription = "关闭搜索",
                     size = 64.dp,
                     onClick = onSearchClose,
+                    enabled = interactive,
                 )
             } else {
                 NavigationTabs(
@@ -127,6 +137,7 @@ fun AppBottomNavigationBar(
                     contentDescription = "搜索",
                     size = lerp(64.dp, 48.dp, compact),
                     onClick = onSearchActivate,
+                    enabled = interactive,
                 )
             }
         }
@@ -144,71 +155,70 @@ private fun NavigationTabs(
 ) {
     val compact = compactProgress.coerceIn(0f, 1f)
     val selectedDestination = Index.entries.firstOrNull { it.route == selectedRoute } ?: Index.Home
-    BoxWithConstraints(
-        modifier = modifier.height(64.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
+    val strongContent = LocalMeiGlassAppearance.current.strongContent
+    val fontScale = LocalDensity.current.fontScale
+    val expandedHeight = bottomNavigationContentHeight(fontScale)
+    BoxWithConstraints(modifier = modifier.height(expandedHeight), contentAlignment = Alignment.CenterStart) {
         val surfaceWidth = lerp(maxWidth, 48.dp, compact)
-        val surfaceHeight = lerp(64.dp, 48.dp, compact)
+        val surfaceHeight = lerp(expandedHeight, 48.dp, compact)
+        val expandedItemWidth = (maxWidth - 24.dp) / Index.entries.size
         MeiGlassSurface(
             modifier = Modifier.width(surfaceWidth).height(surfaceHeight),
             shape = CircleShape,
             role = MeiGlassRole.Navigation,
         ) {
-            if (compact < 0.5f) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().selectableGroup().padding(6.dp)
-                        .alpha(((0.5f - compact) / 0.5f).coerceIn(0f, 1f)),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Index.entries.forEach { destination ->
-                        val selected = selectedRoute == destination.route
-                        val fill by animateColorAsState(
-                            if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                            label = "navigationSelection",
+            // A single selected icon moves into the compact button without fading out or swapping.
+            Index.entries.forEachIndexed { index, destination ->
+                val selected = destination == selectedDestination
+                if (selected || compact < 1f) {
+                    val itemAlpha = if (selected) 1f else (1f - compact * 2f).coerceIn(0f, 1f)
+                    val start = 6.dp + (expandedItemWidth + 4.dp) * index
+                    val itemX = lerp(start, 0.dp, compact)
+                    val itemWidth = lerp(expandedItemWidth, 48.dp, compact)
+                    val fill by animateColorAsState(
+                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                        label = "navigationSelection",
+                    )
+                    val ink = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                        else if (strongContent) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    val action = if (selected && compact >= 0.5f) {
+                        Modifier.clickable(enabled = interactive, role = Role.Button, onClick = onExpand)
+                    } else {
+                        Modifier.selectable(
+                            selected = selected,
+                            enabled = interactive && compact < 0.5f,
+                            role = Role.Tab,
+                            onClick = { onTabSelect(destination) },
                         )
-                        val ink by animateColorAsState(
-                            if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                            label = "navigationInk",
-                        )
-                        Column(
-                            modifier = Modifier.weight(1f)
-                                .clip(CircleShape)
-                                .background(fill)
-                                .selectable(
-                                    selected = selected,
-                                    enabled = interactive,
-                                    role = Role.Tab,
-                                    onClick = { onTabSelect(destination) },
-                                )
-                                .heightIn(min = 52.dp)
-                                .padding(horizontal = 4.dp, vertical = 6.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
-                        ) {
-                            Icon(
-                                destination.icon,
-                                contentDescription = null,
-                                tint = ink,
-                                modifier = Modifier.size(22.dp),
+                    }
+                    Column(
+                        modifier = Modifier.offset(x = itemX).width(itemWidth).height(surfaceHeight)
+                            .padding(vertical = 6.dp).alpha(itemAlpha)
+                            .clip(CircleShape).background(fill.copy(alpha = fill.alpha * (1f - compact)))
+                            .then(action)
+                            .semantics {
+                                contentDescription = if (selected && compact >= 0.5f)
+                                    "展开导航，当前为${destination.label}" else destination.label
+                            }
+                            .padding(horizontal = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(destination.icon, contentDescription = null, tint = ink, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.height(lerp(2.dp, 0.dp, compact)))
+                        Box(Modifier.height(lerp(18.dp * fontScale, 0.dp, compact)).clipToBounds()) {
+                            Text(
+                                destination.label,
+                                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, lineHeight = 18.sp),
+                                fontWeight = if (strongContent || selected) FontWeight.SemiBold else FontWeight.Medium,
+                                color = ink,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.alpha(1f - compact).clearAndSetSemantics {},
                             )
-                            Text(destination.label, style = MaterialTheme.typography.labelMedium, color = ink)
                         }
                     }
-                }
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                        .clickable(enabled = interactive, role = Role.Button, onClick = onExpand),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = selectedDestination.icon,
-                        contentDescription = selectedDestination.label,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(24.dp),
-                    )
                 }
             }
         }
@@ -221,6 +231,7 @@ private fun SearchActionButton(
     contentDescription: String,
     size: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
+    enabled: Boolean,
 ) {
     MeiGlassSurface(
         modifier = Modifier.size(size),
@@ -228,7 +239,7 @@ private fun SearchActionButton(
         role = MeiGlassRole.Navigation,
     ) {
         Box(
-            modifier = Modifier.fillMaxSize().clickable(role = Role.Button, onClick = onClick),
+            modifier = Modifier.fillMaxSize().clickable(enabled = enabled, role = Role.Button, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -248,10 +259,13 @@ private fun SearchField(
     onSubmit: (String) -> Unit,
     focusRequester: FocusRequester?,
     modifier: Modifier = Modifier,
+    enabled: Boolean,
 ) {
+    val ink = if (LocalMeiGlassAppearance.current.strongContent) MaterialTheme.colorScheme.onSurface
+        else MaterialTheme.colorScheme.onSurfaceVariant
     MeiGlassSurface(
-        modifier = modifier.height(64.dp),
-        shape = RoundedCornerShape(32.dp),
+        modifier = modifier.height(bottomNavigationContentHeight(LocalDensity.current.fontScale)),
+        shape = CircleShape,
         role = MeiGlassRole.Navigation,
     ) {
         Row(
@@ -262,7 +276,7 @@ private fun SearchField(
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = ink,
                 modifier = Modifier.size(22.dp),
             )
             BasicTextField(
@@ -271,6 +285,7 @@ private fun SearchField(
                 modifier = Modifier.weight(1f)
                     .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
                 singleLine = true,
+                enabled = enabled,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurface,
                 ),
@@ -283,8 +298,9 @@ private fun SearchField(
                             Text(
                                 text = SearchPlaceholder,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = ink,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         innerTextField()

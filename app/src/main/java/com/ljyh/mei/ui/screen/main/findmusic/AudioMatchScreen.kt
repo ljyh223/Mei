@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.main.findmusic
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import com.ljyh.mei.playback.queue.QueueSource
 
 import android.Manifest
@@ -65,6 +66,8 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.audio.match.MatchedSong
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
@@ -76,6 +79,7 @@ fun AudioMatchScreen(
 ) {
     val context = LocalContext.current
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val playerConnection = LocalPlayerConnection.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val state by viewModel.state.collectAsState()
@@ -123,7 +127,7 @@ fun AudioMatchScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            MeiTopAppBar(hazeState = pageHaze,
                 title = { Text("听歌识曲") },
                 navigationIcon = {
                     com.ljyh.mei.ui.component.IconButton(
@@ -138,7 +142,7 @@ fun AudioMatchScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.hazeSource(pageHaze).fillMaxSize()
                 .padding(padding)
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(

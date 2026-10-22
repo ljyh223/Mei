@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.main.findmusic
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
@@ -37,6 +38,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -45,6 +47,8 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.screen.main.home.PlaylistCard as SharedPlaylistCard
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import java.util.Locale
@@ -56,6 +60,7 @@ fun FindMusicScreen(
     viewModel: FindMusicViewModel = hiltViewModel()
 ) {
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val playlistState by viewModel.highQualityPlaylist.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val categories = viewModel.categories
@@ -66,12 +71,13 @@ fun FindMusicScreen(
         listState.scrollToItem(0)
     }
 
-    Scaffold(
+    Scaffold(containerColor = Color.Transparent,
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text("发现", style = MaterialTheme.typography.headlineLarge) }
+                MeiTopAppBar(hazeState = pageHaze,
+                    title = { Text("发现", style = MaterialTheme.typography.headlineSmall) },
+                    glassNavigationIcon = false,
                 )
                 // 分类选择器
                 CategorySelector(
@@ -85,6 +91,7 @@ fun FindMusicScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(pageHaze)
                 .padding(paddingValues)
         ) {
             when (val state = playlistState) {

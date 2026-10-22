@@ -1,7 +1,12 @@
 package com.ljyh.mei.ui.screen.setting
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -39,6 +44,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.local.LocalNavController
@@ -51,23 +57,19 @@ import com.ljyh.mei.ui.theme.MeiCategoryIcon
 @Composable
 fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val navController = LocalNavController.current
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("设置", style = MaterialTheme.typography.headlineSmall) },
-                scrollBehavior = scrollBehavior,
-            )
-        },
-    ) { padding ->
+    MeiPinnedPage(
+        title = "设置",
+    ) { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-                ))
-                .verticalScroll(rememberScrollState())
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
+                .padding(paddingValues)
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            MeiLargeTitle("设置")
+
             SettingsGroup("聆听") {
                 SettingRow("播放", "音质、音效与播放行为", Icons.Rounded.LibraryMusic, MeiCategory.Playback) {
                     Screen.PlaySettings.navigate(navController)

@@ -1,8 +1,10 @@
 package com.ljyh.mei.ui.screen.setting
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +64,9 @@ import com.ljyh.mei.data.model.room.DownloadStatus
 import com.ljyh.mei.data.model.room.DownloadTask
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.component.glass.MeiPinnedLazyPage
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.download.DownloadManager
@@ -77,12 +82,13 @@ private enum class DownloadFilter(val label: String, val icon: ImageVector) {
     FAILED("失败", Icons.Rounded.Error),
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DownloadManageScreen(
     scrollBehavior: TopAppBarScrollBehavior
 ) {
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = AppDatabase.getDatabase(context)
@@ -115,39 +121,18 @@ fun DownloadManageScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("下载管理") },
-                navigationIcon = {
-                    com.ljyh.mei.ui.component.IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                actions = {
-                    if (allTasks.isNotEmpty()) {
-                        IconButton(onClick = { DownloadManager.deleteAll(context) }) {
-                            Icon(Icons.Rounded.Delete, "清空", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-        ) {
+    MeiPinnedLazyPage(
+        title = "下载管理",
+        onNavigateBack = navController::navigateUp,
+        actions = {
+            if (allTasks.isNotEmpty()) {
+                IconButton(onClick = { DownloadManager.deleteAll(context) }) {
+                    Icon(Icons.Rounded.Delete, "清空")
+                }
+            }
+        },
+    ) {
+        item(key = "download-filters") {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -160,16 +145,8 @@ fun DownloadManageScreen(
                     FilterChip(
                         selected = selectedFilter == filter,
                         onClick = { selectedFilter = filter },
-                        label = {
-                            Text("${filter.label} $count")
-                        },
-                        leadingIcon = {
-                            Icon(
-                                filter.icon,
-                                null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
+                        label = { Text("${filter.label} $count") },
+                        leadingIcon = { Icon(filter.icon, null, modifier = Modifier.size(16.dp)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -177,34 +154,32 @@ fun DownloadManageScreen(
                     )
                 }
             }
+        }
 
-            if (filteredTasks.isEmpty()) {
+        if (filteredTasks.isEmpty()) {
+            item(key = "download-empty") {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 64.dp),
-                    contentAlignment = Alignment.TopCenter
+                    modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         "没有${selectedFilter.label}的任务",
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(filteredTasks, key = { it.songId }) { task ->
-                        DownloadTaskItem(
-                            task = task,
-                            onPause = { DownloadManager.pauseSong(context, task.songId) },
-                            onResume = {
-                                scope.launch {
-                                    DownloadManager.resumeSong(context, task.songId, "恢复下载")
-                                }
-                            },
-                            onDelete = { DownloadManager.deleteTask(context, task.songId) }
-                        )
-                    }
-                }
+            }
+        } else {
+            items(filteredTasks, key = { it.songId }) { task ->
+                DownloadTaskItem(
+                    task = task,
+                    onPause = { DownloadManager.pauseSong(context, task.songId) },
+                    onResume = {
+                        scope.launch {
+                            DownloadManager.resumeSong(context, task.songId, "恢复下载")
+                        }
+                    },
+                    onDelete = { DownloadManager.deleteTask(context, task.songId) },
+                )
             }
         }
     }

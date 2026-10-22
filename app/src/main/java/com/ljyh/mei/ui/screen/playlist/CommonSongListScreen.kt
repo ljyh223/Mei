@@ -2,10 +2,11 @@ package com.ljyh.mei.ui.screen.playlist
 
 import com.ljyh.mei.playback.queue.QueueSource
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,9 +41,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -101,109 +107,85 @@ fun CommonSongListScreen(
         derivedStateOf { lazyListState.firstVisibleItemIndex > 0 }
     }
     val supportsPlaylistSearch = onPlaylistSearchQueryChange != null
+    val layoutDirection = LocalLayoutDirection.current
+    val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
+    val backgroundProgress by remember(lazyListState, collapseDistance) {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex > 0) 1f
+            else (lazyListState.firstVisibleItemScrollOffset / collapseDistance).coerceIn(0f, 1f)
+        }
+    }
+    val titleProgress by animateFloatAsState(
+        targetValue = if (isPlaylistSearchActive || showTopBarTitle) 1f else 0f,
+        label = "playlistTopBarTitle",
+    )
 
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        if (!isLoading && uiData.cover.isNotEmpty()) {
-            PlaylistBackground(
-                coverUrl = uiData.cover,
-            )
-        }
-
+        val pageHaze = rememberHazeState()
         Scaffold(
             containerColor = if (uiData.cover.isBlank()) MaterialTheme.colorScheme.surface else Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
-                val title: @Composable () -> Unit = {
-                    if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
-                        TextField(
-                            value = playlistSearchQuery,
-                            onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("搜索歌名、歌手或专辑") },
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            )
-                        )
-                    } else {
-                        AnimatedVisibility(
-                            visible = !isLoading &&
-                                showTopBarTitle &&
-                                !(device.isTablet && device.isLandscape),
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            Text(
-                                text = uiData.title,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-                val navigationIcon: @Composable () -> Unit = {
-                    IconButton(onClick = {
+                MeiHazeTopBar(
+                    state = pageHaze,
+                    title = uiData.title,
+                    progress = titleProgress,
+                    backgroundProgress = if (isPlaylistSearchActive) 1f else backgroundProgress,
+                    onNavigateBack = {
                         if (isPlaylistSearchActive) onPlaylistSearchActiveChange(false) else onBack()
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "返回",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-                val actions: @Composable RowScope.() -> Unit = {
-                    if (supportsPlaylistSearch && !isLoading) {
-                        IconButton(onClick = {
-                            if (isPlaylistSearchActive) {
-                                onPlaylistSearchQueryChange("")
-                                onPlaylistSearchActiveChange(false)
-                            } else {
-                                onPlaylistSearchActiveChange(true)
+                    },
+                    actions = {
+                        if (supportsPlaylistSearch && !isLoading) {
+                            IconButton(onClick = {
+                                if (isPlaylistSearchActive) {
+                                    onPlaylistSearchQueryChange("")
+                                    onPlaylistSearchActiveChange(false)
+                                } else {
+                                    onPlaylistSearchActiveChange(true)
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = if (isPlaylistSearchActive) Icons.Default.Close else Icons.Default.Search,
+                                    contentDescription = if (isPlaylistSearchActive) "关闭歌单搜索" else "搜索歌单"
+                                )
                             }
-                        }) {
-                            Icon(
-                                imageVector = if (isPlaylistSearchActive) Icons.Default.Close else Icons.Default.Search,
-                                contentDescription = if (isPlaylistSearchActive) "关闭歌单搜索" else "搜索歌单"
+                        }
+                    },
+                    titleContent = if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
+                        {
+                            TextField(
+                                value = playlistSearchQuery,
+                                onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("搜索歌名、歌手或专辑") },
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
                             )
                         }
-                    }
-                }
-                val colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                    } else null,
                 )
-
-                if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
-                    TopAppBar(title = title, navigationIcon = navigationIcon, actions = actions, colors = colors)
-                } else {
-                    CenterAlignedTopAppBar(
-                        title = title,
-                        navigationIcon = navigationIcon,
-                        actions = actions,
-                        colors = colors
-                    )
-                }
             }
         ) { paddingValues ->
             SkeletonShimmerHost(
                 enabled = isLoading,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .hazeSource(pageHaze)
+                    .background(MaterialTheme.colorScheme.surface),
             ) {
+                    if (!isLoading && uiData.cover.isNotEmpty()) {
+                        PlaylistBackground(coverUrl = uiData.cover)
+                    }
                     if (device.isTablet && device.isLandscape) {
                         // --- 平板布局：左右并排 ---
-                        Row(modifier = Modifier.fillMaxSize()) {
+                        Row(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                             Box(modifier = Modifier.weight(0.4f).align(Alignment.CenterVertically)) {
                                 if (customHeader != null) customHeader() else PlaylistHeader(
                                     title = uiData.title,
@@ -302,7 +284,10 @@ fun CommonSongListScreen(
                                 ?.let { "未找到匹配的歌曲" },
                             // 手机端需要考虑底部播放器的高度
                             contentPadding = PaddingValues(
-                                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                                start = paddingValues.calculateStartPadding(layoutDirection),
+                                end = paddingValues.calculateEndPadding(layoutDirection),
+                                top = paddingValues.calculateTopPadding(),
+                                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
                             ),
                             isLoading = isLoading,
                         )

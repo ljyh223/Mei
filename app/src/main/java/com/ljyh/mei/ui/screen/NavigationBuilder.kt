@@ -26,6 +26,7 @@ import com.ljyh.mei.ui.screen.main.library.LibraryScreen
 import com.ljyh.mei.ui.screen.playlist.EveryDay
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
 import com.ljyh.mei.ui.screen.search.SearchResultScreen
+import com.ljyh.mei.ui.screen.setting.GlassSettingsScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettingsScreen
 import com.ljyh.mei.ui.screen.setting.BetaSettingsScreen
 import com.ljyh.mei.ui.screen.setting.LyricsSettingsScreen
@@ -77,6 +78,9 @@ fun NavGraphBuilder.navigationBuilder(
         SettingScreen(scrollBehavior)
     }
 
+    composable(Screen.GlassSettings.route) {
+        GlassSettingsScreen()
+    }
     composable(Screen.AppearanceSettings.route) {
         AppearanceSettingsScreen(scrollBehavior)
     }

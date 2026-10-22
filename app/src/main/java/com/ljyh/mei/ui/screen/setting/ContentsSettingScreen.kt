@@ -49,6 +49,10 @@ import com.ljyh.mei.ui.screen.setting.component.PreferenceEntry
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.screen.setting.component.dialog.QrLoginDialog
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.Screen
@@ -133,32 +137,18 @@ fun ContentsSettingScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("账号与内容") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
+    MeiPinnedPage(
+        title = "账号与内容",
+        onNavigateBack = navController::navigateUp,
     ) { paddingValues ->
         Column(
             Modifier
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
         ) {
+            MeiLargeTitle("账号与内容")
+
             PreferenceSection("网易云账号") {
 
                 EditTextPreference(

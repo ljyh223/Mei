@@ -53,6 +53,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -128,10 +131,11 @@ internal fun AlbumDetailContent(
     var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
     var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
+    val pageHaze = rememberHazeState()
     Box(Modifier.fillMaxSize().background(surface)) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().hazeSource(pageHaze),
             contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
         ) {
             item(key = "album_header") {
@@ -196,8 +200,23 @@ internal fun AlbumDetailContent(
             }
         }
 
-        CenterAlignedTopAppBar(
-            title = {
+        MeiHazeTopBar(
+            state = pageHaze,
+            title = "",
+            progress = if (titleInBar || isSearchActive) 1f else 0f,
+            onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
+            actions = {
+                IconButton(onClick = {
+                    if (isSearchActive) onSearchQueryChange("")
+                    onSearchActiveChange(!isSearchActive)
+                }) {
+                    Icon(
+                        if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
+                        contentDescription = if (isSearchActive) "关闭搜索" else "搜索专辑歌曲",
+                    )
+                }
+            },
+            titleContent = {
                 if (isSearchActive) {
                     TextField(
                         value = searchQuery,
@@ -212,35 +231,10 @@ internal fun AlbumDetailContent(
                             unfocusedIndicatorColor = Color.Transparent,
                         ),
                     )
-                } else if (titleInBar) {
+                } else {
                     Text(album.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             },
-            navigationIcon = {
-                IconButton(onClick = {
-                    if (isSearchActive) onSearchActiveChange(false) else onBack()
-                }) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-                }
-            },
-            actions = {
-                IconButton(onClick = {
-                    if (isSearchActive) onSearchQueryChange("")
-                    onSearchActiveChange(!isSearchActive)
-                }) {
-                    Icon(
-                        if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                        contentDescription = if (isSearchActive) "关闭搜索" else "搜索专辑歌曲",
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = if (titleInBar || isSearchActive) surface else Color.Transparent,
-                navigationIconContentColor = if (titleInBar || isSearchActive) textColor else Color.White,
-                actionIconContentColor = if (titleInBar || isSearchActive) textColor else Color.White,
-                titleContentColor = textColor,
-            ),
-            modifier = Modifier.align(Alignment.TopCenter),
         )
     }
 

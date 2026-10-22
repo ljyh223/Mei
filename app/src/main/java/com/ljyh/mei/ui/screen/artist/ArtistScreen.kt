@@ -4,6 +4,7 @@ import com.ljyh.mei.playback.queue.QueueSource
 
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -77,6 +78,9 @@ import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
@@ -110,6 +114,8 @@ fun ArtistScreen(
         }
     }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val pageHaze = rememberHazeState()
+    val barProgress by animateFloatAsState(if (showTopBarTitle) 1f else 0f, label = "artistBar")
 
     LaunchedEffect(id) {
         viewModel.getArtistDetail(id)
@@ -119,35 +125,12 @@ fun ArtistScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    AnimatedVisibility(
-                        visible = showTopBarTitle,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        val name =
-                            (artistDetail as? Resource.Success)?.data?.data?.artist?.name ?: ""
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (showTopBarTitle) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    navigationIconContentColor = if (showTopBarTitle) MaterialTheme.colorScheme.onSurface else Color.White,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-                scrollBehavior = scrollBehavior
+
+            MeiHazeTopBar(
+                state = pageHaze,
+                title = (artistDetail as? Resource.Success)?.data?.data?.artist?.name ?: "",
+                progress = barProgress,
+                onNavigateBack = { navController.popBackStack() },
             )
         }
     ) { paddingValues ->
@@ -155,6 +138,7 @@ fun ArtistScreen(
             state = scrollState,
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(pageHaze)
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             // Hero 顶到状态栏下方，TopBar 悬浮其上
             contentPadding = PaddingValues(

@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.setting
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -55,6 +56,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -83,6 +85,10 @@ import com.ljyh.mei.playback.equalizer.EqualizerProfile
 import com.ljyh.mei.playback.equalizer.EqualizerProfileCodec
 import com.ljyh.mei.playback.equalizer.FilterType
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
@@ -177,50 +183,36 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("参数均衡器")
-                        Text(
-                            currentPreset?.name ?: "自定义",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                actions = {
-                    Switch(
-                        checked = profile.enabled,
-                        onCheckedChange = { commit(profile.copy(enabled = it)) },
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .semantics { contentDescription = "启用均衡器" },
-                    )
-                },
-                scrollBehavior = scrollBehavior,
-            )
-        },
+    MeiPinnedPage(
+        title = "参数均衡器",
+        onNavigateBack = navController::navigateUp,
+        onBackLongClick = navController::backToMain,
     ) { paddingValues ->
         Column(
             Modifier
-                .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState()),
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
+                .padding(paddingValues),
         ) {
+            MeiLargeTitle("参数均衡器")
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("启用均衡器", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        currentPreset?.name ?: "自定义",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = profile.enabled,
+                    onCheckedChange = { commit(profile.copy(enabled = it)) },
+                    modifier = Modifier.semantics { contentDescription = "启用均衡器" },
+                )
+            }
             Row(
                 Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

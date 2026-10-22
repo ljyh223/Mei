@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.screen.search.SearchScreen
 
@@ -25,6 +26,7 @@ import com.ljyh.mei.ui.screen.search.SearchScreen
 @Composable
 fun BottomSearchOverlay(
     active: Boolean,
+    bottomBarClearance: Dp,
     query: TextFieldValue,
     onQueryChange: (TextFieldValue) -> Unit,
     onSubmit: (String, Int) -> Unit,
@@ -36,16 +38,19 @@ fun BottomSearchOverlay(
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
+        // The parent already excludes the keyboard. Only reserve the measured bottom bar here.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(
                     top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
-                    bottom = 96.dp,
+                    bottom = bottomBarClearance,
                 ),
         ) {
+            // 提示从搜索框上方往上堆叠，而不是从屏幕顶部开始。
             SearchScreen(
+                modifier = Modifier.fillMaxSize(),
                 query = query.text,
                 onQueryChange = onQueryChange,
                 onSearch = onSubmit,

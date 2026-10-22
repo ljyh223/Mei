@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -116,7 +118,9 @@ fun HomeScreen(
         viewModel.homePageResourceShow()
     }
 
-    val systemBarsPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    // 首页没有 top bar，只让状态栏占位，避免顶部再空出一条 AppBarHeight。
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     Box(
         modifier = Modifier
@@ -139,8 +143,8 @@ fun HomeScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
-                            top = systemBarsPadding.calculateTopPadding() + 16.dp,
-                            bottom = systemBarsPadding.calculateBottomPadding() + 16.dp
+                            top = statusBarTop + 12.dp,
+                            bottom = playerAwarePadding.calculateBottomPadding() + 16.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(28.dp)
                     ) {
@@ -168,7 +172,7 @@ fun HomeScreen(
 
                 is Resource.Error -> {
                     Box(
-                        Modifier.fillMaxSize().padding(systemBarsPadding),
+                        Modifier.fillMaxSize().padding(playerAwarePadding),
                         contentAlignment = Alignment.Center,
                     ) {
                         HomeStatus(

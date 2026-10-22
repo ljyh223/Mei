@@ -70,6 +70,10 @@ import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.screen.setting.component.PreferenceEntry
 import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.ui.local.LocalNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
@@ -165,32 +169,18 @@ fun AppearanceSettingsScreen(
         MeshSubdivisionKey, defaultValue = 50
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("外观") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        }
+    MeiPinnedPage(
+        title = "外观",
+        onNavigateBack = navController::navigateUp,
     ) { paddingValues ->
         Column(
-            modifier = Modifier
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState())
         ) {
+            MeiLargeTitle("外观")
+
 
             PreferenceSection("主题") {
                 SwitchPreference(

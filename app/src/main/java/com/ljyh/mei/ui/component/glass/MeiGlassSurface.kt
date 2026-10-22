@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,18 +28,13 @@ val LocalMeiGlassEnabled = staticCompositionLocalOf { false }
 
 enum class MeiGlassRole(
     val blurDp: Float,
-    val refraction: Float,
-    /** Fallback surface alpha when the live glass path is unavailable. */
     val lightTint: Float,
     val darkTint: Float,
-    /** Tint painted over Haze's captured backdrop. */
-    val hazeLightTint: Float,
-    val hazeDarkTint: Float,
 ) {
-    Navigation(20f, 0.70f, 0.78f, 0.80f, 0.30f, 0.36f),
-    MiniPlayer(24f, 0.75f, 0.72f, 0.76f, 0.26f, 0.32f),
-    Group(16f, 0.65f, 0.92f, 0.92f, 0.38f, 0.42f),
-    PlayerControl(12f, 0.55f, 0.14f, 0.16f, 0.10f, 0.12f),
+    Navigation(20f, 0.78f, 0.80f),
+    MiniPlayer(24f, 0.72f, 0.76f),
+    Group(16f, 0.92f, 0.92f),
+    PlayerControl(12f, 0.14f, 0.16f),
 }
 
 /** The source layer contains page content only, never a surface that samples itself. */
@@ -53,28 +49,34 @@ fun MeiGlassSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    val appearance = LocalMeiGlassAppearance.current.normalized()
     val dark = colors.surface.luminance() < 0.5f
     val roundedShape = shape as? RoundedCornerShape
+    // Without live shader glass the material still honours the opacity setting, so the
+    // appearance sliders keep having a visible effect on devices where Haze cannot run.
     val fallbackTint = (tintColor ?: colors.surfaceContainerLow).copy(
         alpha = if (role == MeiGlassRole.PlayerControl) {
             if (dark) role.darkTint else role.lightTint
-        } else 1f,
+        } else {
+            appearance.opacityFor(role)
+        },
     )
-    val hazeTint = (tintColor ?: colors.surfaceContainerLow).copy(
-        alpha = if (dark) role.hazeDarkTint else role.hazeLightTint,
-    )
-    val glassStyle = remember(role, dark, hazeTint, roundedShape) {
+    val readingTint = (tintColor ?: colors.surfaceContainerLow).copy(alpha = appearance.opacityFor(role))
+    val glassStyle = remember(role, appearance, roundedShape) {
         roundedShape?.let { resolvedShape ->
             GlassStyle.regular.then {
                 shape(resolvedShape)
-                tint(hazeTint)
+                tint(Color.Transparent)
                 optics(
-                    blurRadius = role.blurDp.dp,
-                    refractionStrength = role.refraction,
+                    blurRadius = (appearance.blur * role.blurDp / 20f).dp,
+                    refractionStrength = appearance.refraction,
                     depth = 0.5f,
                 )
-                specularIntensity(0.45f)
-                ambientResponse(0.20f)
+                specularIntensity(appearance.highlight)
+                ambientResponse(0.12f)
+                chromaMultiplier(appearance.saturation)
+                chromaticAberrationStrength(0f)
+                contentNormalBlend(0f)
                 edgeSoftness(0.5.dp)
             }
         }
@@ -91,10 +93,10 @@ fun MeiGlassSurface(
     } else {
         Modifier.background(fallbackTint, shape)
     }
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .then(material),
-        content = content,
-    )
+    Box(modifier = modifier.clip(shape)) {
+        // Optical effects and their highlights are painted behind the readable foreground.
+        Box(modifier = Modifier.matchParentSize().then(material))
+        if (live) Box(Modifier.matchParentSize().background(readingTint, RectangleShape))
+        content()
+    }
 }

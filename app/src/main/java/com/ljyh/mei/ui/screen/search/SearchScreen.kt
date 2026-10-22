@@ -58,6 +58,7 @@ import timber.log.Timber
 // TODO: 新的搜索接口实现
 @Composable
 fun SearchScreen(
+    modifier: Modifier = Modifier,
     query: String,
     onQueryChange: (TextFieldValue) -> Unit,
     onSearch: (String, Int) -> Unit,
@@ -90,6 +91,9 @@ fun SearchScreen(
 
     LazyColumn(
         state = lazyListState,
+        modifier = modifier,
+        // 搜索框在底部：提示少时贴着搜索框向上排列，多了再正常滚动。
+        verticalArrangement = Arrangement.Bottom,
         contentPadding = WindowInsets.systemBars
             .only(WindowInsetsSides.Bottom)
             .asPaddingValues()

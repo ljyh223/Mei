@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.local
 
+import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import com.ljyh.mei.playback.queue.QueueSource
 
 import androidx.compose.animation.AnimatedVisibility
@@ -72,6 +73,8 @@ import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
 import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
+import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
@@ -89,6 +92,7 @@ fun LocalSongListScreen(
     scrollBehavior: TopAppBarScrollBehavior
 ) {
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val context = LocalContext.current
     val playerConnection = LocalPlayerConnection.current ?: return
     var menuTrack by remember { mutableStateOf<TrackMenuTarget?>(null) }
@@ -131,7 +135,7 @@ fun LocalSongListScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
-                CenterAlignedTopAppBar(
+                MeiTopAppBar(hazeState = pageHaze, centerAligned = true,
                     title = {
                         AnimatedVisibility(
                             visible = showTopBarTitle,
@@ -168,6 +172,7 @@ fun LocalSongListScreen(
             Box(
                 Modifier
                     .fillMaxSize()
+                    .hazeSource(pageHaze)
                     .padding(padding)
             ) {
                 if (device.isTablet && device.isLandscape) {
