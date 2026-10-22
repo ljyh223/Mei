@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.about
 
-import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,45 +11,30 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Source
 import androidx.compose.material.icons.rounded.Storage
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,54 +44,34 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.BuildConfig
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.DevModeKey
 import com.ljyh.mei.constants.Github
+import com.ljyh.mei.ui.component.glass.MeiPinnedLazyPage
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.local.LocalNavController
-import dev.chrisbanes.haze.rememberHazeState
-import dev.chrisbanes.haze.hazeSource
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.preferences.rememberPreference
 import java.time.LocalDate
-import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
-import com.ljyh.mei.ui.component.layout.meiPageGutter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen() {
     val context = LocalContext.current
     val navController = LocalNavController.current
-    val pageHaze = rememberHazeState()
     val viewModel: AboutViewModel = hiltViewModel()
 
     val (devMode, onDevModeChange) = rememberPreference(DevModeKey, defaultValue = false)
     var clickCount by remember { mutableIntStateOf(0) }
-    val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            MeiTopAppBar(hazeState = pageHaze,
-                title = { Text("关于") },
-                navigationIcon = { MeiGlassBackButton(onClick = { navController.navigateUp() }) }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.hazeSource(pageHaze)
-                .fillMaxSize()
-                .padding(padding)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
-                    )
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            item {
-                Spacer(Modifier.height(40.dp))
+    MeiPinnedLazyPage(
+        title = "关于",
+        onNavigateBack = navController::navigateUp,
+    ) {
+        item(key = "about_brand") {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(Modifier.height(16.dp))
                 Image(
                     painter = painterResource(id = R.drawable.logo),
                     contentDescription = "Mei Logo",
@@ -136,66 +100,88 @@ fun AboutScreen() {
                 )
                 Spacer(Modifier.height(32.dp))
             }
+        }
 
-            item {
-                AboutSectionTitle("开发")
-                AboutSegmentedGroup {
-                    AboutActionItem(
-                        icon = Icons.Rounded.Source,
-                        title = "GitHub 仓库",
-                        onClick = { openUrl(context, Github) }
-                    )
-                    AboutActionItem(
-                        icon = Icons.Rounded.BugReport,
-                        title = "问题反馈",
-                        onClick = { openUrl(context, "$Github/issues") }
-                    )
-                    AboutActionItem(
-                        icon = Icons.Default.Terminal,
-                        title = "日志收集"
-                    ) {
-                        Screen.Log.navigate(navController)
-                    }
+        item {
+            AboutSectionTitle("开发")
+            AboutSegmentedGroup {
+                AboutActionItem(
+                    icon = Icons.Rounded.Source,
+                    title = "GitHub 仓库",
+                    onClick = { openUrl(context, Github) }
+                )
+                AboutActionItem(
+                    icon = Icons.Rounded.BugReport,
+                    title = "问题反馈",
+                    onClick = { openUrl(context, "$Github/issues") }
+                )
+                AboutActionItem(
+                    icon = Icons.Default.Terminal,
+                    title = "日志收集"
+                ) {
+                    Screen.Log.navigate(navController)
                 }
             }
+        }
 
-            item {
-                AboutSectionTitle("开源致谢")
-                AboutSegmentedGroup {
-                    AboutActionItem(
-                        icon = Icons.Rounded.LibraryMusic,
-                        title = "NeriPlayer",
-                        subtitle = "USB 原生音频传输 · cwuom / ouom",
-                        onClick = { openUrl(context, "https://github.com/cwuom/NeriPlayer") }
-                    )
+        item(key = "about_dependencies") {
+            AboutSectionTitle("主要依赖")
+            AboutSegmentedGroup {
+                aboutDependencies.forEach { dependency ->
                     AboutActionItem(
                         icon = Icons.Rounded.Source,
-                        title = "libusb",
-                        subtitle = "USB 设备通信 · LGPL 2.1 或更新版本",
-                        onClick = { openUrl(context, "https://github.com/libusb/libusb") }
-                    )
-                    AboutActionItem(
-                        icon = Icons.Rounded.LibraryMusic,
-                        title = "amll-ttml-db",
-                        subtitle = "高质量逐字歌词库",
-                        onClick = { openUrl(context, "https://github.com/Steve-xmh/amll-ttml-db") }
-                    )
-                    AboutActionItem(
-                        icon = Icons.Rounded.Lyrics,
-                        title = "accompanist-lyrics-ui",
-                        subtitle = "精美歌词组件渲染",
-                        onClick = { openUrl(context, "https://github.com/6xingyv/accompanist-lyrics-ui") }
-                    )
-                    AboutActionItem(
-                        icon = Icons.Rounded.LibraryMusic,
-                        title = "BeatNet",
-                        subtitle = "智能过渡的节拍分析模型 · CC BY 4.0",
-                        onClick = { openUrl(context, "$Github/blob/main/THIRD_PARTY_NOTICES") }
+                        title = dependency.name,
+                        subtitle = dependency.description,
+                        onClick = { openUrl(context, dependency.url) },
                     )
                 }
             }
+        }
 
-            item {
+        item {
+            AboutSectionTitle("开源致谢")
+            AboutSegmentedGroup {
+                AboutActionItem(
+                    icon = Icons.Rounded.Source,
+                    title = "MeiloX",
+                    subtitle = "迷你播放器与底栏交互参考",
+                    onClick = { openUrl(context, "https://github.com/NEORUAA/MeiloX") },
+                )
+                AboutActionItem(
+                    icon = Icons.Rounded.LibraryMusic,
+                    title = "NeriPlayer",
+                    subtitle = "USB 原生音频传输 · cwuom / ouom",
+                    onClick = { openUrl(context, "https://github.com/cwuom/NeriPlayer") }
+                )
+                AboutActionItem(
+                    icon = Icons.Rounded.Source,
+                    title = "libusb",
+                    subtitle = "USB 设备通信 · LGPL 2.1 或更新版本",
+                    onClick = { openUrl(context, "https://github.com/libusb/libusb") }
+                )
+                AboutActionItem(
+                    icon = Icons.Rounded.LibraryMusic,
+                    title = "amll-ttml-db",
+                    subtitle = "高质量逐字歌词库",
+                    onClick = { openUrl(context, "https://github.com/Steve-xmh/amll-ttml-db") }
+                )
+                AboutActionItem(
+                    icon = Icons.Rounded.Lyrics,
+                    title = "accompanist-lyrics-ui",
+                    subtitle = "精美歌词组件渲染",
+                    onClick = { openUrl(context, "https://github.com/6xingyv/accompanist-lyrics-ui") }
+                )
+                AboutActionItem(
+                    icon = Icons.Rounded.LibraryMusic,
+                    title = "BeatNet",
+                    subtitle = "智能过渡的节拍分析模型 · CC BY 4.0",
+                    onClick = { openUrl(context, "$Github/blob/main/THIRD_PARTY_NOTICES") }
+                )
+            }
+        }
+
+        item(key = "about_footer") {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(Modifier.height(48.dp))
                 Text(
                     text = "Mei · ${LocalDate.now().year}",
@@ -209,71 +195,71 @@ fun AboutScreen() {
                 )
                 Spacer(Modifier.height(24.dp))
             }
+        }
 
-            if (devMode) {
-                item {
-                    AboutSectionTitle("开发者调试")
-                    AboutSegmentedGroup {
-                        ListItem(
-                            modifier = Modifier.clickable {
-                                viewModel.deleteAllCachedLyrics()
-                                Toast.makeText(context, "已清除AI歌词缓存", Toast.LENGTH_SHORT).show()
-                            },
-                            leadingContent = {
-                                Icon(Icons.Rounded.Storage, contentDescription = null, modifier = Modifier.size(20.dp))
-                            },
-                            headlineContent = { Text("删除AI歌词数据", style = MaterialTheme.typography.bodyLarge) },
-                            supportingContent = { Text("清除 cached_lyric 表", style = MaterialTheme.typography.bodySmall) },
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            )
+        if (devMode) {
+            item {
+                AboutSectionTitle("开发者调试")
+                AboutSegmentedGroup {
+                    ListItem(
+                        modifier = Modifier.clickable {
+                            viewModel.deleteAllCachedLyrics()
+                            Toast.makeText(context, "已清除AI歌词缓存", Toast.LENGTH_SHORT).show()
+                        },
+                        leadingContent = {
+                            Icon(Icons.Rounded.Storage, contentDescription = null, modifier = Modifier.size(20.dp))
+                        },
+                        headlineContent = { Text("删除AI歌词数据", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = { Text("清除 cached_lyric 表", style = MaterialTheme.typography.bodySmall) },
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                         )
-                        ListItem(
-                            modifier = Modifier.clickable {
-                                viewModel.deleteAllQQSongs()
-                                Toast.makeText(context, "已清除QQ音乐ID映射", Toast.LENGTH_SHORT).show()
-                            },
-                            leadingContent = {
-                                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
-                            },
-                            headlineContent = { Text("删除QQ音乐ID数据", style = MaterialTheme.typography.bodyLarge) },
-                            supportingContent = { Text("清除 qqSong 表", style = MaterialTheme.typography.bodySmall) },
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            )
+                    )
+                    ListItem(
+                        modifier = Modifier.clickable {
+                            viewModel.deleteAllQQSongs()
+                            Toast.makeText(context, "已清除QQ音乐ID映射", Toast.LENGTH_SHORT).show()
+                        },
+                        leadingContent = {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
+                        },
+                        headlineContent = { Text("删除QQ音乐ID数据", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = { Text("清除 qqSong 表", style = MaterialTheme.typography.bodySmall) },
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                         )
-                        ListItem(
-                            modifier = Modifier.clickable {
-                                Screen.DeveloperSettings.navigate(navController)
-                            },
-                            leadingContent = {
-                                Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(20.dp))
-                            },
-                            headlineContent = { Text("动态封面调试", style = MaterialTheme.typography.bodyLarge) },
-                            supportingContent = { Text("Apple Music 匹配、视频与色板", style = MaterialTheme.typography.bodySmall) },
-                            trailingContent = {
-                                Icon(Icons.Rounded.ChevronRight, contentDescription = null)
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            )
+                    )
+                    ListItem(
+                        modifier = Modifier.clickable {
+                            Screen.DeveloperSettings.navigate(navController)
+                        },
+                        leadingContent = {
+                            Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(20.dp))
+                        },
+                        headlineContent = { Text("动态封面调试", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = { Text("Apple Music 匹配、视频与色板", style = MaterialTheme.typography.bodySmall) },
+                        trailingContent = {
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                         )
-                        ListItem(
-                            modifier = Modifier.clickable { onDevModeChange(false) },
-                            headlineContent = { Text("开发者模式", style = MaterialTheme.typography.bodyLarge) },
-                            supportingContent = { Text("关闭后隐藏开发者调试区域", style = MaterialTheme.typography.bodySmall) },
-                            trailingContent = {
-                                Switch(checked = true, onCheckedChange = onDevModeChange)
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            )
+                    )
+                    ListItem(
+                        modifier = Modifier.clickable { onDevModeChange(false) },
+                        headlineContent = { Text("开发者模式", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = { Text("关闭后隐藏开发者调试区域", style = MaterialTheme.typography.bodySmall) },
+                        trailingContent = {
+                            Switch(checked = true, onCheckedChange = onDevModeChange)
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                         )
-                    }
+                    )
                 }
-                item {
-                    Spacer(Modifier.height(24.dp))
-                }
+            }
+            item {
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
@@ -339,3 +325,13 @@ private fun openUrl(context: Context, url: String) {
     } catch (_: Exception) {
     }
 }
+
+private data class AboutDependency(val name: String, val description: String, val url: String)
+
+private val aboutDependencies = listOf(
+    AboutDependency("Haze / Haze Glass", "模糊采样与玻璃材质", "https://github.com/chrisbanes/haze"),
+    AboutDependency("Coil", "封面与图片加载、缓存", "https://github.com/coil-kt/coil"),
+    AboutDependency("MaterialKolor", "动态 Material 配色", "https://github.com/jordond/MaterialKolor"),
+    AboutDependency("Reorderable", "歌单拖动排序", "https://github.com/Calvin-LL/Reorderable"),
+    AboutDependency("Zoomable", "封面预览缩放", "https://github.com/usuiat/Zoomable"),
+)
