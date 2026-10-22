@@ -45,6 +45,12 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import com.ljyh.mei.playback.equalizer.AutoEqFormat
+import kotlinx.coroutines.flow.first
+import com.ljyh.mei.playback.equalizer.TuningBundleCodec
+import com.ljyh.mei.playback.equalizer.TuningBundle
+import com.ljyh.mei.playback.equalizer.ReverbProfileCodec
+import com.ljyh.mei.playback.equalizer.ReverbProfile
+import com.ljyh.mei.constants.ReverbProfileKey
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import android.widget.Toast
@@ -127,6 +133,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     var bulkSelection by remember { mutableStateOf(emptySet<Int>()) }
     var bulkGain by remember { mutableStateOf(0f) }
     var limiterEnabled by remember { mutableStateOf(true) }
+    var showBundleDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(context) {
         launch {
@@ -233,9 +240,60 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
         if (uri != null) importAutoEq(uri)
     }
 
+
     val selected = profile.filters.firstOrNull { it.id == selectedId }
     val currentPreset =
         (EqualizerPresets.builtIn + customPresets).firstOrNull { it.id == profile.presetId }
+
+    fun exportBundle(uri: Uri) {
+        scope.launch {
+            val reverb = ReverbProfileCodec.decode(
+                context.dataStore.data.first()[ReverbProfileKey]
+            ) ?: ReverbProfile.Off
+            val bundle = TuningBundle(currentPreset?.name ?: "Mei 调音", profile, reverb)
+            val text = TuningBundleCodec.encode(bundle)
+            val ok = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use {
+                        it.write(text.toByteArray(Charsets.UTF_8))
+                    } != null
+                }.getOrDefault(false)
+            }
+            Toast.makeText(
+                context,
+                if (ok) "调音已导出" else "导出失败",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    fun importBundle(uri: Uri) {
+        scope.launch {
+            val text = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                }.getOrNull()
+            }
+            val bundle = text?.let(TuningBundleCodec::decode)
+            if (bundle == null) {
+                Toast.makeText(context, "不是有效的调音文件", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            context.dataStore.edit {
+                it[ReverbProfileKey] = ReverbProfileCodec.encode(bundle.reverb)
+            }
+            playerConnection?.service?.previewReverbProfile(bundle.reverb)
+            commit(bundle.eq.copy(enabled = true))
+            Toast.makeText(context, "已导入「${bundle.name}」", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val bundleExportPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> if (uri != null) exportBundle(uri) }
+    val bundleImportPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) importBundle(uri) }
     val response = remember(profile) { BiquadDesign.sampleResponse(profile) }
     val peakDb = response.maxOrNull()?.toFloat() ?: 0f
     LaunchedEffect(profile.filters.map(EqFilter::id)) {
@@ -426,6 +484,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     }) {
                         Text("导出")
                     }
+                    TextButton(onClick = { showBundleDialog = true }) { Text("整套") }
                     TextButton(onClick = {
                         bulkMode = !bulkMode
                         if (!bulkMode) bulkSelection = emptySet()
@@ -606,6 +665,26 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 )
             }
         }
+    }
+
+    if (showBundleDialog) {
+        AlertDialog(
+            onDismissRequest = { showBundleDialog = false },
+            title = { Text("整套调音") },
+            text = { Text("导出会把当前 EQ 和混响存成一个 JSON 文件；导入会同时应用两者。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBundleDialog = false
+                    bundleExportPicker.launch("mei-tuning.json")
+                }) { Text("导出") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBundleDialog = false
+                    bundleImportPicker.launch(arrayOf("application/json", "text/plain", "*/*"))
+                }) { Text("导入") }
+            },
+        )
     }
 
     if (showSaveDialog) {
