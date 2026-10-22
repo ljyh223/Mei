@@ -75,6 +75,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,8 +96,6 @@ fun GlassSettingsScreen() {
     MeiPinnedLazyPage(
         title = "玻璃材质",
         bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
-        horizontalContentPadding = 20.dp,
-        largeTitleHorizontalPadding = 0.dp,
         onNavigateBack = navController::navigateUp,
     ) {
         item(key = "page-content") {
@@ -110,7 +109,7 @@ fun GlassSettingsScreen() {
                     Build.VERSION.SDK_INT < 33 -> "此设备显示静态样式，实时玻璃需要 Android 13 或更新版本"
                     else -> "当前省电或设备内存策略已简化玻璃效果"
                 },
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 8.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -195,7 +194,7 @@ private fun GlassMaterialPreview() {
     val appearance = LocalMeiGlassAppearance.current
     val ink = if (appearance.strongContent) MaterialTheme.colorScheme.onSurface
         else MaterialTheme.colorScheme.onSurfaceVariant
-    Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.padding(horizontal = meiPageGutter(), vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("材质预览", style = MaterialTheme.typography.titleSmall)
         Box(Modifier.fillMaxWidth().height(144.dp).clip(MaterialTheme.shapes.large)) {
             Box(

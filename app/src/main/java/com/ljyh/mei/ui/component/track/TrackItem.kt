@@ -41,6 +41,7 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.TimeUtils.formatDuration
 import com.ljyh.mei.utils.image.smallImage
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 @Composable
 fun Track(
     track: MediaMetadata,
@@ -101,7 +102,7 @@ private fun TrackContent(
             .fillMaxWidth()
             .background(if (isPlaying) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else Color.Transparent)
             .clickable(enabled = !isLoading) { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // --- 1. 序号 (仅平板) ---

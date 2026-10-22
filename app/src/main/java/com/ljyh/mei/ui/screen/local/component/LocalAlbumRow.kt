@@ -16,11 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.room.Song
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 internal fun AlbumRow(albums: List<String>, songs: List<Song>, onAlbumClick: (String) -> Unit = {}) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = meiPageGutter()),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(albums) { album ->

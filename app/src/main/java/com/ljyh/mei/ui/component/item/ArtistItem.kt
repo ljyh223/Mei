@@ -25,6 +25,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.ArtistThumbnailSize
 import com.ljyh.mei.data.model.domain.SearchArtist
 import com.ljyh.mei.utils.image.smallImage
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
 @Composable
@@ -36,7 +37,7 @@ fun ArtistItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
 

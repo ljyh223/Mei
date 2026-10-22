@@ -36,6 +36,9 @@ import com.ljyh.mei.ui.screen.comment.component.CommentItem
 import com.ljyh.mei.ui.screen.comment.component.CommentTopBar
 import androidx.compose.foundation.layout.asPaddingValues
 import timber.log.Timber
+import androidx.compose.foundation.background
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +47,7 @@ fun CommentScreen(
     viewModel: CommentViewModel = hiltViewModel()
 ) {
     val navController = LocalNavController.current
+    val pageHaze = rememberHazeState()
     val sortType by viewModel.sortType.collectAsState()
     val total by viewModel.total.collectAsState()
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
@@ -63,6 +67,7 @@ fun CommentScreen(
         topBar = {
             CommentTopBar(
                 total = total,
+                hazeState = pageHaze,
                 sortType = sortType,
                 onSortTypeChange = { viewModel.setSortType(it) },
                 onBack = { navController.popBackStack() }
@@ -97,6 +102,8 @@ fun CommentScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .hazeSource(pageHaze)
+                        .background(MaterialTheme.colorScheme.surface)
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
@@ -108,6 +115,8 @@ fun CommentScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .hazeSource(pageHaze)
+                        .background(MaterialTheme.colorScheme.surface)
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
@@ -121,6 +130,8 @@ fun CommentScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
+                        .hazeSource(pageHaze)
+                        .background(MaterialTheme.colorScheme.surface)
                         .padding(paddingValues),
                     contentPadding = PaddingValues(
                         bottom = insets.asPaddingValues().calculateBottomPadding()

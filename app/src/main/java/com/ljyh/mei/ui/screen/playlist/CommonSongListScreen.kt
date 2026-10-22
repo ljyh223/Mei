@@ -63,6 +63,8 @@ import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionOverlay
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistHeader
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,7 +140,7 @@ fun CommonSongListScreen(
                     },
                     actions = {
                         if (supportsPlaylistSearch && !isLoading) {
-                            IconButton(onClick = {
+                            MeiGlassIconButton(onClick = {
                                 if (isPlaylistSearchActive) {
                                     onPlaylistSearchQueryChange("")
                                     onPlaylistSearchActiveChange(false)
@@ -213,7 +215,7 @@ fun CommonSongListScreen(
                                         onValueChange = { onPlaylistSearchQueryChange?.invoke(it) },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                                            .padding(horizontal = meiPageGutter(), vertical = 12.dp),
                                         placeholder = { Text("搜索歌名、歌手或专辑") },
                                         leadingIcon = {
                                             Icon(Icons.Default.Search, contentDescription = null)

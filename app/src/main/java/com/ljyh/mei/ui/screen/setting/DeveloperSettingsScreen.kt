@@ -81,6 +81,7 @@ import kotlinx.coroutines.delay
 import androidx.core.graphics.toColorInt
 import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
 import kotlin.time.Duration.Companion.milliseconds
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,25 +131,25 @@ fun DeveloperSettingsScreen(
 
             Text(
                 "Apple Music 搜索匹配", style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = meiPageGutter())
             )
             Text(
                 "手动查询按专辑名和歌手名匹配；播放时未命中会再比较封面。仅在点击查询时请求网络。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = meiPageGutter())
             )
             OutlinedTextField(
                 value = album, onValueChange = { album = it }, label = { Text("专辑名") },
                 singleLine = true, modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = meiPageGutter())
             )
             OutlinedTextField(
                 value = artist, onValueChange = { artist = it }, label = { Text("歌手名") },
                 singleLine = true, modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = meiPageGutter())
             )
             if (currentSong != null) {
                 Button(
@@ -157,25 +158,25 @@ fun DeveloperSettingsScreen(
                         artist = currentSong.artists.firstOrNull()?.name.orEmpty()
                         seededSongId = currentSong.id
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = meiPageGutter())
                 ) { Text("填入当前歌曲") }
             }
             Button(
                 onClick = { viewModel.inspect(album, artist) },
                 enabled = album.isNotBlank() && artist.isNotBlank() && state !is DiagnosticState.Loading,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = meiPageGutter())
             ) { Text("查询匹配与封面") }
 
             when (val current = state) {
                 DiagnosticState.Idle -> Unit
                 DiagnosticState.Loading -> Text(
                     "正在查询…",
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = meiPageGutter())
                 )
 
                 is DiagnosticState.Failed -> Text(
                     "查询失败：${current.message}", color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = meiPageGutter())
                 )
 
                 is DiagnosticState.Success -> DiagnosticResult(
@@ -216,7 +217,7 @@ private fun DiagnosticResult(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("搜索词：${result.query}", style = MaterialTheme.typography.titleSmall)

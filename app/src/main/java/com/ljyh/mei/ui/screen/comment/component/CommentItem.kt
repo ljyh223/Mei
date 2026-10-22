@@ -34,6 +34,7 @@ import com.ljyh.mei.data.model.domain.CommentEntry
 import com.ljyh.mei.data.model.domain.FloorCommentEntry
 import com.ljyh.mei.data.network.Resource
 import timber.log.Timber
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun CommentItem(
@@ -52,7 +53,7 @@ fun CommentItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = meiPageGutter(), vertical = 8.dp)
         ) {
             AsyncImage(
                 model = comment.user.avatarUrl,
@@ -137,7 +138,7 @@ fun CommentItem(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 62.dp, end = 16.dp, bottom = 4.dp)
+                    .padding(start = meiPageGutter() + 46.dp, end = meiPageGutter(), bottom = 4.dp)
                     .background(
                         if (lightText) Color.White.copy(alpha = 0.08f)
                         else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f),

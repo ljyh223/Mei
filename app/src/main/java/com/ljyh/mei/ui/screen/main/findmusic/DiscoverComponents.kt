@@ -24,6 +24,7 @@ import com.ljyh.mei.ui.component.card.ArtworkCard
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.utils.image.sizedNeteaseImage
 import java.util.Locale
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,7 +35,7 @@ internal fun DiscoverCategorySheet(
     onCategorySelected: (String) -> Unit,
     onRetry: () -> Unit,
 ) {
-    val gutter = if (rememberDeviceInfo().isTablet) 28.dp else 20.dp
+    val gutter = meiPageGutter()
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
             contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp),

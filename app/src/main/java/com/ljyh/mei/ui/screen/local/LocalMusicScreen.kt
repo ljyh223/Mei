@@ -57,6 +57,9 @@ import com.ljyh.mei.ui.screen.local.component.EmptyLocalMusic
 import com.ljyh.mei.ui.screen.local.component.FolderItem
 import com.ljyh.mei.ui.screen.local.component.ManagementCard
 import com.ljyh.mei.ui.screen.local.component.SectionHeader
+import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalMusicScreen(
@@ -107,20 +110,9 @@ fun LocalMusicScreen(
         topBar = {
             MeiTopAppBar(hazeState = pageHaze,
                 title = { Text("本地音乐") },
-                navigationIcon = {
-                    com.ljyh.mei.ui.component.IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null
-                        )
-                    }
-                },
+                navigationIcon = { MeiGlassBackButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) },
                 actions = {
-                    IconButton(onClick = requestScan, enabled = scanState !is LocalScanState.Scanning) {
+                    MeiGlassIconButton(onClick = requestScan, enabled = scanState !is LocalScanState.Scanning) {
                         Icon(Icons.Rounded.Refresh, contentDescription = "扫描本地音乐")
                     }
                 },
@@ -144,7 +136,7 @@ fun LocalMusicScreen(
             if (scanState is LocalScanState.Failed) {
                 Text(
                     (scanState as LocalScanState.Failed).message,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )

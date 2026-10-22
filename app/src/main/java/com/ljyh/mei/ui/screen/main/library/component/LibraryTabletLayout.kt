@@ -83,6 +83,7 @@ import kotlinx.coroutines.withContext
 import androidx.palette.graphics.Palette
 import java.time.LocalTime
 import kotlin.math.ceil
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun LibraryTabletLayout(
@@ -99,9 +100,9 @@ fun LibraryTabletLayout(
         modifier = Modifier
             .fillMaxSize()
             .padding(
-                start = 24.dp,
+                start = meiPageGutter(),
                 top = 24.dp,
-                end = 28.dp,
+                end = meiPageGutter(),
                 bottom = bottomPadding,
             ),
         horizontalArrangement = Arrangement.spacedBy(24.dp),

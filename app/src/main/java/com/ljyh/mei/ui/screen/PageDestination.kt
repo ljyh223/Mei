@@ -10,6 +10,11 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 
 /** An opaque moving page; all navigation motion is inherited from the main NavHost. */
 fun NavGraphBuilder.pageDestination(
@@ -18,7 +23,11 @@ fun NavGraphBuilder.pageDestination(
     content: @Composable (NavBackStackEntry) -> Unit,
 ) {
     composable(route = route, arguments = arguments) { entry ->
-        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Box(
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)),
+        ) {
             content(entry)
         }
     }

@@ -42,6 +42,7 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
 import java.util.UUID
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
 
 @OptIn(UnstableApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -169,7 +170,7 @@ private fun ArtistCatalogSearchField(query: String, onQueryChange: (String) -> U
 
 @Composable
 private fun CatalogSearchAction(active: Boolean, onToggle: () -> Unit) {
-    IconButton(onClick = onToggle) {
+    MeiGlassIconButton(onClick = onToggle) {
         Icon(if (active) Icons.Default.Close else Icons.Default.Search, contentDescription = if (active) "关闭搜索" else "搜索")
     }
 }

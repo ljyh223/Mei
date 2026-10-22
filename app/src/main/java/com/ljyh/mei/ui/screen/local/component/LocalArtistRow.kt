@@ -27,13 +27,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.room.Song
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 fun isSoloArtist(artistList: List<String>): Boolean = artistList.size == 1
 
 @Composable
 internal fun ArtistRow(artists: List<String>, songs: List<Song>, onArtistClick: (String) -> Unit = {}) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = meiPageGutter()),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(artists) { artist ->

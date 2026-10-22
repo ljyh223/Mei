@@ -26,6 +26,7 @@ import com.ljyh.mei.constants.CoverSolidEdgeMatchKey
 import com.ljyh.mei.utils.image.CoverBackgroundConfig
 import com.ljyh.mei.utils.preferences.rememberPreference
 import java.util.Locale
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 internal fun CoverBackgroundSettings() {
@@ -42,7 +43,7 @@ internal fun CoverBackgroundSettings() {
         CoverSingleEdgeMatchKey, defaults.minimumSingleEdgeMatch,
     )
 
-    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+    Card(Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 12.dp)) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),

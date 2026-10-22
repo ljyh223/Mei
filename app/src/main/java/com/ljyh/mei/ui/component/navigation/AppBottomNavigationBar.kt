@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.lerp
 import com.ljyh.mei.ui.component.glass.MeiGlassRole
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.screen.Index
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 private val SearchPlaceholder = "搜索歌曲、歌手、专辑"
 
@@ -98,7 +99,7 @@ fun AppBottomNavigationBar(
             }
             // IME is handled and consumed by the app's search viewport.
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(

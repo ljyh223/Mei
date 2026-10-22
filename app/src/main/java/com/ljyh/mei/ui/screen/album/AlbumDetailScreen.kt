@@ -56,6 +56,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 import java.util.Timer
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
+import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 @RequiresApi(Build.VERSION_CODES.R)
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -335,21 +341,21 @@ fun AlbumDetailScreen(
 
 @Composable
 private fun AlbumLoadState(onBack: () -> Unit, message: String?, onRetry: (() -> Unit)?) {
-    Column(Modifier
-        .fillMaxSize()
-        .statusBarsPadding()) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-        }
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    val source = rememberHazeState()
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier.fillMaxSize().hazeSource(source).background(MaterialTheme.colorScheme.surface),
+            contentAlignment = Alignment.Center,
+        ) {
             if (message == null) {
                 CircularProgressIndicator()
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(message, modifier = Modifier.padding(horizontal = 24.dp))
+                    Text(message, modifier = Modifier.padding(horizontal = meiPageGutter()))
                     TextButton(onClick = { onRetry?.invoke() }) { Text("重试") }
                 }
             }
         }
+        MeiHazeTopBar(state = source, title = "专辑", progress = 1f, onNavigateBack = onBack)
     }
 }

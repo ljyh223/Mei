@@ -61,6 +61,9 @@ import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,14 +88,10 @@ fun HistoryScreen(
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
+                navigationIcon = { MeiGlassBackButton(onClick = { navController.popBackStack() }) },
                 actions = {
                     if (historyList.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearHistory() }) {
+                        MeiGlassIconButton(onClick = { viewModel.clearHistory() }) {
                             Icon(
                                 Icons.Rounded.DeleteSweep,
                                 contentDescription = "Clear History",
@@ -150,7 +149,7 @@ fun HistoryItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 1. 封面图

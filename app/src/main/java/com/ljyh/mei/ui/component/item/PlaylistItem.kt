@@ -20,6 +20,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistThumbnailSize
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.utils.image.smallImage
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun PlaylistItem(
@@ -31,7 +32,7 @@ fun PlaylistItem(
         modifier = Modifier
             .fillMaxWidth().heightIn(min = 80.dp)
             .clickable { onClick(playlist.id) }
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
 
         ) {

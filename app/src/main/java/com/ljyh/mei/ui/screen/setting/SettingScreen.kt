@@ -52,6 +52,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.theme.MeiCategory
 import com.ljyh.mei.ui.theme.MeiCategoryIcon
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +67,7 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 .fillMaxSize()
                 .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = meiPageGutter()),
         ) {
             MeiLargeTitle("设置", modifier = Modifier.padding(bottom = 16.dp), startPadding = 0.dp)
 
@@ -117,7 +118,7 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(title, style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp))
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier)
         Surface(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceContainerLow,

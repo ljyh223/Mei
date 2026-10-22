@@ -38,6 +38,7 @@ import java.util.Locale
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 internal fun DailyCoverWall(covers: List<String>, today: LocalDate) {
@@ -46,7 +47,7 @@ internal fun DailyCoverWall(covers: List<String>, today: LocalDate) {
     val surface = MaterialTheme.colorScheme.surface
     val placeholder = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f)
 
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 8.dp)) {
         val stageWidth = maxWidth
         val stageHeight = if (covers.isEmpty()) 220.dp else stageWidth * maxOf(0.86f, covers.size / 36f)
         val widthPx = with(density) { stageWidth.toPx() }

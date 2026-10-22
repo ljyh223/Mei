@@ -31,6 +31,9 @@ import dev.chrisbanes.haze.hazeSource
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,19 +59,9 @@ fun LogScreen(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
+                navigationIcon = { MeiGlassBackButton(onClick = { navController.popBackStack() }) },
                 actions = {
-                    IconButton(onClick = { viewModel.clearAllLogs() }) {
+                    MeiGlassIconButton(onClick = { viewModel.clearAllLogs() }) {
                         Icon(
                             Icons.Default.Delete,
                             "Clear All",
@@ -135,7 +128,7 @@ fun LogFileItem(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = meiPageGutter(), vertical = 16.dp)
         ) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -180,28 +173,22 @@ fun LogDetailDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val dialogHaze = rememberHazeState()
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 MeiTopAppBar(
+                    hazeState = dialogHaze,
                     title = { Text(fileName, style = MaterialTheme.typography.titleSmall) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         titleContentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                "Close",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
+                    navigationIcon = { MeiGlassBackButton(onClick = onDismiss, contentDescription = "关闭") },
                     actions = {
-                        IconButton(onClick = onShare) {
+                        MeiGlassIconButton(onClick = onShare) {
                             Icon(
                                 Icons.Default.Share,
                                 "Share",
@@ -215,7 +202,9 @@ fun LogDetailDialog(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(8.dp)
+                        .fillMaxWidth()
+                        .hazeSource(dialogHaze)
+                        .padding(horizontal = meiPageGutter(), vertical = 8.dp)
                         .background(logBackgroundColor)
                         .verticalScroll(rememberScrollState())
                 ) {

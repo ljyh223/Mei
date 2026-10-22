@@ -50,6 +50,8 @@ import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
+import androidx.compose.foundation.lazy.LazyRow
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -130,21 +132,18 @@ fun SearchTypeFilterRow(
     selected: SearchType,
     onSelect: (SearchType) -> Unit
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = meiPageGutter(), vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SearchType.entries
-            .filter { it != SearchType.History }
-            .forEach { type ->
-                FilterChip(
-                    selected = selected == type,
-                    onClick = { onSelect(type) },
-                    label = { Text(type.displayName) }
-                )
-            }
+        items(SearchType.entries.filter { it != SearchType.History }, key = { it.name }) { type ->
+            FilterChip(
+                selected = selected == type,
+                onClick = { onSelect(type) },
+                label = { Text(type.displayName) },
+            )
+        }
     }
 }
 

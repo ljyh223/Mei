@@ -50,6 +50,7 @@ import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.image.largeImage
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /**
  * Centered playlist hero. The page deliberately keeps its action buttons on neutral
@@ -76,7 +77,7 @@ fun PlaylistHeader(
     val coverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
     var showCoverPreview by remember(cover) { mutableStateOf(false) }
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 24.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {

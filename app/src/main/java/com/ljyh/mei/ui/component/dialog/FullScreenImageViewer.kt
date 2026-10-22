@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -29,6 +28,17 @@ import com.ljyh.mei.utils.image.saveImageToGallery
 import kotlinx.coroutines.launch
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
 fun FullScreenImageViewer(imageUrl: String, onDismiss: () -> Unit) {
@@ -39,35 +49,42 @@ fun FullScreenImageViewer(imageUrl: String, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
-        Box(
-            Modifier.fillMaxSize().background(Color.Black)
-                .pointerInput(onDismiss) { detectTapGestures(onTap = { onDismiss() }) },
-        ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "封面预览",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
-                    .zoomable(rememberZoomState())
+        MaterialTheme(colorScheme = darkColorScheme()) {
+            val source = rememberHazeState()
+            Box(
+                Modifier.fillMaxSize().background(Color.Black)
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                     .pointerInput(onDismiss) { detectTapGestures(onTap = { onDismiss() }) },
-            )
-            Box(
-                Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp)
-                    .align(Alignment.TopCenter),
             ) {
-                IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopStart)) {
-                    Icon(Icons.Default.Close, contentDescription = "关闭预览", tint = Color.White)
+                Box(Modifier.fillMaxSize().hazeSource(source).background(Color.Black)) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = "封面预览",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                            .zoomable(rememberZoomState())
+                            .pointerInput(onDismiss) { detectTapGestures(onTap = { onDismiss() }) },
+                    )
                 }
-            }
-            Box(
-                Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)
-                    .align(Alignment.BottomCenter),
-            ) {
-                IconButton(
-                    onClick = { scope.launch { saveImageToGallery(context, imageUrl) } },
-                    modifier = Modifier.align(Alignment.BottomEnd),
+                Box(
+                    Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = meiPageGutter() - 4.dp, vertical = 16.dp)
+                        .align(Alignment.TopCenter),
                 ) {
-                    Icon(Icons.Default.SaveAlt, contentDescription = "保存封面", tint = Color.White)
+                    MeiGlassIconButton(onClick = onDismiss, hazeState = source, modifier = Modifier.align(Alignment.TopStart)) {
+                        Icon(Icons.Default.Close, contentDescription = "关闭预览", tint = Color.White)
+                    }
+                }
+                Box(
+                    Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = meiPageGutter() - 4.dp, vertical = 16.dp)
+                        .align(Alignment.BottomCenter),
+                ) {
+                    MeiGlassIconButton(
+                        hazeState = source,
+                        onClick = { scope.launch { saveImageToGallery(context, imageUrl) } },
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                    ) {
+                        Icon(Icons.Default.SaveAlt, contentDescription = "保存封面", tint = Color.White)
+                    }
                 }
             }
         }

@@ -61,6 +61,7 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,7 +107,7 @@ fun PlaySettingScreen(
         title = "播放体验",
         bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
         horizontalContentPadding = 0.dp,
-        largeTitleHorizontalPadding = 20.dp,
+        largeTitleHorizontalPadding = meiPageGutter(),
         onNavigateBack = navController::navigateUp,
     ) {
         item(key = "page-content") {

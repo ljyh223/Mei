@@ -38,6 +38,7 @@ import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,7 +120,7 @@ fun LxSourcesScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: LxSource
         MeiPinnedLazyPage(
             title = "自定义音源",
             bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
-            horizontalContentPadding = 16.dp,
+            horizontalContentPadding = meiPageGutter(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             onNavigateBack = navController::navigateUp,
         ) {

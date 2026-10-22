@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 // TODO: 新的搜索接口实现
 @Composable
@@ -104,7 +105,7 @@ fun SearchScreen(
                 item(key = "search_history_header") {
                     Row(
                         modifier = Modifier.fillMaxWidth().height(48.dp)
-                            .padding(start = 16.dp, end = SearchBarIconOffsetX),
+                            .padding(start = meiPageGutter(), end = (meiPageGutter() - 12.dp).coerceAtLeast(0.dp)),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
@@ -245,13 +246,13 @@ fun SuggestionItem(
             .fillMaxWidth()
             .height(SuggestionItemHeight)
             .clickable(onClick = onClick)
-            .padding(end = SearchBarIconOffsetX)
+            .padding(start = meiPageGutter(), end = (meiPageGutter() - 12.dp).coerceAtLeast(0.dp))
     ) {
         Icon(
             imageVector = type.icon,
             contentDescription = null,
             modifier = Modifier
-                .padding(horizontal = 16.dp)
+                .padding(end = 16.dp)
                 .alpha(0.5f)
         )
 

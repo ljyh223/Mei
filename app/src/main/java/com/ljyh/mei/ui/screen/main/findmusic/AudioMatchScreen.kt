@@ -71,6 +71,8 @@ import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun AudioMatchScreen(
@@ -129,14 +131,7 @@ fun AudioMatchScreen(
         topBar = {
             MeiTopAppBar(hazeState = pageHaze,
                 title = { Text("听歌识曲") },
-                navigationIcon = {
-                    com.ljyh.mei.ui.component.IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
-                    }
-                },
+                navigationIcon = { MeiGlassBackButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -150,7 +145,7 @@ fun AudioMatchScreen(
                     ),
                 )
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 28.dp),
+                .padding(horizontal = meiPageGutter(), vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(Modifier.size(144.dp), contentAlignment = Alignment.Center) {

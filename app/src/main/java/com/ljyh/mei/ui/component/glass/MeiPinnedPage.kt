@@ -42,6 +42,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /** Scroll state of the current pinned page, so the caller's column can share it. */
 val LocalMeiPageScroll = staticCompositionLocalOf<ScrollState?> { null }
@@ -66,6 +67,7 @@ fun MeiHazeTopBar(
     actions: @Composable RowScope.() -> Unit = {},
     titleContent: (@Composable () -> Unit)? = null,
     backgroundProgress: Float = progress,
+    onBackLongClick: (() -> Unit)? = null,
 ) {
     val alpha = progress.coerceIn(0f, 1f)
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -80,12 +82,13 @@ fun MeiHazeTopBar(
                 .statusBarsPadding()
                 .fillMaxWidth()
                 .height(BarHeight)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = meiPageGutter() - 4.dp),
         ) {
             if (onNavigateBack != null) {
                 Box(Modifier.align(Alignment.CenterStart)) {
                     MeiGlassBackButton(
                         onClick = onNavigateBack,
+                        onLongClick = onBackLongClick,
                         hazeState = state,
                         modifier = Modifier.padding(0.dp),
                     )
@@ -114,7 +117,9 @@ fun MeiHazeTopBar(
                 Modifier.align(Alignment.CenterEnd),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-            ) { actions() }
+            ) {
+                CompositionLocalProvider(LocalMeiHazeState provides state) { actions() }
+            }
         }
     }
 }
@@ -128,7 +133,7 @@ fun MeiPinnedPage(
     title: String,
     modifier: Modifier = Modifier,
     onNavigateBack: (() -> Unit)? = null,
-    @Suppress("UNUSED_PARAMETER") onBackLongClick: (() -> Unit)? = null,
+    onBackLongClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     contentTopPadding: Dp = BarHeight + 10.dp,
     content: @Composable (PaddingValues) -> Unit,
@@ -152,6 +157,7 @@ fun MeiPinnedPage(
             title = title,
             progress = progress,
             onNavigateBack = onNavigateBack,
+            onBackLongClick = onBackLongClick,
             actions = actions,
         )
     }
@@ -159,7 +165,7 @@ fun MeiPinnedPage(
 
 /** Big in-content title that shrinks and blurs away as the page scrolls. */
 @Composable
-fun MeiLargeTitle(title: String, modifier: Modifier = Modifier, startPadding: androidx.compose.ui.unit.Dp = 20.dp) {
+fun MeiLargeTitle(title: String, modifier: Modifier = Modifier, startPadding: androidx.compose.ui.unit.Dp = meiPageGutter()) {
     val progress = LocalMeiPageProgress.current
     Text(
         text = title,
@@ -192,7 +198,7 @@ fun MeiPinnedLazyPage(
     title: String,
     bottomPadding: androidx.compose.ui.unit.Dp = 0.dp,
     horizontalContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
-    largeTitleHorizontalPadding: androidx.compose.ui.unit.Dp = 0.dp,
+    largeTitleHorizontalPadding: androidx.compose.ui.unit.Dp? = null,
     onNavigateBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
@@ -204,7 +210,7 @@ fun MeiPinnedLazyPage(
     val progress by rememberLazyProgress(listState)
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val insetBottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-    val indent = horizontalContentPadding + largeTitleHorizontalPadding
+    val indent = largeTitleHorizontalPadding ?: (meiPageGutter() - horizontalContentPadding).coerceAtLeast(0.dp)
     Box(modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().hazeSource(state)) {
             CompositionLocalProvider(LocalMeiPageProgress provides progress) {

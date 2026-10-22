@@ -100,7 +100,6 @@ import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlin.math.min
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
-import com.ljyh.mei.constants.MiniPlayerHorizontalMargin
 import com.ljyh.mei.ui.component.player.controls.LocalPlayerControlsHazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -116,6 +115,8 @@ import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
 import com.ljyh.mei.ui.component.player.cover.FluidBackground
 import com.ljyh.mei.ui.component.player.cover.coverEdgeFeather
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.player.miniPlayerHorizontalMargin
 
 
 private val PlayerBackgroundSeamOverlap = 1.dp
@@ -322,9 +323,8 @@ fun AppleMusicPlayer(
 
         // A. Mini player artwork shares the floating bar inset.
         val miniSize = with(density) { MiniPlayerCoverSize.toPx() }
-        val miniStart = with(density) {
-            (MiniPlayerHorizontalMargin + 16.dp + 60.dp * compactProgress).toPx()
-        }
+        val miniMargin = miniPlayerHorizontalMargin(meiPageGutter(), compactProgress)
+        val miniStart = with(density) { (miniMargin + 16.dp).toPx() }
         val miniRadius = with(density) { MiniPlayerCoverCornerRadius.toPx() }
         val miniTop = with(density) { ((MiniPlayerBarHeight - MiniPlayerCoverSize) / 2).toPx() }
 

@@ -22,11 +22,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.theme.MeiCategory
 import com.ljyh.mei.ui.theme.MeiCategoryIcon
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun BentoDashboard(onHistoryClick: () -> Unit, onLocalClick: () -> Unit, onDownloadClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         LibraryShortcut("最近播放", Icons.Rounded.History, MeiCategory.Content,

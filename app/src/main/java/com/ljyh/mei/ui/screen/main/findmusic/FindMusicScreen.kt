@@ -12,7 +12,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -28,6 +27,7 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.discoverPlaylistsRoute
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /** Discovery owns the overview only; complete collections are navigation destinations. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,11 +42,10 @@ fun FindMusicScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: FindMusi
     val listState = rememberLazyListState()
     val source = rememberHazeState()
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
-    val direction = LocalLayoutDirection.current
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val tablet = rememberDeviceInfo().isTablet
-    val gutter = if (tablet) 28.dp else 20.dp
-    val rowInsets = PaddingValues(start = gutter + insets.calculateStartPadding(direction), end = gutter + insets.calculateEndPadding(direction))
+    val gutter = meiPageGutter()
+    val rowInsets = PaddingValues(horizontal = gutter)
     val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
     val progress by remember(listState, collapseDistance) {
         derivedStateOf {

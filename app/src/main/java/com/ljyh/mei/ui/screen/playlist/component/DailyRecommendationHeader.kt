@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import java.time.LocalDate
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun DailyRecommendationHeader(
@@ -37,7 +38,7 @@ fun DailyRecommendationHeader(
     Column(Modifier.fillMaxWidth()) {
         DailyCoverWall(covers, today)
         Row(
-            Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp),
+            Modifier.fillMaxWidth().padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {

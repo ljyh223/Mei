@@ -72,6 +72,8 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.preferences.rememberPreference
 import java.time.LocalDate
+import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,13 +91,7 @@ fun AboutScreen() {
         topBar = {
             MeiTopAppBar(hazeState = pageHaze,
                 title = { Text("关于") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        navController.navigateUp()
-                    }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-                    }
-                }
+                navigationIcon = { MeiGlassBackButton(onClick = { navController.navigateUp() }) }
             )
         }
     ) { padding ->
@@ -288,7 +284,7 @@ private fun AboutSegmentedGroup(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = meiPageGutter())
             .clip(RoundedCornerShape(24.dp)),
         verticalArrangement = Arrangement.spacedBy(2.dp),
         content = content
@@ -304,7 +300,7 @@ private fun AboutSectionTitle(title: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, top = 24.dp, bottom = 10.dp)
+            .padding(start = meiPageGutter(), top = 24.dp, bottom = 10.dp)
     )
 }
 

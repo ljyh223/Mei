@@ -22,6 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.ljyh.mei.data.model.api.CommentSortType
+import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,11 +32,13 @@ fun CommentTopBar(
     sortType: CommentSortType,
     onSortTypeChange: (CommentSortType) -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     MeiTopAppBar(
+        hazeState = hazeState,
         title = {
             Text(
                 text = if (total > 0) "评论 ($total)" else "评论",
@@ -42,14 +46,7 @@ fun CommentTopBar(
                 fontWeight = FontWeight.Bold
             )
         },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "返回"
-                )
-            }
-        },
+        navigationIcon = { MeiGlassBackButton(onClick = onBack) },
         actions = {
             Box {
                 TextButton(onClick = { expanded = true }) {

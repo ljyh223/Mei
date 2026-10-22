@@ -17,6 +17,7 @@ import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.constants.RecommendCardWidthTablet
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun HomeShimmer(viewModel: HomeViewModel) {
@@ -54,7 +55,7 @@ private fun RecommendRowShimmer(
     Column {
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 20.dp)
+            contentPadding = PaddingValues(horizontal = meiPageGutter())
         ) {
             items(count) {
                 RecommendCard(
@@ -80,7 +81,7 @@ private fun PlaylistBlockShimmer(
         Title(text = "", isLoading = true)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 20.dp)
+            contentPadding = PaddingValues(horizontal = meiPageGutter())
         ) {
             items(count) {
                 PlaylistCard(

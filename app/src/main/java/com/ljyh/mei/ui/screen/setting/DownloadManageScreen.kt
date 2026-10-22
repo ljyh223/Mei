@@ -73,6 +73,8 @@ import com.ljyh.mei.download.DownloadManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 private enum class DownloadFilter(val label: String, val icon: ImageVector) {
     ALL("全部", Icons.Rounded.Download),
@@ -126,7 +128,7 @@ fun DownloadManageScreen(
         onNavigateBack = navController::navigateUp,
         actions = {
             if (allTasks.isNotEmpty()) {
-                IconButton(onClick = { DownloadManager.deleteAll(context) }) {
+                MeiGlassIconButton(onClick = { DownloadManager.deleteAll(context) }) {
                     Icon(Icons.Rounded.Delete, "清空")
                 }
             }
@@ -137,7 +139,7 @@ fun DownloadManageScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = meiPageGutter(), vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 DownloadFilter.entries.forEach { filter ->
@@ -203,7 +205,7 @@ private fun DownloadTaskItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(44.dp)) {

@@ -76,6 +76,8 @@ import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import java.time.Instant
 import java.time.ZoneId
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,7 +175,7 @@ internal fun AlbumDetailContent(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
+                        modifier = Modifier.padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 8.dp),
                     )
                 }
             } else {
@@ -206,7 +208,7 @@ internal fun AlbumDetailContent(
             progress = if (titleInBar || isSearchActive) 1f else 0f,
             onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
             actions = {
-                IconButton(onClick = {
+                MeiGlassIconButton(onClick = {
                     if (isSearchActive) onSearchQueryChange("")
                     onSearchActiveChange(!isSearchActive)
                 }) {
@@ -289,7 +291,7 @@ private fun AlbumHeader(
             )
             Column(
                 modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, bottom = 20.dp),
+                    .padding(start = meiPageGutter(), end = meiPageGutter(), bottom = 20.dp),
             ) {
                 Text(
                     text = album.name,
@@ -353,7 +355,7 @@ private fun AlbumActions(
         contentAlignment = Alignment.CenterStart,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -393,7 +395,7 @@ private fun AlbumActions(
 private fun AlbumDescription(albumId: Long, description: String, onExpand: () -> Unit) {
     var canExpand by remember(albumId, description) { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -428,7 +430,7 @@ private fun AlbumTrackRow(
     var moreBounds by remember(song.id) { mutableStateOf(IntRect.Zero) }
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(enabled = canPlay, onClick = onClick)
-            .padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = meiPageGutter(), end = meiPageGutter(), top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

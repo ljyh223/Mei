@@ -42,6 +42,8 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.model.toAlbumEntity
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -89,7 +91,7 @@ fun LibraryMobileLayout(
 
         stickyHeader {
             // 之前的吸顶 Tab 逻辑
-            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Box(modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 8.dp)) {
                 MeiGlassSurface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(50),
@@ -153,7 +155,7 @@ fun EmptyState(text: String) {
 @Composable
 fun BigUserHeader(nickname: String, avatarUrl: String, onAvatarClick: () -> Unit, onSettingsClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -176,7 +178,7 @@ fun BigUserHeader(nickname: String, avatarUrl: String, onAvatarClick: () -> Unit
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        androidx.compose.material3.IconButton(onClick = onSettingsClick, modifier = Modifier.size(48.dp)) {
+        MeiGlassIconButton(onClick = onSettingsClick) {
             Icon(Icons.Rounded.Settings, contentDescription = "设置")
         }
     }

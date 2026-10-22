@@ -103,6 +103,7 @@ import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.ceil
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,7 +197,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
         ) {
             MeiLargeTitle("参数均衡器")
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
@@ -214,7 +215,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 )
             }
             Row(
-                Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                Modifier.padding(horizontal = meiPageGutter(), vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("编辑") })
@@ -243,7 +244,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
+                            .padding(horizontal = meiPageGutter()),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -266,7 +267,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .padding(horizontal = meiPageGutter(), vertical = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
@@ -302,7 +303,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                        .padding(horizontal = meiPageGutter(), vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
@@ -338,7 +339,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 if (profile.filters.isNotEmpty()) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = meiPageGutter()),
                     ) {
                         items(profile.filters.size, key = { profile.filters[it].id }) { index ->
                             val filter = profile.filters[index]
@@ -364,7 +365,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
+                            .padding(horizontal = meiPageGutter()),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
                         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -546,7 +547,7 @@ private fun PresetList(
     presets: List<EqualizerPreset>, selectedId: String,
     onSelect: (EqualizerPreset) -> Unit, onDelete: (String) -> Unit,
 ) {
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.padding(horizontal = meiPageGutter()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         presets.forEach { preset ->
             Card(
                 modifier = Modifier

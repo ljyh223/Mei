@@ -93,6 +93,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import timber.log.Timber
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -488,7 +489,7 @@ private fun <T> BlockWithTitle(
         if (!title.isNullOrBlank()) Title(title)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 20.dp), // 左右留白
+            contentPadding = PaddingValues(horizontal = meiPageGutter()), // 左右留白
             horizontalArrangement = Arrangement.spacedBy(12.dp) // Item 间距
         ) {
             items(resources) { resource ->
@@ -502,7 +503,7 @@ private fun <T> BlockWithTitle(
 fun Title(text: String, isLoading: Boolean = false) {
     MeiSectionTitle(
         text = text,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+        modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 12.dp),
         isLoading = isLoading,
     )
 }
@@ -526,7 +527,7 @@ fun TripleLaneSlider(
 
     HorizontalPager(
         state = pagerState,
-        contentPadding = PaddingValues(horizontal = 20.dp),
+        contentPadding = PaddingValues(horizontal = meiPageGutter()),
         pageSpacing = 16.dp
     ) { page ->
         val firstLaneIndex = page * lanesPerPage

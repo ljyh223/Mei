@@ -41,11 +41,11 @@ import coil3.request.ImageRequest
 import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCoverCornerRadius
 import com.ljyh.mei.constants.MiniPlayerCoverSize
-import com.ljyh.mei.constants.MiniPlayerHorizontalMargin
 import com.ljyh.mei.ui.component.glass.MeiGlassRole
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
 import com.ljyh.mei.utils.image.smallImage
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun MiniPlayerBarContent(
@@ -63,7 +63,7 @@ fun MiniPlayerBarContent(
     compactProgress: Float = 0f,
 ) {
     val compact = compactProgress.coerceIn(0f, 1f)
-    val horizontalMargin = lerp(MiniPlayerHorizontalMargin, 80.dp, compact)
+    val horizontalMargin = miniPlayerHorizontalMargin(meiPageGutter(), compact)
     val nextWidth = lerp(48.dp, 0.dp, compact)
     Column(modifier = modifier.fillMaxWidth()) {
         MeiGlassSurface(
@@ -195,3 +195,7 @@ private fun MiniPlayerSongContent(
         }
     }
 }
+
+/** Shared by the mini surface and the artwork that morphs into the full player. */
+fun miniPlayerHorizontalMargin(pageGutter: Dp, compactProgress: Float): Dp =
+    lerp(pageGutter, 80.dp, compactProgress.coerceIn(0f, 1f))

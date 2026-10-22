@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.MeiStatePanel
@@ -22,6 +21,7 @@ import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /**
  * Shared chrome and states for complete collections. One column supports track/row lists;
@@ -54,9 +54,8 @@ fun MeiCollectionPage(
 ) {
     val source = rememberHazeState()
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
-    val direction = LocalLayoutDirection.current
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val titleGutter = if (rememberDeviceInfo().isTablet) 28.dp else 20.dp
+    val titleGutter = meiPageGutter()
     val gutter = horizontalContentPadding ?: titleGutter
     val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
     val progress by remember(state, collapseDistance) {
@@ -72,8 +71,8 @@ fun MeiCollectionPage(
                 state = state,
                 modifier = Modifier.fillMaxSize().hazeSource(source).background(MaterialTheme.colorScheme.surface),
                 contentPadding = PaddingValues(
-                    start = gutter + insets.calculateStartPadding(direction),
-                    end = gutter + insets.calculateEndPadding(direction),
+                    start = gutter,
+                    end = gutter,
                     top = top + 64.dp,
                     bottom = insets.calculateBottomPadding() + 24.dp,
                 ),

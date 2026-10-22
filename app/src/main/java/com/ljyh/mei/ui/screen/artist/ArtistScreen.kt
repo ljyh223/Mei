@@ -88,6 +88,7 @@ import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.image.sizedNeteaseImage
 import java.util.UUID
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
 @OptIn(UnstableApi::class, ExperimentalMaterial3Api::class)
@@ -217,7 +218,7 @@ fun ArtistScreen(
                     val albums = albumsResource.data.hotAlbums.take(10)
                     item {
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            contentPadding = PaddingValues(horizontal = meiPageGutter()),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(albums, key = { it.id }) { hotAlbum ->
@@ -242,7 +243,7 @@ fun ArtistScreen(
                 is Resource.Loading -> item {
                     SkeletonShimmerHost(enabled = true) {
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
+                            contentPadding = PaddingValues(horizontal = meiPageGutter()),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(4) { AlbumCardShimmer() }
@@ -323,7 +324,7 @@ fun ArtistHeader(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
+                    .padding(start = meiPageGutter(), end = meiPageGutter(), bottom = 20.dp)
             ) {
                 // 认证/身份 badges
                 val allTags = if (loading) {
@@ -411,7 +412,7 @@ fun ArtistHeader(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = meiPageGutter())
         ) {
             // 关注按钮
             OutlinedButton(
@@ -571,7 +572,7 @@ fun ArtistHeaderShimmer() {
 @Composable
 fun SectionTitle(title: String, onShowAll: (() -> Unit)? = null) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,

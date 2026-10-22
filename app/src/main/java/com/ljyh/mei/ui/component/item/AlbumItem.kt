@@ -21,6 +21,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.AlbumThumbnailSize
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.utils.image.smallImage
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
 @Composable
@@ -29,7 +30,7 @@ fun AlbumItem(album: Album, onClick: (Long) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick(album.id) }
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(

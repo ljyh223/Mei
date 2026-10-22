@@ -51,6 +51,12 @@ import com.ljyh.mei.ui.screen.main.library.component.LibraryTabletLayout
 import com.ljyh.mei.ui.screen.main.library.component.PhotoPickerSheet
 import com.ljyh.mei.utils.preferences.rememberPreference
 import com.ljyh.mei.utils.preferences.dataStore
+import androidx.compose.foundation.background
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
 fun LibraryScreen(
@@ -60,6 +66,7 @@ fun LibraryScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val device = rememberDeviceInfo()
+    val libraryHaze = rememberHazeState()
     val account by viewModel.account.collectAsStateWithLifecycle()
     val libraryUiState by viewModel.libraryUiState.collectAsStateWithLifecycle()
     val photoAlbum by viewModel.photoAlbum.collectAsStateWithLifecycle()
@@ -120,81 +127,85 @@ fun LibraryScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) {
 
-        if ((!device.isTablet || !device.isLandscape) && userId.isNotEmpty() && userPhoto.isNotEmpty()) {
-            ImmersiveBackground(userPhoto)
+        Box(Modifier.fillMaxSize().hazeSource(libraryHaze).background(MaterialTheme.colorScheme.surface)) {
+            if ((!device.isTablet || !device.isLandscape) && userId.isNotEmpty() && userPhoto.isNotEmpty()) {
+                ImmersiveBackground(userPhoto)
+            }
         }
 
-        when {
-            cookie.isNotEmpty() && libraryUiState is LibraryUiState.Error -> LibraryErrorState(
-                onRetry = { viewModel.getUserAccount(force = true) },
-            )
-            cookie.isNotEmpty() && userId.isEmpty() -> LibraryLoadingState()
-            userId.isEmpty() -> EmptyLoginState(navController)
-            libraryUiState is LibraryUiState.Loading -> LibraryLoadingState()
-            libraryUiState is LibraryUiState.Error -> LibraryErrorState(
-                onRetry = {
-                    viewModel.getUserAccount(force = true)
-                    viewModel.loadLibrary(profileSeed)
-                },
-            )
-            libraryUiState is LibraryUiState.Content -> {
-                val contentState = (libraryUiState as LibraryUiState.Content).data
-                if (device.isTablet && device.isLandscape) {
-                    LibraryTabletLayout(
-                        state = contentState,
-                        backgroundUrl = userPhoto,
-                        onEvent = { event ->
-                            when (event) {
-                                is LibraryEvent.SelectSection -> viewModel.selectSection(event.section)
-                                is LibraryEvent.OpenPlaylist -> Screen.PlayList.navigate(navController) {
-                                    addPath(event.id)
+        CompositionLocalProvider(LocalMeiHazeState provides libraryHaze) {
+            when {
+                cookie.isNotEmpty() && libraryUiState is LibraryUiState.Error -> LibraryErrorState(
+                    onRetry = { viewModel.getUserAccount(force = true) },
+                )
+                cookie.isNotEmpty() && userId.isEmpty() -> LibraryLoadingState()
+                userId.isEmpty() -> EmptyLoginState(navController)
+                libraryUiState is LibraryUiState.Loading -> LibraryLoadingState()
+                libraryUiState is LibraryUiState.Error -> LibraryErrorState(
+                    onRetry = {
+                        viewModel.getUserAccount(force = true)
+                        viewModel.loadLibrary(profileSeed)
+                    },
+                )
+                libraryUiState is LibraryUiState.Content -> {
+                    val contentState = (libraryUiState as LibraryUiState.Content).data
+                    if (device.isTablet && device.isLandscape) {
+                        LibraryTabletLayout(
+                            state = contentState,
+                            backgroundUrl = userPhoto,
+                            onEvent = { event ->
+                                when (event) {
+                                    is LibraryEvent.SelectSection -> viewModel.selectSection(event.section)
+                                    is LibraryEvent.OpenPlaylist -> Screen.PlayList.navigate(navController) {
+                                        addPath(event.id)
+                                    }
+                                    is LibraryEvent.OpenAlbum -> Screen.Album.navigate(navController) {
+                                        addPath(event.id)
+                                    }
+                                    LibraryEvent.ChangeProfilePhoto -> {
+                                        viewModel.refreshPhotoAlbum(userId)
+                                        showPhotoPicker = true
+                                    }
+                                    LibraryEvent.OpenHistory -> Screen.History.navigate(navController)
+                                    LibraryEvent.OpenLocalMusic -> Screen.LocalMusic.navigate(navController)
+                                    LibraryEvent.OpenDownloads -> Screen.DownloadManage.navigate(navController)
                                 }
-                                is LibraryEvent.OpenAlbum -> Screen.Album.navigate(navController) {
-                                    addPath(event.id)
-                                }
-                                LibraryEvent.ChangeProfilePhoto -> {
-                                    viewModel.refreshPhotoAlbum(userId)
-                                    showPhotoPicker = true
-                                }
-                                LibraryEvent.OpenHistory -> Screen.History.navigate(navController)
-                                LibraryEvent.OpenLocalMusic -> Screen.LocalMusic.navigate(navController)
-                                LibraryEvent.OpenDownloads -> Screen.DownloadManage.navigate(navController)
-                            }
-                        },
-                    )
-                } else {
-                    LibraryMobileLayout(
-                        userNickname = userNickname,
-                        userAvatarUrl = userAvatarUrl,
-                        userPhoto = userPhoto,
-                        selectedTabIndex = contentState.section.ordinal,
-                        onTabSelect = { viewModel.selectSection(LibrarySection.entries[it]) },
-                        tabTitles = tabTitles,
-                        createdPlaylists = contentState.createdPlaylists,
-                        collectedPlaylists = contentState.collectedPlaylists,
-                        albums = contentState.albums,
-                        onAvatarClick = {
-                            viewModel.refreshPhotoAlbum(userId)
-                            showPhotoPicker = true
-                        },
-                        onPlaylistClick = { id ->
-                            Screen.PlayList.navigate(navController) { addPath(id) }
-                        },
-                        onAlbumClick = { id ->
-                            Screen.Album.navigate(navController) { addPath(id) }
-                        },
-                    )
-                }
+                            },
+                        )
+                    } else {
+                        LibraryMobileLayout(
+                            userNickname = userNickname,
+                            userAvatarUrl = userAvatarUrl,
+                            userPhoto = userPhoto,
+                            selectedTabIndex = contentState.section.ordinal,
+                            onTabSelect = { viewModel.selectSection(LibrarySection.entries[it]) },
+                            tabTitles = tabTitles,
+                            createdPlaylists = contentState.createdPlaylists,
+                            collectedPlaylists = contentState.collectedPlaylists,
+                            albums = contentState.albums,
+                            onAvatarClick = {
+                                viewModel.refreshPhotoAlbum(userId)
+                                showPhotoPicker = true
+                            },
+                            onPlaylistClick = { id ->
+                                Screen.PlayList.navigate(navController) { addPath(id) }
+                            },
+                            onAlbumClick = { id ->
+                                Screen.Album.navigate(navController) { addPath(id) }
+                            },
+                        )
+                    }
 
-                if (showPhotoPicker) {
-                    PhotoPickerSheet(
-                        photoAlbum = photoAlbum,
-                        onSelect = {
-                            setUserPhoto(it)
-                            showPhotoPicker = false
-                        },
-                        onDismiss = { showPhotoPicker = false },
-                    )
+                    if (showPhotoPicker) {
+                        PhotoPickerSheet(
+                            photoAlbum = photoAlbum,
+                            onSelect = {
+                                setUserPhoto(it)
+                                showPhotoPicker = false
+                            },
+                            onDismiss = { showPhotoPicker = false },
+                        )
+                    }
                 }
             }
         }
@@ -238,7 +249,7 @@ fun EmptyLoginState(navController: NavController) {
             .verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Text("音乐库", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(horizontal = 20.dp))
+        Text("音乐库", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(horizontal = meiPageGutter()))
         BentoDashboard(
             onHistoryClick = { Screen.History.navigate(navController) },
             onLocalClick = { Screen.LocalMusic.navigate(navController) },

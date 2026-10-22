@@ -82,6 +82,8 @@ import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
 import java.io.File
 import android.net.Uri
 import com.ljyh.mei.ui.screen.local.component.LocalMetadataSheet
+import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,18 +152,7 @@ fun LocalSongListScreen(
                             )
                         }
                     },
-                    navigationIcon = {
-                        com.ljyh.mei.ui.component.IconButton(
-                            onClick = navController::navigateUp,
-                            onLongClick = navController::backToMain
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
+                    navigationIcon = { MeiGlassBackButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                         scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
@@ -282,7 +273,7 @@ private fun LocalSongListHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
+            .padding(horizontal = meiPageGutter(), vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(24.dp))

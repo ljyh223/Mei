@@ -49,6 +49,7 @@ import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.preferences.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun PlaylistTrackList(
@@ -236,7 +237,7 @@ fun TrackTableHeader(isLoading: Boolean = false) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = meiPageGutter(), vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("#", Modifier.width(36.dp).skeleton(isLoading), textAlign = TextAlign.Center,
@@ -257,7 +258,7 @@ fun TrackTableHeader(isLoading: Boolean = false) {
         }
         // 加一条极细的分割线，让层次感出来
         HorizontalDivider(
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = meiPageGutter()),
             thickness = 0.5.dp,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
         )
