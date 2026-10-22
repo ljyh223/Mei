@@ -112,6 +112,11 @@ internal fun analyzeCoverBackground(
     val sideMatches = sideMatches(matches, width, height)
     val edgeConsistency = sideMatches.average().toFloat()
     val weakestSide = sideMatches.minOrNull() ?: 0f
+    val bandTexture = matchedNeighborDistance(matches, labL, labA, labB, bandIndices, width, height)
+    val bandGradient = matchedSideGradient(matches, labL, labA, labB, width, height)
+    // Flat color only: fine grain, noise and smooth gradients all survive a color-distance check
+    // but smear badly once the rim is clamped outwards.
+    val flatEnough = bandTexture <= MaxBandTexture && bandGradient <= MaxBandGradient
 
     // A solid background needs at least 55% of the band; below that the interior pass cannot
     // change the decision, so stop before converting and scanning the whole image.
@@ -161,14 +166,18 @@ internal fun analyzeCoverBackground(
 
     val longestGap = longestGap(matches, width, height)
     val extensionConfidence = (edgeConsistency * 0.7f + weakestSide * 0.3f).coerceIn(0f, 1f)
+    val occupiedSides = sideMatches.count { it < config.minimumSingleEdgeMatch }
     val mode = when {
-        !solidBackground -> CoverExtensionMode.NONE
+        !solidBackground || !flatEnough -> CoverExtensionMode.NONE
         extensionConfidence >= config.solidEdgeMatch &&
             weakestSide >= max(config.minimumSingleEdgeMatch, config.solidEdgeMatch - 0.12f) &&
             longestGap <= 0.10f -> CoverExtensionMode.SOLID
         extensionConfidence >= config.softEdgeMatch &&
             weakestSide >= config.minimumSingleEdgeMatch && longestGap <= 0.35f ->
             CoverExtensionMode.SOFT
+        // Artwork crossing a single edge still leaves a usable flat rim on the other three.
+        occupiedSides == 1 && weakestSide >= 0.30f &&
+            (sideMatches.maxOrNull() ?: 0f) >= 0.85f -> CoverExtensionMode.SOFT
         else -> CoverExtensionMode.NONE
     }
     return AlbumBackgroundAnalysis(
@@ -181,6 +190,88 @@ internal fun analyzeCoverBackground(
         mode = mode,
     )
 }
+
+
+/** Mean OKLab distance between neighbouring matched band pixels: fine grain and noise show up here. */
+private fun matchedNeighborDistance(
+    matches: BooleanArray,
+    l: FloatArray,
+    a: FloatArray,
+    b: FloatArray,
+    bandIndices: List<Int>,
+    width: Int,
+    height: Int,
+): Float {
+    var total = 0.0
+    var count = 0
+    for (index in bandIndices) {
+        if (!matches[index]) continue
+        val x = index % width
+        val y = index / width
+        if (x + 1 < width && matches[index + 1]) {
+            total += dist(l, a, b, index, index + 1)
+            count++
+        }
+        if (y + 1 < height && matches[index + width]) {
+            total += dist(l, a, b, index, index + width)
+            count++
+        }
+    }
+    return if (count == 0) 0f else (total / count).toFloat()
+}
+
+/** Largest distance between per-side means of matched pixels: a smooth gradient shows up here. */
+private fun matchedSideGradient(
+    matches: BooleanArray,
+    l: FloatArray,
+    a: FloatArray,
+    b: FloatArray,
+    width: Int,
+    height: Int,
+): Float {
+    val means = ArrayList<DoubleArray>(4)
+    fun addSide(x0: Int, y0: Int, dx: Int, dy: Int) {
+        val sum = DoubleArray(3)
+        var count = 0
+        var x = x0
+        var y = y0
+        while (x in 0 until width && y in 0 until height) {
+            val index = y * width + x
+            if (matches[index]) {
+                sum[0] += l[index]
+                sum[1] += a[index]
+                sum[2] += b[index]
+                count++
+            }
+            x += dx
+            y += dy
+        }
+        if (count > 0) means.add(doubleArrayOf(sum[0] / count, sum[1] / count, sum[2] / count))
+    }
+    addSide(0, 0, 1, 0)
+    addSide(width - 1, 0, 0, 1)
+    addSide(0, height - 1, 1, 0)
+    addSide(0, 0, 0, 1)
+    var worst = 0.0
+    for (i in means.indices) for (j in i + 1 until means.size) {
+        val dl = means[i][0] - means[j][0]
+        val da = means[i][1] - means[j][1]
+        val db = means[i][2] - means[j][2]
+        worst = max(worst, sqrt(dl * dl + da * da + db * db))
+    }
+    return worst.toFloat()
+}
+
+private fun dist(l: FloatArray, a: FloatArray, b: FloatArray, i: Int, j: Int): Float {
+    val dl = l[i] - l[j]
+    val da = a[i] - a[j]
+    val db = b[i] - b[j]
+    return sqrt(dl * dl + da * da + db * db)
+}
+
+/** Flat backgrounds stay far below these; grain, paper texture and gradients exceed them. */
+private const val MaxBandTexture = 0.008f
+private const val MaxBandGradient = 0.045f
 
 private fun distance(l: FloatArray, a: FloatArray, b: FloatArray, index: Int, seed: Lab): Float {
     val dl = l[index] - seed.l

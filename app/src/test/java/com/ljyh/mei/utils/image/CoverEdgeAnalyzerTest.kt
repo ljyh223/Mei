@@ -30,7 +30,8 @@ class CoverEdgeAnalyzerTest {
         assertEquals(background, result.color)
         assertTrue(result.isSolidBackground)
         assertTrue(result.sideMatches[1] < 0.5f)
-        assertEquals(CoverExtensionMode.NONE, result.mode)
+        // One occupied side still leaves a flat rim on the other three, so a soft blend is fine.
+        assertEquals(CoverExtensionMode.SOFT, result.mode)
     }
 
     @Test
@@ -62,6 +63,37 @@ class CoverEdgeAnalyzerTest {
         }
         val result = requireNotNull(analyzeCoverBackground(pixels, side, side))
         assertFalse(result.isSolidBackground)
+        assertEquals(CoverExtensionMode.NONE, result.mode)
+    }
+
+    @Test
+    fun fineGrainTextureIsRejected() {
+        var seed = 7
+        val pixels = IntArray(side * side) {
+            seed = seed * 1103515245 + 12345
+            val jitter = ((seed shr 16) and 0x7) - 3
+            val r = ((background shr 16) and 0xff) + jitter
+            val g = ((background shr 8) and 0xff) + jitter
+            val b = (background and 0xff) + jitter
+            (0xff shl 24) or ((r and 0xff) shl 16) or ((g and 0xff) shl 8) or (b and 0xff)
+        }
+        val result = requireNotNull(analyzeCoverBackground(pixels, side, side))
+        assertEquals(CoverExtensionMode.NONE, result.mode)
+    }
+
+    @Test
+    fun smoothGradientIsRejected() {
+        val from = 0xff1f3a6e.toInt()
+        val to = 0xff4f7fb8.toInt()
+        val pixels = IntArray(side * side) { index ->
+            val x = index % side
+            val t = x.toFloat() / (side - 1)
+            val r = (((from shr 16) and 0xff) * (1 - t) + ((to shr 16) and 0xff) * t).toInt()
+            val g = (((from shr 8) and 0xff) * (1 - t) + ((to shr 8) and 0xff) * t).toInt()
+            val b = ((from and 0xff) * (1 - t) + (to and 0xff) * t).toInt()
+            (0xff shl 24) or (r shl 16) or (g shl 8) or b
+        }
+        val result = requireNotNull(analyzeCoverBackground(pixels, side, side))
         assertEquals(CoverExtensionMode.NONE, result.mode)
     }
 
