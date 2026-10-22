@@ -43,4 +43,4 @@ MEI_LX_SAMPLE_DIR=/path/to/lx_temp ./gradlew :app:testDebugUnitTest \
   --tests 'com.ljyh.mei.playback.source.lx.LxBlackBoxTest'
 ```
 
-可加 `MEI_LX_SAMPLE_FILTER=ChangQing.js` 仅测试一个样本。用例只输出脱敏状态、平台、音质、HTTP 状态及可识别的音频时长。JUnit 的通过只表示诊断流程正常执行，具体音源是否可用应查看 `LX_BLACKBOX` 报告中的状态，而非仅看构建成功。
+可加 `MEI_LX_SAMPLE_FILTER=ChangQing.js` 仅测试一个样本，也支持逗号分隔的多个文件名。新增三个样本的结果见 [追加样本报告](lx-blackbox-2026-10-22-new-samples.md)，付费样本结果见 [Lanyin 报告](lx-blackbox-2026-10-22-lanyin.md)。用例只输出脱敏状态、平台、音质、HTTP 状态及可识别的音频时长。JUnit 的通过只表示诊断流程正常执行，具体音源是否可用应查看 `LX_BLACKBOX` 报告中的状态，而非仅看构建成功。

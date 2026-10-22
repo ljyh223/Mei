@@ -30,8 +30,9 @@ class LxBlackBoxTest {
         val path = System.getenv("MEI_LX_SAMPLE_DIR")
         assumeTrue("External sample execution requires an explicit sample directory", !path.isNullOrBlank())
         val files = File(path!!).listFiles { file -> file.isFile && file.extension.equals("js", true) }.orEmpty().sortedBy { it.name }
-        val filter = System.getenv("MEI_LX_SAMPLE_FILTER")
-        val selected = if (filter.isNullOrBlank()) files else files.filter { it.name == filter }
+        val filter = System.getenv("MEI_LX_SAMPLE_FILTER").orEmpty()
+            .split(',').map(String::trim).filter(String::isNotEmpty).toSet()
+        val selected = if (filter.isEmpty()) files else files.filter { it.name in filter }
         assertTrue("No JS samples found in the selected directory", selected.isNotEmpty())
         return selected
     }
@@ -52,6 +53,7 @@ class LxBlackBoxTest {
         error.message.orEmpty().contains("cannot read propert", true) -> "MISSING_OBJECT_PROPERTY"
         error.message.orEmpty().contains("ReferenceError", true) -> "MISSING_HOST_API"
         error.message.orEmpty().contains("SyntaxError", true) -> "JS_SYNTAX_ERROR"
+        error.message.orEmpty().contains("Source did not return an audio URL", true) -> "NO_AUDIO_URL"
         error.message.orEmpty().contains("Script did not initialize", true) -> "NO_INIT_EVENT"
         error.message.orEmpty().contains("Script has no musicUrl", true) -> "NO_SUPPORTED_PLATFORM"
         error is QuickJsException -> "JS_ERROR"
@@ -60,6 +62,7 @@ class LxBlackBoxTest {
 
     @Test fun initialization() = runBlocking {
         for (file in samples()) {
+            hostStatuses.clear()
             val started = System.nanoTime()
             val report = buildJsonObject {
                 put("sample", file.name)
@@ -84,17 +87,24 @@ class LxBlackBoxTest {
                         error.columnNumber?.let { put("scriptColumn", it) }
                     }
                 }
+                put("scriptHttpStatuses", JsonArray(hostStatuses.toList().map(::JsonPrimitive)))
                 put("elapsedMs", (System.nanoTime() - started) / 1_000_000)
             }
             println("LX_BLACKBOX $report")
         }
     }
+    // Metadata was verified using the anonymous, public NetEase song-detail endpoint.
+    private val publicTracks = listOf(
+        MusicTrack(TrackId("netease", "347230"), "海阔天空", listOf(MusicArtist("Beyond")), MusicAlbum("海阔天空"), 326_000),
+        MusicTrack(TrackId("netease", "186016"), "晴天", listOf(MusicArtist("周杰伦")), MusicAlbum("叶惠美"), 269_000),
+    )
+
+    private fun comparisonTrack(): MusicTrack = publicTracks.single {
+        it.id.value == (System.getenv("MEI_LX_TRACK_ID") ?: "347230")
+    }
+
     @Test fun publicTrackUrls() = runBlocking {
-        // Metadata was verified using the anonymous, public NetEase song-detail endpoint.
-        val tracks = listOf(
-            MusicTrack(TrackId("netease", "347230"), "海阔天空", listOf(MusicArtist("Beyond")), MusicAlbum("海阔天空"), 326_000),
-            MusicTrack(TrackId("netease", "186016"), "晴天", listOf(MusicArtist("周杰伦")), MusicAlbum("叶惠美"), 269_000),
-        )
+        val tracks = publicTracks
         val qq = QqMusicProvider()
         val kuwo = KuwoMusicProvider()
         val migu = MiguMusicProvider()
@@ -108,6 +118,7 @@ class LxBlackBoxTest {
                     val report = buildJsonObject {
                         put("sample", file.name); put("track", track.title); put("stage", "URL")
                         val started = System.nanoTime()
+                        hostStatuses.clear()
                         try {
                             runtime.use(metadata(file, code), code) {
                                 val source = if ("wy" in sources) "wy" else sources.keys.firstOrNull { it in setOf("tx", "kw", "kg", "mg") }
@@ -115,7 +126,7 @@ class LxBlackBoxTest {
                                 put("platform", source)
                                 val candidate = withTimeoutOrNull(7000) { catalog.candidates(track, source).firstOrNull() }
                                 if (candidate == null) { put("status", "NO_CATALOG_MATCH"); return@use }
-                                val quality = PreviewPolicy.qualities("exhigh", sources.getValue(source).qualitys).firstOrNull()
+                                val quality = PreviewPolicy.qualities(System.getenv("MEI_LX_TARGET_QUALITY") ?: "exhigh", sources.getValue(source).qualitys).firstOrNull()
                                     ?: error("No supported quality")
                                 put("quality", quality)
                                 val url = musicUrl(candidate, quality)
@@ -138,6 +149,7 @@ class LxBlackBoxTest {
                         } catch (error: Exception) {
                             put("status", "FAILED"); put("reason", failure(error))
                         }
+                        put("scriptHttpStatuses", JsonArray(hostStatuses.toList().map(::JsonPrimitive)))
                         put("elapsedMs", (System.nanoTime() - started) / 1_000_000)
                     }
                     println("LX_BLACKBOX $report")
@@ -148,7 +160,7 @@ class LxBlackBoxTest {
 
 
     @Test fun otherPlatforms() = runBlocking {
-        val target = MusicTrack(TrackId("netease", "347230"), "海阔天空", listOf(MusicArtist("Beyond")), MusicAlbum("海阔天空"), 326_000)
+        val target = comparisonTrack()
         val qq = QqMusicProvider()
         val kuwo = KuwoMusicProvider()
         val migu = MiguMusicProvider()
@@ -162,13 +174,14 @@ class LxBlackBoxTest {
                     val report = buildJsonObject {
                         put("sample", file.name); put("track", target.title); put("platform", platform)
                         val started = System.nanoTime()
+                        hostStatuses.clear()
                         try {
                             runtime.use(metadata(file, code), code) {
                                 val capability = sources[platform]
                                 if (capability == null) { put("status", "UNSUPPORTED_PLATFORM"); return@use }
                                 val candidate = withTimeoutOrNull(7_000) { catalog.candidates(target, platform).firstOrNull() }
                                 if (candidate == null) { put("status", "NO_CATALOG_MATCH"); return@use }
-                                val quality = PreviewPolicy.qualities("exhigh", capability.qualitys).firstOrNull()
+                                val quality = PreviewPolicy.qualities(System.getenv("MEI_LX_TARGET_QUALITY") ?: "exhigh", capability.qualitys).firstOrNull()
                                     ?: error("No supported quality")
                                 put("quality", quality)
                                 val url = musicUrl(candidate, quality)
@@ -188,6 +201,7 @@ class LxBlackBoxTest {
                             if (c !is TimeoutCancellationException) throw c
                             put("status", "FAILED"); put("reason", failure(c))
                         } catch (error: Exception) { put("status", "FAILED"); put("reason", failure(error)) }
+                        put("scriptHttpStatuses", JsonArray(hostStatuses.toList().map(::JsonPrimitive)))
                         put("elapsedMs", (System.nanoTime() - started) / 1_000_000)
                     }
                     println("LX_BLACKBOX $report")
@@ -198,7 +212,7 @@ class LxBlackBoxTest {
 
 
     @Test fun lowerQualityAndPlaybackHeaders() = runBlocking {
-        val target = MusicTrack(TrackId("netease", "347230"), "海阔天空", listOf(MusicArtist("Beyond")), MusicAlbum("海阔天空"), 326_000)
+        val target = comparisonTrack()
         val qq = QqMusicProvider()
         val kuwo = KuwoMusicProvider()
         val migu = MiguMusicProvider()
@@ -215,6 +229,9 @@ class LxBlackBoxTest {
                         try {
                             hostStatuses.clear()
                             runtime.use(metadata(file, code), code) {
+                                if (quality !in sources[platform]?.qualitys.orEmpty()) {
+                                    put("status", "UNSUPPORTED_QUALITY"); return@use
+                                }
                                 val candidate = withTimeoutOrNull(7000) { catalog.candidates(target, platform).firstOrNull() }
                                 if (candidate == null) { put("status", "NO_CATALOG_MATCH"); return@use }
                                 val url = musicUrl(candidate, quality)
@@ -226,7 +243,6 @@ class LxBlackBoxTest {
                                     else -> "CUSTOM"
                                 })
                                 put("containsUndefined", url.contains("undefined"))
-                                put("scriptHttpStatuses", JsonArray(hostStatuses.toList().map(::JsonPrimitive)))
                                 put("defaultHeaders", inspectAudioResponse(url))
                                 put("playbackHeaders", inspectAudioResponse(url, playbackHeaders = true))
                                 if (platform == "wy" && quality == "128k" && parsed.scheme == "http" && parsed.port == 80) {
@@ -239,6 +255,7 @@ class LxBlackBoxTest {
                             if (c !is TimeoutCancellationException) throw c
                             put("status", "FAILED"); put("reason", failure(c))
                         } catch (error: Exception) { put("status", "FAILED"); put("reason", failure(error)) }
+                        put("scriptHttpStatuses", JsonArray(hostStatuses.toList().map(::JsonPrimitive)))
                     }
                     println("LX_BLACKBOX $report")
                 }
