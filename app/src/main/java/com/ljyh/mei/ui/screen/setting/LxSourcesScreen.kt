@@ -27,9 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.ljyh.mei.constants.LxOnlyPlaybackKey
 import com.ljyh.mei.playback.source.lx.sourceDisplayName
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.utils.preferences.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,6 +130,15 @@ fun LxSourcesScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: LxSource
                         Text("从文件导入")
                     }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                    var lxOnly by rememberPreference(LxOnlyPlaybackKey, false)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text("仅测试自定义音源", style = MaterialTheme.typography.titleSmall)
+                            Text("临时停用解灰兜底：网易云不可用时只尝试已启用的脚本，播放时提示命中的音源。",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = lxOnly, onCheckedChange = { lxOnly = it })
+                    }
                     Text("网易云无法播放或返回试听时自动尝试。排序靠前的音源先启动，优先使用最先通过校验的结果。",
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

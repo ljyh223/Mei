@@ -102,6 +102,7 @@ import com.ljyh.mei.playback.source.CacheManager.getCacheDataSourceFactory
 import com.ljyh.mei.playback.source.CacheManager.isContentFullyCached
 import com.ljyh.mei.playback.source.MediaUriProvider
 import com.ljyh.mei.playback.source.MusicLoadErrorHandlingPolicy
+import com.ljyh.mei.playback.source.PlaybackSourceInfo
 import com.ljyh.mei.playback.source.SourceNotFoundException
 import com.ljyh.mei.playback.transition.SmartTransitionController
 import com.ljyh.mei.playback.transition.TransitionAudioProbe
@@ -344,6 +345,22 @@ class MusicService : MediaLibraryService(),
                     quality = nextQuality
                     reprepareCurrentTrack()
                 }
+            }
+        }
+        // 自定义音源命中（或退回解灰）时给出一次提示，便于单独调试 LX。
+        scope.launch {
+            val shown = mutableMapOf<String, PlaybackSourceInfo>()
+            mediaUriProvider.sourceInfo.collect { sources ->
+                sources.forEach { (mediaId, info) ->
+                    if (shown[mediaId] == info) return@forEach
+                    shown[mediaId] = info
+                    if (info.name == "网易云" || info.name == "本地") return@forEach
+                    val detail = listOfNotNull(info.name, info.quality).joinToString(" · ")
+                    Handler(Looper.getMainLooper()).post {
+                        Toast.makeText(context, "音源：$detail", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                shown.keys.retainAll(sources.keys)
             }
         }
         val singletonImageLoader = ImageLoader(this)

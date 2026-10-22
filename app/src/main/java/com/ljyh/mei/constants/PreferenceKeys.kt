@@ -48,6 +48,8 @@ val CookieKey = stringPreferencesKey("cookie")
 val QqCookieKey = stringPreferencesKey("qq_music_cookie")
 val MusicQualityKey = stringPreferencesKey("musicQuality")
 val UsbExclusivePlaybackKey = booleanPreferencesKey("usbExclusivePlayback")
+/** 临时停用解灰兜底，仅用于单独验证自定义音源。 */
+val LxOnlyPlaybackKey = booleanPreferencesKey("lxOnlyPlayback")
 val ImageCacheLimitMbKey = intPreferencesKey("imageCacheLimitMb")
 val MusicCacheLimitMbKey = intPreferencesKey("musicCacheLimitMb")
 
