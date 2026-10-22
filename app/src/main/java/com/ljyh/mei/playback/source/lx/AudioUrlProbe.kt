@@ -7,14 +7,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.EOFException
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /** Reads bounded ranges, including MP4 moov/Xing/FLAC metadata, rather than downloading the song. */
 @Singleton
-class AudioUrlProbe @Inject constructor() {
+class AudioUrlProbe internal constructor(private val diagnostic: (String) -> Unit) {
+    @Inject constructor() : this({})
     private val client = OkHttpClient.Builder().connectTimeout(3, TimeUnit.SECONDS)
         .readTimeout(3, TimeUnit.SECONDS).callTimeout(4, TimeUnit.SECONDS).build()
 
@@ -27,8 +28,11 @@ class AudioUrlProbe @Inject constructor() {
             val extractor = extractors.firstOrNull {
                 reader.position = 0
                 val input = DefaultExtractorInput(reader, 0, reader.length)
-                try { it.sniff(input) } catch (_: Exception) { false }
-            } ?: return@runInterruptible null
+                try { it.sniff(input) }
+                catch (error: ProbeReadException) { throw error }
+                catch (_: Exception) { false }
+            } ?: run { diagnostic("EXTRACTOR_UNRECOGNIZED"); return@runInterruptible null }
+            diagnostic("EXTRACTOR_" + extractor.javaClass.simpleName)
             reader.position = 0
             var input = DefaultExtractorInput(reader, 0, reader.length)
             var durationUs = C.TIME_UNSET
@@ -52,10 +56,13 @@ class AudioUrlProbe @Inject constructor() {
                     }
                 }
             }
+            diagnostic(if (durationUs > 0 && hasAudio) "DURATION_AVAILABLE" else "DURATION_UNKNOWN")
             (durationUs.takeIf { it > 0 && hasAudio }?.div(1000))
-        } catch (_: Exception) { null }
+        } catch (error: Exception) { diagnostic("PROBE_ERROR_" + error.javaClass.simpleName); null }
         finally { extractors.forEach(Extractor::release) }
     }
+
+    private class ProbeReadException : IOException()
 
     private inner class RangeReader(private val url: String) : DataReader {
         var position = 0L
@@ -67,26 +74,31 @@ class AudioUrlProbe @Inject constructor() {
         private val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8)
         override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
             if (length == 0) return 0
-            if (Thread.currentThread().isInterrupted || System.nanoTime() > deadline) throw EOFException()
+            if (Thread.currentThread().isInterrupted || System.nanoTime() > deadline) throw ProbeReadException()
             if (this.length >= 0 && position >= this.length) return C.RESULT_END_OF_INPUT
             if (position < start || position >= start + chunk.size) {
-                if (budget <= 0) throw EOFException()
+                if (budget <= 0) throw ProbeReadException()
                 val size = minOf(budget, 128 * 1024)
-                client.newCall(Request.Builder().url(url).header("Range", "bytes=$position-${position + size - 1}")
-                    .header("Accept-Encoding", "identity").build()).execute().use { response ->
-                    require(response.isSuccessful && (position == 0L || response.code == 206))
-                    val contentType = response.header("Content-Type").orEmpty().lowercase()
-                    require(!contentType.contains("json") && !contentType.contains("html") && !contentType.startsWith("text/"))
-                    val contentRange = response.header("Content-Range")
-                    if (response.code == 206) {
-                        val match = Regex("bytes (\\d+)-\\d+/(\\d+|\\*)").matchEntire(contentRange.orEmpty())
-                        require(match != null && match.groupValues[1].toLong() == position)
-                        this.length = match.groupValues[2].toLongOrNull() ?: this.length
-                    } else if (position == 0L) this.length = response.body.contentLength()
-                    start = position
-                    chunk = response.body.byteStream().readLimited(size)
-                    budget -= chunk.size
-                }
+                try {
+                    client.newCall(Request.Builder().url(url).header("Range", "bytes=$position-${position + size - 1}")
+                        .header("Accept-Encoding", "identity").build()).execute().use { response ->
+                        diagnostic("HTTP_" + response.code)
+                        diagnostic(if (response.body.contentLength() >= 0) "BODY_LENGTH_KNOWN" else "BODY_LENGTH_UNKNOWN")
+                        if (!response.isSuccessful || (position != 0L && response.code != 206)) throw ProbeReadException()
+                        val contentType = response.header("Content-Type").orEmpty().lowercase()
+                        if (contentType.contains("json") || contentType.contains("html") || contentType.startsWith("text/")) throw ProbeReadException()
+                        val contentRange = response.header("Content-Range")
+                        if (response.code == 206) {
+                            val match = Regex("bytes (\\d+)-\\d+/(\\d+|\\*)").matchEntire(contentRange.orEmpty())
+                            if (match == null || match.groupValues[1].toLong() != position) throw ProbeReadException()
+                            this.length = match.groupValues[2].toLongOrNull() ?: this.length
+                            diagnostic(if (this.length >= 0) "TOTAL_LENGTH_KNOWN" else "TOTAL_LENGTH_UNKNOWN")
+                        } else if (position == 0L) this.length = response.body.contentLength()
+                        start = position
+                        chunk = response.body.byteStream().readLimited(size)
+                        budget -= chunk.size
+                    }
+                } catch (_: IOException) { throw ProbeReadException() }
                 if (chunk.isEmpty()) return C.RESULT_END_OF_INPUT
             }
             val count = minOf(length, (start + chunk.size - position).toInt())
