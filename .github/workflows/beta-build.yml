@@ -77,24 +77,27 @@ jobs:
       - name: Verify and prepare test APKs
         env:
           ARTIFACT_NAME: ${{ steps.metadata.outputs.name }}
-          SIGNED_APKS: ${{ steps.sign_app.outputs.signedReleaseFiles }}
         run: |
           python3 - <<'PYTHON'
           import hashlib
           import os
           import shutil
+          import subprocess
           from pathlib import Path
           from zipfile import ZipFile
 
           expected = {"arm64-v8a", "x86_64"}
-          signed_apks = [Path(p) for p in os.environ["SIGNED_APKS"].split(":") if p]
+          # The v1 action signs both files but its bundled runtime does not emit signedReleaseFiles.
+          signed_apks = sorted(Path("app/build/outputs/apk/release").glob("*-signed.apk"))
           if len(signed_apks) != len(expected):
               raise SystemExit("Expected exactly two signed APKs.")
 
           output = Path("build-artifacts")
           output.mkdir(exist_ok=True)
           seen = set()
+          apksigner = Path(os.environ["ANDROID_HOME"]) / "build-tools/34.0.0/apksigner"
           for apk in signed_apks:
+              subprocess.run([str(apksigner), "verify", str(apk)], check=True)
               with ZipFile(apk) as archive:
                   abis = {
                       parts[1]
