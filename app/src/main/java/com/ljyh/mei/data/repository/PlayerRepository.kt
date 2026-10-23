@@ -13,7 +13,6 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.model.api.GetIntelligence
 import com.ljyh.mei.data.model.api.GetSongDetails
-import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.weapi.Radio
 import com.ljyh.unblockneteasemusic.model.LyricRequest
 import com.ljyh.unblockneteasemusic.model.MusicAlbum
@@ -226,16 +225,28 @@ class PlayerRepository(
     }
 
 
-    suspend fun getIntelligenceList(id: String, playlistId: String, startSongId:String): Resource<Intelligence>{
-        return withContext(Dispatchers.IO){
-            safeApiCall {
+    suspend fun getIntelligenceTracks(id: String, playlistId: String): Resource<List<MediaMetadata>> {
+        if (id.toLongOrNull()?.let { it > 0 } != true || playlistId.toLongOrNull()?.let { it > 0 } != true) {
+            return Resource.Error("心动模式入口已失效，请刷新首页后重试")
+        }
+        return withContext(Dispatchers.IO) {
+            val response = safeApiCall {
                 apiService.getIntelligenceList(
-                    GetIntelligence(
-                        songId = id,
-                        playlistId = playlistId,
-                        startMusicId = startSongId
-                    )
+                    GetIntelligence(songId = id, playlistId = playlistId, startMusicId = id),
                 )
+            }
+            when (response) {
+                is Resource.Success -> {
+                    // Validate recommendations before fetching the seed; never replace the queue on failure.
+                    val recommendations = intelligencePlaybackTracks(response.data, seed = null)
+                    if (recommendations is Resource.Error) recommendations else {
+                        val seed = (getSongDetail(id) as? Resource.Success)?.data
+                            ?.firstOrNull { it.id.toString() == id }
+                        intelligencePlaybackTracks(response.data, seed)
+                    }
+                }
+                is Resource.Error -> Resource.Error("心动模式加载失败，请检查网络后重试")
+                Resource.Loading -> Resource.Loading
             }
         }
     }

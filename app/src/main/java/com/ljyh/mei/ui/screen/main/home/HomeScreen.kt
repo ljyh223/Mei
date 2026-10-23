@@ -44,6 +44,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,7 +70,6 @@ import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.constants.RecommendCardWidthTablet
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.domain.toMediaItem
-import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.eapi.homeResourcePositionComparator
 import com.ljyh.mei.data.network.Resource
@@ -234,60 +238,9 @@ private fun HomeBlockItem(
     val recommendCardWidth = if (device.isTablet) RecommendCardWidthTablet else RecommendCardWidth
     val recommendCardHeight = if (device.isTablet) RecommendCardHeightTablet else RecommendCardHeight
 
-    // Watch intelligence list for Success state to play the queue
-    val intelligenceList by playerViewModel.intelligenceList.collectAsState()
-    val intelligenceFirstSong by playerViewModel.songDetail.collectAsState()
-
-    LaunchedEffect(intelligenceFirstSong) {
-        when(val result= intelligenceFirstSong){
-            is Resource.Error -> {
-                Timber.tag("IntelligenceList").d("Error: ${result.message}")
-            }
-            Resource.Loading -> {
-                Timber.tag("IntelligenceList").d("Loading")
-            }
-            is Resource.Success -> {
-                Timber.tag("IntelligenceList").d("Success: ${result.data}")
-
-            }
-        }
-
-    }
-
-    // Watch for Success state and play the queue
-    LaunchedEffect(intelligenceList) {
-        if (intelligenceList is Resource.Success) {
-            val songs = (intelligenceList as Resource.Success).data.data
-            val items = try{
-                 songs.map {
-                    it.toMediaMetadata().toMediaItem()
-                }.toMutableList()
-            } catch (e: Exception){
-                mutableListOf()
-            }
-
-
-            if (intelligenceFirstSong is Resource.Success) {
-                (intelligenceFirstSong as Resource.Success).data.firstOrNull()
-                    ?.toMediaItem()?.let {
-                    items.add(0, it)
-                }
-            }
-
-            Timber.tag("IntelligenceList").d("Playing ${songs.size} songs")
-
-            playerConnection.playQueue(
-                ListQueue(
-                    id = "intelligence-${System.currentTimeMillis()}",
-                    title = "心动模式",
-                    source = QueueSource(QueueSource.Type.RECOMMENDATION, "intelligence", "心动模式"),
-                    items = items.map { it.mediaId to it },
-                    startIndex = 0,
-                    position = 0
-                )
-            )
-        }
-    }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var preparingIntelligence by remember { mutableStateOf(false) }
 
     // 解析逻辑缓存，只要 block 不变，就不会重新解析 JSON
     val blockData = remember(block) {
@@ -315,13 +268,6 @@ private fun HomeBlockItem(
                 resources = resources
             ) { resource ->
 
-                if (resource.resourceType == "star" && intelligenceFirstSong !is Resource.Success) {
-                    resource.extInfo.songIdText?.let { songId ->
-                        Timber.tag("IntelligenceList").d("Getting song detail for $songId")
-                        playerViewModel.getSongDetail(songId)
-                    }
-
-                }
                 RecommendCard(
                     cover = resource.coverImg,
                     title = resource.singleLineTitle,
@@ -331,17 +277,38 @@ private fun HomeBlockItem(
                     ),
                     cardWidth = recommendCardWidth,
                     cardHeight = recommendCardHeight,
+                    preparingPlayback = resource.resourceType == "star" && preparingIntelligence,
                     viewModel = viewModel
                 ) {
                     when (resource.resourceType) {
                         "dailySongs" -> Screen.EveryDay.navigate(navController)
                         "star" -> {
-                            val playlistId = resource.resourceId
-                            resource.extInfo.songIdText?.let { songId ->
-                                playerViewModel.intelligenceList(songId, playlistId, songId)
+                            if (!preparingIntelligence) {
+                                preparingIntelligence = true
+                                coroutineScope.launch {
+                                    try {
+                                        when (val result = playerViewModel.prepareIntelligence(
+                                            resource.extInfo.songIdText.orEmpty(), resource.resourceId,
+                                        )) {
+                                            is Resource.Success -> {
+                                                val items = result.data.map { it.toMediaItem() }
+                                                playerConnection.playQueue(
+                                                    ListQueue(
+                                                        id = "intelligence-${System.currentTimeMillis()}",
+                                                        title = "心动模式",
+                                                        source = QueueSource(QueueSource.Type.RECOMMENDATION, "intelligence", "心动模式"),
+                                                        items = items.map { it.mediaId to it },
+                                                    ),
+                                                )
+                                            }
+                                            is Resource.Error -> Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+                                            Resource.Loading -> Unit
+                                        }
+                                    } finally {
+                                        preparingIntelligence = false
+                                    }
+                                }
                             }
-
-                            // 心动模式，发了ids
                         }
 
                         "fm" -> {
@@ -360,7 +327,6 @@ private fun HomeBlockItem(
 //                            ]
                         }
 
-                        "dailySongs" -> {}
                         "similarArtist" -> {
                             // 从喜欢的艺人听起
                             // val ids = resourceId // 需要解析 json， 跳转艺人界面

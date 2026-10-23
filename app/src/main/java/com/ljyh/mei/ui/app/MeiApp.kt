@@ -326,6 +326,7 @@ fun MeiApp(
             }
 
             val pageHazeState = rememberHazeState()
+            val searchHazeState = rememberHazeState()
             val batteryAllowsGlass = rememberBatteryIntensiveFeaturesAllowed()
             val lowRam = remember(context) {
                 context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
@@ -347,23 +348,28 @@ fun MeiApp(
                     contentWindowInsets = WindowInsets(0),
                     bottomBar = {
                         if (!useTabletSidebar) {
-                            AppBottomNavigationBar(
-                                visibilityProgress = bottomNavigationProgress,
-                                alphaProgress = routeBottomNavigationProgress,
-                                interactive = showBottomBar && playerBottomNavigationProgress >= 1f,
-                                selectedRoute = route,
-                                onTabSelect = navController::selectMainDestination,
-                                compactProgress = compactNavigationProgress,
-                                onExpand = { navigationExpanded = true },
-                                searchActive = searchActive,
-                                searchPlaceholder = if (librarySearch) "搜索歌单、专辑" else "搜索歌曲、歌手、专辑",
-                                searchQuery = query,
-                                onSearchQueryChange = onQueryChange,
-                                onSearchActivate = { onActiveChange(true) },
-                                onSearchClose = { onActiveChange(false) },
-                                onSearchSubmit = { submitBottomSearch(it, 1) },
-                                searchFocusRequester = bottomSearchFocusRequester,
-                            )
+                            // Search chrome samples its own page, never the hidden browsing content.
+                            CompositionLocalProvider(
+                                LocalMeiHazeState provides if (searchActive) searchHazeState else pageHazeState,
+                            ) {
+                                AppBottomNavigationBar(
+                                    visibilityProgress = bottomNavigationProgress,
+                                    alphaProgress = routeBottomNavigationProgress,
+                                    interactive = showBottomBar && playerBottomNavigationProgress >= 1f,
+                                    selectedRoute = route,
+                                    onTabSelect = navController::selectMainDestination,
+                                    compactProgress = compactNavigationProgress,
+                                    onExpand = { navigationExpanded = true },
+                                    searchActive = searchActive,
+                                    searchPlaceholder = if (librarySearch) "搜索歌单、专辑" else "搜索歌曲、歌手、专辑",
+                                    searchQuery = query,
+                                    onSearchQueryChange = onQueryChange,
+                                    onSearchActivate = { onActiveChange(true) },
+                                    onSearchClose = { onActiveChange(false) },
+                                    onSearchSubmit = { submitBottomSearch(it, 1) },
+                                    searchFocusRequester = bottomSearchFocusRequester,
+                                )
+                            }
                         }
                     },
                 ) {
@@ -463,6 +469,7 @@ fun MeiApp(
                         )
                         BottomSearchOverlay(
                             active = searchActive && !useTabletSidebar,
+                            hazeState = searchHazeState,
                             librarySearch = librarySearch,
                             bottomBarClearance = scaffoldBottomInset,
                             query = query,

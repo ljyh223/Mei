@@ -91,7 +91,7 @@ fun Title(
                     imageVector = if (isLiked) Icons.Rounded.Star else Icons.Rounded.StarBorder,
                     contentDescription = if (isLiked) "取消喜欢" else "喜欢",
                     tint = iconColor,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
@@ -103,7 +103,7 @@ fun Title(
                     imageVector = Icons.Rounded.MoreVert,
                     contentDescription = "更多",
                     tint = iconColor,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }

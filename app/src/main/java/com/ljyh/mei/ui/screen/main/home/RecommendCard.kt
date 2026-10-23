@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +55,7 @@ fun RecommendCard(
     cardHeight: Dp = RecommendCardHeight,
     viewModel: HomeViewModel,
     isLoading: Boolean = false,
+    preparingPlayback: Boolean = false,
     onPlayClick: (() -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
@@ -79,7 +81,7 @@ fun RecommendCard(
         modifier = Modifier
             .size(width = cardWidth, height = cardHeight)
             .clip(RoundedCornerShape(24.dp))
-            .clickable(enabled = !isLoading) { onClick() }
+            .clickable(enabled = !isLoading && !preparingPlayback) { onClick() }
             .skeleton(isLoading, RoundedCornerShape(24.dp))
     ) {
         if (!isLoading) AsyncImage(
@@ -90,6 +92,12 @@ fun RecommendCard(
                 .height(cardHeight),
             contentDescription = null,
             contentScale = ContentScale.Crop,
+        )
+
+        if (preparingPlayback) CircularProgressIndicator(
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).size(24.dp),
+            color = Color.White,
+            strokeWidth = 2.dp,
         )
 
         // Measure the opaque text band from its content so larger fonts remain readable.
@@ -137,6 +145,7 @@ fun RecommendCard(
                 if (showPlay || onPlayClick != null) {
                     IconButton(
                         onClick = onPlayClick ?: onClick,
+                        enabled = !preparingPlayback,
                         modifier = Modifier.size(48.dp).clip(CircleShape)
                             .background(foregroundColor.copy(alpha = 0.16f)),
                     ) {

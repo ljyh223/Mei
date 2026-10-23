@@ -137,18 +137,21 @@ fun ArtistSong.HotSong.toMediaMetadata() = MediaMetadata(
 )
 
 
-// For Intelligence mode - converts Intelligence.Data.songInfo to MediaMetadata
-fun com.ljyh.mei.data.model.api.Data.toMediaMetadata() = MediaMetadata(
-    id = songInfo.id,
-    title = songInfo.name,
-    coverUrl = songInfo.al.picUrl,
-    artists = songInfo.ar.map {
-        MediaMetadata.Artist(id = it.id.toLong(), name = it.name, alias = it.tns)
-    },
-    duration = songInfo.dt.toLong(),
-    album = MediaMetadata.Album(id = songInfo.al.id.toLong(), title = songInfo.al.name),
-    tns = songInfo.tns?.firstOrNull()
-)
+// Unavailable intelligence recommendations may have no songInfo; never enqueue invalid IDs.
+fun com.ljyh.mei.data.model.api.Data.toMediaMetadata(): MediaMetadata? {
+    val song = songInfo?.takeIf { it.id > 0 } ?: return null
+    return MediaMetadata(
+        id = song.id,
+        title = song.name,
+        coverUrl = song.al?.picUrl.orEmpty(),
+        artists = song.ar.map {
+            MediaMetadata.Artist(id = it.id, name = it.name.orEmpty(), alias = it.tns)
+        },
+        duration = song.dt,
+        album = MediaMetadata.Album(id = song.al?.id ?: 0, title = song.al?.name.orEmpty()),
+        tns = song.tns?.firstOrNull(),
+    )
+}
 
 // For FM mode - converts Radio.Data to MediaMetadata
 fun com.ljyh.mei.data.model.weapi.Data.toMediaMetadata() = MediaMetadata(

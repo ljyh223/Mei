@@ -14,7 +14,6 @@ import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.UserPlaylistPage
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
-import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.QQSong
@@ -146,14 +145,6 @@ class PlayerViewModel @Inject constructor(
     val createPlaylist: StateFlow<Resource<CreatePlaylistResult>> = _createPlaylist
 
 
-    private val _intelligenceList = MutableStateFlow<Resource<Intelligence>>(Resource.Loading)
-    val intelligenceList: StateFlow<Resource<Intelligence>> = _intelligenceList
-
-
-    private val _songDetail = MutableStateFlow<Resource<List<MediaMetadata>>>(Resource.Loading)
-    val songDetail: StateFlow<Resource<List<MediaMetadata>>> = _songDetail
-
-
     var mediaMetadata: MediaMetadata? = null
 
     val userId: String get() = AppContext.instance.dataStore[UserIdKey] ?: ""
@@ -283,21 +274,8 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun intelligenceList(id: String, playlistId: String, startSongId: String) {
-        viewModelScope.launch {
-            _intelligenceList.value = Resource.Loading
-            _intelligenceList.value = repository.getIntelligenceList(id, playlistId, startSongId)
-        }
-    }
-
-    fun getSongDetail(id:String){
-        viewModelScope.launch {
-            _songDetail.value = Resource.Loading
-            val result = repository.getSongDetail(id)
-            Timber.tag("songDetail").d("getSongDetail: $result")
-            _songDetail.value = result
-        }
-    }
+    suspend fun prepareIntelligence(id: String, playlistId: String): Resource<List<MediaMetadata>> =
+        repository.getIntelligenceTracks(id, playlistId)
 
     fun downloadSong(
         metadata: MediaMetadata,

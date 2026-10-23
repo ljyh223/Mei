@@ -17,6 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.screen.search.SearchScreen
 import com.ljyh.mei.ui.screen.main.library.LibrarySearchResults
 
@@ -33,6 +36,7 @@ fun BottomSearchOverlay(
     onQueryChange: (TextFieldValue) -> Unit,
     onSubmit: (String, Int) -> Unit,
     onDismiss: () -> Unit,
+    hazeState: HazeState? = null,
 ) {
     BackHandler(enabled = active, onBack = onDismiss)
     AnimatedVisibility(
@@ -44,15 +48,16 @@ fun BottomSearchOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
+                .then(if (LocalMeiGlassEnabled.current && hazeState != null) Modifier.hazeSource(hazeState) else Modifier)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(
                     top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
                     bottom = bottomBarClearance,
                 ),
         ) {
-            // 提示从搜索框上方往上堆叠，而不是从屏幕顶部开始。
             if (librarySearch) LibrarySearchResults(query.text, onDismiss) else SearchScreen(
                 modifier = Modifier.fillMaxSize(),
+                showTitle = true,
                 query = query.text,
                 onQueryChange = onQueryChange,
                 onSearch = onSubmit,

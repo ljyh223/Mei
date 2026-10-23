@@ -99,10 +99,6 @@ import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlin.math.min
-import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
-import com.ljyh.mei.ui.component.player.controls.LocalPlayerControlsHazeState
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.player.cover.rememberCoverEdgeArtwork
 import androidx.core.graphics.toColorInt
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
@@ -417,9 +413,6 @@ fun AppleMusicPlayer(
         }
         val mShadowElevation = 16.dp * shadowAlpha * (1f - edgeExtensionAlpha)
 
-        val controlsHazeState = rememberHazeState()
-        val captureControlsHaze = LocalMeiGlassEnabled.current && expandedUiAlpha > 0f
-
         // --- 3. UI Structure ---
         BottomSheet(
             state = state,
@@ -589,294 +582,288 @@ fun AppleMusicPlayer(
                 }
             },
         ) {
-            CompositionLocalProvider(
-                LocalPlayerControlsHazeState provides controlsHazeState.takeIf { captureControlsHaze },
-            ) {
-                Box(Modifier.fillMaxSize().then(
-                    if (captureControlsHaze) Modifier.hazeSource(controlsHazeState) else Modifier,
-                )) {
-                    // This OpenGL surface now keeps its full-screen size for the entire transition. The
-                    // sheet moves as one fixed page, avoiding the SurfaceView resize seam seen on devices.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(playerBackgroundHeight)
-                            .graphicsLayer { alpha = sheetProgress }
-                            .background(if (state.isExpanded && staticArtworkReady && portraitCover == null &&
-                                portraitAlpha < 0.001f && coverEdgeColor != null && edgeExtensionAlpha > 0.001f
-                            ) coverEdgeColor else lerp(
-                                portraitBackdropState.edgeColor ?: portraitFallbackColor,
-                                backgroundColor,
-                                fluidReveal,
-                            )),
-                    )
-                    // A GLSurfaceView cannot be hidden reliably with alpha; keep it out of the
-                    // collapsed width so it cannot paint a sheet-like rectangle beside the capsule.
-                    if (sheetProgress > 0f) {
-                        FluidBackground(
-                            imageUrl = coverUrl,
-                            isPlaying = isPlaying,
-                            renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
-                            onArtworkReady = { readyFluidUrl = it },
-                        )
-                    }
-                    coverEdgeArtwork?.let { artwork ->
-                        CoverEdgeExtensionBackdrop(
-                            artwork = artwork,
-                            alpha = edgeExtensionAlpha,
-                            coverLeft = visualStart,
-                            coverTop = visualTop,
-                            coverSize = visualSize,
-                        )
-                    }
-                    if (displayedPortrait != null && sheetProgress > 0f && mediaMetadata != null) {
-                        val backgroundTap = if (portraitAlpha > 0.5f) {
-                            Modifier.clickable { showLyrics = true; overlayHandler.showLyrics() }
-                        } else Modifier
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer { alpha = portraitAlpha }
-                                .background(backgroundColor),
-                        ) {
-                            DynamicCoverView(
-                                imageUrl = displayedPortrait.imageUrl,
-                                cover = displayedPortrait.cover,
-                                playing = isPlaying && displayedPortrait.cover.songId == mediaMetadata!!.id &&
-                                    !detailsVisible && sheetProgress > 0.5f,
-                                onPlaybackError = {
-                                    mediaMetadata?.takeIf { it.id == displayedPortrait.cover.songId }
-                                        ?.let(stateContainer.playerViewModel::fallbackDynamicCover)
-                                },
-                                onArtworkReady = {
-                                    if (displayedPortrait.cover.songId == mediaMetadata?.id) {
-                                        readyPortraitKey = "${displayedPortrait.cover.cacheKey}:${displayedPortrait.cover.url}"
-                                    }
-                                },
-                                onFrameSample = portraitBackdropState::accept,
-                                onPreviewSample = portraitBackdropState::acceptPreview,
-                                fitVideoWidth = true,
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .fillMaxWidth()
-                                    .height(portraitArtworkHeight),
-                            )
-                            AndroidView(
-                                factory = { PortraitMotionBackdropView(it).apply {
-                                    controlColor = (portraitBackdropState.edgeColor ?: portraitFallbackColor).toArgb()
-                                } },
-                                update = { view ->
-                                    portraitBackdropState.bind(view)
-                                    view.videoBottomPx = with(density) { portraitArtworkHeight.toPx() }
-                                    view.controlColor = (portraitBackdropState.edgeColor ?: portraitFallbackColor).toArgb()
-                                },
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                            Box(modifier = Modifier.fillMaxSize().then(backgroundTap))
-                        }
-                    }
-
-                }
+            Box(Modifier.fillMaxSize()) {
+                // This OpenGL surface now keeps its full-screen size for the entire transition. The
+                // sheet moves as one fixed page, avoiding the SurfaceView resize seam seen on devices.
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { alpha = expandedUiAlpha },
-                ) {
-
-
-                    // Mode B: Lyric Player
-                    AnimatedVisibility(
-                        visible = detailsVisible,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
-                        modifier = Modifier.fillMaxSize()
+                        .fillMaxWidth()
+                        .height(playerBackgroundHeight)
+                        .graphicsLayer { alpha = sheetProgress }
+                        .background(if (state.isExpanded && staticArtworkReady && portraitCover == null &&
+                            portraitAlpha < 0.001f && coverEdgeColor != null && edgeExtensionAlpha > 0.001f
+                        ) coverEdgeColor else lerp(
+                            portraitBackdropState.edgeColor ?: portraitFallbackColor,
+                            backgroundColor,
+                            fluidReveal,
+                        )),
+                )
+                // A GLSurfaceView cannot be hidden reliably with alpha; keep it out of the
+                // collapsed width so it cannot paint a sheet-like rectangle beside the capsule.
+                if (sheetProgress > 0f) {
+                    FluidBackground(
+                        imageUrl = coverUrl,
+                        isPlaying = isPlaying,
+                        renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
+                        onArtworkReady = { readyFluidUrl = it },
+                    )
+                }
+                coverEdgeArtwork?.let { artwork ->
+                    CoverEdgeExtensionBackdrop(
+                        artwork = artwork,
+                        alpha = edgeExtensionAlpha,
+                        coverLeft = visualStart,
+                        coverTop = visualTop,
+                        coverSize = visualSize,
+                    )
+                }
+                if (displayedPortrait != null && sheetProgress > 0f && mediaMetadata != null) {
+                    val backgroundTap = if (portraitAlpha > 0.5f) {
+                        Modifier.clickable { showLyrics = true; overlayHandler.showLyrics() }
+                    } else Modifier
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = portraitAlpha }
+                            .background(backgroundColor),
                     ) {
-                        Column(Modifier.fillMaxSize()) {
-                            Spacer(modifier = Modifier.height(with(density) { (headerTop + headerSize).toDp() + 16.dp }))
+                        DynamicCoverView(
+                            imageUrl = displayedPortrait.imageUrl,
+                            cover = displayedPortrait.cover,
+                            playing = isPlaying && displayedPortrait.cover.songId == mediaMetadata!!.id &&
+                                !detailsVisible && sheetProgress > 0.5f,
+                            onPlaybackError = {
+                                mediaMetadata?.takeIf { it.id == displayedPortrait.cover.songId }
+                                    ?.let(stateContainer.playerViewModel::fallbackDynamicCover)
+                            },
+                            onArtworkReady = {
+                                if (displayedPortrait.cover.songId == mediaMetadata?.id) {
+                                    readyPortraitKey = "${displayedPortrait.cover.cacheKey}:${displayedPortrait.cover.url}"
+                                }
+                            },
+                            onFrameSample = portraitBackdropState::accept,
+                            onPreviewSample = portraitBackdropState::acceptPreview,
+                            fitVideoWidth = true,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxWidth()
+                                .height(portraitArtworkHeight),
+                        )
+                        AndroidView(
+                            factory = { PortraitMotionBackdropView(it).apply {
+                                controlColor = (portraitBackdropState.edgeColor ?: portraitFallbackColor).toArgb()
+                            } },
+                            update = { view ->
+                                portraitBackdropState.bind(view)
+                                view.videoBottomPx = with(density) { portraitArtworkHeight.toPx() }
+                                view.controlColor = (portraitBackdropState.edgeColor ?: portraitFallbackColor).toArgb()
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Box(modifier = Modifier.fillMaxSize().then(backgroundTap))
+                    }
+                }
 
-                            if (showComments) {
-                                PlayerCommentsContent(
-                                    songId = mediaMetadata?.id?.toString().orEmpty(),
-                                    onControlsVisibilityChange = { stateContainer.controlsVisible = it },
-                                    onViewAllComments = {
-                                        mediaMetadata?.let { song ->
-                                            state.collapseThen {
-                                                Screen.Comment.navigate(navController) {
-                                                    addPath(song.id.toString())
-                                                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = expandedUiAlpha },
+            ) {
+
+
+                // Mode B: Lyric Player
+                AnimatedVisibility(
+                    visible = detailsVisible,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Column(Modifier.fillMaxSize()) {
+                        Spacer(modifier = Modifier.height(with(density) { (headerTop + headerSize).toDp() + 16.dp }))
+
+                        if (showComments) {
+                            PlayerCommentsContent(
+                                songId = mediaMetadata?.id?.toString().orEmpty(),
+                                onControlsVisibilityChange = { stateContainer.controlsVisible = it },
+                                onViewAllComments = {
+                                    mediaMetadata?.let { song ->
+                                        state.collapseThen {
+                                            Screen.Comment.navigate(navController) {
+                                                addPath(song.id.toString())
                                             }
                                         }
-                                    },
-                                    modifier = Modifier.fillMaxWidth().weight(1f)
-                                        .padding(horizontal = PlayerHorizontalPadding),
-                                )
-                            } else LyricScreen(
-                                lyricData = lyricLine,
-                                playerConnection = stateContainer.playerConnection,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().weight(1f)
                                     .padding(horizontal = PlayerHorizontalPadding),
-                                onClick = {
-                                    mediaMetadata?.let {
-                                        if (overlayHandler.currentOverlayValue is OverlayState.None) {
-                                            overlayHandler.showLyricSourceSelection(
-                                                mediaMetadata = it
-                                            )
-                                        }
-                                    }
-                                },
-                                onLongClick = { source ->
-                                    if (source == LyricSource.QQMusic && mediaMetadata != null) {
-                                        stateContainer.playerViewModel.deleteSongById(id = mediaMetadata!!.id.toString())
-                                        android.widget.Toast.makeText(context, "已删除QQ音乐歌词", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                controlsVisible = stateContainer.controlsVisible,
-                                onToggleControls = { stateContainer.controlsVisible = it },
                             )
-                            val spacerHeight by animateDpAsState(
-                                targetValue = if (stateContainer.controlsVisible) bottomControlsHeightDp else 16.dp,
-                                label = "spacer"
-                            )
-                            Spacer(modifier = Modifier.height(spacerHeight))
-                        }
-                    }
-
-
-                    // Mode C: Header Info
-                    if (mediaMetadata != null) {
-                        val fraction = lyricAnimFraction
-                        val headerTextAlpha =
-                            PlayerMotionSpec.LyricHeaderReveal.transform(fraction) * sheetProgress
-
-                        if (headerTextAlpha > 0.01f) {
-                            val headerTextWidth =
-                                screenWidth - with(density) { (headerStart + headerSize).toDp() } - 24.dp
-                            val slideUpOffset =
-                                with(density) { (20.dp.toPx() * (1f - fraction)).toInt() }
-
-                            val headerTextStart = lerp(normalStart, headerStart, fraction)
-                            val currentX = (headerTextStart + headerSize + 12.dp.toPx(context)).toInt()
-                            val fixedY = headerTop.toInt() + slideUpOffset
-
-                            Box(
-                                modifier = Modifier
-                                    .graphicsLayer {
-                                        alpha = headerTextAlpha
-                                        val scale = 0.9f + (0.1f * fraction)
-                                        scaleX = scale
-                                        scaleY = scale
-                                    }
-                                    .offset {
-                                        IntOffset(
-                                            x = currentX,
-                                            y = fixedY
+                        } else LyricScreen(
+                            lyricData = lyricLine,
+                            playerConnection = stateContainer.playerConnection,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(horizontal = PlayerHorizontalPadding),
+                            onClick = {
+                                mediaMetadata?.let {
+                                    if (overlayHandler.currentOverlayValue is OverlayState.None) {
+                                        overlayHandler.showLyricSourceSelection(
+                                            mediaMetadata = it
                                         )
                                     }
-                                    .height(with(density) { headerSize.toDp() })
-                                    .width(headerTextWidth),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
-                                Title(
-                                    title = mediaMetadata!!.title,
-                                    subTitle = mediaMetadata!!.artists.joinToString { it.name },
-                                    isLiked = isLiked,
-                                    onLikeClick = { mediaMetadata?.let { stateContainer.playerViewModel.like(it.id.toString()) } },
-                                    onMoreClick = { overlayHandler.showMoreAction() },
-                                    onTitleClick = {
-                                        mediaMetadata?.let {
+                                }
+                            },
+                            onLongClick = { source ->
+                                if (source == LyricSource.QQMusic && mediaMetadata != null) {
+                                    stateContainer.playerViewModel.deleteSongById(id = mediaMetadata!!.id.toString())
+                                    android.widget.Toast.makeText(context, "已删除QQ音乐歌词", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            controlsVisible = stateContainer.controlsVisible,
+                            onToggleControls = { stateContainer.controlsVisible = it },
+                        )
+                        val spacerHeight by animateDpAsState(
+                            targetValue = if (stateContainer.controlsVisible) bottomControlsHeightDp else 16.dp,
+                            label = "spacer"
+                        )
+                        Spacer(modifier = Modifier.height(spacerHeight))
+                    }
+                }
+
+
+                // Mode C: Header Info
+                if (mediaMetadata != null) {
+                    val fraction = lyricAnimFraction
+                    val headerTextAlpha =
+                        PlayerMotionSpec.LyricHeaderReveal.transform(fraction) * sheetProgress
+
+                    if (headerTextAlpha > 0.01f) {
+                        val headerTextWidth =
+                            screenWidth - with(density) { (headerStart + headerSize).toDp() } - 24.dp
+                        val slideUpOffset =
+                            with(density) { (20.dp.toPx() * (1f - fraction)).toInt() }
+
+                        val headerTextStart = lerp(normalStart, headerStart, fraction)
+                        val currentX = (headerTextStart + headerSize + 12.dp.toPx(context)).toInt()
+                        val fixedY = headerTop.toInt() + slideUpOffset
+
+                        Box(
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    alpha = headerTextAlpha
+                                    val scale = 0.9f + (0.1f * fraction)
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                                .offset {
+                                    IntOffset(
+                                        x = currentX,
+                                        y = fixedY
+                                    )
+                                }
+                                .height(with(density) { headerSize.toDp() })
+                                .width(headerTextWidth),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Title(
+                                title = mediaMetadata!!.title,
+                                subTitle = mediaMetadata!!.artists.joinToString { it.name },
+                                isLiked = isLiked,
+                                onLikeClick = { mediaMetadata?.let { stateContainer.playerViewModel.like(it.id.toString()) } },
+                                onMoreClick = { overlayHandler.showMoreAction() },
+                                onTitleClick = {
+                                    mediaMetadata?.let {
+                                        overlayHandler.showAlbumArtist(
+                                            album = it.album,
+                                            artists = it.artists,
+                                            cover = it.coverUrl
+                                        )
+                                    }
+                                },
+                                titleStyle = MaterialTheme.typography.titleMedium,
+                                subTitleStyle = MaterialTheme.typography.bodySmall,
+                                needShadow = false,
+                                titleColor = playerForegroundColor,
+                                subTitleColor = playerSecondaryColor,
+                                iconColor = playerForegroundColor,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                // --- 统一的底部控制区域 ---
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(bottom = ExpandedControlsBottomLift)
+                        .background(Color.Transparent)
+                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                ) {
+                    val isBottomBarVisible = !detailsVisible || stateContainer.controlsVisible
+
+                    AnimatedVisibility(
+                        visible = isBottomBarVisible,
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut()
+                    ) {
+                        Column(Modifier.fillMaxWidth()) {
+
+                            val isTitleVisible = !detailsVisible && (!isCompactHeight && !isLandscape)
+
+                            if (isTitleVisible) {
+                                mediaMetadata?.let {
+                                    Title(
+                                        title = it.title,
+                                        subTitle = it.artists.joinToString { artist -> artist.name },
+                                        isLiked = isLiked,
+                                        onLikeClick = { stateContainer.playerViewModel.like(it.id.toString()) },
+                                        onMoreClick = { overlayHandler.showMoreAction() },
+                                        onTitleClick = {
                                             overlayHandler.showAlbumArtist(
                                                 album = it.album,
                                                 artists = it.artists,
                                                 cover = it.coverUrl
                                             )
-                                        }
-                                    },
-                                    titleStyle = MaterialTheme.typography.titleMedium,
-                                    subTitleStyle = MaterialTheme.typography.bodySmall,
-                                    needShadow = false,
-                                    titleColor = playerForegroundColor,
-                                    subTitleColor = playerSecondaryColor,
-                                    iconColor = playerForegroundColor,
-                                    modifier = Modifier.padding(vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // --- 统一的底部控制区域 ---
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(bottom = ExpandedControlsBottomLift)
-                            .background(Color.Transparent)
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                    ) {
-                        val isBottomBarVisible = !detailsVisible || stateContainer.controlsVisible
-
-                        AnimatedVisibility(
-                            visible = isBottomBarVisible,
-                            enter = slideInVertically { it } + fadeIn(),
-                            exit = slideOutVertically { it } + fadeOut()
-                        ) {
-                            Column(Modifier.fillMaxWidth()) {
-
-                                val isTitleVisible = !detailsVisible && (!isCompactHeight && !isLandscape)
-
-                                if (isTitleVisible) {
-                                    mediaMetadata?.let {
-                                        Title(
-                                            title = it.title,
-                                            subTitle = it.artists.joinToString { artist -> artist.name },
-                                            isLiked = isLiked,
-                                            onLikeClick = { stateContainer.playerViewModel.like(it.id.toString()) },
-                                            onMoreClick = { overlayHandler.showMoreAction() },
-                                            onTitleClick = {
-                                                overlayHandler.showAlbumArtist(
-                                                    album = it.album,
-                                                    artists = it.artists,
-                                                    cover = it.coverUrl
-                                                )
-                                            },
-                                            titleColor = playerForegroundColor,
-                                            subTitleColor = playerSecondaryColor,
-                                            iconColor = playerForegroundColor,
-                                            needShadow = false,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = PlayerHorizontalPadding)
-                                                .padding(bottom = 16.dp)
-                                        )
-                                    }
-                                }
-
-                                CompositionLocalProvider(
-                                    LocalPlayerForegroundColor provides playerForegroundColor,
-                                ) {
-                                    PlayerControlsSection(
-                                        sliderPosition = sliderPosition,
-                                        duration = duration,
-                                        isPlaying = isPlaying,
-                                        playbackState = playbackState,
-                                        playerConnection = stateContainer.playerConnection,
-                                        onLyricClick = { toggleLyrics() },
-                                        onPlaylistClick = { overlayHandler.showPlaylist() },
-                                        onSleepTimerClick = { overlayHandler.showSleepTimer() },
-                                        onAddToPlaylistClick = {
-                                            mediaMetadata?.let {
-                                                overlayHandler.showAddToPlaylist(it.id)
-                                            }
                                         },
-                                        onMoreClick = { overlayHandler.showMoreAction() },
-                                        onPositionPreview = stateContainer::previewSeek,
-                                        onPositionChange = stateContainer::commitSeek,
-                                        onMusicQualityClick = overlayHandler::showMusicQualitySelection,
-                                        portraitMotionStyle = portraitAlpha > 0.5f,
-                                        isCompact = isCompactHeight || isLandscape
+                                        titleColor = playerForegroundColor,
+                                        subTitleColor = playerSecondaryColor,
+                                        iconColor = playerForegroundColor,
+                                        needShadow = false,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = PlayerHorizontalPadding)
+                                            .padding(bottom = 16.dp)
                                     )
                                 }
+                            }
+
+                            CompositionLocalProvider(
+                                LocalPlayerForegroundColor provides playerForegroundColor,
+                            ) {
+                                PlayerControlsSection(
+                                    sliderPosition = sliderPosition,
+                                    duration = duration,
+                                    isPlaying = isPlaying,
+                                    playbackState = playbackState,
+                                    playerConnection = stateContainer.playerConnection,
+                                    onLyricClick = { toggleLyrics() },
+                                    onPlaylistClick = { overlayHandler.showPlaylist() },
+                                    onSleepTimerClick = { overlayHandler.showSleepTimer() },
+                                    onAddToPlaylistClick = {
+                                        mediaMetadata?.let {
+                                            overlayHandler.showAddToPlaylist(it.id)
+                                        }
+                                    },
+                                    onMoreClick = { overlayHandler.showMoreAction() },
+                                    onPositionPreview = stateContainer::previewSeek,
+                                    onPositionChange = stateContainer::commitSeek,
+                                    onMusicQualityClick = overlayHandler::showMusicQualitySelection,
+                                    portraitMotionStyle = portraitAlpha > 0.5f,
+                                    isCompact = isCompactHeight || isLandscape
+                                )
                             }
                         }
                     }

@@ -40,10 +40,13 @@ internal fun MeiTopBarBackdrop(
 ) {
     val live = LocalMeiGlassEnabled.current && state != null && Build.VERSION.SDK_INT >= 33
     val surface = MaterialTheme.colorScheme.surface
-    val tint = remember(surface) {
+    // Live sampling already softens detail. A strong surface scrim washes artwork into a white band.
+    // Only the no-blur fallback needs a more opaque background for text legibility.
+    val tint = remember(surface, live) {
+        val opacity = if (live) 0.12f else 0.90f
         Brush.verticalGradient(
-            0f to surface.copy(alpha = 0.78f),
-            TopBarTransitionStart to surface.copy(alpha = 0.78f),
+            0f to surface.copy(alpha = opacity),
+            TopBarTransitionStart to surface.copy(alpha = opacity * 0.55f),
             1f to surface.copy(alpha = 0f),
         )
     }
