@@ -8,7 +8,10 @@ plugins {
 }
 
 
-
+// Beta CI opts into per-ABI APKs; ordinary builds keep their existing output.
+val meiAbiSplits = providers.gradleProperty("meiAbiSplits")
+    .map { it.toBooleanStrict() }
+    .getOrElse(false)
 
 android {
     namespace = "com.ljyh.mei"
@@ -21,6 +24,15 @@ android {
         versionName = "1.54"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    splits {
+        abi {
+            isEnable = meiAbiSplits
+            reset()
+            include("arm64-v8a", "x86_64")
+            isUniversalApk = false
+        }
     }
 
     buildTypes {

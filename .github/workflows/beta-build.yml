@@ -45,7 +45,7 @@ jobs:
         run: |
           rustup toolchain install 1.97.0 --profile minimal --component rustfmt --component clippy
           rustup default 1.97.0
-          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+          rustup target add aarch64-linux-android x86_64-linux-android
 
       - name: Prepare USB test dependencies
         run: |
@@ -59,8 +59,8 @@ jobs:
           cargo test --offline --locked --all-features --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
           cargo clippy --offline --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml --all-targets --all-features -- -D warnings
 
-      - name: Build test APK with project wrapper
-        run: bash ./gradlew --no-daemon :app:assembleRelease
+      - name: Build arm64 and x86_64 test APKs
+        run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:assembleRelease
 
       - name: Sign APK
         id: sign_app
@@ -74,22 +74,46 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: '34.0.0'
 
-      - name: Prepare test APK
+      - name: Verify and prepare test APKs
         env:
           ARTIFACT_NAME: ${{ steps.metadata.outputs.name }}
-          SIGNED_APK: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          SIGNED_APKS: ${{ steps.sign_app.outputs.signedReleaseFiles }}
         run: |
-          set -euo pipefail
-          if [[ -z "$SIGNED_APK" || ! -f "$SIGNED_APK" ]]; then
-            echo '::error::未找到签名后的 APK。'
-            exit 1
-          fi
-          mkdir -p build-artifacts
-          cp "$SIGNED_APK" "build-artifacts/${ARTIFACT_NAME}.apk"
-          (
-            cd build-artifacts
-            sha256sum "${ARTIFACT_NAME}.apk" > "${ARTIFACT_NAME}.apk.sha256"
-          )
+          python3 - <<'PYTHON'
+          import hashlib
+          import os
+          import shutil
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          expected = {"arm64-v8a", "x86_64"}
+          signed_apks = [Path(p) for p in os.environ["SIGNED_APKS"].split(":") if p]
+          if len(signed_apks) != len(expected):
+              raise SystemExit("Expected exactly two signed APKs.")
+
+          output = Path("build-artifacts")
+          output.mkdir(exist_ok=True)
+          seen = set()
+          for apk in signed_apks:
+              with ZipFile(apk) as archive:
+                  abis = {
+                      parts[1]
+                      for name in archive.namelist()
+                      if len(parts := name.split("/")) == 3
+                      and parts[0] == "lib" and name.endswith(".so")
+                  }
+              if len(abis) != 1 or not abis <= expected or abis & seen:
+                  raise SystemExit(f"Unexpected or duplicate native ABIs in {apk}: {abis}")
+              abi = abis.pop()
+              seen.add(abi)
+              target = output / f"{os.environ['ARTIFACT_NAME']}_{abi}.apk"
+              shutil.copyfile(apk, target)
+              digest = hashlib.sha256(target.read_bytes()).hexdigest()
+              target.with_suffix(".apk.sha256").write_text(f"{digest}  {target.name}\n")
+              print(f"Prepared {target.name} ({target.stat().st_size} bytes)")
+          if seen != expected:
+              raise SystemExit(f"Missing APKs: {expected - seen}")
+          PYTHON
 
       - uses: actions/upload-artifact@v4
         with:
