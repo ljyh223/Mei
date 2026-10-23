@@ -8,7 +8,7 @@ plugins {
 }
 
 
-// Beta CI opts into per-ABI APKs; ordinary builds keep their existing output.
+// CI opts into per-ABI APKs; ordinary local builds keep their existing output.
 val meiAbiSplits = providers.gradleProperty("meiAbiSplits")
     .map { it.toBooleanStrict() }
     .getOrElse(false)

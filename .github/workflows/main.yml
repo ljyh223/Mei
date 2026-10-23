@@ -17,24 +17,42 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.ref_name }}
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-        # 手动触发时检出默认分支，而不是指定的标签
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.ref }}
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v3
+      - name: Validate release tag
+        run: |
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+          case "$RELEASE_TAG" in
+            */*|*\\*) echo '::error::Release 标签不能包含路径分隔符。'; exit 1 ;;
+          esac
+
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 21
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Prepare Android SDK
+        run: |
+          sdkmanager_path="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          (yes || true) | "$sdkmanager_path" --licenses >/dev/null
+          "$sdkmanager_path" 'platforms;android-37.0' 'build-tools;34.0.0' 'cmake;3.22.1'
 
       - name: Prepare Rust USB toolchain
         run: |
           rustup toolchain install 1.97.0 --profile minimal --component rustfmt --component clippy
           rustup default 1.97.0
-          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+          rustup target add aarch64-linux-android x86_64-linux-android
 
       - name: Prepare USB test dependencies
         run: |
@@ -48,10 +66,8 @@ jobs:
           cargo test --offline --locked --all-features --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
           cargo clippy --offline --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml --all-targets --all-features -- -D warnings
 
-      - uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: current
-          arguments: assembleRelease
+      - name: Build arm64 and x86_64 release APKs
+        run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:assembleRelease
 
       - uses: r0adkll/sign-android-release@v1
         id: sign_app
@@ -64,35 +80,23 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      # 根据触发方式决定APK文件名
-      - name: Rename APK file
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            mv ${{ steps.sign_app.outputs.signedReleaseFile }} Mei_${{ github.event.inputs.tag_name }}.apk
-          else
-            mv ${{ steps.sign_app.outputs.signedReleaseFile }} Mei_${GITHUB_REF_NAME}.apk
-          fi
+      - name: Verify and prepare release APKs
+        run: python3 tools/ci/prepare-apks.py --name "Mei_${RELEASE_TAG}" --output release-artifacts
 
       - name: Read Release Notes
-        id: release_notes
+        env:
+          RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
         run: |
-          # 优先使用手动输入的发布说明，其次使用文件，最后使用默认值
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.release_notes }}" ]; then
-            body="${{ github.event.inputs.release_notes }}"
-          elif [ -f .github/release_notes.md ]; then
-            body=$(cat .github/release_notes.md)
-          else
-            if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-              body="Release ${{ github.event.inputs.tag_name }}"
-            else
-              body="Release ${{ github.ref_name }}"
-            fi
-          fi
-          {
-            echo "BODY<<EOF"
-            echo "$body"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          python3 - <<'PYTHON'
+          import os
+          from pathlib import Path
+
+          notes = os.environ.get("RELEASE_NOTES", "")
+          if not notes:
+              source = Path(".github/release_notes.md")
+              notes = source.read_text() if source.is_file() else f"Release {os.environ['RELEASE_TAG']}"
+          Path("release-notes.md").write_text(notes)
+          PYTHON
 
       # 手动触发时需要先创建标签
       - name: Create tag for manual release
@@ -100,16 +104,18 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag -a "${{ github.event.inputs.tag_name }}" -m "Release ${{ github.event.inputs.tag_name }}"
-          git push origin "${{ github.event.inputs.tag_name }}"
+          git tag -a "$RELEASE_TAG" -m "Release $RELEASE_TAG"
+          git push origin "$RELEASE_TAG"
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "*.apk"
+          artifacts: "release-artifacts/*.apk"
+          artifactContentType: application/vnd.android.package-archive
+          artifactErrorsFailBuild: true
           token: ${{ github.token }}
           tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.ref_name }}
           generateReleaseNotes: true
           prerelease: ${{ contains(github.event_name == 'workflow_dispatch' && github.event.inputs.tag_name || github.ref_name, '-') }}
-          body: ${{ steps.release_notes.outputs.BODY }}
+          bodyFile: release-notes.md
           # 手动触发时，如果标签已存在则跳过创建
           skipIfReleaseExists: true

@@ -13,7 +13,7 @@
 
 构建沿用现有 Rust USB 检查、项目 Gradle Wrapper 和签名配置，使用 Secrets：`SIGNING_KEY`、`ALIAS`、`KEY_STORE_PASSWORD`、`KEY_PASSWORD`。APK 使用应用自身版本号和包名。
 
-原有正式发布工作流保持原样，本次没有改动。
+正式发布工作流同样支持这两种 ABI，但直接上传两个独立 APK 到 GitHub Release，使用方式见 [正式发布构建](release-build.md)。
 
 本地构建相同分包时执行：
 
@@ -21,4 +21,4 @@
 ./gradlew -PmeiAbiSplits=true :app:assembleRelease
 ```
 
-该选项仅由 Beta Build 显式开启，普通本地构建与原正式发布工作流的输出方式保持不变。
+Beta Build 与正式 Release 工作流都显式开启该选项；普通本地构建默认仍输出原有通用 APK。两套工作流共用 `tools/ci/prepare-apks.py` 校验签名和实际原生库架构。

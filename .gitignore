@@ -25,6 +25,9 @@ tempapplemusic-like-lyrics/
 temp/
 accompanist-lyrics-ui/
 tools/*
+!tools/ci/
+tools/ci/*
+!tools/ci/prepare-apks.py
 research/singer-diarization/
 video/
 
