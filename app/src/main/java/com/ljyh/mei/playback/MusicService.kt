@@ -124,6 +124,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -190,6 +191,9 @@ class MusicService : MediaLibraryService(),
 
     @Inject
     lateinit var mediaUriProvider: MediaUriProvider
+
+    @Inject
+    lateinit var autoEqRepository: com.ljyh.mei.data.repository.AutoEqRepository
 
     private var consecutiveFailedItems = 0
 
@@ -313,6 +317,7 @@ class MusicService : MediaLibraryService(),
         usbKeepAlive.start(scope)
         audioEffectsController = AudioEffectsController(this, scope, parametricEqualizerProcessor, reverbProcessor, limiterProcessor)
         standbyAudioEffectsController = AudioEffectsController(this, scope, standbyEqualizerProcessor)
+        observeAutoEq(scope)
 
         audioPlayer = AudioPlayer(player)
         transitionController = SmartTransitionController(
@@ -778,6 +783,33 @@ class MusicService : MediaLibraryService(),
                 val resolved = mediaUriProvider.resolveMedia(mediaId, quality)
                 dataSpec.buildUpon().setUri(resolved.uri).setKey(resolved.cacheKey).build()
             }
+        }
+    }
+
+    /**
+     * Applies a per-song EQ profile when auto EQ is enabled. The profile is fetched off the
+     * playback thread; a missing analysis simply restores the user's saved profile.
+     */
+    private fun observeAutoEq(scope: CoroutineScope) {
+        val enabled = dataStore.data.map { preferences ->
+            (preferences[com.ljyh.mei.constants.AutoEqEnabledKey] ?: false) to
+                ((preferences[com.ljyh.mei.constants.AutoEqIntensityKey] ?: 50) / 100f)
+        }.distinctUntilChanged()
+        scope.launch {
+            kotlinx.coroutines.flow.combine(
+                currentMediaMetadata.map { it?.id?.takeIf { id -> id > 0 } }.distinctUntilChanged(),
+                enabled,
+            ) { songId, config -> songId to config }
+                .collectLatest { (songId, config) ->
+                    val (autoEnabled, intensity) = config
+                    val profile = if (autoEnabled && songId != null) {
+                        autoEqRepository.features(songId)?.let {
+                            com.ljyh.mei.playback.equalizer.auto.AutoEqPlanner.plan(it, intensity)
+                        }
+                    } else null
+                    audioEffectsController.setAutoProfile(profile)
+                    standbyAudioEffectsController.setAutoProfile(profile)
+                }
         }
     }
 

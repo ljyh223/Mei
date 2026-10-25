@@ -8,6 +8,8 @@ import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.model.response.SongUrl
 import com.ljyh.mei.data.model.weapi.Like
+import com.ljyh.mei.playback.equalizer.auto.TrackAudioFeatures
+import com.ljyh.mei.playback.equalizer.auto.TrackAudioFeaturesParser
 import com.ljyh.mei.utils.encrypt.XeApiCrypto
 import com.ljyh.mei.utils.encrypt.XeApiPublicKey
 import com.ljyh.mei.utils.encrypt.XeApiSession
@@ -71,6 +73,11 @@ class XeApiClient(
     suspend fun getSongUrlV1(body: GetSongUrlV1): SongUrl {
         val request = buildSongUrlV1Request(body, context.dataStore[UserIdKey].orEmpty(), json)
         return json.decodeFromString(requestRaw(request))
+    }
+
+    suspend fun getEmotionAudioEffect(songIds: List<Long>): List<TrackAudioFeatures> {
+        if (songIds.isEmpty()) return emptyList()
+        return TrackAudioFeaturesParser.parse(requestRaw(buildEmotionAudioEffectRequest(songIds)))
     }
 
     suspend fun getLyricV1(id: String): Lyric =

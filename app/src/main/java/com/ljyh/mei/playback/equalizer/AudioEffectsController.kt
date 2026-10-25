@@ -25,11 +25,24 @@ class AudioEffectsController(
     private val reverb: FreeverbProcessor? = null,
     private val limiter: SoftLimiterProcessor? = null,
 ) {
+    private var savedProfile: EqualizerProfile = EqualizerProfile(
+        presetId = "flat",
+    )
+    private var autoProfile: EqualizerProfile? = null
+
+    /** Per-song profile from auto EQ; null restores the user's saved profile. */
+    @Synchronized
+    fun setAutoProfile(profile: EqualizerProfile?) {
+        autoProfile = profile
+        processor.setProfile(profile ?: savedProfile)
+    }
+
     private val preferenceJob: Job = scope.launch {
         context.dataStore.data.collectLatest { preferences ->
             val profile = EqualizerProfileCodec.decode(preferences[ParametricEqualizerProfileKey])
                 ?: legacyProfile(preferences[EqualizerEnabledKey] ?: false, preferences[EqualizerBandLevelsKey])
-            processor.setProfile(profile)
+            savedProfile = profile
+            processor.setProfile(autoProfile ?: profile)
             reverb?.setProfile(
                 ReverbProfileCodec.decode(preferences[ReverbProfileKey]) ?: ReverbProfile.Off
             )

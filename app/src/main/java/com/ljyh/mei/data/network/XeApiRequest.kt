@@ -71,6 +71,21 @@ internal fun buildLyricV1Url(id: String): Url =
         parameters.append("yrv", "0")
     }.build()
 
+/**
+ * Per-song audio analysis used by the smart-sound-effect screen. The client sends
+ * `songIds=[id1,id2]` as a form field and receives a raw JSON body; the response is not modelled
+ * on the Java side, so it is parsed by [com.ljyh.mei.playback.equalizer.auto.TrackAudioFeaturesParser].
+ */
+internal fun buildEmotionAudioEffectRequest(songIds: List<Long>): XeApiRequest {
+    require(songIds.isNotEmpty()) { "Empty song IDs" }
+    val wire = songIds.joinToString(",", prefix = "[", postfix = "]")
+    return XeApiRequest(
+        url = xeApiUrl("vip-rights/emotion/audio/effect/get"),
+        originalBody = XeApiOriginalBody.Form(listOf("songIds" to wire).formUrlEncode()),
+        antiCheatTokenVersion = AntiCheatTokenVersion.V2,
+    )
+}
+
 internal fun buildLikeRequest(body: Like): XeApiRequest = XeApiRequest(
     url = xeApiUrl("v1/radio/like"),
     originalBody = XeApiOriginalBody.Form(encodeLikeContent(body)),
