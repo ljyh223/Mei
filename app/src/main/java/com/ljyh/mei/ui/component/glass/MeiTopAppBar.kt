@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
@@ -17,7 +16,6 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
@@ -28,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
-import androidx.compose.foundation.background
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.draw.alpha
@@ -106,6 +103,7 @@ fun MeiGlassIconButton(
     enabled: Boolean = true,
     onLongClick: (() -> Unit)? = null,
     hazeState: HazeState? = LocalMeiHazeState.current,
+    onLongClickLabel: String? = null,
     content: @Composable () -> Unit,
 ) {
     MeiToolbarIconContainer(modifier = modifier.alpha(if (enabled) 1f else 0.38f), hazeState = hazeState) {
@@ -113,12 +111,13 @@ fun MeiGlassIconButton(
             Modifier.fillMaxSize().clip(CircleShape).combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
+                onLongClickLabel = onLongClickLabel,
                 enabled = enabled,
                 role = Role.Button,
             ),
             contentAlignment = Alignment.Center,
         ) {
-            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+            CompositionLocalProvider(LocalContentColor provides meiGlassContentColor()) {
                 Box(Modifier.size(MeiPageLayout.ToolbarIconSize), contentAlignment = Alignment.Center) { content() }
             }
         }
@@ -152,16 +151,11 @@ private fun MeiToolbarIconContainer(
     content: @Composable () -> Unit,
 ) {
     Box(modifier.size(MeiPageLayout.ToolbarTouchSize), contentAlignment = Alignment.Center) {
-        if (LocalMeiGlassEnabled.current) {
-            MeiGlassSurface(
-                modifier = Modifier.size(MeiPageLayout.ToolbarLensSize),
-                shape = RoundedCornerShape(50),
-                role = MeiGlassRole.ToolbarControl,
-                hazeState = hazeState,
-            ) {}
-        } else {
-            Box(Modifier.size(MeiPageLayout.ToolbarLensSize).background(MaterialTheme.colorScheme.surfaceContainerLow, CircleShape))
-        }
+        MeiGlassSurface(
+            modifier = Modifier.size(MeiPageLayout.ToolbarLensSize),
+            shape = CircleShape,
+            hazeState = hazeState,
+        ) {}
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
     }
 }

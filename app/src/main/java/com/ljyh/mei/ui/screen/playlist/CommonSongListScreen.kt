@@ -5,6 +5,8 @@ import com.ljyh.mei.playback.queue.QueueSource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.Column
@@ -19,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,10 +61,12 @@ import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.ui.model.PlaylistHeaderStyle
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionOverlay
-import com.ljyh.mei.ui.screen.playlist.component.PlaylistHeader
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistDetailHeader
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
-import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
+import com.ljyh.mei.utils.share.MediaShareLink
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
@@ -139,20 +142,17 @@ fun CommonSongListScreen(
                         if (isPlaylistSearchActive) onPlaylistSearchActiveChange(false) else onBack()
                     },
                     actions = {
-                        if (supportsPlaylistSearch && !isLoading) {
-                            MeiGlassIconButton(onClick = {
-                                if (isPlaylistSearchActive) {
-                                    onPlaylistSearchQueryChange("")
-                                    onPlaylistSearchActiveChange(false)
-                                } else {
-                                    onPlaylistSearchActiveChange(true)
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = if (isPlaylistSearchActive) Icons.Default.Close else Icons.Default.Search,
-                                    contentDescription = if (isPlaylistSearchActive) "关闭歌单搜索" else "搜索歌单"
-                                )
-                            }
+                        if (!isLoading) {
+                            MeiDetailMoreButton(
+                                shareContent = MediaShareLink.playlist(uiData.id, uiData.title, uiData.creatorName),
+                                playlistCoverUrl = uiData.cover,
+                                searchActive = isPlaylistSearchActive,
+                                searchLabel = "搜索歌单",
+                                onSearchActiveChange = if (supportsPlaylistSearch) { active ->
+                                    if (!active) onPlaylistSearchQueryChange("")
+                                    onPlaylistSearchActiveChange(active)
+                                } else null,
+                            )
                         }
                     },
                     titleContent = if (isPlaylistSearchActive && !(device.isTablet && device.isLandscape)) {
@@ -183,29 +183,25 @@ fun CommonSongListScreen(
                     .background(MaterialTheme.colorScheme.surface),
             ) {
                     if (!isLoading && uiData.cover.isNotEmpty()) {
-                        PlaylistBackground(coverUrl = uiData.cover)
+                        PlaylistBackground(
+                            coverUrl = uiData.cover,
+                            emphasized = uiData.headerStyle != PlaylistHeaderStyle.Standard,
+                        )
                     }
                     if (device.isTablet && device.isLandscape) {
                         // --- 平板布局：左右并排 ---
                         Row(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                            Box(modifier = Modifier.weight(0.4f).align(Alignment.CenterVertically)) {
-                                if (customHeader != null) customHeader() else PlaylistHeader(
-                                    title = uiData.title,
-                                    cover = uiData.cover,
-                                    coverList = uiData.coverList,
-                                    creator = uiData.creatorName,
+                            Box(modifier = Modifier.weight(0.4f).align(Alignment.CenterVertically)
+                                .verticalScroll(rememberScrollState())) {
+                                if (customHeader != null) customHeader() else PlaylistDetailHeader(
+                                    playlist = uiData,
+                                    isLoading = isLoading,
                                     onPlayAll = onPlayAll,
+                                    onHeaderAction = onHeaderAction,
                                     onDownload = onDownload,
                                     actionIcon = headerActionIcon,
                                     actionLabel = headerActionLabel,
-                                    count = uiData.count,
-                                    playCount = uiData.playCount ?: 0L,
-                                    subscribeCount = uiData.subscriberCount,
-                                    isSubscribed = uiData.isSubscribed,
-                                    isLoading = isLoading,
-                                    onSubscribed = {
-                                        onHeaderAction()
-                                    }
+                                    compact = true,
                                 )
                             }
                             Column(modifier = Modifier.weight(0.6f)) {
@@ -258,21 +254,14 @@ fun CommonSongListScreen(
                             lazyListState = lazyListState,
                             // 关键：把 Header 作为参数传进去
                             headerContent = {
-                                if (customHeader != null) customHeader() else PlaylistHeader(
-                                    title = uiData.title,
-                                    cover = uiData.cover,
-                                    coverList = uiData.coverList,
-                                    creator = uiData.creatorName,
+                                if (customHeader != null) customHeader() else PlaylistDetailHeader(
+                                    playlist = uiData,
+                                    isLoading = isLoading,
                                     onPlayAll = onPlayAll,
+                                    onHeaderAction = onHeaderAction,
                                     onDownload = onDownload,
                                     actionIcon = headerActionIcon,
                                     actionLabel = headerActionLabel,
-                                    count = uiData.count,
-                                    playCount = uiData.playCount ?: 0L,
-                                    subscribeCount = uiData.subscriberCount,
-                                    isSubscribed = uiData.isSubscribed,
-                                    isLoading = isLoading,
-                                    onSubscribed = { onHeaderAction() }
                                 )
                             },
                             onTrackClick = onTrackClick,

@@ -1,27 +1,23 @@
 package com.ljyh.mei.ui.screen.setting
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -42,12 +38,14 @@ import com.ljyh.mei.constants.ReverbProfileKey
 import com.ljyh.mei.playback.equalizer.ReverbPresets
 import com.ljyh.mei.playback.equalizer.ReverbProfile
 import com.ljyh.mei.playback.equalizer.ReverbProfileCodec
-import com.ljyh.mei.ui.component.IconButton
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
+import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
 import com.ljyh.mei.utils.preferences.dataStore
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -94,43 +92,30 @@ fun ReverbSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
         onDispose { playerConnection?.service?.previewReverbProfile(committed.value) }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("混响") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                actions = {
-                    Switch(
-                        checked = profile.enabled,
-                        onCheckedChange = { commit(profile.copy(enabled = it)) },
-                        modifier = Modifier.padding(end = 16.dp)
-                            .semantics { contentDescription = "启用混响" },
-                    )
-                },
-                scrollBehavior = scrollBehavior,
-            )
-        }
+    MeiPinnedPage(
+        title = "混响",
+        onNavigateBack = navController::navigateUp,
+        onBackLongClick = navController::backToMain,
     ) { paddingValues ->
         Column(
             Modifier
-                .padding(paddingValues)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-                    )
-                )
-                .verticalScroll(rememberScrollState()),
+                .fillMaxSize()
+                .verticalScroll(LocalMeiPageScroll.current!!)
+                .padding(paddingValues),
         ) {
+            MeiLargeTitle("混响")
+            PreferenceSection("音效") {
+                SwitchPreference(
+                    title = { Text("启用混响") },
+                    icon = { Icon(Icons.Rounded.Waves, contentDescription = null) },
+                    checked = profile.enabled,
+                    onCheckedChange = { commit(profile.copy(enabled = it)) },
+                )
+            }
             PreferenceSection("房间预设") {
                 Row(
                     Modifier.fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
                         .horizontalScroll(rememberScrollState())
                         .padding(horizontal = 12.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -206,10 +191,14 @@ private fun ReverbSlider(
     onValueChange: (Float) -> Unit,
     onFinished: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(
+        Modifier.fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(title, style = MaterialTheme.typography.bodyLarge)
                 Text(
                     description,
                     style = MaterialTheme.typography.bodySmall,
@@ -218,7 +207,10 @@ private fun ReverbSlider(
             }
             Text(
                 if (percent) "${(value * 100).roundToInt()}%" else value.roundToInt().toString(),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                modifier = Modifier.padding(start = 12.dp),
             )
         }
         Slider(

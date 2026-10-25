@@ -1,6 +1,17 @@
 package com.ljyh.mei.ui.model
 
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.response.MiniPlaylistDetail
+
+enum class PlaylistHeaderStyle { Standard, Chart, Radar, Liked }
+
+/** Special playlist metadata takes precedence over names supplied by users. */
+fun MiniPlaylistDetail.headerStyle(): PlaylistHeaderStyle = when {
+    specialType == 5 -> PlaylistHeaderStyle.Liked
+    specialType == 10 || !toplistType.isNullOrBlank() -> PlaylistHeaderStyle.Chart
+    name.contains("雷达") && creatorUserType == 10 -> PlaylistHeaderStyle.Radar
+    else -> PlaylistHeaderStyle.Standard
+}
 
 data class UiPlaylist(
     val id: Long,
@@ -16,4 +27,6 @@ data class UiPlaylist(
     val trackCount: Int = tracks.size,
     val playCount: Long? = null, // 每日推荐可能没有播放量
     val isSubscribed: Boolean = false, // 收藏状态
+    val headerStyle: PlaylistHeaderStyle = PlaylistHeaderStyle.Standard,
+    val updateTime: Long = 0,
 )

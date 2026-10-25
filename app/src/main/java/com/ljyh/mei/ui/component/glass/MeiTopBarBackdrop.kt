@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -25,6 +26,7 @@ import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 
 private val TopBarTransitionExtension = 34.dp
+private val ReducedTransparencyTransitionExtension = 16.dp
 private const val TopBarTransitionStart = 0.42f
 
 /**
@@ -38,7 +40,10 @@ internal fun MeiTopBarBackdrop(
     modifier: Modifier = Modifier,
     progress: Float = 1f,
 ) {
-    val live = LocalMeiGlassEnabled.current && state != null && Build.VERSION.SDK_INT >= 33
+    val appearance = LocalMeiGlassAppearance.current
+    val reduced = appearance.reduceTransparency
+    val live = appearance.usesOptics(LocalMeiGlassEnabled.current && Build.VERSION.SDK_INT >= 33) && state != null
+    val transitionExtension = if (reduced) ReducedTransparencyTransitionExtension else TopBarTransitionExtension
     val surface = MaterialTheme.colorScheme.surface
     // Live sampling already softens detail. A strong surface scrim washes artwork into a white band.
     // Only the no-blur fallback needs a more opaque background for text legibility.
@@ -53,7 +58,7 @@ internal fun MeiTopBarBackdrop(
     Box(
         modifier.layout { measurable, constraints ->
             // Report the original bar height, so the transition cannot add list padding or move controls.
-            val extension = if (constraints.hasBoundedHeight) TopBarTransitionExtension.roundToPx() else 0
+            val extension = if (constraints.hasBoundedHeight) transitionExtension.roundToPx() else 0
             val placeable = measurable.measure(
                 if (extension > 0) constraints.copy(
                     minHeight = constraints.minHeight + extension,
@@ -64,7 +69,8 @@ internal fun MeiTopBarBackdrop(
                 placeable.place(0, 0)
             }
         }.graphicsLayer {
-            alpha = progress.coerceIn(0f, 1f)
+            // Reading protection stays present even before the scrolling title appears.
+            alpha = if (reduced) 1f else progress.coerceIn(0f, 1f)
         }.clipToBounds(),
     ) {
         if (live) {
@@ -77,9 +83,24 @@ internal fun MeiTopBarBackdrop(
                 ),
             )
         }
-        // Independent from the optical effect: preserve the page's hues while reducing detail.
-        // Static fallback uses the same gentle scrim without recording or filtering a backdrop.
-        Box(Modifier.matchParentSize().background(tint))
+        if (reduced) {
+            Box(Modifier.matchParentSize().drawWithCache {
+                // Only the extension fades. The entire measured toolbar, including the status
+                // area, stays opaque; no additional layout space is reserved for the fade.
+                val end = size.height.coerceAtLeast(1f)
+                val start = (end - transitionExtension.toPx()).coerceAtLeast(0f)
+                val solid = surface.copy(alpha = 1f)
+                val fade = Brush.verticalGradient(
+                    colors = listOf(solid, solid.copy(alpha = 0f)),
+                    startY = start,
+                    endY = end,
+                )
+                onDrawBehind { drawRect(fade) }
+            })
+        } else {
+            // Normal glass keeps its existing progressive sampling and gentle scrim.
+            Box(Modifier.matchParentSize().background(tint))
+        }
     }
 }
 

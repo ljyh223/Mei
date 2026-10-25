@@ -37,6 +37,7 @@ import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
+import com.ljyh.mei.ui.model.headerStyle
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
@@ -148,7 +149,7 @@ fun PlaylistScreen(
                 title = data.name,
                 count = visibleTrackCount,
                 subscriberCount = data.subscribedCount,
-                cover = data.cover.firstOrNull().orEmpty(),
+                cover = data.coverUrl.ifBlank { data.cover.firstOrNull().orEmpty() },
                 coverList = data.cover,
                 creatorName = data.createUserName,
                 isCreator = data.creatorUserId.toString() == userId,
@@ -156,7 +157,9 @@ fun PlaylistScreen(
                 tracks = data.tracks.filterNot { it.id in removedTrackIds },
                 trackCount = visibleTrackCount,
                 playCount = data.playCount,
-                isSubscribed = data.subscribed // 注意：这里仅用于 UI 初始化，后续由 isSubscribed 状态变量控制
+                isSubscribed = data.subscribed,
+                headerStyle = data.headerStyle(),
+                updateTime = data.updateTime,
             )
         } else {
             UiPlaylist(
@@ -356,7 +359,7 @@ fun PlaylistScreen(
         }
     } else {
         CommonSongListScreen(
-            uiData = uiData,
+            uiData = uiData.copy(isSubscribed = isSubscribed),
             pagingItems = lazyPagingItems,
             isLoading = playlistDetail is Resource.Loading,
 

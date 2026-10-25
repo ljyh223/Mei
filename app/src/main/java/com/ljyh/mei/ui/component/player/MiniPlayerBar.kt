@@ -41,9 +41,8 @@ import coil3.request.ImageRequest
 import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCoverCornerRadius
 import com.ljyh.mei.constants.MiniPlayerCoverSize
-import com.ljyh.mei.ui.component.glass.MeiGlassRole
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
-import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
+import com.ljyh.mei.ui.component.glass.meiGlassContentColor
 import com.ljyh.mei.utils.image.smallImage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
@@ -71,7 +70,6 @@ fun MiniPlayerBarContent(
                 .padding(horizontal = horizontalMargin)
                 .height(MiniPlayerBarHeight),
             shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
-            role = MeiGlassRole.MiniPlayer,
         ) {
             // Insets stay outside the floating surface; cover coordinates remain sheet-local.
             Row(
@@ -98,7 +96,7 @@ fun MiniPlayerBarContent(
                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "暂停" else "播放",
                         modifier = Modifier.size(22.dp),
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        tint = meiGlassContentColor(),
                     )
                 }
 
@@ -118,7 +116,7 @@ fun MiniPlayerBarContent(
                             imageVector = Icons.Rounded.SkipNext,
                             contentDescription = "下一首",
                             modifier = Modifier.size(22.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(
+                            tint = meiGlassContentColor().copy(
                                 alpha = if (canSkipNext) 1f else 0.38f,
                             ),
                         )
@@ -176,8 +174,8 @@ private fun MiniPlayerSongContent(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                text = title,
-                color = MaterialTheme.colorScheme.onSurface,
+                text = rememberPlayerDisplayTitle(title),
+                color = meiGlassContentColor(),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -186,8 +184,7 @@ private fun MiniPlayerSongContent(
             )
             if (LocalDensity.current.fontScale <= 1.4f) Text(
                 text = artist,
-                color = if (LocalMeiGlassAppearance.current.strongContent) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = meiGlassContentColor(secondary = true),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

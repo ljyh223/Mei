@@ -54,6 +54,7 @@ import com.ljyh.mei.constants.DynamicCoverEnabledKey
 import com.ljyh.mei.constants.NeteaseDynamicCoverKey
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.OriginalCoverKey
+import com.ljyh.mei.constants.HidePlayerTitleBracketsKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
@@ -135,6 +136,9 @@ fun AppearanceSettingsScreen(
         defaultValue = false
     )
 
+    val (hideTitleBrackets, onHideTitleBracketsChange) = rememberPreference(
+        HidePlayerTitleBracketsKey, defaultValue = false
+    )
     val (debug, onDebug) = rememberPreference(
         DebugKey, defaultValue = false
     )
@@ -195,11 +199,17 @@ fun AppearanceSettingsScreen(
 
             PreferenceSection("主题") {
                 SwitchPreference(
-                    title = { Text("流体玻璃") },
+                    title = { Text("液态玻璃") },
                     description = "导航、搜索与播放控件的通透材质；省电时自动简化",
                     icon = { Icon(Icons.Rounded.BlurOn, contentDescription = null) },
                     checked = glassEnabled,
                     onCheckedChange = onGlassEnabledChange,
+                )
+                PreferenceEntry(
+                    title = { Text("玻璃材质") },
+                    description = "透明度、折射与清晰度",
+                    icon = { Icon(Icons.Rounded.Visibility, contentDescription = null) },
+                    onClick = { navController.navigate(Screen.GlassSettings.route) },
                 )
                 SwitchPreference(
                     title = { Text("动态主题") },
@@ -258,6 +268,13 @@ fun AppearanceSettingsScreen(
                 )
             }
             PreferenceSection("播放界面") {
+                SwitchPreference(
+                    title = { Text("隐藏歌名括号内容") },
+                    description = "在迷你播放条和完整播放器标题中隐藏中英文括号及其中内容",
+                    icon = { Icon(Icons.Rounded.FormatBold, null) },
+                    checked = hideTitleBrackets,
+                    onCheckedChange = onHideTitleBracketsChange,
+                )
 
                 // 原图封面
                 SwitchPreference(
@@ -371,7 +388,7 @@ fun AppearanceSettingsScreen(
 
                 SwitchPreference(
                     title = { Text("Debug") },
-                    description = "player debug",
+                    description = "显示歌曲和歌单菜单中的调试复制操作",
                     icon = { Icon(Icons.Rounded.Kitesurfing, null) },
                     checked = debug,
                     onCheckedChange = onDebug

@@ -74,7 +74,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
-import com.ljyh.mei.ui.component.glass.MeiGlassRole
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
 import com.ljyh.mei.R
 import com.ljyh.mei.constants.AppBarHeight
@@ -182,7 +181,6 @@ fun SearchBar(
 
         MeiGlassSurface(
             shape = animatedShape,
-            role = MeiGlassRole.Search,
             hazeState = if (animationProgress == 0f) LocalMeiHazeState.current else null,
             modifier = Modifier
                 .padding(

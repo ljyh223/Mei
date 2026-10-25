@@ -23,6 +23,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.player.rememberPlayerDisplayTitle
 
 @Composable
 fun Title(
@@ -58,7 +59,7 @@ fun Title(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = title,
+                text = rememberPlayerDisplayTitle(title),
                 style = titleStyle.copy(
                     shadow = shadowStyle,
                     fontWeight = FontWeight.Bold

@@ -1,6 +1,7 @@
 package com.ljyh.mei.playback.queue
 
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.utils.share.MediaShareLink
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
@@ -163,4 +164,35 @@ class PlaybackQueueSnapshotTest {
         )
         for (value in invalid) assertNull(value, PlaybackQueueSnapshotCodec.decode(value))
     }
+    @Test
+    fun unmatchedLocalSongDoesNotGainAPublicIdWhenNullsAreOmittedByTheQueueCodec() {
+        val song = MediaMetadata(42, "Local song", "", emptyList(), 1000,
+            MediaMetadata.Album(0, ""), neteaseId = 0L)
+        val snapshot = PlaybackQueueSnapshot(listOf("42"), currentSong = song,
+            entries = listOf(QueueEntrySnapshot("local-entry", QueueSource(QueueSource.Type.LOCAL))))
+        val restored = requireNotNull(PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(snapshot)))
+        assertEquals(snapshot, restored)
+        assertNull(MediaShareLink.song(requireNotNull(restored.currentSong)))
+    }
+
+    @Test
+    fun matchedLocalSongRetainsItsPublicIdAfterQueueRestore() {
+        val song = MediaMetadata(42, "Matched song", "", emptyList(), 1000,
+            MediaMetadata.Album(0, ""), neteaseId = 5678L)
+        val snapshot = PlaybackQueueSnapshot(listOf("42"), currentSong = song,
+            entries = listOf(QueueEntrySnapshot("local-entry", QueueSource(QueueSource.Type.LOCAL))))
+        val restored = requireNotNull(PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(snapshot)))
+        assertEquals(snapshot, restored)
+        assertEquals("https://music.163.com/song?id=5678", MediaShareLink.song(requireNotNull(restored.currentSong))?.url)
+    }
+
+    @Test
+    fun oldLocalQueueWithoutConfirmedCatalogueIdIsNotShareable() {
+        val old = """{"ids":["42"],"currentSong":{"id":42,"title":"Local song","coverUrl":"","artists":[],"duration":1000,"album":{"id":0,"title":""}},"entries":[{"entryId":"local-entry","source":{"type":"LOCAL"}}]}"""
+        val restored = requireNotNull(PlaybackQueueSnapshotCodec.decode(old))
+        assertEquals(42L, restored.currentSong?.id)
+        assertEquals(0L, restored.currentSong?.neteaseId)
+        assertNull(MediaShareLink.song(requireNotNull(restored.currentSong)))
+    }
+
 }

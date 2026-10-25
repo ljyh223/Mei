@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.ui.component.player.rememberPlayerDisplayTitle
 
 @Composable
 fun PlayerHeader(
@@ -63,7 +64,7 @@ fun PlayerHeader(
         ) {
             // --- 标题部分 ---
             Text(
-                text = mediaMetadata.title,
+                text = rememberPlayerDisplayTitle(mediaMetadata.title),
                 style = MaterialTheme.typography.headlineSmall.copy(
                     shadow = shadowStyle,
                     fontWeight = FontWeight.Bold

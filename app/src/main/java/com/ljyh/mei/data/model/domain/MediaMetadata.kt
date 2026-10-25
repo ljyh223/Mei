@@ -9,6 +9,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.data.model.room.SourceType
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.response.AlbumDetail
 import com.ljyh.mei.data.model.response.PlaylistDetail
@@ -26,7 +27,10 @@ data class MediaMetadata(
     val duration: Long,
     val album: Album,
     val explicit: Boolean = false,
-    val tns:String?=null
+    val tns:String?=null,
+    // Local library IDs are not public catalogue IDs. Zero means no confirmed public ID;
+    // a non-null sentinel also survives queue codecs that omit null properties.
+    val neteaseId: Long = id.takeIf { it > 0 } ?: 0L,
 ) {
     @Serializable
     data class Artist(
@@ -243,7 +247,10 @@ fun com.ljyh.mei.data.model.room.Song.toMediaMetadata(): MediaMetadata {
             MediaMetadata.Artist(id = name.hashCode().toLong().let { if (it < 0) -it else it }, name = name)
         },
         duration = duration * 1000,
-        album = MediaMetadata.Album(id = album.hashCode().toLong().let { if (it < 0) -it else it }, title = album)
+        album = MediaMetadata.Album(id = album.hashCode().toLong().let { if (it < 0) -it else it }, title = album),
+        neteaseId = if (sourceType == SourceType.LOCAL || id.startsWith("local_")) {
+            matchedNeteaseId?.takeIf { it > 0 } ?: 0L
+        } else id.toLongOrNull()?.takeIf { it > 0 } ?: 0L,
     )
 }
 

@@ -26,16 +26,12 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.ljyh.mei.constants.CoverBackgroundConfidenceKey
-import com.ljyh.mei.constants.CoverBackgroundToleranceKey
-import com.ljyh.mei.constants.CoverSingleEdgeMatchKey
-import com.ljyh.mei.constants.CoverSoftEdgeMatchKey
-import com.ljyh.mei.constants.CoverSolidEdgeMatchKey
 import com.ljyh.mei.utils.image.CoverBackgroundConfig
 import com.ljyh.mei.utils.image.CoverExtensionMode
 import com.ljyh.mei.utils.image.analyzeCoverBackground
 import com.ljyh.mei.utils.image.buildCoverEdgeTexture
-import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberCoverBackgroundSettings
+import com.ljyh.mei.utils.image.AlbumBackgroundAnalysis
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -46,10 +42,12 @@ import kotlin.math.roundToInt
 private const val AnalysisSize = 128
 private const val TextureSize = 64
 
-private data class CoverEdgeResult(
+internal data class CoverEdgeResult(
     val url: String,
     val config: CoverBackgroundConfig,
-    val artwork: CoverEdgeArtwork?,
+    val artwork: CoverEdgeArtwork? = null,
+    val analysis: AlbumBackgroundAnalysis? = null,
+    val failure: String? = null,
 )
 
 internal class CoverEdgeArtwork(
@@ -61,110 +59,104 @@ internal class CoverEdgeArtwork(
 
 private object CoverEdgeDecisions {
     private data class Key(val url: String, val config: CoverBackgroundConfig)
-    private val values = LinkedHashMap<Key, CoverEdgeArtwork?>(32, 0.75f, true)
+    private val values = LinkedHashMap<Key, CoverEdgeResult>(32, 0.75f, true)
 
-    fun get(url: String, config: CoverBackgroundConfig): Pair<Boolean, CoverEdgeArtwork?> = synchronized(values) {
-        val key = Key(url, config)
-        values.containsKey(key) to values[key]
+    fun get(url: String, config: CoverBackgroundConfig): CoverEdgeResult? = synchronized(values) {
+        values[Key(url, config)]
     }
 
-    fun put(url: String, config: CoverBackgroundConfig, artwork: CoverEdgeArtwork?) = synchronized(values) {
-        values[Key(url, config)] = artwork
+    fun put(result: CoverEdgeResult) = synchronized(values) {
+        values[Key(result.url, result.config)] = result
         if (values.size > 32) values.remove(values.keys.first())
     }
 }
 
-/** Classifies a cover once, then keeps its small edge textures for later player openings. */
+/** The player and settings share the same classification, configuration key and cached pixels. */
 @Composable
 internal fun rememberCoverEdgeArtwork(imageUrl: String?): CoverEdgeArtwork? {
+    val settings by rememberCoverBackgroundSettings()
+    return rememberCoverEdgeResult(imageUrl, settings.config)?.artwork
+}
+
+@Composable
+internal fun rememberCoverEdgeResult(imageUrl: String?, config: CoverBackgroundConfig): CoverEdgeResult? {
     val context = LocalContext.current
-    val defaults = remember { CoverBackgroundConfig() }
-    val (tolerance) = rememberPreference(CoverBackgroundToleranceKey, defaults.colorTolerance)
-    val (backgroundConfidence) = rememberPreference(CoverBackgroundConfidenceKey, defaults.minimumBackgroundConfidence)
-    val (solidEdgeMatch) = rememberPreference(CoverSolidEdgeMatchKey, defaults.solidEdgeMatch)
-    val (softEdgeMatch) = rememberPreference(CoverSoftEdgeMatchKey, defaults.softEdgeMatch)
-    val (singleEdgeMatch) = rememberPreference(CoverSingleEdgeMatchKey, defaults.minimumSingleEdgeMatch)
-    val config = CoverBackgroundConfig(
-        colorTolerance = tolerance,
-        minimumBackgroundConfidence = backgroundConfidence,
-        solidEdgeMatch = solidEdgeMatch,
-        softEdgeMatch = softEdgeMatch,
-        minimumSingleEdgeMatch = singleEdgeMatch,
-    )
     val result by produceState<CoverEdgeResult?>(null, imageUrl, config) {
         if (imageUrl.isNullOrBlank()) return@produceState
-        val (cached, decision) = CoverEdgeDecisions.get(imageUrl, config)
-        if (cached) {
-            value = CoverEdgeResult(imageUrl, config, decision)
+        val cached = CoverEdgeDecisions.get(imageUrl, config)
+        if (cached != null) {
+            value = cached
             return@produceState
         }
         try {
-            val result = withContext(Dispatchers.IO) {
+            val loaded = withContext(Dispatchers.IO) {
                 context.imageLoader.execute(
                     ImageRequest.Builder(context)
                         .data(imageUrl)
                         .size(256)
                         .allowHardware(false)
-                        .build()
+                        .build(),
                 ) as? SuccessResult
-            } ?: return@produceState
+            }
+            if (loaded == null) {
+                value = CoverEdgeResult(imageUrl, config, failure = "暂时无法读取封面，请稍后重试")
+                return@produceState
+            }
             val analyzed = withContext(Dispatchers.Default) {
-                val original = result.image.toBitmap()
+                val original = loaded.image.toBitmap()
                 if (abs(original.width - original.height) > max(original.width, original.height) * 0.05f) {
-                    return@withContext null
+                    return@withContext CoverEdgeResult(imageUrl, config, failure = "仅分析接近正方形的静态封面")
                 }
                 val reduced = Bitmap.createScaledBitmap(original, AnalysisSize, AnalysisSize, true)
                 try {
                     val pixels = IntArray(AnalysisSize * AnalysisSize)
                     reduced.getPixels(pixels, 0, AnalysisSize, 0, 0, AnalysisSize, AnalysisSize)
                     val analysis = analyzeCoverBackground(pixels, AnalysisSize, AnalysisSize, config)
-                    if (analysis == null || !analysis.isSolidBackground) {
-                        return@withContext null
+                    if (analysis == null) {
+                        return@withContext CoverEdgeResult(imageUrl, config, failure = "封面没有足够的有效边缘像素")
                     }
-                    // Extension and feather are low-frequency; a 64² texture quarters the
-                    // retained bitmap memory without a visible difference.
+                    if (!analysis.isSolidBackground || analysis.mode == CoverExtensionMode.NONE) {
+                        return@withContext CoverEdgeResult(imageUrl, config, analysis = analysis)
+                    }
                     val texturePixels = IntArray(TextureSize * TextureSize)
-                    if (AnalysisSize == TextureSize) {
-                        pixels.copyInto(texturePixels)
-                    } else {
-                        val textureBitmap = Bitmap.createScaledBitmap(reduced, TextureSize, TextureSize, true)
-                        try {
-                            textureBitmap.getPixels(
-                                texturePixels, 0, TextureSize, 0, 0, TextureSize, TextureSize,
-                            )
-                        } finally {
-                            if (textureBitmap !== reduced) textureBitmap.recycle()
-                        }
+                    val textureBitmap = Bitmap.createScaledBitmap(reduced, TextureSize, TextureSize, true)
+                    try {
+                        textureBitmap.getPixels(texturePixels, 0, TextureSize, 0, 0, TextureSize, TextureSize)
+                    } finally {
+                        if (textureBitmap !== reduced) textureBitmap.recycle()
                     }
                     val textures = buildCoverEdgeTexture(
-                        texturePixels, TextureSize, TextureSize, analysis.color, analysis.mode,
-                        analysis.sideMatches,
+                        texturePixels, TextureSize, TextureSize, analysis.color, analysis.mode, analysis.sideMatches,
                     )
-                    CoverEdgeArtwork(
-                        texture = Bitmap.createBitmap(
-                            textures.extension, TextureSize, TextureSize, Bitmap.Config.ARGB_8888,
+                    CoverEdgeResult(
+                        url = imageUrl,
+                        config = config,
+                        analysis = analysis,
+                        artwork = CoverEdgeArtwork(
+                            texture = Bitmap.createBitmap(
+                                textures.extension, TextureSize, TextureSize, Bitmap.Config.ARGB_8888,
+                            ),
+                            feather = Bitmap.createBitmap(
+                                textures.feather, TextureSize, TextureSize, Bitmap.Config.ARGB_8888,
+                            ).asImageBitmap(),
+                            controlsColor = Color(textures.controlsColor),
+                            mode = analysis.mode,
                         ),
-                        feather = Bitmap.createBitmap(
-                            textures.feather, TextureSize, TextureSize, Bitmap.Config.ARGB_8888,
-                        ).asImageBitmap(),
-                        controlsColor = Color(textures.controlsColor),
-                        mode = analysis.mode,
                     )
                 } finally {
                     if (reduced !== original) reduced.recycle()
                 }
             }
-            CoverEdgeDecisions.put(imageUrl, config, analyzed)
-            value = CoverEdgeResult(imageUrl, config, analyzed)
+            if (analyzed.failure == null) CoverEdgeDecisions.put(analyzed)
+            value = analyzed
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            // An unsuccessful load is retried on the next opening.
+            value = CoverEdgeResult(imageUrl, config, failure = "暂时无法分析封面，请稍后重试")
         }
     }
-    // produceState keeps its previous value until the new effect starts. Never expose the
-    // previous song's edge color during that gap, even when the new request stalls.
-    return result?.takeIf { it.url == imageUrl && it.config == config }?.artwork
+    // Invalidate the previous song's result immediately while the new request is still starting.
+    return result?.takeIf { it.url == imageUrl && it.config == config }
 }
 
 /** CLAMP extends the sampled background color beyond the square cover. */

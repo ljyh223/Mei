@@ -15,7 +15,7 @@ data class PlaylistDetail(
     data class Playlist(
         @SerialName("coverImgUrl") val coverImgUrl: String,
         @SerialName("creator") val creator: Creator,
-    @SerialName("description") val description: String? = null,
+        @SerialName("description") val description: String? = null,
         @SerialName("id") val Id: Long,
         @SerialName("name") val name: String,
         @SerialName("playCount") val playCount: Long,
@@ -23,12 +23,16 @@ data class PlaylistDetail(
         @SerialName("subscribedCount") val subscribedCount: Long,
         @SerialName("trackCount") val trackCount: Int,
         @SerialName("trackIds") val trackIds: List<TrackId>,
-        @SerialName("tracks") val tracks: List<Track>
+        @SerialName("tracks") val tracks: List<Track>,
+        @SerialName("specialType") val specialType: Int = 0,
+        @SerialName("ToplistType") val toplistType: String? = null,
+        @SerialName("updateTime") val updateTime: Long = 0,
     ) {
         @Serializable
         data class Creator(
             @SerialName("nickname") val nickname: String,
-            @SerialName("userId") val userId: Long
+            @SerialName("userId") val userId: Long,
+            @SerialName("userType") val userType: Int = 0,
         )
 
         @Serializable
@@ -73,7 +77,12 @@ data class MiniPlaylistDetail(
     val createUserName: String,
     val playCount: Long,
     val subscribedCount: Long,
-    val subscribed: Boolean
+    val subscribed: Boolean,
+    val coverUrl: String = "",
+    val specialType: Int = 0,
+    val toplistType: String? = null,
+    val updateTime: Long = 0,
+    val creatorUserType: Int = 0,
 )
 
 internal fun PlaylistDetail.toDomain(): MiniPlaylistDetail {
@@ -90,6 +99,11 @@ internal fun PlaylistDetail.toDomain(): MiniPlaylistDetail {
         createUserName = playlist.creator.nickname,
         playCount = playlist.playCount,
         subscribedCount = playlist.subscribedCount,
-        subscribed = playlist.subscribed
+        subscribed = playlist.subscribed,
+        coverUrl = playlist.coverImgUrl,
+        specialType = playlist.specialType,
+        toplistType = playlist.toplistType,
+        updateTime = playlist.updateTime,
+        creatorUserType = playlist.creator.userType,
     )
 }

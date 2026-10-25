@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -76,7 +75,8 @@ import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import java.time.Instant
 import java.time.ZoneId
-import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
+import com.ljyh.mei.utils.share.MediaShareLink
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -208,15 +208,15 @@ internal fun AlbumDetailContent(
             progress = if (titleInBar || isSearchActive) 1f else 0f,
             onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
             actions = {
-                MeiGlassIconButton(onClick = {
-                    if (isSearchActive) onSearchQueryChange("")
-                    onSearchActiveChange(!isSearchActive)
-                }) {
-                    Icon(
-                        if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                        contentDescription = if (isSearchActive) "关闭搜索" else "搜索专辑歌曲",
-                    )
-                }
+                MeiDetailMoreButton(
+                    shareContent = MediaShareLink.album(album),
+                    searchActive = isSearchActive,
+                    searchLabel = "搜索专辑歌曲",
+                    onSearchActiveChange = { active ->
+                        if (!active) onSearchQueryChange("")
+                        onSearchActiveChange(active)
+                    },
+                )
             },
             titleContent = {
                 if (isSearchActive) {

@@ -4,6 +4,8 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 
 /** The current song includes its metadata so the mini player is usable before network requests. */
 @Serializable
@@ -41,5 +43,16 @@ internal object PlaybackQueueSnapshotCodec {
                     (snapshot.currentSong == null ||
                         snapshot.currentSong.id.toString() == snapshot.ids[snapshot.currentIndex])
             }
+            ?.let { snapshot ->
+                // Older local queue snapshots have only an internal numeric song ID.
+                // Without an explicitly saved catalogue ID, do not turn it into a public link.
+                val local = snapshot.entries?.getOrNull(snapshot.currentIndex)?.source?.type == QueueSource.Type.LOCAL
+                val song = snapshot.currentSong
+                if (local && song != null &&
+                    (json.parseToJsonElement(requireNotNull(value)).jsonObject["currentSong"] as? JsonObject)
+                        ?.containsKey("neteaseId") != true
+                ) snapshot.copy(currentSong = song.copy(neteaseId = 0L)) else snapshot
+            }
+
     }.getOrNull()
 }

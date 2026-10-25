@@ -31,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,7 +69,10 @@ fun MoreActionsSheet(
     embedded: Boolean = false,
     editingState: MutableState<Boolean>? = null,
 ) {
-    val sleepTimerStatus = LocalPlayerConnection.current?.let {
+    val playerConnection = LocalPlayerConnection.current
+    val currentSong = playerConnection?.mediaMetadata?.collectAsState()?.value
+    val canShare = currentSong?.neteaseId?.let { it > 0 } == true
+    val sleepTimerStatus = playerConnection?.let {
         rememberSleepTimerStatus(it.service.sleepTimer)
     }
     val (savedOrder, saveOrder) = rememberPreference(MoreActionOrderKey, defaultValue = "")
@@ -197,7 +201,7 @@ fun MoreActionsSheet(
                         }
                     }
                 } else {
-                    items(actions, key = MoreAction::id) { action ->
+                    items(actions.filter { it != MoreAction.SHARE || canShare }, key = MoreAction::id) { action ->
                         MoreActionRow(action) { onActionClick(action) }
                     }
                 }

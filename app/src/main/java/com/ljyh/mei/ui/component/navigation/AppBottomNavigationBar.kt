@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.component.navigation
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,7 +61,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
-import com.ljyh.mei.ui.component.glass.MeiGlassRole
+import com.ljyh.mei.ui.component.glass.meiGlassAccentColor
+import com.ljyh.mei.ui.component.glass.meiGlassContentColor
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.component.layout.meiPageGutter
@@ -159,6 +161,7 @@ private fun NavigationTabs(
     val compact = compactProgress.coerceIn(0f, 1f)
     val selectedDestination = Index.entries.firstOrNull { it.route == selectedRoute } ?: Index.Home
     val strongContent = LocalMeiGlassAppearance.current.strongContent
+    val accent = meiGlassAccentColor()
     val fontScale = LocalDensity.current.fontScale
     val expandedHeight = bottomNavigationContentHeight(fontScale)
     BoxWithConstraints(modifier = modifier.height(expandedHeight), contentAlignment = Alignment.CenterStart) {
@@ -168,7 +171,6 @@ private fun NavigationTabs(
         MeiGlassSurface(
             modifier = Modifier.width(surfaceWidth).height(surfaceHeight),
             shape = CircleShape,
-            role = MeiGlassRole.Navigation,
         ) {
             // A single selected icon moves into the compact button without fading out or swapping.
             Index.entries.forEachIndexed { index, destination ->
@@ -179,12 +181,18 @@ private fun NavigationTabs(
                     val itemX = lerp(start, 0.dp, compact)
                     val itemWidth = lerp(expandedItemWidth, 48.dp, compact)
                     val fill by animateColorAsState(
-                        if (selected) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.65f) else Color.Transparent,
+                        if (selected) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.18f) else Color.Transparent,
                         label = "navigationSelection",
                     )
-                    val ink = if (selected) MaterialTheme.colorScheme.onSurface
-                        else if (strongContent) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    val ink = meiGlassContentColor(secondary = !selected && !strongContent)
+                    val tabIconColor by animateColorAsState(
+                        targetValue = if (selected) accent else ink,
+                        animationSpec = tween(160),
+                        label = "navigationIconColor",
+                    )
+                    // Follow the shell's existing progress directly: no delayed colour change
+                    // when the selected tab becomes the compact navigation button.
+                    val iconInk = androidx.compose.ui.graphics.lerp(tabIconColor, ink, compact)
                     val action = if (selected && compact >= 0.5f) {
                         Modifier.clickable(enabled = interactive, role = Role.Button, onClick = onExpand)
                     } else {
@@ -208,13 +216,17 @@ private fun NavigationTabs(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Icon(destination.icon, contentDescription = null, tint = ink, modifier = Modifier.size(24.dp))
+                        Icon(destination.icon, contentDescription = null, tint = iconInk, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.height(lerp(2.dp, 0.dp, compact)))
                         Box(Modifier.height(lerp(18.dp * fontScale, 0.dp, compact)).clipToBounds()) {
                             Text(
                                 destination.label,
                                 style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, lineHeight = 18.sp),
-                                fontWeight = if (strongContent || selected) FontWeight.SemiBold else FontWeight.Medium,
+                                fontWeight = when {
+                                    selected -> FontWeight.Bold
+                                    strongContent -> FontWeight.SemiBold
+                                    else -> FontWeight.Medium
+                                },
                                 color = ink,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -239,7 +251,6 @@ private fun SearchActionButton(
     MeiGlassSurface(
         modifier = Modifier.size(size),
         shape = CircleShape,
-        role = MeiGlassRole.Navigation,
     ) {
         Box(
             modifier = Modifier.fillMaxSize().clickable(enabled = enabled, role = Role.Button, onClick = onClick),
@@ -248,7 +259,7 @@ private fun SearchActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = meiGlassContentColor(),
                 modifier = Modifier.size(if (size > 56.dp) 24.dp else 22.dp),
             )
         }
@@ -265,12 +276,11 @@ private fun SearchField(
     modifier: Modifier = Modifier,
     enabled: Boolean,
 ) {
-    val ink = if (LocalMeiGlassAppearance.current.strongContent) MaterialTheme.colorScheme.onSurface
-        else MaterialTheme.colorScheme.onSurfaceVariant
+    val ink = meiGlassContentColor()
+    val placeholderInk = meiGlassContentColor(secondary = true)
     MeiGlassSurface(
         modifier = modifier.height(bottomNavigationContentHeight(LocalDensity.current.fontScale)),
         shape = CircleShape,
-        role = MeiGlassRole.Search,
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -292,7 +302,7 @@ private fun SearchField(
                 singleLine = true,
                 enabled = enabled,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = meiGlassContentColor(),
                 ),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -303,7 +313,7 @@ private fun SearchField(
                             Text(
                                 text = placeholder,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = ink,
+                                color = placeholderInk,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

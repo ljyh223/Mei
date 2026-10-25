@@ -17,6 +17,8 @@ import androidx.navigation.NavController
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
+import com.ljyh.mei.utils.share.MediaShareLink
+import com.ljyh.mei.utils.share.shareMediaLink
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistTrackAddOutcome
@@ -173,8 +175,8 @@ class PlayerOverlayHandler(
                 }
             }
             MoreAction.SHARE -> {
-                dismiss()
-                android.widget.Toast.makeText(context, "暂未实现", android.widget.Toast.LENGTH_SHORT).show()
+                val content = mediaMetadata?.let { MediaShareLink.song(it) }
+                if (context.shareMediaLink(content)) dismiss()
             }
             MoreAction.DOWNLOAD -> {
                 mediaMetadata?.let {

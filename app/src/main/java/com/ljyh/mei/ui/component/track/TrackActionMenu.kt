@@ -12,8 +12,8 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -35,12 +34,15 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.ui.component.menu.MeiMenuItem
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.utils.share.MediaShareLink
+import com.ljyh.mei.utils.share.shareMediaLink
 import com.ljyh.mei.utils.system.setClipboard
 
 data class TrackMenuTarget(val track: MediaMetadata, val anchor: IntRect, val source: QueueSource? = null)
@@ -101,23 +103,34 @@ fun TrackActionMenu(
             shadowElevation = 8.dp,
         ) {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                MenuAction("下一首播放", Icons.Rounded.SkipNext) { onDismiss(); onPlayNext() }
-                MenuAction("队尾播放", Icons.Rounded.Add) { onDismiss(); onAddToQueue() }
+                MeiMenuItem("下一首播放", Icons.Rounded.SkipNext) { onDismiss(); onPlayNext() }
+                MeiMenuItem("队尾播放", Icons.Rounded.Add) { onDismiss(); onAddToQueue() }
                 onAddToPlaylist?.let { action ->
-                    MenuAction("添加到歌单", Icons.Rounded.Add) { onDismiss(); action() }
+                    MeiMenuItem("添加到歌单", Icons.Rounded.Add) { onDismiss(); action() }
                 }
                 onDownloadTrack?.let { action ->
-                    MenuAction("下载", Icons.Filled.Download) { onDismiss(); action() }
+                    MeiMenuItem("下载", Icons.Filled.Download) { onDismiss(); action() }
                 }
                 onCompleteMetadata?.let { action ->
-                    MenuAction("补全歌曲信息", Icons.Rounded.Add) { onDismiss(); action() }
+                    MeiMenuItem("补全歌曲信息", Icons.Rounded.Add) { onDismiss(); action() }
                 }
                 if (isCreator) {
-                    MenuAction("从歌单删除", Icons.Rounded.DeleteSweep) { onDismiss(); onDelete() }
+                    MeiMenuItem("从歌单删除", Icons.Rounded.DeleteSweep) { onDismiss(); onDelete() }
+                }
+                MediaShareLink.song(track)?.let { content ->
+                    HorizontalDivider()
+                    MeiMenuItem("分享链接", Icons.Rounded.Share) {
+                        onDismiss()
+                        context.shareMediaLink(content)
+                    }
+                    MeiMenuItem("复制链接", Icons.Rounded.ContentCopy) {
+                        onDismiss()
+                        setClipboard(context, content.url, "歌曲链接")
+                    }
                 }
                 HorizontalDivider()
-                MenuAction("复制歌名", Icons.Rounded.ContentCopy) { onDismiss(); onCopyName() }
-                MenuAction("复制歌曲 ID", Icons.Rounded.ContentCopy) { onDismiss(); onCopyId() }
+                MeiMenuItem("复制歌名", Icons.Rounded.ContentCopy) { onDismiss(); onCopyName() }
+                MeiMenuItem("复制歌曲 ID", Icons.Rounded.ContentCopy) { onDismiss(); onCopyId() }
                 if (debugEnabled) {
                     HorizontalDivider()
                     val debugFields = listOf(
@@ -128,7 +141,7 @@ fun TrackActionMenu(
                         "封面地址" to track.coverUrl,
                     )
                     debugFields.forEach { (label, value) ->
-                        MenuAction("复制$label", Icons.Rounded.ContentCopy) {
+                        MeiMenuItem("复制$label", Icons.Rounded.ContentCopy) {
                             onDismiss()
                             setClipboard(context, value, label)
                         }
@@ -137,19 +150,6 @@ fun TrackActionMenu(
             }
         }
     }
-}
-
-@Composable
-private fun MenuAction(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        text = { Text(label) },
-        onClick = onClick,
-        leadingIcon = { Icon(icon, contentDescription = null) },
-    )
 }
 
 @OptIn(UnstableApi::class)

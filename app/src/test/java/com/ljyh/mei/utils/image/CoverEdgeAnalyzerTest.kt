@@ -118,4 +118,68 @@ class CoverEdgeAnalyzerTest {
         assertFalse(strict.isSolidBackground)
         assertEquals(CoverExtensionMode.NONE, strict.mode)
     }
+
+    @Test
+    fun measurementsReportActualEdgesAndLeaveSkippedInteriorUnknown() {
+        val clean = requireNotNull(analyzeCoverBackground(IntArray(side * side) { background }, side, side))
+        assertEquals(1f, clean.bandShare, 0f)
+        assertEquals(1f, clean.wholeShare!!, 0f)
+        assertEquals(0f, clean.bandTexture, 0f)
+        assertEquals(0f, clean.bandGradient, 0f)
+        assertEquals(0f, clean.longestGap, 0f)
+        val busy = IntArray(side * side) { if (((it / side) + (it % side)) % 2 == 0) background else foreground }
+        val rejected = requireNotNull(analyzeCoverBackground(busy, side, side))
+        assertEquals(null, rejected.wholeShare)
+    }
+
+    @Test
+    fun singleOccupiedSideExceptionCanBeDisabled() {
+        val pixels = IntArray(side * side) { background }
+        for (y in 100 until side) for (x in 0 until side) pixels[y * side + x] = foreground
+        val defaults = requireNotNull(analyzeCoverBackground(pixels, side, side))
+        val disabled = requireNotNull(analyzeCoverBackground(pixels, side, side,
+            CoverBackgroundConfig(allowSingleOccupiedSide = false, allowThreeStrongSides = false)))
+        assertEquals(CoverExtensionMode.SOFT, defaults.mode)
+        assertEquals(CoverExtensionMode.NONE, disabled.mode)
+    }
+
+    @Test
+    fun threeStrongSidesExceptionCanBeDisabledIndependently() {
+        val pixels = IntArray(side * side) { background }
+        for (y in 28 until 100) for (x in 65 until side) pixels[y * side + x] = foreground
+        val config = CoverBackgroundConfig(allowSingleOccupiedSide = false)
+        val allowed = requireNotNull(analyzeCoverBackground(pixels, side, side, config))
+        val disabled = requireNotNull(analyzeCoverBackground(pixels, side, side, config.copy(allowThreeStrongSides = false)))
+        assertEquals(CoverExtensionMode.SOFT, allowed.mode)
+        assertEquals(CoverExtensionMode.NONE, disabled.mode)
+    }
+
+    @Test
+    fun maximumGapChangesDirectExtensionDecision() {
+        val pixels = IntArray(side * side) { background }
+        for (y in 0 until 25) for (x in 52 until 76) pixels[y * side + x] = foreground
+        val default = requireNotNull(analyzeCoverBackground(pixels, side, side))
+        val relaxed = requireNotNull(analyzeCoverBackground(pixels, side, side, CoverBackgroundConfig(maximumSolidGap = 0.25f)))
+        assertEquals(CoverExtensionMode.SOFT, default.mode)
+        assertEquals(CoverExtensionMode.SOLID, relaxed.mode)
+    }
+
+    @Test
+    fun textureThresholdControlsGrainRejection() {
+        var seed = 7
+        val pixels = IntArray(side * side) {
+            seed = seed * 1103515245 + 12345
+            val jitter = ((seed shr 16) and 0x7) - 3
+            val r = ((background shr 16) and 0xff) + jitter
+            val g = ((background shr 8) and 0xff) + jitter
+            val b = (background and 0xff) + jitter
+            (0xff shl 24) or ((r and 0xff) shl 16) or ((g and 0xff) shl 8) or (b and 0xff)
+        }
+        val default = requireNotNull(analyzeCoverBackground(pixels, side, side))
+        val relaxed = requireNotNull(analyzeCoverBackground(pixels, side, side, CoverBackgroundConfig(maximumBandTexture = 0.1f)))
+        assertTrue(default.bandTexture > CoverBackgroundConfig().maximumBandTexture)
+        assertEquals(CoverExtensionMode.NONE, default.mode)
+        assertEquals(CoverExtensionMode.SOLID, relaxed.mode)
+    }
+
 }

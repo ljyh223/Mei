@@ -1,8 +1,8 @@
 package com.ljyh.mei.ui.screen.setting
 
-import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -11,19 +11,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.AlertDialog
@@ -36,12 +33,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -105,10 +100,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
 import com.ljyh.mei.ui.component.glass.MeiPinnedPage
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.backToMain
-import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.utils.preferences.dataStore
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -120,6 +113,10 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.ceil
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.MeiFilterPill
+import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
+import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
+import androidx.compose.ui.semantics.Role
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -321,50 +318,52 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 .padding(paddingValues),
         ) {
             MeiLargeTitle("参数均衡器")
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("启用均衡器", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        currentPreset?.name ?: "自定义",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
+            PreferenceSection("音效") {
+                SwitchPreference(
+                    title = { Text("启用均衡器") },
+                    description = currentPreset?.name ?: "自定义",
+                    icon = { Icon(Icons.Rounded.Equalizer, contentDescription = null) },
                     checked = profile.enabled,
                     onCheckedChange = { commit(profile.copy(enabled = it)) },
-                    modifier = Modifier.semantics { contentDescription = "启用均衡器" },
                 )
             }
             Row(
-                Modifier.padding(horizontal = meiPageGutter(), vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Modifier.fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = meiPageGutter(), vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("编辑") })
-                FilterChip(
-                    selected = tab == 1,
-                    onClick = { tab = 1 },
-                    label = { Text("内置与我的预设") })
+                MeiFilterPill(
+                    label = "编辑", selected = tab == 0, onClick = { tab = 0 },
+                    role = Role.Tab, compact = true,
+                )
+                MeiFilterPill(
+                    label = "内置与我的预设", selected = tab == 1, onClick = { tab = 1 },
+                    role = Role.Tab, compact = true,
+                )
             }
 
             if (tab == 0) {
-                EqualizerGraph(
-                    profile = profile,
-                    response = response,
-                    selectedId = selectedId,
-                    onSelect = { selectedId = it },
-                    onFilterDrag = { id, frequency, gain, done ->
-                        changeFilter(id, { filter ->
-                            filter.copy(
-                                frequencyHz = frequency,
-                                gainDb = if (filter.type.usesGain) gain else filter.gainDb
-                            )
-                        }, done)
-                    },
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = meiPageGutter(), vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) {
+                    EqualizerGraph(
+                        profile = profile,
+                        response = response,
+                        selectedId = selectedId,
+                        onSelect = { selectedId = it },
+                        onFilterDrag = { id, frequency, gain, done ->
+                            changeFilter(id, { filter ->
+                                filter.copy(
+                                    frequencyHz = frequency,
+                                    gainDb = if (filter.type.usesGain) gain else filter.gainDb
+                                )
+                            }, done)
+                        },
+                    )
+                }
                 if (profile.enabled && peakDb > 0.5f) {
                     Row(
                         Modifier
@@ -389,42 +388,25 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         }) { Text("自动留余量") }
                     }
                 }
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = meiPageGutter(), vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("输出限幅", style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                "提升频段后用软限幅防止削波",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = limiterEnabled,
-                            onCheckedChange = { enabled ->
-                                limiterEnabled = enabled
-                                scope.launch {
-                                    context.dataStore.edit { it[OutputLimiterEnabledKey] = enabled }
-                                }
-                            },
-                        )
-                    }
+                PreferenceSection("输出保护") {
+                    SwitchPreference(
+                        title = { Text("输出限幅") },
+                        description = "提升频段后用软限幅防止削波",
+                        checked = limiterEnabled,
+                        onCheckedChange = { enabled ->
+                            limiterEnabled = enabled
+                            scope.launch {
+                                context.dataStore.edit { it[OutputLimiterEnabledKey] = enabled }
+                            }
+                        },
+                    )
                 }
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                ) {
-                    Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                PreferenceSection("电平") {
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                    ) {
                         ParameterSlider(
                             "输入增益",
                             profile.inputGainDb,
@@ -457,14 +439,15 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = meiPageGutter(), vertical = 2.dp),
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = meiPageGutter(), vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         "${profile.filters.size}/${EqualizerProfile.MAX_FILTERS} · 点选节点",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.width(12.dp))
                     TextButton(onClick = { showSaveDialog = true }) {
                         Icon(Icons.Rounded.Save, null)
                         Spacer(Modifier.width(4.dp))
@@ -493,11 +476,11 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = meiPageGutter()),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     TextButton(onClick = { autoEqPicker.launch(arrayOf("*/*")) }) {
-                        Text("导入")
+                        Text("导入曲线")
                     }
                     TextButton(onClick = {
                         val clipboard = context.getSystemService(ClipboardManager::class.java)
@@ -506,9 +489,9 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         )
                         Toast.makeText(context, "曲线已复制", Toast.LENGTH_SHORT).show()
                     }) {
-                        Text("导出")
+                        Text("导出曲线")
                     }
-                    TextButton(onClick = { showBundleDialog = true }) { Text("整套") }
+                    TextButton(onClick = { showBundleDialog = true }) { Text("整套调音") }
                     TextButton(onClick = {
                         bulkMode = !bulkMode
                         if (!bulkMode) bulkSelection = emptySet()
@@ -519,10 +502,10 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
 
                 if (bulkMode) {
                     Card(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
-                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("已选 ${bulkSelection.size} 段", modifier = Modifier.weight(1f))
                                 TextButton(onClick = {
@@ -597,9 +580,9 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = meiPageGutter()),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     ) {
-                        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("滤波器 ${profile.filters.indexOfFirst { it.id == selected.id } + 1}",
                                     style = MaterialTheme.typography.titleMedium,
@@ -770,7 +753,7 @@ private fun FilterCard(
         modifier = Modifier
             .width(132.dp)
             .clickable(onClick = onSelect),
-        colors = CardDefaults.cardColors(containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(Modifier.padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -806,11 +789,11 @@ private fun PresetList(
                     .clickable { onSelect(preset) },
                 colors = CardDefaults.cardColors(
                     containerColor = if (preset.id == selectedId)
-                        MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer
+                        MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
                 ),
             ) {
                 Row(
-                    Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                    Modifier.padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -855,8 +838,8 @@ private fun ParameterSlider(
     val display = if (unit == "Hz") formatHz(value) else if (unit == "Q")
         "Q ${formatNumber(value, decimals)}" else "${formatDb(value)}"
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-        TextButton(onClick = { showExactInput = true }) { Text(display) }
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        TextButton(onClick = { showExactInput = true }) { Text(display, maxLines = 1) }
     }
     val position = if (logScale) {
         ((log10(value.coerceAtLeast(20f)) - log10(range.start)) /

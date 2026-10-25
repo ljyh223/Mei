@@ -15,6 +15,11 @@ internal data class AlbumBackgroundAnalysis(
     val edgeConsistency: Float,
     val sideMatches: List<Float>, // top, right, bottom, left
     val mode: CoverExtensionMode,
+    val bandShare: Float,
+    val wholeShare: Float?,
+    val bandTexture: Float,
+    val bandGradient: Float,
+    val longestGap: Float,
 )
 
 private data class Lab(val l: Float, val a: Float, val b: Float)
@@ -44,6 +49,7 @@ internal fun analyzeCoverBackground(
     config: CoverBackgroundConfig = CoverBackgroundConfig(),
 ): AlbumBackgroundAnalysis? {
     if (width < 32 || height < 32 || pixels.size < width * height) return null
+    val limits = config.normalized()
     val total = width * height
     val labL = FloatArray(total)
     val labA = FloatArray(total)
@@ -79,7 +85,7 @@ internal fun analyzeCoverBackground(
     }
     if (bandIndices.size < total / 10 || bins.isEmpty()) return null
 
-    val tolerance = config.colorTolerance.coerceIn(0.025f, 0.15f)
+    val tolerance = limits.colorTolerance
     var bestSeed: Lab? = null
     var bestSupport = -1
     for (bin in bins.values.sortedByDescending { it.count }.take(12)) {
@@ -116,11 +122,11 @@ internal fun analyzeCoverBackground(
     val bandGradient = matchedSideGradient(matches, labL, labA, labB, width, height)
     // Flat color only: fine grain, noise and smooth gradients all survive a color-distance check
     // but smear badly once the rim is clamped outwards.
-    val flatEnough = bandTexture <= MaxBandTexture && bandGradient <= MaxBandGradient
+    val flatEnough = bandTexture <= limits.maximumBandTexture && bandGradient <= limits.maximumBandGradient
 
-    // A solid background needs at least 55% of the band; below that the interior pass cannot
-    // change the decision, so stop before converting and scanning the whole image.
-    if (bandMatches == 0 || bandShare < 0.55f) {
+    val longestGap = longestGap(matches, width, height)
+    // The interior cannot rescue insufficient edge support, so preserve the early-out optimization.
+    if (bandMatches == 0 || bandShare < limits.minimumBandShare) {
         val color = if (bandMatches == 0) 0 else {
             (0xff shl 24) or
                 ((bandRed / bandMatches).toInt() shl 16) or
@@ -134,6 +140,11 @@ internal fun analyzeCoverBackground(
             edgeConsistency = edgeConsistency,
             sideMatches = sideMatches,
             mode = CoverExtensionMode.NONE,
+            bandShare = bandShare,
+            wholeShare = null,
+            bandTexture = bandTexture,
+            bandGradient = bandGradient,
+            longestGap = longestGap,
         )
     }
 
@@ -184,26 +195,26 @@ internal fun analyzeCoverBackground(
     val purity = (1f - distanceTotal / matchCount / tolerance).coerceIn(0f, 1f)
     val backgroundConfidence = (0.45f * bandShare + 0.40f * wholeShare + 0.15f * purity)
         .coerceIn(0f, 1f)
-    val solidBackground = bandShare >= 0.55f && wholeShare >= 0.30f &&
-        backgroundConfidence >= config.minimumBackgroundConfidence
+    val solidBackground = bandShare >= limits.minimumBandShare && wholeShare >= limits.minimumWholeShare &&
+        backgroundConfidence >= limits.minimumBackgroundConfidence
 
-    val longestGap = longestGap(matches, width, height)
     val extensionConfidence = (edgeConsistency * 0.7f + weakestSide * 0.3f).coerceIn(0f, 1f)
-    val occupiedSides = sideMatches.count { it < config.minimumSingleEdgeMatch }
-    val strongSides = sideMatches.count { it >= config.solidEdgeMatch }
+    val occupiedSides = sideMatches.count { it < limits.minimumSingleEdgeMatch }
+    val strongSides = sideMatches.count { it >= limits.solidEdgeMatch }
     val mode = when {
         !solidBackground || !flatEnough -> CoverExtensionMode.NONE
-        extensionConfidence >= config.solidEdgeMatch &&
-            weakestSide >= max(config.minimumSingleEdgeMatch, config.solidEdgeMatch - 0.12f) &&
-            longestGap <= 0.10f -> CoverExtensionMode.SOLID
-        extensionConfidence >= config.softEdgeMatch &&
-            weakestSide >= config.minimumSingleEdgeMatch && longestGap <= 0.35f ->
+        extensionConfidence >= limits.solidEdgeMatch &&
+            weakestSide >= max(limits.minimumSingleEdgeMatch, limits.solidEdgeMatch - limits.solidSideSlack) &&
+            longestGap <= limits.maximumSolidGap -> CoverExtensionMode.SOLID
+        extensionConfidence >= limits.softEdgeMatch &&
+            weakestSide >= limits.minimumSingleEdgeMatch && longestGap <= limits.maximumSoftGap ->
             CoverExtensionMode.SOFT
         // Artwork crossing a single edge still leaves a usable flat rim on the other three,
         // even when the subject covers that whole edge or leaves a long contiguous gap.
-        occupiedSides == 1 && (sideMatches.maxOrNull() ?: 0f) >= 0.85f && flatEnough ->
+        limits.allowSingleOccupiedSide && occupiedSides == 1 &&
+            (sideMatches.maxOrNull() ?: 0f) >= limits.singleEdgeStrongMatch ->
             CoverExtensionMode.SOFT
-        strongSides >= 3 && weakestSide >= 0.30f && flatEnough -> CoverExtensionMode.SOFT
+        limits.allowThreeStrongSides && strongSides >= 3 && weakestSide >= limits.threeSideMinimumMatch -> CoverExtensionMode.SOFT
         else -> CoverExtensionMode.NONE
     }
     return AlbumBackgroundAnalysis(
@@ -214,6 +225,11 @@ internal fun analyzeCoverBackground(
         edgeConsistency = edgeConsistency,
         sideMatches = sideMatches,
         mode = mode,
+        bandShare = bandShare,
+        wholeShare = wholeShare,
+        bandTexture = bandTexture,
+        bandGradient = bandGradient,
+        longestGap = longestGap,
     )
 }
 
@@ -294,10 +310,6 @@ private fun dist(l: FloatArray, a: FloatArray, b: FloatArray, i: Int, j: Int): F
     val db = b[i] - b[j]
     return sqrt(dl * dl + da * da + db * db)
 }
-
-/** Flat backgrounds stay far below these; grain, paper texture and gradients exceed them. */
-private const val MaxBandTexture = 0.008f
-private const val MaxBandGradient = 0.045f
 
 private fun distance(l: FloatArray, a: FloatArray, b: FloatArray, index: Int, seed: Lab): Float {
     val dl = l[index] - seed.l
