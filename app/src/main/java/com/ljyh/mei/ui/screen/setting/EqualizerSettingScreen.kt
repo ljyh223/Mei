@@ -84,6 +84,8 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
 import com.ljyh.mei.constants.EqualizerBandLevelsKey
 import com.ljyh.mei.constants.EqualizerEnabledKey
+import com.ljyh.mei.constants.AutoEqEnabledKey
+import com.ljyh.mei.constants.AutoEqIntensityKey
 import com.ljyh.mei.constants.OutputLimiterEnabledKey
 import com.ljyh.mei.constants.ParametricEqualizerProfileKey
 import com.ljyh.mei.constants.UserEqualizerPresetsKey
@@ -137,6 +139,8 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     var bulkSelection by remember { mutableStateOf(emptySet<Int>()) }
     var bulkGain by remember { mutableStateOf(0f) }
     var limiterEnabled by remember { mutableStateOf(true) }
+    var autoEqEnabled by remember { mutableStateOf(false) }
+    var autoEqIntensity by remember { mutableIntStateOf(50) }
     var showBundleDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(context) {
@@ -166,6 +170,16 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
             context.dataStore.data.map { it[OutputLimiterEnabledKey] ?: true }
                 .distinctUntilChanged()
                 .collectLatest { limiterEnabled = it }
+        }
+        launch {
+            context.dataStore.data.map {
+                (it[AutoEqEnabledKey] ?: false) to (it[AutoEqIntensityKey] ?: 50)
+            }
+                .distinctUntilChanged()
+                .collectLatest { (enabled, intensity) ->
+                    autoEqEnabled = enabled
+                    autoEqIntensity = intensity
+                }
         }
     }
 
@@ -386,6 +400,56 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                                 )
                             )
                         }) { Text("自动留余量") }
+                    }
+                }
+                PreferenceSection("自动均衡") {
+                    SwitchPreference(
+                        title = { Text("按歌曲自动调整") },
+                        description = "需要网易云 VIP · 使用官方曲目分析生成 10 段 EQ",
+                        checked = autoEqEnabled,
+                        onCheckedChange = { enabled ->
+                            autoEqEnabled = enabled
+                            scope.launch {
+                                context.dataStore.edit { it[AutoEqEnabledKey] = enabled }
+                            }
+                        },
+                    )
+                    if (autoEqEnabled) {
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "强度",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    "${autoEqIntensity}%",
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
+                            Slider(
+                                value = autoEqIntensity.toFloat(),
+                                onValueChange = { autoEqIntensity = it.roundToInt() },
+                                onValueChangeFinished = {
+                                    scope.launch {
+                                        context.dataStore.edit {
+                                            it[AutoEqIntensityKey] = autoEqIntensity
+                                        }
+                                    }
+                                },
+                                valueRange = 0f..100f,
+                                steps = 9,
+                            )
+                            Text(
+                                "VIP 失效或该曲目没有分析数据时，自动回退到当前保存的调音。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 PreferenceSection("输出保护") {
