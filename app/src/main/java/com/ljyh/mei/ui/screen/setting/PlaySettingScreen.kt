@@ -27,6 +27,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Slider
+import androidx.compose.ui.Alignment
+import com.ljyh.mei.constants.AutoEqEnabledKey
+import com.ljyh.mei.constants.AutoEqIntensityKey
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -75,6 +81,8 @@ fun PlaySettingScreen(
         key = MusicQualityKey,
         defaultValue = MusicQuality.EXHIGH,
     )
+    val (autoEqEnabled, setAutoEqEnabled) = rememberPreference(AutoEqEnabledKey, false)
+    val (autoEqIntensity, setAutoEqIntensity) = rememberPreference(AutoEqIntensityKey, 50)
     val (usbExclusive) = rememberPreference(
         key = UsbExclusivePlaybackKey,
         defaultValue = false,
@@ -142,6 +150,47 @@ fun PlaySettingScreen(
                     onValueSelected = onMusicQualityChange,
                     valueText = { "${it.text} ${it.explanation}" }
                 )
+            }
+            PreferenceSection("自动均衡") {
+                SwitchPreference(
+                    title = { Text("按歌曲自动调整 EQ") },
+                    description = if (usbExclusive) {
+                        "USB 独占播放时不可用"
+                    } else {
+                        "需要网易云 VIP · 使用官方曲目分析生成 10 段 EQ"
+                    },
+                    icon = { Icon(Icons.Rounded.GraphicEq, null) },
+                    checked = autoEqEnabled,
+                    onCheckedChange = setAutoEqEnabled,
+                    isEnabled = !usbExclusive,
+                )
+                if (autoEqEnabled && !usbExclusive) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 2.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("强度", style = MaterialTheme.typography.bodyMedium)
+                            Slider(
+                                value = autoEqIntensity.toFloat(),
+                                onValueChange = { setAutoEqIntensity(it.toInt()) },
+                                valueRange = 0f..100f,
+                                steps = 9,
+                                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                            )
+                            Text(
+                                "$autoEqIntensity%",
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                        Text(
+                            "VIP 失效或该曲目没有分析数据时，自动回退到当前保存的调音。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
             PreferenceSection("播放行为") {
                 SwitchPreference(
