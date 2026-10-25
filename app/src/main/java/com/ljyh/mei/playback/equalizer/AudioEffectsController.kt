@@ -34,7 +34,13 @@ class AudioEffectsController(
     @Synchronized
     fun setAutoProfile(profile: EqualizerProfile?) {
         autoProfile = profile
-        processor.setProfile(profile ?: savedProfile)
+        processor.setProfile(effectiveProfile())
+    }
+
+    /** Auto EQ supplies the curve; the equalizer's own switch decides whether it is active. */
+    private fun effectiveProfile(): EqualizerProfile {
+        val auto = autoProfile ?: return savedProfile
+        return if (savedProfile.enabled) auto.copy(enabled = true) else savedProfile
     }
 
     private val preferenceJob: Job = scope.launch {
@@ -42,7 +48,7 @@ class AudioEffectsController(
             val profile = EqualizerProfileCodec.decode(preferences[ParametricEqualizerProfileKey])
                 ?: legacyProfile(preferences[EqualizerEnabledKey] ?: false, preferences[EqualizerBandLevelsKey])
             savedProfile = profile
-            processor.setProfile(autoProfile ?: profile)
+            processor.setProfile(effectiveProfile())
             reverb?.setProfile(
                 ReverbProfileCodec.decode(preferences[ReverbProfileKey]) ?: ReverbProfile.Off
             )

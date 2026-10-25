@@ -405,13 +405,14 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 PreferenceSection("自动均衡") {
                     SwitchPreference(
                         title = { Text("按歌曲自动调整") },
-                        description = "需要网易云 VIP · 使用官方曲目分析生成 10 段 EQ",
+                        description = "需要网易云 VIP · 使用官方曲目分析生成 10 段 EQ；均衡器关闭时不生效",
                         checked = autoEqEnabled,
                         onCheckedChange = { enabled ->
                             autoEqEnabled = enabled
                             scope.launch {
                                 context.dataStore.edit { it[AutoEqEnabledKey] = enabled }
                             }
+                            if (enabled) commit(profile.copy(enabled = true))
                         },
                     )
                     if (autoEqEnabled) {
