@@ -33,8 +33,8 @@ data class GlassAppearance(
         return when {
             value.reduceTransparency -> 1f
             liveGlass -> value.opacity
-            // Retain a visible neutral button/bar when liquid optics are switched off.
-            else -> 0.70f + value.opacity * 0.30f
+            // Solid appearance does not depend on saved glass opacity.
+            else -> 1f
         }
     }
 
@@ -42,7 +42,8 @@ data class GlassAppearance(
     fun usesOptics(available: Boolean): Boolean = available && !reduceTransparency
 
     /** Secondary copy stays opaque, so its hierarchy is independent of the sampled artwork. */
-    fun contentColor(colors: ColorScheme, secondary: Boolean = false): Color {
+    fun contentColor(colors: ColorScheme, secondary: Boolean = false, liveGlass: Boolean = true): Color {
+        if (!usesOptics(liveGlass)) return if (secondary) colors.onSurfaceVariant else colors.onSurface
         val primary = if (strongContent) {
             if (colors.surface.luminance() < 0.5f) Color.White else Color.Black
         } else colors.onSurface
@@ -53,11 +54,15 @@ data class GlassAppearance(
         }
     }
 
+    fun selectionColor(colors: ColorScheme, liveGlass: Boolean = true): Color =
+        if (usesOptics(liveGlass)) colors.surfaceContainerHighest.copy(alpha = 0.18f)
+        else colors.secondaryContainer.copy(alpha = 1f)
+
     /** Retain the theme accent while correcting extremely pale/dark accents for navigation. */
-    fun accentColor(colors: ColorScheme): Color {
-        val surface = colors.surfaceContainerLow.copy(alpha = 1f)
-        val backgrounds = listOf(surface,
-            colors.surfaceContainerHighest.copy(alpha = 0.18f).compositeOver(surface))
+    fun accentColor(colors: ColorScheme, liveGlass: Boolean = true): Color {
+        val surface = (if (usesOptics(liveGlass)) colors.surfaceContainerLow
+            else colors.surfaceContainer).copy(alpha = 1f)
+        val backgrounds = listOf(surface, selectionColor(colors, liveGlass).compositeOver(surface))
         val accent = colors.primary.compositeOver(surface)
         fun readable(color: Color) = backgrounds.all { color.contrastAgainst(it) >= 4.5f }
         if (readable(accent)) return accent

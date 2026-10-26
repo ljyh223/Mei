@@ -155,6 +155,7 @@ private fun MeiToolbarIconContainer(
             modifier = Modifier.size(MeiPageLayout.ToolbarLensSize),
             shape = CircleShape,
             hazeState = hazeState,
+            shadowElevation = 0.dp,
         ) {}
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
     }

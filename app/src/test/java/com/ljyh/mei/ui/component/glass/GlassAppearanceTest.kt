@@ -35,20 +35,46 @@ class GlassAppearanceTest {
         for (live in listOf(false, true)) {
             val normal = GlassAppearance.Balanced
             assertEquals(normal.tintOpacity(live), normal.copy(strongContent = false).tintOpacity(live), 0f)
-            assertTrue(normal.copy(reduceTransparency = true).tintOpacity(live) > normal.tintOpacity(live))
+            if (live) assertTrue(normal.copy(reduceTransparency = true).tintOpacity(live) > normal.tintOpacity(live))
             assertEquals(1f, normal.copy(reduceTransparency = true).tintOpacity(live), 0f)
         }
     }
 
     @Test
-    fun normalGlassAndStaticFallbackKeepTheirOpacityAdjustment() {
-        for (live in listOf(false, true)) {
-            val appearance = GlassAppearance()
-            assertTrue(appearance.copy(opacity = 0.2f).tintOpacity(live) <
-                appearance.copy(opacity = 0.8f).tintOpacity(live))
-            assertEquals(1f, appearance.copy(opacity = 1f).tintOpacity(live), 0f)
-        }
+    fun onlyLiveGlassUsesSavedOpacity() {
+        val appearance = GlassAppearance()
+        assertTrue(appearance.copy(opacity = 0.2f).tintOpacity(true) <
+            appearance.copy(opacity = 0.8f).tintOpacity(true))
         assertEquals(0f, GlassAppearance.Clear.tintOpacity(liveGlass = true), 0f)
+        for (opacity in listOf(0f, 0.2f, 0.8f, 1f, Float.NaN)) {
+            assertEquals(1f, appearance.copy(opacity = opacity).tintOpacity(liveGlass = false), 0f)
+        }
+    }
+
+    @Test
+    fun solidControlsRemainReadableOverArtworkInBothThemes() {
+        val backdrops = listOf(Color.White, Color.Black, Color.Red, Color.Cyan)
+        for (dark in listOf(false, true)) for (accent in listOf(Color.Yellow, Color.Cyan, Color.Red, Color.Blue)) {
+            val scheme = meiColorScheme(if (dark) darkColorScheme(primary = accent)
+                else lightColorScheme(primary = accent), dark)
+            for (appearance in listOf(GlassAppearance.Clear, GlassAppearance.Readable,
+                GlassAppearance.Balanced.copy(strongContent = false))) {
+                // Covers the shared control surface, the playback strip and selected navigation.
+                val containers = listOf(scheme.surfaceContainer, scheme.secondaryContainer,
+                    appearance.selectionColor(scheme, liveGlass = false))
+                for (container in containers) for (backdrop in backdrops) {
+                    val surface = container.copy(alpha = appearance.tintOpacity(false)).compositeOver(backdrop)
+                    assertEquals("Artwork must not change the solid colour", container, surface)
+                    for (secondary in listOf(false, true)) {
+                        val ink = appearance.contentColor(scheme, secondary, liveGlass = false)
+                        val a = ink.luminance()
+                        val b = surface.luminance()
+                        val ratio = (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
+                        assertTrue("Solid text contrast $ratio below 4.5, dark=$dark", ratio >= 4.5f)
+                    }
+                }
+            }
+        }
     }
 
     @Test
@@ -137,13 +163,13 @@ class GlassAppearanceTest {
     fun navigationAccentRetainsContrastForExtremeThemeColors() {
         val accents = listOf(Color.Yellow, Color.Cyan, Color.Red, Color.Blue, Color.White,
             Color.Black, Color.Transparent)
-        for (dark in listOf(false, true)) for (accent in accents) {
+        for (dark in listOf(false, true)) for (accent in accents) for (live in listOf(false, true)) {
             val scheme = meiColorScheme(if (dark) darkColorScheme(primary = accent)
                 else lightColorScheme(primary = accent), dark)
-            val ink = GlassAppearance.Balanced.accentColor(scheme)
-            val surface = scheme.surfaceContainerLow.copy(alpha = 1f)
+            val ink = GlassAppearance.Balanced.accentColor(scheme, liveGlass = live)
+            val surface = (if (live) scheme.surfaceContainerLow else scheme.surfaceContainer).copy(alpha = 1f)
             val backgrounds = listOf(surface,
-                scheme.surfaceContainerHighest.copy(alpha = 0.18f).compositeOver(surface))
+                GlassAppearance.Balanced.selectionColor(scheme, liveGlass = live).compositeOver(surface))
             assertEquals(1f, ink.alpha, 0f)
             for (background in backgrounds) {
                 val a = ink.luminance()

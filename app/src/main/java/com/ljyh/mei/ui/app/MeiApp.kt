@@ -58,6 +58,7 @@ import coil3.disk.directory
 import coil3.gif.AnimatedImageDecoder
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
+import com.ljyh.mei.constants.AlwaysExpandMiniPlayerKey
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.LiquidGlassEnabledKey
 import com.ljyh.mei.constants.DynamicThemeKey
@@ -129,6 +130,7 @@ fun MeiApp(
     var searchActive by rememberSaveable { mutableStateOf(false) }
     val librarySearchState = remember { LibrarySearchState() }
     val glassEnabled by rememberPreference(LiquidGlassEnabledKey, defaultValue = true)
+    val alwaysExpandMiniPlayer by rememberPreference(AlwaysExpandMiniPlayerKey, defaultValue = false)
     val glassAppearance by rememberGlassAppearance()
     val pageTransitionStyle by rememberEnumPreference(PageTransitionStyleKey, PageTransitionStyle.Slide)
     val pageTransitionSpeed by rememberEnumPreference(PageTransitionSpeedKey, PageTransitionSpeed.Standard)
@@ -213,12 +215,12 @@ fun MeiApp(
             )
             var navigationExpanded by rememberSaveable { mutableStateOf(true) }
             val compactNavigationProgress by animateFloatAsState(
-                targetValue = if (navigationExpanded) 0f else 1f,
+                targetValue = if (alwaysExpandMiniPlayer || navigationExpanded) 0f else 1f,
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                 label = "compactNavigation",
             )
             val compactNavigationAllowed = rememberUpdatedState(
-                shellState.showBottomNavigation && !searchActive && !device.isLandscape &&
+                !alwaysExpandMiniPlayer && shellState.showBottomNavigation && !searchActive && !device.isLandscape &&
                     (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed),
             )
             val navigationScrollConnection = remember {
@@ -236,8 +238,8 @@ fun MeiApp(
             LaunchedEffect(route) {
                 navigationExpanded = true
             }
-            LaunchedEffect(device.isLandscape) {
-                if (device.isLandscape) navigationExpanded = true
+            LaunchedEffect(device.isLandscape, alwaysExpandMiniPlayer) {
+                if (device.isLandscape || alwaysExpandMiniPlayer) navigationExpanded = true
             }
             val activity = context as? Activity
             val requestedOrientation = if (device.isTablet || playerBottomSheetState.isExpanded) {

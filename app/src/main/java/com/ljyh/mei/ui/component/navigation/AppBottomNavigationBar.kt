@@ -56,6 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
+import com.ljyh.mei.ui.component.glass.meiChromeSelectionColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -160,7 +162,9 @@ private fun NavigationTabs(
 ) {
     val compact = compactProgress.coerceIn(0f, 1f)
     val selectedDestination = Index.entries.firstOrNull { it.route == selectedRoute } ?: Index.Home
-    val strongContent = LocalMeiGlassAppearance.current.strongContent
+    val appearance = LocalMeiGlassAppearance.current
+    val strongContent = appearance.strongContent && appearance.usesOptics(LocalMeiGlassEnabled.current)
+    val selectionColor = meiChromeSelectionColor()
     val accent = meiGlassAccentColor()
     val fontScale = LocalDensity.current.fontScale
     val expandedHeight = bottomNavigationContentHeight(fontScale)
@@ -181,7 +185,7 @@ private fun NavigationTabs(
                     val itemX = lerp(start, 0.dp, compact)
                     val itemWidth = lerp(expandedItemWidth, 48.dp, compact)
                     val fill by animateColorAsState(
-                        if (selected) MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.18f) else Color.Transparent,
+                        if (selected) selectionColor else Color.Transparent,
                         label = "navigationSelection",
                     )
                     val ink = meiGlassContentColor(secondary = !selected && !strongContent)
@@ -304,7 +308,7 @@ private fun SearchField(
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = meiGlassContentColor(),
                 ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                cursorBrush = SolidColor(meiGlassAccentColor()),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onSubmit(query.text) }),
                 decorationBox = { innerTextField ->

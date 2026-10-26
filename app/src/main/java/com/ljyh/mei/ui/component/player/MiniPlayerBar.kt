@@ -70,6 +70,7 @@ fun MiniPlayerBarContent(
                 .padding(horizontal = horizontalMargin)
                 .height(MiniPlayerBarHeight),
             shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
+            solidColor = MaterialTheme.colorScheme.secondaryContainer,
         ) {
             // Insets stay outside the floating surface; cover coordinates remain sheet-local.
             Row(

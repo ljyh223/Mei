@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.datastore.preferences.core.edit
+import com.ljyh.mei.constants.AlwaysExpandMiniPlayerKey
 import com.ljyh.mei.constants.LiquidGlassEnabledKey
 import com.ljyh.mei.constants.DefaultThemeColor
 import com.ljyh.mei.constants.MeshFlowSpeedKey
@@ -136,6 +137,9 @@ fun AppearanceSettingsScreen(
         defaultValue = false
     )
 
+    val (alwaysExpandMiniPlayer, onAlwaysExpandMiniPlayerChange) = rememberPreference(
+        AlwaysExpandMiniPlayerKey, defaultValue = false
+    )
     val (hideTitleBrackets, onHideTitleBracketsChange) = rememberPreference(
         HidePlayerTitleBracketsKey, defaultValue = false
     )
@@ -200,7 +204,7 @@ fun AppearanceSettingsScreen(
             PreferenceSection("主题") {
                 SwitchPreference(
                     title = { Text("液态玻璃") },
-                    description = "导航、搜索与播放控件的通透材质；省电时自动简化",
+                    description = "导航、搜索与播放控件使用玻璃材质；关闭后使用实色外观",
                     icon = { Icon(Icons.Rounded.BlurOn, contentDescription = null) },
                     checked = glassEnabled,
                     onCheckedChange = onGlassEnabledChange,
@@ -268,6 +272,13 @@ fun AppearanceSettingsScreen(
                 )
             }
             PreferenceSection("播放界面") {
+                SwitchPreference(
+                    title = { Text("始终展开底部播放条") },
+                    description = "保持播放条与底部导航展开，不随页面滑动收起",
+                    icon = { Icon(Icons.Rounded.MusicVideo, null) },
+                    checked = alwaysExpandMiniPlayer,
+                    onCheckedChange = onAlwaysExpandMiniPlayerChange,
+                )
                 SwitchPreference(
                     title = { Text("隐藏歌名括号内容") },
                     description = "在迷你播放条和完整播放器标题中隐藏中英文括号及其中内容",

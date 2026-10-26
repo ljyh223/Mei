@@ -46,6 +46,7 @@ import com.ljyh.mei.ui.component.glass.GlassAppearance
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
+import com.ljyh.mei.ui.component.glass.meiChromeSelectionColor
 import com.ljyh.mei.ui.component.glass.meiGlassAccentColor
 import com.ljyh.mei.ui.component.glass.meiGlassContentColor
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
@@ -76,6 +77,7 @@ fun GlassSettingsScreen() {
     var draft by remember(saved) { mutableStateOf(saved) }
     val (enabled, onEnabledChange) = rememberPreference(LiquidGlassEnabledKey, true)
     val live = LocalMeiGlassEnabled.current
+    val materialControlsEnabled = enabled && live && !draft.reduceTransparency
     val save = {
         val value = draft
         scope.launch { context.saveGlassAppearance(value) }
@@ -94,9 +96,9 @@ fun GlassSettingsScreen() {
                 }
                 if (!live) Text(
                     text = when {
-                        !enabled -> "液态玻璃已关闭，当前显示静态样式"
-                        Build.VERSION.SDK_INT < 33 -> "此设备显示静态样式，实时玻璃需要 Android 13 或更新版本"
-                        else -> "当前省电或设备内存策略已简化玻璃效果"
+                        !enabled -> "当前使用实色外观，已保存的玻璃参数会保留"
+                        Build.VERSION.SDK_INT < 33 -> "此设备使用实色外观，实时玻璃需要 Android 13 或更新版本"
+                        else -> "当前省电或设备内存策略已切换为实色外观"
                     },
                     modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
@@ -104,7 +106,8 @@ fun GlassSettingsScreen() {
                 )
                 PreferenceSection("外观") {
                     SwitchPreference(
-                        title = { Text("液态玻璃") }, checked = enabled, onCheckedChange = onEnabledChange,
+                        title = { Text("液态玻璃") }, description = "关闭后使用不透明的主题色外观",
+                        checked = enabled, onCheckedChange = onEnabledChange,
                     )
                     ListPreference(
                         title = { Text("材质预设") },
@@ -120,32 +123,33 @@ fun GlassSettingsScreen() {
                             }
                         },
                         onValueSelected = { draft = it; save() },
-                        isEnabled = !draft.reduceTransparency,
+                        isEnabled = materialControlsEnabled,
                     )
                     SwitchPreference(
                         title = { Text("降低透明度") },
-                        description = "顶栏与悬浮控件使用实色底色，关闭液态玻璃后仍生效",
+                        description = "使用实色替代玻璃材质，并保留已设置的玻璃参数",
                         checked = draft.reduceTransparency,
                         onCheckedChange = { draft = draft.copy(reduceTransparency = it); save() },
                     )
                     SwitchPreference(
                         title = { Text("增强清晰度") },
-                        description = "加深图标和文字，并加重标签字重",
+                        description = "液态玻璃下加深图标和文字，并加重标签字重",
+                        isEnabled = materialControlsEnabled,
                         checked = draft.strongContent,
                         onCheckedChange = { draft = draft.copy(strongContent = it); save() },
                     )
                 }
                 PreferenceSection("材质细节") {
                     GlassAdjustment("底色浓度", "越高越能遮住背景，文字更容易辨认", draft.opacity, 0f..1f,
-                        { draft = draft.copy(opacity = it) }, save, enabled = !draft.reduceTransparency)
+                        { draft = draft.copy(opacity = it) }, save, enabled = materialControlsEnabled)
                     GlassAdjustment("背景模糊", "越高越能柔化背后的图片和文字", draft.blur, 0f..40f,
-                        { draft = draft.copy(blur = it) }, save, percent = false, enabled = !draft.reduceTransparency)
+                        { draft = draft.copy(blur = it) }, save, percent = false, enabled = materialControlsEnabled)
                     GlassAdjustment("折射强度", "调整玻璃内背景的弯曲程度", draft.refraction, 0f..1f,
-                        { draft = draft.copy(refraction = it) }, save, enabled = !draft.reduceTransparency)
+                        { draft = draft.copy(refraction = it) }, save, enabled = materialControlsEnabled)
                     GlassAdjustment("高光强度", "调整玻璃表面的光泽", draft.highlight, 0f..1f,
-                        { draft = draft.copy(highlight = it) }, save, enabled = !draft.reduceTransparency)
+                        { draft = draft.copy(highlight = it) }, save, enabled = materialControlsEnabled)
                     GlassAdjustment("背景色彩", "越低越接近中性，越高越保留背景颜色", draft.saturation, 0f..1f,
-                        { draft = draft.copy(saturation = it) }, save, enabled = !draft.reduceTransparency)
+                        { draft = draft.copy(saturation = it) }, save, enabled = materialControlsEnabled)
                     PreferenceEntry(
                         title = { Text("恢复默认") }, description = "恢复通透的均衡材质与默认清晰度",
                         onClick = { draft = GlassAppearance.Balanced; save() },
@@ -191,6 +195,8 @@ private fun GlassMaterialPreview() {
     val source = rememberHazeState()
     val appearance = LocalMeiGlassAppearance.current
     val live = appearance.usesOptics(LocalMeiGlassEnabled.current)
+    val selectionColor = meiChromeSelectionColor()
+    val strongContent = appearance.strongContent && live
     val ink = meiGlassContentColor()
     val secondaryInk = meiGlassContentColor(secondary = true)
     val accent = meiGlassAccentColor()
@@ -212,7 +218,7 @@ private fun GlassMaterialPreview() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MeiGlassSurface(Modifier.size(40.dp), shape = RoundedCornerShape(50)) {
+                    MeiGlassSurface(Modifier.size(40.dp), shape = RoundedCornerShape(50), shadowElevation = 0.dp) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null,
                             tint = ink, modifier = Modifier.align(Alignment.Center).size(22.dp))
                     }
@@ -234,15 +240,17 @@ private fun GlassMaterialPreview() {
                     Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                         listOf(Icons.Rounded.Recommend to "推荐", Icons.Rounded.MusicVideo to "发现",
                             Icons.Rounded.LibraryMusic to "音乐库").forEachIndexed { index, (icon, label) ->
-                            val labelInk = if (index == 0 || appearance.strongContent) ink else secondaryInk
-                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally,
+                            val labelInk = if (index == 0 || strongContent) ink else secondaryInk
+                            Column(Modifier.weight(1f).clip(RoundedCornerShape(50))
+                                .background(if (index == 0) selectionColor else Color.Transparent)
+                                .padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Icon(icon, contentDescription = null, tint = if (index == 0) accent else labelInk,
                                     modifier = Modifier.size(24.dp))
                                 Text(label, color = labelInk, style = MaterialTheme.typography.labelMedium,
                                     fontWeight = when {
                                         index == 0 -> FontWeight.Bold
-                                        appearance.strongContent -> FontWeight.SemiBold
+                                        strongContent -> FontWeight.SemiBold
                                         else -> FontWeight.Medium
                                     })
                             }

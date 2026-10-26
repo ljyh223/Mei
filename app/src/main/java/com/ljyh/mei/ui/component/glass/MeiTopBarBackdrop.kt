@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -26,12 +25,11 @@ import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 
 private val TopBarTransitionExtension = 34.dp
-private val ReducedTransparencyTransitionExtension = 16.dp
 private const val TopBarTransitionStart = 0.42f
 
 /**
- * The toolbar keeps its measured height. Only this non-interactive background extends below it,
- * progressively returning the sampled page to its original detail and colour.
+ * The toolbar keeps its measured height. Glass extends its non-interactive background below
+ * the bar for progressive sampling; solid backgrounds stop exactly at the toolbar boundary.
  */
 @OptIn(ExperimentalHazeApi::class)
 @Composable
@@ -41,14 +39,13 @@ internal fun MeiTopBarBackdrop(
     progress: Float = 1f,
 ) {
     val appearance = LocalMeiGlassAppearance.current
-    val reduced = appearance.reduceTransparency
     val live = appearance.usesOptics(LocalMeiGlassEnabled.current && Build.VERSION.SDK_INT >= 33) && state != null
-    val transitionExtension = if (reduced) ReducedTransparencyTransitionExtension else TopBarTransitionExtension
+    val solid = !live
+    val transitionExtension = if (solid) 0.dp else TopBarTransitionExtension
     val surface = MaterialTheme.colorScheme.surface
-    // Live sampling already softens detail. A strong surface scrim washes artwork into a white band.
-    // Only the no-blur fallback needs a more opaque background for text legibility.
-    val tint = remember(surface, live) {
-        val opacity = if (live) 0.12f else 0.90f
+    // Live sampling needs only a gentle tint. Solids are drawn separately, fully opaque.
+    val tint = remember(surface) {
+        val opacity = 0.12f
         Brush.verticalGradient(
             0f to surface.copy(alpha = opacity),
             TopBarTransitionStart to surface.copy(alpha = opacity * 0.55f),
@@ -70,7 +67,7 @@ internal fun MeiTopBarBackdrop(
             }
         }.graphicsLayer {
             // Reading protection stays present even before the scrolling title appears.
-            alpha = if (reduced) 1f else progress.coerceIn(0f, 1f)
+            alpha = if (solid) 1f else progress.coerceIn(0f, 1f)
         }.clipToBounds(),
     ) {
         if (live) {
@@ -83,20 +80,8 @@ internal fun MeiTopBarBackdrop(
                 ),
             )
         }
-        if (reduced) {
-            Box(Modifier.matchParentSize().drawWithCache {
-                // Only the extension fades. The entire measured toolbar, including the status
-                // area, stays opaque; no additional layout space is reserved for the fade.
-                val end = size.height.coerceAtLeast(1f)
-                val start = (end - transitionExtension.toPx()).coerceAtLeast(0f)
-                val solid = surface.copy(alpha = 1f)
-                val fade = Brush.verticalGradient(
-                    colors = listOf(solid, solid.copy(alpha = 0f)),
-                    startY = start,
-                    endY = end,
-                )
-                onDrawBehind { drawRect(fade) }
-            })
+        if (solid) {
+            Box(Modifier.matchParentSize().background(surface.copy(alpha = 1f)))
         } else {
             // Normal glass keeps its existing progressive sampling and gentle scrim.
             Box(Modifier.matchParentSize().background(tint))
