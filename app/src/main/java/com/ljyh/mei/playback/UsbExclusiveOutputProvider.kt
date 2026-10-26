@@ -29,7 +29,7 @@ import java.nio.ByteBuffer
 internal fun AudioDeviceInfo.isUsbAudioOutput() =
     type == AudioDeviceInfo.TYPE_USB_HEADSET || type == AudioDeviceInfo.TYPE_USB_DEVICE
 
-/** USB host permission + NeriPlayer native UAC transport, independent of AudioTrack routing. */
+/** USB host permission + attributed Rust UAC transport, independent of AudioTrack routing. */
 class UsbExclusiveOutputProvider(
     context: Context,
     private val onFailure: () -> Unit,

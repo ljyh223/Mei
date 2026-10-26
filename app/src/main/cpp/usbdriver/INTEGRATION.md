@@ -8,7 +8,7 @@ session and AudioOutput adapter are implemented in Mei, rather than copied from 
 
 - MusicService enumerates USB host AudioStreaming OUT interfaces and requests USB permission.
 - Host attach/detach events drive reconfiguration. AudioManager route changes are not physical
-  detach events: libusb claims can temporarily remove the system audio route.
+  detach events: native usbfs claims can temporarily remove the system audio route.
 - With a USB output attached, compressed passthrough/offload is rejected; the decoder supplies PCM.
 - UsbExclusiveOutputProvider probes actual PCM alternate/clock-range tuples without claiming interfaces,
   applies the sample-rate, bit-depth and channel compatibility switches, then opens one native UAC session.
@@ -73,11 +73,18 @@ behavior. Installation and on-device playback verification remain separate steps
 
 ## Rust backend
 
-JNI, USB sessions, clock controls, isochronous/feedback transfers, the PCM pipeline,
-polyphase resampler and UAC1/UAC2 AudioStreaming Type-I parsers all execute in Rust;
-libusb remains the C usbfs layer. The former C++ transport (`usb/exclusive`,
-`usb/feedback`, `usb/iso` and the UAC2 feedback/clock helpers) was removed, so there is
-no backend switch any more; `usb/pcm`, `usb/uac1` and `usb/uac2` format sources are kept
-for the host parity tests only. See ../../rust/mei-usb-core/README.md for build,
-FFI ownership and validation details. Runtime reports identify the PCM backend.
-Existing Kotlin settings and permission flows are unchanged.
+JNI, USB sessions, clock controls, feedback, PCM/resampling and packet scheduling
+execute in Rust. On codex/usbfs-rust, the kernel transport is also Rust: the granted
+Android fd is used for usbfs control/interface/URB ioctls, polled alongside an eventfd
+command wakeup. libusb and the C link anchor are removed. Cargo emits libmei_usb.so
+directly; Gradle packages the per-variant generated JNI libraries after native build.
+The separate BeatNet component still uses C++.
+
+Session, stream, protocol, descriptor and PCM modules forbid unsafe code. JNI and
+usbfs UAPI access remain isolated unsafe boundaries. Submitted URBs are owned by
+the transport until reaped, including during cancel and unplug. See
+../../rust/mei-usb-core/README.md for ownership/capability limits and validation.
+The remaining C++ PCM/format/control sources are host parity references only.
+NeriPlayer attribution remains because its audio/UAC logic was ported into Rust.
+Existing Kotlin settings and permission flows are unchanged. Runtime reports use
+backend=rust-usbfs transport=usbfs pcmBackend=rust.

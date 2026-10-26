@@ -19,7 +19,7 @@ internal interface UsbPcmTransport {
     fun close()
 }
 
-/** No AudioTrack is created while libusb owns the USB interfaces. */
+/** No AudioTrack is created while native USB owns the USB interfaces. */
 internal class UsbPcmAudioOutput(
     private val transport: UsbPcmTransport,
     private val rate: Int,

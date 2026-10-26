@@ -3,7 +3,7 @@ package com.ljyh.mei.playback.usb
 import androidx.annotation.Keep
 import java.nio.ByteBuffer
 
-/** JNI signatures for the attributed NeriPlayer USB transport. */
+/** JNI signatures for the attributed Rust USB audio driver. */
 @Keep
 internal object UsbNativeBridge {
     val available: Boolean by lazy {

@@ -56,8 +56,6 @@ jobs:
 
       - name: Prepare USB test dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libusb-1.0-0-dev
           cargo fetch --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
 
       - name: Check Rust USB core
@@ -65,6 +63,9 @@ jobs:
           cargo fmt --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml -- --check
           cargo test --offline --locked --all-features --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml
           cargo clippy --offline --locked --manifest-path app/src/main/rust/mei-usb-core/Cargo.toml --all-targets --all-features -- -D warnings
+          cmake -S app/src/test/cpp -B app/build/usb-host-tests -DCMAKE_BUILD_TYPE=Debug
+          cmake --build app/build/usb-host-tests -j2
+          ctest --test-dir app/build/usb-host-tests --output-on-failure
 
       - name: Build arm64 and x86_64 release APKs
         run: bash ./gradlew --no-daemon -PmeiAbiSplits=true :app:assembleRelease

@@ -106,7 +106,9 @@ struct Output {
     applied: f32,
     gain_target: f32,
     gain_remaining: usize,
+    #[cfg(any(not(feature = "full-usb"), test))]
     start_total: usize,
+    #[cfg(any(not(feature = "full-usb"), test))]
     start_remaining: usize,
 }
 fn allocate(bytes: usize) -> Result<Vec<u8>> {
@@ -531,6 +533,7 @@ impl Core {
         };
         Ok(())
     }
+    #[cfg(any(not(feature = "full-usb"), test))]
     pub fn add_dropped(&self, frames: u64) -> Result<()> {
         let mut output = self.output.lock().map_err(|_| "pcm_output_poisoned")?;
         let config = output.config.ok_or("pcm_not_configured")?;
@@ -553,6 +556,7 @@ impl Core {
     pub fn perfect(&self) -> bool {
         self.perfect.load(Ordering::Relaxed)
     }
+    #[cfg(any(not(feature = "full-usb"), test))]
     pub fn arm_ramp(&self) -> Result<()> {
         let mut output = self.output.lock().map_err(|_| "pcm_output_poisoned")?;
         if let Some(c) = output.config {
@@ -561,6 +565,7 @@ impl Core {
         }
         Ok(())
     }
+    #[cfg(any(not(feature = "full-usb"), test))]
     pub fn start_ramp(&self, bytes: &mut [u8]) -> Result<()> {
         let mut output = self.output.lock().map_err(|_| "pcm_output_poisoned")?;
         let Some(config) = output.config else {

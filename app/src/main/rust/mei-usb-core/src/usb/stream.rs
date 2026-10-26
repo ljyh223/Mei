@@ -1,14 +1,14 @@
+#![forbid(unsafe_code)]
 //! Rust-owned asynchronous isochronous transport and cancellation lifetime.
 //! Ported from NeriPlayer 113699bb; see ../../../../cpp/usbdriver/NERI_LICENSE.md.
 use super::{
     device::{Candidate, Device},
     protocol::{self, Scheduler},
-    sys,
+    usbfs::{self, Request},
 };
 use crate::pipeline::{Config, Core};
 use std::{
     collections::VecDeque,
-    ptr,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Condvar, Mutex,
@@ -16,14 +16,13 @@ use std::{
     thread::{self, JoinHandle},
     time::{Duration, Instant},
 };
-struct Completion {
-    done: AtomicBool,
-    _device: Arc<Device>,
-}
+// A slot owns its request while idle/completed. During kernel ownership the
+// request lives exclusively inside UsbFs; this slot only holds metadata.
 struct Slot {
-    transfer: *mut sys::Transfer,
-    buffer: Vec<u8>,
-    completion: Box<Completion>,
+    token: usize,
+    endpoint: u8,
+    request: Option<Request>,
+    complete: bool,
     real: Vec<usize>,
     sequence: u64,
     submitted: bool,
@@ -31,93 +30,53 @@ struct Slot {
 }
 impl Slot {
     fn new(
-        device: Arc<Device>,
+        token: usize,
         endpoint: u8,
         capacity: usize,
         packets: usize,
         feedback: bool,
     ) -> Result<Self, String> {
-        let transfer = unsafe { sys::libusb_alloc_transfer(packets as i32) };
-        if transfer.is_null() {
-            return Err("usb_transfer_allocation_failed".into());
-        }
-        let mut slot = Self {
-            transfer,
-            buffer: vec![0; capacity * packets],
-            completion: Box::new(Completion {
-                done: AtomicBool::new(false),
-                _device: device.clone(),
-            }),
+        let request = Request::new(token, capacity, packets)
+            .map_err(|e| format!("usbfs_allocation_failed:{e}"))?;
+        Ok(Self {
+            token,
+            endpoint,
+            request: Some(request),
+            complete: false,
             real: vec![0; packets],
             sequence: 0,
             submitted: false,
             feedback,
-        };
-        unsafe {
-            let t = &mut *transfer;
-            t.handle = device.handle;
-            t.endpoint = endpoint;
-            t.kind = 1;
-            t.timeout = 0;
-            t.callback = Some(completed);
-            t.user = (&mut *slot.completion as *mut Completion).cast();
-            t.buffer = slot.buffer.as_mut_ptr();
-            t.packet_count = packets as i32;
-        }
-        Ok(slot)
+        })
     }
-    fn packets(&self) -> &[sys::Packet] {
-        unsafe { std::slice::from_raw_parts((*self.transfer).packets.as_ptr(), self.real.len()) }
+    fn owned(&self) -> &Request {
+        self.request
+            .as_ref()
+            .expect("request returned by REAP before access")
     }
-    fn packets_mut(&mut self) -> &mut [sys::Packet] {
-        unsafe {
-            std::slice::from_raw_parts_mut((*self.transfer).packets.as_mut_ptr(), self.real.len())
-        }
-    }
-    fn submit(&mut self) -> Result<(), String> {
-        self.completion.done.store(false, Ordering::Release);
-        let rc = unsafe { sys::libusb_submit_transfer(self.transfer) };
-        if rc < 0 {
-            return Err(format!("usb_submit_failed:{rc}"));
-        }
-        self.submitted = true;
-        Ok(())
-    }
-    fn cancel(&mut self) {
-        if self.submitted {
-            unsafe {
-                sys::libusb_cancel_transfer(self.transfer);
+    fn submit(&mut self, device: &Device) -> Result<(), String> {
+        let request = self
+            .request
+            .take()
+            .ok_or("usbfs_request_already_submitted")?;
+        match device.io.submit(request, self.endpoint) {
+            Ok(()) => {
+                self.submitted = true;
+                self.complete = false;
+                Ok(())
+            }
+            Err(error) => {
+                self.request = Some(error.request);
+                Err(format!("usbfs_submit_failed:{}", error.error))
             }
         }
     }
     fn ready(&self) -> bool {
-        self.submitted && self.completion.done.load(Ordering::Acquire)
+        self.submitted && self.complete
     }
     fn retired(&mut self) {
         self.submitted = false;
-    }
-}
-unsafe extern "C" fn completed(transfer: *mut sys::Transfer) {
-    // SAFETY: Completion remains boxed until callback has retired. No locks or panics in callback.
-    unsafe {
-        let user = (*transfer).user.cast::<Completion>();
-        (*user).done.store(true, Ordering::Release);
-    }
-}
-impl Drop for Slot {
-    fn drop(&mut self) {
-        if self.submitted {
-            // A panic or stuck kernel must not turn a late callback into a use-after-free.
-            // Leaked Completion retains the device, duplicated fd and global ownership lease.
-            std::mem::forget(std::mem::take(&mut self.buffer));
-            let replacement = Box::new(Completion {
-                done: AtomicBool::new(false),
-                _device: self.completion._device.clone(),
-            });
-            std::mem::forget(std::mem::replace(&mut self.completion, replacement));
-        } else {
-            unsafe { sys::libusb_free_transfer(self.transfer) }
-        }
+        self.complete = false;
     }
 }
 #[derive(Default)]
@@ -168,6 +127,9 @@ impl Session {
         }
         let mut device = Device::probe(fd, true)?;
         let candidate = device.select(rate, channels, bits, subslot)?;
+        Self::start(device, candidate, rate)
+    }
+    fn start(device: Device, candidate: Candidate, rate: u32) -> Result<Arc<Self>, String> {
         let session = Arc::new(Self {
             device: Arc::new(device),
             candidate,
@@ -281,10 +243,7 @@ impl Session {
     }
     fn signal(&self) {
         self.wake.notify_all();
-        // Wake libusb's blocking event poll as well as an idle worker.
-        unsafe {
-            sys::libusb_interrupt_event_handler(self.device.ctx);
-        }
+        self.device.io.signal();
     }
     pub fn command(&self, playing: bool, flush: bool) -> bool {
         if !self.live() || (playing && !self.prepared.load(Ordering::Acquire)) {
@@ -316,10 +275,10 @@ impl Session {
         self.command(false, true)
     }
     pub fn queued_frames(&self) -> u64 {
-        (self.core.queued().unwrap_or(0) as u64
-            + self.staged.load(Ordering::Acquire)
-            + self.replay.load(Ordering::Acquire))
-            / self.candidate.frame_bytes() as u64
+        // Core already reports output frames; staging and replay are measured in bytes.
+        self.core.queued().unwrap_or(0) as u64
+            + (self.staged.load(Ordering::Acquire) + self.replay.load(Ordering::Acquire))
+                / self.candidate.frame_bytes() as u64
     }
     pub fn close(&self) {
         self.stop.store(true, Ordering::Release);
@@ -346,23 +305,23 @@ impl Session {
             .lock()
             .map(|e| e.clone())
             .unwrap_or_else(|_| "state_poisoned".into());
-        format!("backend=full-rust pcmBackend=rust terminalFailure={} transportFailed={} online={} outputRate={} outputBits={} outputChannels={} completedFrames={} queuedFrames={} stagedBytes={} replayBytes={} transfers={} feedbackHz={:.3} feedbackSamples={} feedbackRejected={} urgentAudio={} underrunBytes={} backpressureEvents={} error={}",self.failed.load(Ordering::Acquire),!self.device.online.load(Ordering::Acquire),self.device.online.load(Ordering::Acquire),self.rate,self.candidate.format.bits,self.candidate.format.channels,self.completed.load(Ordering::Acquire),self.queued_frames(),self.staged.load(Ordering::Acquire),self.replay.load(Ordering::Acquire),self.transfers.load(Ordering::Relaxed),f64::from_bits(self.feedback_hz.load(Ordering::Relaxed)),self.feedback_samples.load(Ordering::Relaxed),self.feedback_rejected.load(Ordering::Relaxed),self.urgent_audio.load(Ordering::Relaxed),snapshot.integers[7],snapshot.integers[13],e)
+        format!("backend=rust-usbfs transport=usbfs pcmBackend=rust terminalFailure={} transportFailed={} online={} outputRate={} outputBits={} outputChannels={} completedFrames={} queuedFrames={} stagedBytes={} replayBytes={} transfers={} feedbackHz={:.3} feedbackSamples={} feedbackRejected={} urgentAudio={} underrunBytes={} backpressureEvents={} error={}",self.failed.load(Ordering::Acquire),!self.device.online.load(Ordering::Acquire),self.device.online.load(Ordering::Acquire),self.rate,self.candidate.format.bits,self.candidate.format.channels,self.completed.load(Ordering::Acquire),self.queued_frames(),self.staged.load(Ordering::Acquire),self.replay.load(Ordering::Acquire),self.transfers.load(Ordering::Relaxed),f64::from_bits(self.feedback_hz.load(Ordering::Relaxed)),self.feedback_samples.load(Ordering::Relaxed),self.feedback_rejected.load(Ordering::Relaxed),self.urgent_audio.load(Ordering::Relaxed),snapshot.integers[7],snapshot.integers[13],e)
     }
 }
 // Returns completed real PCM bytes and preserves only the unsent PCM of each packet.
 fn settle(slot: &Slot, frame: usize, preserve: bool, replay: &mut VecDeque<u8>) -> (usize, bool) {
     settle_packets(
-        unsafe { (*slot.transfer).status },
-        slot.packets(),
+        slot.owned().status,
+        &slot.owned().packets,
         &slot.real,
-        &slot.buffer,
+        &slot.owned().data,
         frame,
         preserve.then_some(replay),
     )
 }
 fn settle_packets(
     status: i32,
-    packets: &[sys::Packet],
+    packets: &[usbfs::Packet],
     real: &[usize],
     buffer: &[u8],
     frame: usize,
@@ -372,8 +331,8 @@ fn settle_packets(
     let mut offset = 0;
     let mut bad = false;
     for (packet, real) in packets.iter().zip(real) {
-        let actual = if (status == sys::COMPLETED || status == sys::CANCELLED)
-            && packet.status == sys::COMPLETED
+        let actual = if (status == usbfs::COMPLETED || status == usbfs::CANCELLED)
+            && packet.status == usbfs::COMPLETED
         {
             (packet.actual.min(packet.length) as usize / frame) * frame
         } else {
@@ -386,8 +345,8 @@ fn settle_packets(
                 replay.extend(&buffer[offset + sent..offset + real]);
             }
         }
-        if status == sys::COMPLETED
-            && (packet.status != sys::COMPLETED || actual < packet.length as usize)
+        if status == usbfs::COMPLETED
+            && (packet.status != usbfs::COMPLETED || actual < packet.length as usize)
         {
             bad = true;
         }
@@ -402,7 +361,7 @@ fn retire(
     replay: &mut VecDeque<u8>,
 ) -> Result<(), String> {
     slot.retired();
-    let status = unsafe { (*slot.transfer).status };
+    let status = slot.owned().status;
     if slot.feedback {
         return Ok(());
     }
@@ -415,11 +374,17 @@ fn retire(
     );
     s.replay.store(replay.len() as u64, Ordering::Release);
     s.transfers.fetch_add(1, Ordering::Relaxed);
-    if status == 5 || slot.packets().iter().any(|p| p.status == 5) {
+    if status == usbfs::NO_DEVICE
+        || slot
+            .owned()
+            .packets
+            .iter()
+            .any(|p| p.status == usbfs::NO_DEVICE)
+    {
         s.device.online.store(false, Ordering::Release);
         return Err("usb_device_detached".into());
     }
-    if status != sys::COMPLETED && status != sys::CANCELLED {
+    if status != usbfs::COMPLETED && status != usbfs::CANCELLED {
         return Err(format!("usb_transfer_failed:{status}"));
     }
     if bad {
@@ -427,38 +392,50 @@ fn retire(
     }
     Ok(())
 }
-fn pump(s: &Session) -> Result<(), String> {
-    let rc = unsafe {
-        sys::libusb_handle_events_timeout_completed(
-            s.device.ctx,
-            &sys::Timeval {
-                seconds: 0,
-                micros: 100000,
-            },
-            ptr::null_mut(),
-        )
-    };
-    if rc < 0 && rc != -10 {
-        Err(format!("usb_event_loop_failed:{rc}"))
-    } else {
-        Ok(())
+fn pump(s: &Session, slots: &mut [Slot], complete: &mut Vec<Request>) -> Result<(), String> {
+    s.device
+        .io
+        .wait(Duration::from_millis(100))
+        .map_err(|e| format!("usbfs_poll_failed:{e}"))?;
+    let result = s.device.io.reap(complete);
+    // Assign every returned owner even if a later REAP or validation failed.
+    for request in complete.drain(..) {
+        let slot = slots
+            .iter_mut()
+            .find(|slot| slot.token == request.token)
+            .ok_or("usbfs_unknown_completion_token")?;
+        if slot.request.is_some() || !slot.submitted {
+            return Err("usbfs_duplicate_completion".into());
+        }
+        slot.request = Some(request);
+        slot.complete = true;
     }
+    if let Err(e) = result {
+        if e.raw_os_error() == Some(usbfs::os::ENODEV) {
+            s.device.online.store(false, Ordering::Release);
+        }
+        return Err(format!("usbfs_reap_failed:{e}"));
+    }
+    Ok(())
 }
 fn cancel_all(
     s: &Session,
     slots: &mut [Slot],
     preserve: bool,
     replay: &mut VecDeque<u8>,
+    complete: &mut Vec<Request>,
 ) -> Result<(), String> {
-    for slot in slots.iter_mut() {
-        slot.cancel();
-    }
-    let mut error = None;
+    let mut error = s
+        .device
+        .io
+        .cancel_all()
+        .err()
+        .map(|e| format!("usbfs_cancel_failed:{e}"));
     let mut pending = VecDeque::new();
-    // Do not free buffers on a timeout. Even if libusb stops delivering callbacks, this
-    // thread and its duplicated fd stay quarantined until every submitted transfer retires.
+    // Keep fd and allocations quarantined until every submitted URB has been reaped.
+    // A close timeout never frees memory which the kernel can still access.
     while slots.iter().any(|slot| slot.submitted && !slot.ready()) {
-        if let Err(e) = pump(s) {
+        if let Err(e) = pump(s, slots, complete) {
             s.fail(e);
             thread::sleep(Duration::from_millis(5));
         }
@@ -484,61 +461,55 @@ fn fill(
 ) -> Result<(), String> {
     let frame = s.candidate.frame_bytes();
     let mut offset = 0;
+    let request = slot.request.as_mut().ok_or("usbfs_fill_while_submitted")?;
     for i in 0..slot.real.len() {
         let length = scheduler.next() * frame;
-        if offset + length > slot.buffer.len() {
+        if offset + length > request.data.len() {
             return Err("usb_packet_capacity_exceeded".into());
         }
-        let target = &mut slot.buffer[offset..offset + length];
+        let target = &mut request.data[offset..offset + length];
         target.fill(0);
         let count = target.len().min(replay.len());
         for byte in &mut target[..count] {
             *byte = replay.pop_front().unwrap_or(0);
         }
-        let real = count
+        slot.real[i] = count
             + s.core
                 .fill(&mut target[count..], true)
                 .map_err(str::to_owned)?;
-        slot.real[i] = real;
-        slot.packets_mut()[i] = sys::Packet {
+        request.packets[i] = usbfs::Packet {
             length: length as u32,
             actual: 0,
             status: 0,
         };
         offset += length;
     }
-    unsafe {
-        (*slot.transfer).length = offset as i32;
-    }
     s.replay.store(replay.len() as u64, Ordering::Release);
     Ok(())
 }
-fn start_feedback(slot: &mut Slot) -> Result<(), String> {
-    let len = slot.buffer.len().min(4);
-    slot.buffer.fill(0);
-    slot.packets_mut()[0] = sys::Packet {
+fn start_feedback(s: &Session, slot: &mut Slot) -> Result<(), String> {
+    let request = slot
+        .request
+        .as_mut()
+        .ok_or("usbfs_feedback_while_submitted")?;
+    let len = request.data.len().min(4);
+    request.data.fill(0);
+    request.packets[0] = usbfs::Packet {
         length: len as u32,
         actual: 0,
         status: 0,
     };
-    unsafe {
-        (*slot.transfer).length = len as i32;
-    }
-    slot.submit()
+    slot.submit(&s.device)
 }
 fn run(s: &Arc<Session>) -> Result<(), String> {
-    // Match the original Android audio worker priority; failure is non-fatal.
-    #[cfg(target_os = "android")]
-    s.urgent_audio.store(
-        unsafe { sys::setpriority(0, 0, -19) } == 0,
-        Ordering::Release,
-    );
+    s.urgent_audio
+        .store(usbfs::os::audio_priority(), Ordering::Release);
     let plan = s.plan();
     let packets = plan.packets;
     let mut slots = Vec::with_capacity(plan.slots + 4);
     for _ in 0..plan.slots {
         slots.push(Slot::new(
-            s.device.clone(),
+            slots.len(),
             s.candidate.output.address,
             s.candidate.output.capacity,
             packets,
@@ -548,7 +519,7 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
     if let Some(feedback) = &s.candidate.feedback {
         for _ in 0..4 {
             slots.push(Slot::new(
-                s.device.clone(),
+                slots.len(),
                 feedback.address,
                 feedback.capacity.min(4),
                 1,
@@ -564,6 +535,7 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
     )
     .ok_or("usb_packet_capacity_exceeded")?;
     let mut replay = VecDeque::new();
+    let mut complete = Vec::with_capacity(slots.len());
     let mut revision = 0;
     let mut sequence = 0;
     let mut playing = false;
@@ -583,7 +555,7 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
             }
         };
         if next_revision != revision {
-            if let Err(e) = cancel_all(s, &mut slots, !flush, &mut replay) {
+            if let Err(e) = cancel_all(s, &mut slots, !flush, &mut replay, &mut complete) {
                 terminal = Some(e);
                 break;
             }
@@ -619,11 +591,11 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
         for slot in slots.iter_mut().filter(|slot| slot.feedback) {
             if slot.ready() {
                 slot.retired();
-                let t = unsafe { &*slot.transfer };
-                let p = slot.packets()[0];
-                if t.status == sys::COMPLETED && p.status == sys::COMPLETED {
+                let t = slot.owned();
+                let p = t.packets[0];
+                if t.status == usbfs::COMPLETED && p.status == usbfs::COMPLETED {
                     if let Some(sample) = protocol::feedback(
-                        &slot.buffer[..(p.actual as usize).min(slot.buffer.len())],
+                        &t.data[..(p.actual as usize).min(t.data.len())],
                         s.device.speed >= 3,
                         s.rate,
                     ) {
@@ -638,12 +610,12 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
                     } else {
                         s.feedback_rejected.fetch_add(1, Ordering::Relaxed);
                     }
-                } else if t.status != sys::CANCELLED {
+                } else if t.status != usbfs::CANCELLED {
                     feedback_error = Some(format!("usb_feedback_transfer_failed:{}", t.status));
                 }
             }
             if !slot.submitted {
-                if let Err(e) = start_feedback(slot) {
+                if let Err(e) = start_feedback(s, slot) {
                     feedback_error = Some(e);
                 }
             }
@@ -674,7 +646,7 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
                 sequence += 1;
                 slot.sequence = sequence;
                 let real: usize = slot.real.iter().sum();
-                match slot.submit() {
+                match slot.submit(&s.device) {
                     Ok(()) => {
                         s.staged.fetch_add(real as u64, Ordering::AcqRel);
                     }
@@ -692,7 +664,7 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
             terminal = Some("usb_audio_completion_timeout".into());
             break;
         }
-        if let Err(e) = pump(s) {
+        if let Err(e) = pump(s, &mut slots, &mut complete) {
             terminal = Some(e);
             break;
         }
@@ -700,7 +672,7 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
     if let Some(e) = terminal {
         s.fail(e);
     }
-    let result = cancel_all(s, &mut slots, false, &mut replay);
+    let result = cancel_all(s, &mut slots, false, &mut replay, &mut complete);
     s.staged.store(0, Ordering::Release);
     s.replay.store(0, Ordering::Release);
     result
@@ -708,22 +680,95 @@ fn run(s: &Arc<Session>) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn packets() -> [sys::Packet; 3] {
+    fn session() -> (Arc<Session>, Arc<usbfs::tests::Fake>) {
+        let (io, fake) = usbfs::tests::audio();
+        let mut device = Device::test_device(io).unwrap();
+        let candidate = device.select(48000, 2, 16, 2).unwrap();
+        let session = Session::start(device, candidate, 48000).unwrap();
+        assert!(session.prepare(48000, 2, 2));
+        session.core.set_perfect(true);
+        (session, fake)
+    }
+    fn until(mut condition: impl FnMut() -> bool) {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        while !condition() {
+            assert!(
+                Instant::now() < deadline,
+                "worker did not reach expected state"
+            );
+            thread::sleep(Duration::from_millis(1));
+        }
+    }
+    #[test]
+    fn actual_worker_preserves_audio_on_pause_and_counts_output_frames_once() {
+        let (s, fake) = session();
+        let pcm = vec![1; 4800 * 4];
+        assert_eq!(s.core.write(&pcm).unwrap(), pcm.len());
+        assert_eq!(s.queued_frames(), 4800);
+        assert!(s.command(true, false));
+        until(|| fake.pending() >= s.plan().slots);
+        assert!(s.command(false, false));
+        assert_eq!(s.device.io.pending(), 0);
+        assert_eq!(s.completed.load(Ordering::Acquire), 0);
+        assert_eq!(s.queued_frames(), 4800);
+        assert!(s.command(true, false));
+        until(|| fake.pending() >= s.plan().slots);
+        fake.finish(0);
+        until(|| s.completed.load(Ordering::Acquire) == 4800);
+        assert!(s.command(false, false));
+        assert_eq!(s.queued_frames(), 0);
+        s.close();
+        assert!(!s.live());
+    }
+    #[test]
+    fn actual_worker_seek_waits_for_new_preroll_and_close_reaps_every_request() {
+        let (s, fake) = session();
+        s.core.write(&vec![2; 4800 * 4]).unwrap();
+        assert!(s.command(true, false));
+        until(|| fake.pending() >= s.plan().slots);
+        assert!(s.flush());
+        assert_eq!(s.device.io.pending(), 0);
+        assert_eq!(s.queued_frames(), 0);
+        assert_eq!(s.completed.load(Ordering::Acquire), 0);
+        s.core.write(&vec![3; 2400 * 4]).unwrap();
+        thread::sleep(Duration::from_millis(10));
+        assert_eq!(s.device.io.pending(), 0);
+        assert_eq!(s.queued_frames(), 2400);
+        assert!(s.command(true, false));
+        until(|| fake.pending() >= s.plan().slots);
+        s.close();
+        assert_eq!(s.device.io.pending(), 0);
+        assert!(!s.failed.load(Ordering::Acquire));
+    }
+    #[test]
+    fn actual_worker_disconnect_stops_without_advancing_or_leaving_inflight_buffers() {
+        let (s, fake) = session();
+        s.core.write(&vec![4; 4800 * 4]).unwrap();
+        assert!(s.command(true, false));
+        until(|| fake.pending() >= s.plan().slots);
+        fake.disconnect();
+        until(|| !s.live());
+        s.close();
+        assert_eq!(s.device.io.pending(), 0);
+        assert_eq!(s.completed.load(Ordering::Acquire), 0);
+        assert!(s.report().contains("transportFailed=true"));
+    }
+    fn packets() -> [usbfs::Packet; 3] {
         [
-            sys::Packet {
+            usbfs::Packet {
                 length: 8,
                 actual: 8,
                 status: 0,
             },
-            sys::Packet {
+            usbfs::Packet {
                 length: 8,
                 actual: 4,
                 status: 0,
             },
-            sys::Packet {
+            usbfs::Packet {
                 length: 8,
                 actual: 0,
-                status: 3,
+                status: usbfs::CANCELLED,
             },
         ]
     }
@@ -732,7 +777,7 @@ mod tests {
         let mut replay = VecDeque::new();
         let buffer: Vec<u8> = (0..24).collect();
         let (sent, bad) = settle_packets(
-            sys::CANCELLED,
+            usbfs::CANCELLED,
             &packets(),
             &[8, 8, 4],
             &buffer,
@@ -751,7 +796,7 @@ mod tests {
         let mut ps = packets();
         ps[0].actual = 0;
         ps[1].status = 1;
-        let (sent, bad) = settle_packets(sys::COMPLETED, &ps, &[8, 8, 4], &[0; 24], 4, None);
+        let (sent, bad) = settle_packets(usbfs::COMPLETED, &ps, &[8, 8, 4], &[0; 24], 4, None);
         assert_eq!(sent, 0);
         assert!(bad);
         let (sent, bad) = settle_packets(1, &packets(), &[8, 8, 4], &[0; 24], 4, None);
@@ -760,13 +805,13 @@ mod tests {
     }
     #[test]
     fn completion_clamps_to_packet_and_whole_pcm_frames() {
-        let p = [sys::Packet {
+        let p = [usbfs::Packet {
             length: 8,
             actual: 100,
             status: 0,
         }];
         assert_eq!(settle_packets(0, &p, &[4], &[0; 8], 4, None), (4, false));
-        let p = [sys::Packet {
+        let p = [usbfs::Packet {
             length: 8,
             actual: 7,
             status: 0,

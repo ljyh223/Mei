@@ -8,7 +8,7 @@ license-file = "../../cpp/usbdriver/NERI_LICENSE.md"
 description = "Rust native driver for Mei USB exclusive playback"
 
 [lib]
-crate-type = ["staticlib", "rlib"]
+crate-type = ["staticlib", "rlib", "cdylib"]
 
 [profile.release]
 lto = "thin"

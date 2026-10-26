@@ -154,12 +154,6 @@ fun AboutScreen() {
                     onClick = { openUrl(context, "https://github.com/cwuom/NeriPlayer") }
                 )
                 AboutActionItem(
-                    icon = Icons.Rounded.Source,
-                    title = "libusb",
-                    subtitle = "USB 设备通信 · LGPL 2.1 或更新版本",
-                    onClick = { openUrl(context, "https://github.com/libusb/libusb") }
-                )
-                AboutActionItem(
                     icon = Icons.Rounded.LibraryMusic,
                     title = "amll-ttml-db",
                     subtitle = "高质量逐字歌词库",

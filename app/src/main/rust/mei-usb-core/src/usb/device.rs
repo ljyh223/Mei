@@ -1,40 +1,19 @@
+#![forbid(unsafe_code)]
 //! USB fd/claim/control ownership. Adapted from NeriPlayer 113699bb; see NERI_LICENSE.md.
 use super::{
     protocol::{self, RateRange},
-    sys,
+    usbfs::{self, Alt, Endpoint, UsbFs},
 };
 use crate::descriptor;
 use std::{
     collections::{HashMap, HashSet},
-    os::fd::{AsRawFd, BorrowedFd, OwnedFd},
-    ptr, slice,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Mutex,
+        Arc, Mutex,
     },
 };
 static LEASE: AtomicBool = AtomicBool::new(false);
-static INIT: Mutex<()> = Mutex::new(());
 static RELEASED: Mutex<Option<std::time::Instant>> = Mutex::new(None);
-#[derive(Clone)]
-pub struct Endpoint {
-    pub address: u8,
-    pub attributes: u8,
-    pub interval: u8,
-    pub capacity: usize,
-    pub extra: Vec<u8>,
-    pub sync_address: u8,
-}
-#[derive(Clone)]
-pub struct Alt {
-    pub number: u8,
-    pub alternate: u8,
-    pub class: u8,
-    pub subclass: u8,
-    pub protocol: u8,
-    pub extra: Vec<u8>,
-    pub endpoints: Vec<Endpoint>,
-}
 #[derive(Clone)]
 pub struct Candidate {
     pub stream: Alt,
@@ -69,10 +48,8 @@ struct Controls {
     mute: Vec<protocol::Feature>,
 }
 pub struct Device {
-    pub ctx: *mut sys::Context,
-    pub handle: *mut sys::Handle,
+    pub io: Arc<UsbFs>,
     pub speed: i32,
-    fd: OwnedFd,
     alts: Vec<Alt>,
     extra: Vec<u8>,
     claims: Vec<(u8, bool)>,
@@ -80,20 +57,6 @@ pub struct Device {
     controls: Mutex<Controls>,
     pub online: AtomicBool,
     leased: bool,
-}
-// libusb explicitly permits concurrent event/control calls. Descriptor/claim topology is
-// immutable after publication; saved controls are serialized and the worker retains Arc<Device>.
-unsafe impl Send for Device {}
-unsafe impl Sync for Device {}
-unsafe fn bytes<'a>(p: *const u8, n: i32) -> Result<&'a [u8], String> {
-    if !(0..=65535).contains(&n) || (n > 0 && p.is_null()) {
-        return Err("invalid_descriptor_length".into());
-    }
-    if n == 0 {
-        return Ok(&[]);
-    }
-    // SAFETY: caller holds the libusb config descriptor until this slice is copied.
-    Ok(unsafe { slice::from_raw_parts(p, n as usize) })
 }
 impl Device {
     pub fn probe(fd: i32, leased: bool) -> Result<Self, String> {
@@ -128,123 +91,29 @@ impl Device {
         if fd < 0 {
             return Err("invalid_usb_fd".into());
         }
-        // SAFETY: fd is borrowed only for dup, Java retains ownership of the original.
-        let owned = unsafe { BorrowedFd::borrow_raw(fd) }
-            .try_clone_to_owned()
-            .map_err(|_| "duplicate_usb_fd_failed")?;
-        let _init = INIT.lock().map_err(|_| "usb_init_poisoned")?;
-        let mut ctx = ptr::null_mut();
-        let mut handle = ptr::null_mut();
-        // SAFETY: valid local out pointers; discovery disabled before creating context.
-        unsafe {
-            let rc = sys::libusb_set_option(ptr::null_mut(), 2);
-            if rc < 0 {
-                return Err(format!("usb_no_discovery_failed:{rc}"));
-            }
-            let rc = sys::libusb_init(&mut ctx);
-            if rc < 0 {
-                return Err(format!("usb_init_failed:{rc}"));
-            }
-            let rc = sys::libusb_wrap_sys_device(ctx, owned.as_raw_fd() as isize, &mut handle);
-            if rc < 0 {
-                sys::libusb_exit(ctx);
-                return Err(format!("usb_wrap_failed:{rc}"));
-            }
+        let io = Arc::new(UsbFs::open(fd).map_err(|e| format!("usbfs_open_failed:{e}"))?);
+        Self::from_io(io, leased)
+    }
+    fn from_io(io: Arc<UsbFs>, leased: bool) -> Result<Self, String> {
+        let config = io.configuration()?;
+        if config.value == 0 {
+            return Err("usbfs_configuration_not_set".into());
         }
-        let mut result = Self {
-            ctx,
-            handle,
-            speed: 0,
-            fd: owned,
-            alts: vec![],
-            extra: vec![],
+        Ok(Self {
+            speed: io.speed(),
+            io,
+            alts: config.alts,
+            extra: config.extra,
             claims: vec![],
             selected: None,
             controls: Mutex::new(Controls::default()),
             online: AtomicBool::new(true),
             leased,
-        };
-        // Resource now owns the lease, including on parse error.
-        result.speed = unsafe { sys::libusb_get_device_speed(sys::libusb_get_device(handle)) };
-        result.read_config()?;
-        Ok(result)
+        })
     }
-    fn read_config(&mut self) -> Result<(), String> {
-        let mut config = ptr::null();
-        unsafe {
-            let dev = sys::libusb_get_device(self.handle);
-            let mut rc = sys::libusb_get_active_config_descriptor(dev, &mut config);
-            if rc < 0 {
-                rc = sys::libusb_get_config_descriptor(dev, 0, &mut config)
-            }
-            if rc < 0 || config.is_null() {
-                return Err(format!("usb_config_failed:{rc}"));
-            }
-            struct Guard(*const sys::Configuration);
-            impl Drop for Guard {
-                fn drop(&mut self) {
-                    unsafe { sys::libusb_free_config_descriptor(self.0) }
-                }
-            }
-            let _guard = Guard(config);
-            let c = &*config;
-            self.extra = bytes(c.extra, c.extra_len)?.to_vec();
-            if c.count > 0 && c.interfaces.is_null() {
-                return Err("usb_interfaces_missing".into());
-            }
-            for index in 0..c.count as usize {
-                let interface = &*c.interfaces.add(index);
-                if interface.count < 0
-                    || interface.count > 256
-                    || (interface.count > 0 && interface.alts.is_null())
-                {
-                    return Err("usb_alternates_invalid".into());
-                }
-                for n in 0..interface.count as usize {
-                    let a = &*interface.alts.add(n);
-                    if a.endpoint_count > 0 && a.endpoints.is_null() {
-                        return Err("usb_endpoints_missing".into());
-                    }
-                    let mut endpoints = Vec::new();
-                    for e in 0..a.endpoint_count as usize {
-                        let ep = &*a.endpoints.add(e);
-                        let reported = sys::libusb_get_max_alt_packet_size(
-                            dev,
-                            a.number as i32,
-                            a.alternate as i32,
-                            ep.address,
-                        );
-                        let capacity = if reported > 0 {
-                            reported as usize
-                        } else {
-                            ((ep.max_packet & 0x7ff) as usize)
-                                * (1 + ((ep.max_packet >> 11) & 3) as usize)
-                        };
-                        if capacity == 0 || capacity > 49152 {
-                            continue;
-                        }
-                        endpoints.push(Endpoint {
-                            address: ep.address,
-                            attributes: ep.attributes,
-                            interval: ep.interval,
-                            capacity,
-                            extra: bytes(ep.extra, ep.extra_len)?.to_vec(),
-                            sync_address: ep.sync_address,
-                        });
-                    }
-                    self.alts.push(Alt {
-                        number: a.number,
-                        alternate: a.alternate,
-                        class: a.class,
-                        subclass: a.subclass,
-                        protocol: a.protocol,
-                        extra: bytes(a.extra, a.extra_len)?.to_vec(),
-                        endpoints,
-                    });
-                }
-            }
-        }
-        Ok(())
+    #[cfg(test)]
+    pub(super) fn test_device(io: UsbFs) -> Result<Self, String> {
+        Self::from_io(Arc::new(io), false)
     }
     pub fn control(
         &self,
@@ -262,25 +131,14 @@ impl Device {
             return Err("usb_control_too_large".into());
         }
         let ty = if input { 0xa0 } else { 0x20 } | if endpoint { 2 } else { 1 };
-        let rc = unsafe {
-            sys::libusb_control_transfer(
-                self.handle,
-                ty,
-                request,
-                value,
-                index,
-                data.as_mut_ptr(),
-                data.len() as u16,
-                250,
-            )
-        };
-        if rc == sys::NO_DEVICE {
-            self.online.store(false, Ordering::Release);
-        }
-        if rc < 0 {
-            Err(format!("usb_control_failed:{rc}"))
-        } else {
-            Ok(rc as usize)
+        match self.io.control(ty, request, value, index, data, 250) {
+            Ok(n) => Ok(n),
+            Err(e) => {
+                if e.raw_os_error() == Some(usbfs::os::ENODEV) {
+                    self.online.store(false, Ordering::Release);
+                }
+                Err(format!("usbfs_control_failed:{e}"))
+            }
         }
     }
     fn clock(&self, ac: &Alt, terminal: u8) -> Option<(u8, bool)> {
@@ -463,24 +321,11 @@ impl Device {
         if self.claims.iter().any(|(n, _)| *n == number) {
             return Ok(());
         }
-        unsafe {
-            let active = sys::libusb_kernel_driver_active(self.handle, number as i32);
-            let detached = active == 1;
-            if detached {
-                let rc = sys::libusb_detach_kernel_driver(self.handle, number as i32);
-                if rc < 0 {
-                    return Err(format!("usb_detach_failed:{number}:{rc}"));
-                }
-            }
-            let rc = sys::libusb_claim_interface(self.handle, number as i32);
-            if rc < 0 {
-                if detached {
-                    sys::libusb_attach_kernel_driver(self.handle, number as i32);
-                }
-                return Err(format!("usb_claim_failed:{number}:{rc}"));
-            }
-            self.claims.push((number, detached));
-        }
+        let detached = self
+            .io
+            .claim(number)
+            .map_err(|e| format!("usbfs_claim_failed:{number}:{e}"))?;
+        self.claims.push((number, detached));
         Ok(())
     }
     pub fn select(
@@ -570,16 +415,9 @@ impl Device {
                 return Err("sample_rate_negotiation_failed:clock_readback".into());
             }
         }
-        let rc = unsafe {
-            sys::libusb_set_interface_alt_setting(
-                self.handle,
-                c.stream.number as i32,
-                c.stream.alternate as i32,
-            )
-        };
-        if rc < 0 {
-            return Err(format!("usb_set_alt_failed:{rc}"));
-        }
+        self.io
+            .set_alt(c.stream.number, c.stream.alternate)
+            .map_err(|e| format!("usbfs_set_alt_failed:{e}"))?;
         if c.version == 1 {
             let writable = protocol::descriptors(&c.output.extra)
                 .unwrap_or_default()
@@ -759,6 +597,12 @@ impl Device {
 }
 impl Drop for Device {
     fn drop(&mut self) {
+        if self.io.pending() > 0 {
+            // Worker panic: retain fd, kernel-visible buffers and the exclusive lease.
+            // Dropping a duplicate while Java still holds the original fd cannot cancel URBs.
+            std::mem::forget(self.io.clone());
+            return;
+        }
         if self.online.load(Ordering::Acquire) {
             if let Some(c) = &self.selected {
                 if let Ok(controls) = self.controls.lock() {
@@ -767,23 +611,14 @@ impl Drop for Device {
                             self.feature_io(c, &saved.feature, false, 1, &mut saved.bytes.clone());
                     }
                 }
-                unsafe {
-                    sys::libusb_set_interface_alt_setting(self.handle, c.stream.number as i32, 0);
-                }
+                let _ = self.io.set_alt(c.stream.number, 0);
             }
         }
-        unsafe {
-            for (number, detached) in self.claims.iter().rev() {
-                sys::libusb_release_interface(self.handle, *number as i32);
-                if *detached && self.online.load(Ordering::Relaxed) {
-                    sys::libusb_attach_kernel_driver(self.handle, *number as i32);
-                }
-            }
-            sys::libusb_close(self.handle);
-            sys::libusb_exit(self.ctx);
+        for (number, detached) in self.claims.iter().rev() {
+            let _ = self
+                .io
+                .release(*number, *detached && self.online.load(Ordering::Acquire));
         }
-        // fd closes after libusb; ownership remains held during restoration and cancellation.
-        let _ = &self.fd;
         if self.leased {
             if let Ok(mut last) = RELEASED.lock() {
                 *last = Some(std::time::Instant::now());

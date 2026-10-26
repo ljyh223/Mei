@@ -47,3 +47,9 @@ foreach(target mei_usb_rust_pipeline_tests mei_usb_rust_parity_tests)
 endforeach()
 add_test(NAME rust_pipeline_adapter COMMAND mei_usb_rust_pipeline_tests)
 add_test(NAME cpp_rust_audio_parity COMMAND mei_usb_rust_parity_tests)
+
+# Independent kernel-header check for Rust's handwritten usbfs UAPI layout.
+add_executable(mei_usbfs_abi_tests usbfs_abi_test.cpp)
+target_compile_features(mei_usbfs_abi_tests PRIVATE cxx_std_17)
+target_compile_options(mei_usbfs_abi_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME usbfs_kernel_abi COMMAND mei_usbfs_abi_tests)

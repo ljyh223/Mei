@@ -1,6 +1,6 @@
-//! Full Rust native USB backend, using the project's shared libusb C library.
+//! Full Rust native USB backend, using Android/Linux usbfs directly.
 mod device;
 mod jni;
 mod protocol;
 mod stream;
-mod sys;
+mod usbfs;

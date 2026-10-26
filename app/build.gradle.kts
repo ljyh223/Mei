@@ -187,3 +187,15 @@ val usbRustInputs = fileTree("src/main/rust/mei-usb-core") {
 tasks.configureEach {
     if (name.startsWith("buildCMake")) inputs.files(usbRustInputs).withPropertyName("usbRustCore")
 }
+
+// Cargo emits the USB cdylib directly; CMake continues to build BeatNet separately.
+// Wait for the native build before AGP snapshots each variant's generated JNI inputs.
+listOf("debug", "release").forEach { variant ->
+    android.sourceSets.getByName(variant).jniLibs.directories.add(
+        layout.buildDirectory.dir("generated/usbRustJni/$variant").get().asFile.absolutePath
+    )
+    val taskSuffix = variant.replaceFirstChar { it.uppercase() }
+    tasks.matching { it.name == "merge${taskSuffix}JniLibFolders" }.configureEach {
+        dependsOn("externalNativeBuild$taskSuffix")
+    }
+}

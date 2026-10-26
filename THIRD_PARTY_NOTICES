@@ -23,5 +23,6 @@ Used under the NeriPlayer Native Attribution License; see
 app/src/main/cpp/usbdriver/NERI_LICENSE.md. The Rust PCM/resampler and AudioStreaming
 parser ports in app/src/main/rust/mei-usb-core retain this attribution.
 No endorsement is implied.
-libusb is a separate shared library under LGPL-2.1-or-later.
-Its source and notices are in app/src/main/cpp/usbdriver/third_party/libusb.
+The previous libusb shared library/source is not included in the direct-usbfs
+Rust backend. Historical revisions retain the original libusb LGPL notices.
+NeriPlayer attribution still applies to the ported Rust audio/UAC implementation.
