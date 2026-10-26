@@ -29,7 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.ljyh.mei.constants.LxOnlyPlaybackKey
+import com.ljyh.mei.ui.screen.setting.component.AudioSourceModePreference
+import com.ljyh.mei.utils.preferences.AudioSourceMode
+import com.ljyh.mei.utils.preferences.AudioSourceModeKey
 import com.ljyh.mei.playback.source.lx.sourceDisplayName
 import com.ljyh.mei.ui.local.LocalNavController
 import androidx.compose.foundation.layout.asPaddingValues
@@ -37,13 +39,14 @@ import com.ljyh.mei.ui.component.glass.MeiPinnedLazyPage
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LxSourcesScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: LxSourcesViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
+    val (audioSourceMode, onAudioSourceModeChange) = rememberEnumPreference(AudioSourceModeKey, AudioSourceMode.Lx)
     val pageHaze = rememberHazeState()
     val scripts by viewModel.scripts.collectAsState()
     val statuses by viewModel.status.collectAsState()
@@ -101,7 +104,7 @@ fun LxSourcesScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: LxSource
     pendingImport?.let { uri ->
         AlertDialog(
             onDismissRequest = { pendingImport = null },
-            title = { Text("导入并启用音源？") },
+            title = { Text("导入音源？") },
             text = { Text("脚本运行时可以访问网络，并会收到待播放歌曲的信息。请仅导入你信任的脚本。") },
             confirmButton = { TextButton(onClick = { pendingImport = null; viewModel.import(Uri.parse(uri)) }) { Text("导入") } },
             dismissButton = { TextButton(onClick = { pendingImport = null }) { Text("取消") } },
@@ -133,17 +136,15 @@ fun LxSourcesScreen(scrollBehavior: TopAppBarScrollBehavior, viewModel: LxSource
                         Text("从文件导入")
                     }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                    var lxOnly by rememberPreference(LxOnlyPlaybackKey, false)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text("仅测试自定义音源", style = MaterialTheme.typography.titleSmall)
-                            Text("临时停用解灰兜底：网易云不可用时只尝试已启用的脚本，播放时提示命中的音源。",
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = lxOnly, onCheckedChange = { lxOnly = it })
-                    }
-                    Text("网易云无法播放或返回试听时自动尝试。排序靠前的音源先启动，优先使用最先通过校验的结果。",
-                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    AudioSourceModePreference(audioSourceMode, onAudioSourceModeChange)
+                    Text(
+                        if (audioSourceMode == AudioSourceMode.Lx) {
+                            "网易云无法播放或返回试听时自动尝试。排序靠前的音源先启动，优先使用最先通过校验的结果。"
+                        } else {
+                            "当前未启用 LX。已导入的脚本会保留，选择 LX 自定义音源后用于播放。"
+                        },
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             val list = scripts
