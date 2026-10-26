@@ -338,15 +338,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     description = currentPreset?.name ?: "自定义",
                     icon = { Icon(Icons.Rounded.Equalizer, contentDescription = null) },
                     checked = profile.enabled,
-                    onCheckedChange = { enabled ->
-                        commit(profile.copy(enabled = enabled))
-                        if (!enabled && autoEqEnabled) {
-                            autoEqEnabled = false
-                            scope.launch {
-                                context.dataStore.edit { it[AutoEqEnabledKey] = false }
-                            }
-                        }
-                    },
+                    onCheckedChange = { commit(profile.copy(enabled = it)) },
                 )
             }
             Row(
@@ -416,7 +408,7 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                         description = if (profile.enabled) {
                             "需要网易云 VIP · 使用官方曲目分析生成 10 段 EQ"
                         } else {
-                            "需要网易云 VIP · 先启用上方均衡器后可用"
+                            "需要网易云 VIP · 均衡器关闭时暂停，重新开启后自动生效"
                         },
                         checked = autoEqEnabled,
                         onCheckedChange = { enabled ->
@@ -425,7 +417,6 @@ fun EqualizerSettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                                 context.dataStore.edit { it[AutoEqEnabledKey] = enabled }
                             }
                         },
-                        isEnabled = profile.enabled,
                     )
                     if (autoEqEnabled) {
                         Column(
