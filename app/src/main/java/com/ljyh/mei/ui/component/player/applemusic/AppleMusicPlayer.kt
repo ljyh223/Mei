@@ -107,7 +107,8 @@ import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.utils.UnitUtils.toPx
 import com.ljyh.mei.utils.image.CoverExtensionMode
-import com.ljyh.mei.utils.image.rememberOriginalArtworkRequest
+import com.ljyh.mei.utils.image.rememberPlayerArtworkRequest
+import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlin.math.min
 
@@ -168,6 +169,7 @@ fun AppleMusicPlayer(
         it.source == DynamicCover.Source.APPLE_MUSIC && it.songId == mediaMetadata?.id
     }?.portraitVariant()
     val coverUrl = mediaMetadata?.coverUrl
+    val originalCover by rememberPreference(OriginalCoverKey, defaultValue = false)
     val coverBackgroundEnabled by rememberPreference(CoverBackgroundEnabledKey, defaultValue = false)
     val coverEdgeArtwork = if (
         coverBackgroundEnabled && state.progress > 0.05f &&
@@ -542,7 +544,8 @@ fun AppleMusicPlayer(
                             DynamicCoverView(
                                 imageUrl = currentMetadata.coverUrl,
                                 cover = activeCover,
-                                originalArtwork = true,
+                                originalArtwork = originalCover,
+                                playerArtwork = true,
                                 playing = isPlaying,
                                 onPlaybackError = { stateContainer.playerViewModel.fallbackDynamicCover(currentMetadata) },
                                 onArtworkReady = {
@@ -554,7 +557,7 @@ fun AppleMusicPlayer(
                                 modifier = Modifier.fillMaxSize(),
                             )
                         } else {
-                            val artworkRequest = rememberOriginalArtworkRequest(currentMetadata.coverUrl)
+                            val artworkRequest = rememberPlayerArtworkRequest(currentMetadata.coverUrl, originalCover)
                             if (artworkRequest != null) AsyncImage(
                                 model = artworkRequest,
                                 contentDescription = "Cover",
@@ -631,7 +634,8 @@ fun AppleMusicPlayer(
                         DynamicCoverView(
                             imageUrl = displayedPortrait.imageUrl,
                             cover = displayedPortrait.cover,
-                            originalArtwork = true,
+                            originalArtwork = originalCover,
+                            playerArtwork = true,
                             playing = isPlaying && displayedPortrait.cover.songId == mediaMetadata!!.id &&
                                 !detailsVisible && sheetProgress > 0.5f,
                             onPlaybackError = {
