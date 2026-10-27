@@ -58,8 +58,11 @@ import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
 import com.ljyh.mei.constants.LyricTextSize
 import com.ljyh.mei.constants.NormalLyricTextBoldKey
 import com.ljyh.mei.constants.NormalLyricTextSizeKey
+import com.ljyh.mei.constants.PhoneticLyricTextBoldKey
+import com.ljyh.mei.constants.PhoneticLyricTextSizeKey
 import com.ljyh.mei.constants.SeekOnLyricTapKey
 import com.ljyh.mei.constants.ShowLyricPhoneticKey
+import com.ljyh.mei.constants.ShowLyricTransitionKey
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.playback.SmoothPlaybackPosition
 import com.ljyh.mei.ui.model.LyricData
@@ -132,6 +135,7 @@ fun LyricScreen(
     )
     val (normalLyricTextBold, _) = rememberPreference(NormalLyricTextBoldKey, true)
     val (showPhonetic, _) = rememberPreference(ShowLyricPhoneticKey, true)
+    val (showTranslation, _) = rememberPreference(ShowLyricTransitionKey, true)
     val (seekOnLyricTap, _) = rememberPreference(SeekOnLyricTapKey, true)
 
     val (accompanimentLyricTextSize, _) = rememberEnumPreference(
@@ -139,6 +143,10 @@ fun LyricScreen(
         LyricTextSize.Size20
     )
     val (accompanimentLyricTextBold, _) = rememberPreference(AccompanimentLyricTextBoldKey, true)
+
+    val (phoneticLyricTextSize, _ ) =rememberEnumPreference(PhoneticLyricTextSizeKey, LyricTextSize.Size20)
+    val (phoneticLyricTextBold, _) = rememberPreference(PhoneticLyricTextBoldKey, true)
+
 
     LaunchedEffect(controlsVisible) {
         if (controlsVisible) {
@@ -201,6 +209,18 @@ fun LyricScreen(
             lineHeight = TextUnit.Unspecified,
             fontFamily = sf,
             fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
+            textMotion = TextMotion.Animated,
+        )
+    }
+
+    val phoneticStyle = remember(
+        baseTextStyle, phoneticLyricTextSize, phoneticLyricTextBold
+    ) {
+        baseTextStyle.copy(
+            fontSize = phoneticLyricTextSize.text.sp,
+            lineHeight = TextUnit.Unspecified,
+            fontFamily = sf,
+            fontWeight = if (phoneticLyricTextBold) FontWeight.Bold else FontWeight.Normal,
             textMotion = TextMotion.Animated,
         )
     }
@@ -270,7 +290,9 @@ fun LyricScreen(
                             },
                         normalLineTextStyle = normalStyle,
                         accompanimentLineTextStyle = accompanimentStyle,
+                        phoneticTextStyle = phoneticStyle,
                         showPhonetic = showPhonetic,
+                        showTranslation = showTranslation,
                         scrollAnimationSpec = if (positioningInitialLine) snap() else
                             tween(650, easing = FastOutSlowInEasing),
                     )
