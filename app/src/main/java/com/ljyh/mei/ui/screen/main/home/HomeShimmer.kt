@@ -91,6 +91,7 @@ private fun PlaylistBlockShimmer(
                     cardSize = cardSize,
                     isLoading = true,
                     onClick = {},
+                    onPlayClick = {}
                 )
             }
         }

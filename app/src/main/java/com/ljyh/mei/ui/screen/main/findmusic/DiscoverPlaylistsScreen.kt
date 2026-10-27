@@ -32,20 +32,38 @@ fun DiscoverPlaylistsScreen(viewModel: DiscoverPlaylistsViewModel = hiltViewMode
     var lastOrder by rememberSaveable { mutableStateOf(page.query.order.wireValue) }
     // A detail -> collection pop restores scroll; only an actual filter change resets it.
     LaunchedEffect(page.query) {
-        if (lastCategory != page.query.category || lastOrder != page.query.order.wireValue) scroll.scrollToItem(0)
+        if (lastCategory != page.query.category || lastOrder != page.query.order.wireValue) scroll.scrollToItem(
+            0
+        )
         lastCategory = page.query.category
         lastOrder = page.query.order.wireValue
     }
     MeiCollectionPage(
         title = if (page.query.category == "全部") "全部歌单" else page.query.category,
-        itemCount = page.items.size, itemKey = { page.items[it].id },
-        onNavigateBack = { nav.navigateUp() }, onRetry = viewModel::retryPlaylists,
-        columns = if (rememberDeviceInfo().isTablet) GridCells.Adaptive(164.dp) else GridCells.Fixed(2),
-        state = scroll, loading = page.loading, failed = page.failed, emptyText = "这个分类还没有歌单",
+        itemCount = page.items.size,
+        itemKey = { page.items[it].id },
+        onNavigateBack = { nav.navigateUp() },
+        onRetry = viewModel::retryPlaylists,
+        columns = if (rememberDeviceInfo().isTablet) GridCells.Adaptive(164.dp) else GridCells.Fixed(
+            2
+        ),
+        state = scroll,
+        loading = page.loading,
+        failed = page.failed,
+        emptyText = "这个分类还没有歌单",
         controls = {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 DiscoverOrder.entries.forEach { order ->
-                    MeiFilterPill(order.label, page.query.order == order, { viewModel.selectOrder(order) }, compact = true)
+                    MeiFilterPill(
+                        order.label,
+                        page.query.order == order,
+                        { viewModel.selectOrder(order) },
+                        compact = true
+                    )
                 }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = { categorySheet = true }) { Text("分类") }
@@ -53,15 +71,36 @@ fun DiscoverPlaylistsScreen(viewModel: DiscoverPlaylistsViewModel = hiltViewMode
         },
         loadingItem = {
             SkeletonShimmerHost(enabled = true) {
-                PlaylistCard("", "", "", modifier = Modifier.fillMaxWidth(), isLoading = true, onClick = {})
+                PlaylistCard(
+                    "",
+                    "",
+                    "",
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = true,
+                    onClick = {},
+                    onPlayClick = {}
+                )
             }
         },
-        footer = { MeiCollectionLoadMore(page.hasMore, page.loadingMore, page.failed, viewModel::loadMore) },
+        footer = {
+            MeiCollectionLoadMore(
+                page.hasMore,
+                page.loadingMore,
+                page.failed,
+                viewModel::loadMore
+            )
+        },
     ) { index ->
         val playlist = page.items[index]
         DiscoverPlaylistCard(playlist, Modifier.fillMaxWidth()) {
             Screen.PlayList.navigate(nav) { addPath(playlist.id.toString()) }
         }
     }
-    if (categorySheet) DiscoverCategorySheet(categories, page.query.category, { categorySheet = false }, viewModel::selectCategory, viewModel::loadCategories)
+    if (categorySheet) DiscoverCategorySheet(
+        categories,
+        page.query.category,
+        { categorySheet = false },
+        viewModel::selectCategory,
+        viewModel::loadCategories
+    )
 }

@@ -55,19 +55,27 @@ internal fun DiscoverCategorySheet(
                         item(key = group) {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(group, style = MaterialTheme.typography.titleMedium)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                                ) {
                                     values.forEach { category ->
-                                        MeiFilterPill(category.name, selectedCategory == category.name, {
-                                            onDismiss()
-                                            onCategorySelected(category.name)
-                                        }, compact = true)
+                                        MeiFilterPill(
+                                            category.name,
+                                            selectedCategory == category.name,
+                                            {
+                                                onDismiss()
+                                                onCategorySelected(category.name)
+                                            },
+                                            compact = true
+                                        )
                                     }
                                 }
                             }
                         }
                     }
                 }
+
                 else -> item { DiscoverResource(state, onRetry) { } }
             }
         }
@@ -76,7 +84,12 @@ internal fun DiscoverCategorySheet(
 }
 
 @Composable
-internal fun DiscoverSectionHeader(title: String, action: String = "查看全部", onAction: () -> Unit, modifier: Modifier = Modifier) {
+internal fun DiscoverSectionHeader(
+    title: String,
+    action: String = "查看全部",
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         MeiSectionTitle(title, modifier = Modifier.weight(1f))
         TextButton(onClick = onAction) { Text(action) }
@@ -91,7 +104,11 @@ internal fun <T> DiscoverSection(
 ) {
     if (state is Resource.Success && state.data.isEmpty()) return
     Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DiscoverSectionHeader(title, onAction = onMore, modifier = Modifier.padding(horizontalPadding))
+        DiscoverSectionHeader(
+            title,
+            onAction = onMore,
+            modifier = Modifier.padding(horizontalPadding)
+        )
         DiscoverResource(state, onRetry, content)
     }
 }
@@ -101,7 +118,10 @@ internal fun <T> DiscoverResource(
     state: Resource<List<T>>, onRetry: () -> Unit, content: @Composable (List<T>) -> Unit,
 ) {
     when (state) {
-        is Resource.Success -> if (state.data.isEmpty()) DiscoverEmpty(false, onRetry) else content(state.data)
+        is Resource.Success -> if (state.data.isEmpty()) DiscoverEmpty(false, onRetry) else content(
+            state.data
+        )
+
         is Resource.Error -> DiscoverEmpty(true, onRetry)
         Resource.Loading -> MeiCollectionStatus(loading = true, failed = false, onRetry = onRetry)
     }
@@ -113,30 +133,73 @@ internal fun DiscoverEmpty(failed: Boolean, onRetry: () -> Unit) {
 }
 
 @Composable
-internal fun DiscoverPlaylistCard(playlist: DiscoverPlaylist, modifier: Modifier, onClick: () -> Unit) {
-    PlaylistCard(id = playlist.id.toString(), title = playlist.name, coverImg = playlist.cover,
-        extInfo = formatDiscoverPlayCount(playlist.playCount), modifier = modifier, onClick = onClick)
+internal fun DiscoverPlaylistCard(
+    playlist: DiscoverPlaylist,
+    modifier: Modifier,
+    onClick: () -> Unit,
+    onPlayClick: () -> Unit
+) {
+    PlaylistCard(
+        id = playlist.id.toString(),
+        title = playlist.name,
+        coverImg = playlist.cover,
+        extInfo = formatDiscoverPlayCount(playlist.playCount),
+        modifier = modifier,
+        onClick = onClick,
+        onPlayClick = onPlayClick
+    )
 }
 
 @Composable
 internal fun DiscoverAlbumCard(album: DiscoverAlbum, modifier: Modifier, onClick: () -> Unit) {
-    ArtworkCard(title = album.name, subtitle = album.artist, coverUrl = album.cover, modifier = modifier, onClick = onClick)
+    ArtworkCard(
+        title = album.name,
+        subtitle = album.artist,
+        coverUrl = album.cover,
+        modifier = modifier,
+        onClick = onClick
+    )
 }
 
 @Composable
 internal fun DiscoverChartRow(chart: DiscoverChart, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        AsyncImage(model = chart.cover.sizedNeteaseImage(200), contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(80.dp).clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest))
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        AsyncImage(
+            model = chart.cover.sizedNeteaseImage(200),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(80.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+        )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(chart.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (chart.updateFrequency.isNotBlank()) Text(chart.updateFrequency, style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                chart.name,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (chart.updateFrequency.isNotBlank()) Text(
+                chart.updateFrequency, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             chart.tracks.forEachIndexed { index, track ->
-                Text("${index + 1}  $track", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${index + 1}  $track",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
