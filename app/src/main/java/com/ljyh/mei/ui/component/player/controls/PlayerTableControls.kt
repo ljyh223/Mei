@@ -12,12 +12,7 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
 import androidx.compose.material.icons.rounded.Replay
-import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -26,11 +21,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.R
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.playback.PlayerConnection
@@ -66,13 +63,13 @@ fun PlayerTableControls(
                     onClick = { playerConnection.switchPlayMode() }
                 ) {
                     val icon = when (playMode) {
-                        PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne // 单曲循环
-                        PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat    // 列表循环
-                        PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle  // 随机播放
+                        PlayMode.REPEAT_MODE_ONE -> R.drawable.ic_player_repeat_one // 单曲循环
+                        PlayMode.REPEAT_MODE_ALL -> R.drawable.ic_player_repeat    // 列表循环
+                        PlayMode.SHUFFLE_MODE_ALL -> R.drawable.ic_player_shuffle  // 随机播放
                     }
                     AnimatedContent(targetState = icon, label = "PlayModeIcon") { targetIcon ->
                         Icon(
-                            imageVector = targetIcon,
+                            painter = painterResource(targetIcon),
                             contentDescription = "播放模式",
                             tint = Color.White
                         )
@@ -92,7 +89,7 @@ fun PlayerTableControls(
                         .clip(RoundedCornerShape(4.dp))
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.SkipPrevious,
+                        painter = painterResource(R.drawable.ic_player_previous),
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.align(Alignment.Center)
@@ -140,7 +137,7 @@ fun PlayerTableControls(
                         .clip(RoundedCornerShape(4.dp))
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.SkipNext,
+                        painter = painterResource(R.drawable.ic_player_next),
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.align(Alignment.Center)

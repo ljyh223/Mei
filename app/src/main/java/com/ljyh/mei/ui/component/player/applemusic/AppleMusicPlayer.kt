@@ -290,7 +290,9 @@ fun AppleMusicPlayer(
     val edgeForeground = if (coverEdgeColor?.luminance()?.let { it > 0.179f } == true) {
         Color.Black
     } else Color.White
-    val playerForegroundColor = lerp(Color.White, edgeForeground, edgeExtensionAlpha)
+    // Keep controls fully legible during the background handoff; black/white interpolation
+    // passes through low-contrast gray and looks like a page-wide opacity animation.
+    val playerForegroundColor = if (edgeExtensionAlpha > 0.5f) edgeForeground else Color.White
     val playerSecondaryColor = playerForegroundColor.copy(
         alpha = lerp(0.7f + 0.12f * portraitAlpha, 0.88f, edgeExtensionAlpha),
     )
@@ -605,6 +607,11 @@ fun AppleMusicPlayer(
                         imageUrl = coverUrl,
                         isPlaying = isPlaying,
                         renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
+                        backgroundColor = lerp(
+                            portraitBackdropState.edgeColor ?: portraitFallbackColor,
+                            backgroundColor,
+                            fluidReveal,
+                        ),
                         onArtworkReady = { readyFluidUrl = it },
                     )
                 }

@@ -22,9 +22,6 @@ import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,12 +32,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.R
 import com.ljyh.mei.constants.PlayerActionKey
 import com.ljyh.mei.playback.PlayMode
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
@@ -60,7 +59,8 @@ fun PlayerActionToolbar(
     onAddToPlaylistClick: () -> Unit,
     onMoreClick: () -> Unit
 ) {
-    val foreground = LocalPlayerForegroundColor.current
+    val playerForeground = LocalPlayerForegroundColor.current
+    val foreground = playerForeground.copy(alpha = playerForeground.alpha * 0.7f)
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
 
@@ -102,13 +102,13 @@ fun PlayerActionToolbar(
                         onClick = { playerConnection.switchPlayMode() }
                     ) {
                         val icon = when (playMode) {
-                            PlayMode.REPEAT_MODE_ONE -> Icons.Rounded.RepeatOne // 单曲循环
-                            PlayMode.REPEAT_MODE_ALL -> Icons.Rounded.Repeat    // 列表循环
-                            PlayMode.SHUFFLE_MODE_ALL -> Icons.Rounded.Shuffle  // 随机播放
+                            PlayMode.REPEAT_MODE_ONE -> R.drawable.ic_player_repeat_one // 单曲循环
+                            PlayMode.REPEAT_MODE_ALL -> R.drawable.ic_player_repeat    // 列表循环
+                            PlayMode.SHUFFLE_MODE_ALL -> R.drawable.ic_player_shuffle  // 随机播放
                         }
                         AnimatedContent(targetState = icon, label = "PlayModeIcon") { targetIcon ->
                             Icon(
-                                imageVector = targetIcon,
+                                painter = painterResource(targetIcon),
                                 contentDescription = "播放模式",
                                 tint = foreground
                             )

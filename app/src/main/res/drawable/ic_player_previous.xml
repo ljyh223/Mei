@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phosphor Icons — MIT license; see assets/licenses/phosphor-icons.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="256" android:viewportHeight="256">
+    <!-- Center the artwork within the viewport; the source SVG has asymmetric margins. -->
+    <group android:translateX="8">
+        <path android:pathData="M232,71.84V184.16a15.92,15.92,0,0,1-24.48,13.34L128,146.86v37.3a15.92,15.92,0,0,1-24.48,13.34L15.33,141.34a15.8,15.8,0,0,1,0-26.68L103.52,58.5A15.91,15.91,0,0,1,128,71.84v37.3L207.52,58.5A15.91,15.91,0,0,1,232,71.84Z" android:fillColor="#FFFFFFFF" />
+    </group>
+</vector>

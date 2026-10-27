@@ -3,6 +3,8 @@ package com.ljyh.mei.ui.component.player.cover
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import coil3.imageLoader
@@ -27,6 +29,7 @@ fun FluidBackground(
     imageUrl: String?,
     isPlaying: Boolean = true,
     renderAlpha: Float = 1f,
+    backgroundColor: Color = Color.Black,
     onArtworkReady: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -66,6 +69,8 @@ fun FluidBackground(
         factory = { ctx ->
             MeshBackgroundView(ctx).apply {
                 onAlbumRendered = onArtworkReady
+                setBackdropColor(backgroundColor.toArgb())
+                setRenderOpacity(renderAlpha)
                 // 初始化时的默认值
                 setFlowSpeed(flowSpeed)
                 setRenderScale(renderScale)
@@ -77,7 +82,9 @@ fun FluidBackground(
         },
         update = { view ->
             view.onAlbumRendered = onArtworkReady
-            view.alpha = renderAlpha.coerceIn(0f, 1f)
+            // Animate pixels, not SurfaceView.alpha: Z-below alpha changes the window hole.
+            view.setBackdropColor(backgroundColor.toArgb())
+            view.setRenderOpacity(renderAlpha)
             albumBitmap?.let { bmp ->
                 imageUrl?.let { view.setAlbum(bmp, it) }
             }

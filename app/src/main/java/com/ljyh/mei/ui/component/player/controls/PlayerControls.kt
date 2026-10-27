@@ -9,16 +9,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.R
 import com.ljyh.mei.extensions.togglePlayPause
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
@@ -49,13 +49,13 @@ fun PlayerControls(
                     onClick = playerConnection::seekToPrevious,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(48.dp)
+                        .size(64.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.SkipPrevious,
+                        painter = painterResource(R.drawable.ic_player_previous),
                         contentDescription = "上一首",
                         tint = foreground.copy(alpha = if (canSkipPrevious) 1f else 0.38f),
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(44.dp)
                     )
                 }
             }
@@ -78,7 +78,7 @@ fun PlayerControls(
                         imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "暂停" else "播放",
                         tint = foreground,
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(64.dp)
                     )
                 }
             }
@@ -91,13 +91,13 @@ fun PlayerControls(
                     onClick = playerConnection::seekToNext,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(48.dp)
+                        .size(64.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.SkipNext,
+                        painter = painterResource(R.drawable.ic_player_next),
                         contentDescription = "下一首",
                         tint = foreground.copy(alpha = if (canSkipNext) 1f else 0.38f),
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(44.dp)
                     )
                 }
             }

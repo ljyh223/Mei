@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phosphor Icons — MIT license; see assets/licenses/phosphor-icons.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="256" android:viewportHeight="256">
+    <path android:pathData="M200,88 L224,64 L200,40" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="24" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M32,128A64,64,0,0,1,96,64H224" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="24" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M56,168 L32,192 L56,216" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="24" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M224,128a64,64,0,0,1-64,64H32" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="24" android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

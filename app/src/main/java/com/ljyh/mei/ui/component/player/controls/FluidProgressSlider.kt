@@ -1,7 +1,7 @@
 package com.ljyh.mei.ui.component.player.controls
 
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -70,7 +70,7 @@ fun FluidProgressSlider(
     val isUserPressed by interactionSource.collectIsPressedAsState()
     val bufferingPhase = rememberBufferingSweep(isBuffering && !isUserDragging)
 
-    // Apple Music 的逻辑是：只要按住 (Pressed) 或者 拖拽 (Dragged)，条就会变粗
+    // 按住或拖拽时只提高已播放部分的不透明度，轨道高度保持不变。
     val isInteracting = isUserDragging || isUserPressed
 
     // 内部拖拽位置状态
@@ -84,36 +84,22 @@ fun FluidProgressSlider(
         position.toFloat()
     }.coerceIn(valueRange)
 
-    // --- Apple Music 风格动画核心 ---
-
-    // 1. 轨道高度动画：平时很细(2dp)，按住时变粗(10dp)
-    val trackHeight by animateDpAsState(
-        targetValue = if (isInteracting) 10.dp else if (bufferingPhase != null) 4.dp else 2.dp,
+    val trackHeight = 6.dp
+    val activeTrackAlpha by animateFloatAsState(
+        targetValue = if (isInteracting) 1f else 0.65f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
+            stiffness = Spring.StiffnessMedium,
         ),
-        label = "trackHeight"
+        label = "activeTrackAlpha",
     )
 
-    // 2. 滑块(Thumb)大小动画：平时不可见或极小(0dp)，按住时出现(12dp)
-    // Apple Music 在静止时其实看不到滑块，或者滑块和轨道一样高。这里我们设定静止时滑块隐藏(0dp)。
-    val thumbRadius by animateDpAsState(
-        targetValue = if (isInteracting) 8.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, // 稍微带点弹性
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "thumbRadius"
-    )
-
-    // 3. 时间文字大小/透明度动画 (可选，Apple Music 有时会在拖拽时让文字变亮)
-    val textAlpha = 0.6f // 保持恒定，或者根据 isInteracting 改变
+    val textAlpha = 0.6f
 
     Column(modifier = modifier) {
 
         // Slider 组件
-        // 注意：Slider 本身的高度必须足够容纳“变粗”后的状态，否则会被裁剪
+        // 固定容器高度，按压和拖拽都不改变布局。
         Box(
             modifier = Modifier.height(20.dp), // 容器高度固定，保证触摸区域一致
             contentAlignment = Alignment.Center
@@ -147,7 +133,7 @@ fun FluidProgressSlider(
                     Canvas(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(trackHeight) // 轨道高度跟随动画
+                            .height(trackHeight)
                     ) {
                         val width = size.width
                         val height = size.height
@@ -168,10 +154,10 @@ fun FluidProgressSlider(
                             cornerRadius = CornerRadius(height / 2, height / 2) // 完全圆角
                         )
 
-                        // 2. 绘制已播放轨道 (Active) - 实心白色
+                        // 2. 已播放轨道仅在交互时提高不透明度。
                         if (activeWidth > 0) {
                             drawRoundRect(
-                                color = foreground,
+                                color = foreground.copy(alpha = foreground.alpha * activeTrackAlpha),
                                 topLeft = Offset(0f, 0f),
                                 size = Size(activeWidth, height),
                                 cornerRadius = CornerRadius(height / 2, height / 2)
