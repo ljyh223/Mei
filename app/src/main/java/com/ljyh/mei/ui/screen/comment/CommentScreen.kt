@@ -52,6 +52,9 @@ fun CommentScreen(
     val total by viewModel.total.collectAsState()
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
     val floorComments by viewModel.floorComments.collectAsState()
+    val floorHasMore by viewModel.floorHasMore.collectAsState()
+    val floorLoadMoreError by viewModel.floorLoadMoreError.collectAsState()
+    val floorWaitingForReveal by viewModel.floorWaitingForReveal.collectAsState()
     val expandedFloorCount by viewModel.expandedFloorCount.collectAsState()
 
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
@@ -149,6 +152,10 @@ fun CommentScreen(
                             isExpanded = isExpanded,
                             floorComments = if (isExpanded) floorComments
                             else com.ljyh.mei.data.network.Resource.Loading,
+                            floorHasMore = isExpanded && floorHasMore,
+                            floorLoadMoreError = floorLoadMoreError,
+                            floorWaitingForReveal = floorWaitingForReveal,
+                            onShowMoreFloor = viewModel::showMoreFloorComments,
                             onToggleFloor = { commentId, count ->
                                 viewModel.toggleFloorComments(commentId, count)
                             }

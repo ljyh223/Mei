@@ -25,6 +25,7 @@ data class FloorCommentEntry(
     val location: String,
     val likedCount: Int,
     val timeText: String,
+    val time: Long,
 )
 
 data class CommentUser(val avatarUrl: String, val nickname: String)

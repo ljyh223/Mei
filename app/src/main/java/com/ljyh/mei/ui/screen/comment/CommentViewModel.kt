@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import javax.inject.Inject
 
@@ -62,7 +63,7 @@ class CommentViewModel @Inject constructor(
         _total.value = 0
         _expandedCommentId.value = null
         _expandedFloorCount.value = 0
-        _floorComments.value = Resource.Loading
+        resetFloorComments()
     }
 
     fun setSortType(type: CommentSortType) {
@@ -78,31 +79,120 @@ class CommentViewModel @Inject constructor(
     private val _expandedFloorCount = MutableStateFlow(0)
     val expandedFloorCount: StateFlow<Int> = _expandedFloorCount
 
+    private val _floorHasMore = MutableStateFlow(false)
+    val floorHasMore: StateFlow<Boolean> = _floorHasMore
+    private val _floorLoadingMore = MutableStateFlow(false)
+    val floorLoadingMore: StateFlow<Boolean> = _floorLoadingMore
+    private val _floorLoadMoreError = MutableStateFlow(false)
+    val floorLoadMoreError: StateFlow<Boolean> = _floorLoadMoreError
+
+    private var floorJob: Job? = null
+    private var prefetchedFloor: List<FloorCommentEntry>? = null
+    private var nextFloorTime = -1L
+    private val _floorWaitingForReveal = MutableStateFlow(false)
+    val floorWaitingForReveal: StateFlow<Boolean> = _floorWaitingForReveal
+
+    private var revealWhenLoaded = false
+    private var floorServerHasMore = false
+
+    private fun resetFloorComments() {
+        floorJob?.cancel()
+        floorJob = null
+        prefetchedFloor = null
+        nextFloorTime = -1L
+        revealWhenLoaded = false
+        _floorWaitingForReveal.value = false
+        floorServerHasMore = false
+        _floorComments.value = Resource.Loading
+        _floorHasMore.value = false
+        _floorLoadingMore.value = false
+        _floorLoadMoreError.value = false
+    }
+
     fun toggleFloorComments(commentId: Long, floorCount: Int) {
         if (_expandedCommentId.value == commentId) {
             _expandedCommentId.value = null
             _expandedFloorCount.value = 0
+            resetFloorComments()
             return
         }
+        resetFloorComments()
         _expandedCommentId.value = commentId
         _expandedFloorCount.value = floorCount
-        loadFloorComments(commentId, floorCount)
+        loadFloorPage(initial = true)
     }
 
-    private fun loadFloorComments(parentCommentId: Long, limit: Int) {
-        viewModelScope.launch {
-            _floorComments.value = Resource.Loading
-            _floorComments.value = repository.getFloorComment(
-                parentCommentId = parentCommentId,
-                id = _songId.value,
-                limit = limit
-            ).let { resource ->
-                when (resource) {
-                    is Resource.Success -> Resource.Success(resource.data)
-                    is Resource.Error -> Resource.Error(resource.message)
-                    Resource.Loading -> Resource.Loading
+    fun showMoreFloorComments() {
+        if (!_floorHasMore.value) return
+        val page = prefetchedFloor
+        if (page != null) {
+            revealFloorPage(page)
+        } else if (_floorLoadingMore.value) {
+            revealWhenLoaded = true
+            _floorWaitingForReveal.value = true
+        } else {
+            revealWhenLoaded = true
+            _floorWaitingForReveal.value = true
+            loadFloorPage(initial = false)
+        }
+    }
+
+    private fun revealFloorPage(page: List<FloorCommentEntry>) {
+        prefetchedFloor = null
+        val current = (_floorComments.value as? Resource.Success)?.data.orEmpty()
+        _floorComments.value = Resource.Success(current + page)
+        _floorHasMore.value = floorServerHasMore
+        if (floorServerHasMore) loadFloorPage(initial = false)
+    }
+
+    private fun loadFloorPage(initial: Boolean) {
+        val commentId = _expandedCommentId.value ?: return
+        val songId = _songId.value
+        val cursor = nextFloorTime
+        _floorLoadingMore.value = !initial
+        _floorLoadMoreError.value = false
+        floorJob = viewModelScope.launch {
+            when (val result = repository.getFloorComment(
+                parentCommentId = commentId,
+                id = songId,
+                limit = FLOOR_PAGE_SIZE,
+                time = cursor,
+            )) {
+                is Resource.Success -> {
+                    val page = result.data
+                    val lastTime = page.lastOrNull()?.time ?: -1L
+                    floorServerHasMore = page.size == FLOOR_PAGE_SIZE && lastTime > 0 && lastTime != cursor
+                    _floorHasMore.value = floorServerHasMore
+                    nextFloorTime = lastTime
+                    _floorLoadingMore.value = false
+                    if (initial) {
+                        _floorComments.value = Resource.Success(page)
+                        if (_floorHasMore.value) loadFloorPage(initial = false)
+                    } else if (revealWhenLoaded) {
+                        revealWhenLoaded = false
+                        _floorWaitingForReveal.value = false
+                        revealFloorPage(page)
+                    } else {
+                        prefetchedFloor = page
+                        // A prefetched final page is still available to reveal.
+                        if (page.isNotEmpty()) _floorHasMore.value = true
+                    }
                 }
+                is Resource.Error -> {
+                    _floorLoadingMore.value = false
+                    if (initial) _floorComments.value = Resource.Error(result.message)
+                    else {
+                        revealWhenLoaded = false
+                        _floorWaitingForReveal.value = false
+                        _floorLoadMoreError.value = true
+                    }
+                }
+                Resource.Loading -> Unit
             }
         }
+    }
+
+    private companion object {
+        const val FLOOR_PAGE_SIZE = 6
     }
 }

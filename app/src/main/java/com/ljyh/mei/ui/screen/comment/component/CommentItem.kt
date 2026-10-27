@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.CommentEntry
 import com.ljyh.mei.data.model.domain.FloorCommentEntry
@@ -44,6 +45,11 @@ fun CommentItem(
     onToggleFloor: (Long, Int) -> Unit,
     modifier: Modifier = Modifier,
     lightText: Boolean = false,
+    horizontalPadding: Dp = meiPageGutter(),
+    floorHasMore: Boolean = false,
+    floorLoadMoreError: Boolean = false,
+    floorWaitingForReveal: Boolean = false,
+    onShowMoreFloor: () -> Unit = {},
 ) {
     val primaryText = if (lightText) Color.White else MaterialTheme.colorScheme.onSurface
     val secondaryText = if (lightText) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -53,7 +59,7 @@ fun CommentItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = meiPageGutter(), vertical = 8.dp)
+                .padding(horizontal = horizontalPadding, vertical = 8.dp)
         ) {
             AsyncImage(
                 model = comment.user.avatarUrl,
@@ -138,7 +144,7 @@ fun CommentItem(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = meiPageGutter() + 46.dp, end = meiPageGutter(), bottom = 4.dp)
+                    .padding(start = horizontalPadding + 46.dp, end = horizontalPadding, bottom = 4.dp)
                     .background(
                         if (lightText) Color.White.copy(alpha = 0.08f)
                         else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f),
@@ -160,15 +166,29 @@ fun CommentItem(
                             floorComments.data.forEach { floor ->
                                 FloorCommentItem(comment = floor, lightText = lightText)
                             }
+                            if (floorHasMore) {
+                                Text(
+                                    text = when {
+                                        floorLoadMoreError -> "加载失败，点击重试"
+                                        floorWaitingForReveal -> "加载中…"
+                                        else -> "查看更多回复"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = accentText,
+                                    modifier = Modifier
+                                        .clickable { onShowMoreFloor() }
+                                        .padding(horizontal = 12.dp, vertical = 12.dp)
+                                )
+                            }
                         }
                     }
                     is Resource.Error -> {
                         Timber.d("子评论加载失败" + floorComments.message)
                         Text(
-                            text = "加载失败",
+                            text = "加载失败，点击重试",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (lightText) Color(0xFFFFDAD6) else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(12.dp)
+                            modifier = Modifier.clickable { onToggleFloor(comment.id, comment.replyCount); onToggleFloor(comment.id, comment.replyCount) }.padding(12.dp)
                         )
                     }
                 }

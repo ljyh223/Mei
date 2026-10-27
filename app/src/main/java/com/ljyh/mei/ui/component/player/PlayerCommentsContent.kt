@@ -45,6 +45,9 @@ fun PlayerCommentsContent(
 ) {
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
     val floorComments by viewModel.floorComments.collectAsState()
+    val floorHasMore by viewModel.floorHasMore.collectAsState()
+    val floorLoadMoreError by viewModel.floorLoadMoreError.collectAsState()
+    val floorWaitingForReveal by viewModel.floorWaitingForReveal.collectAsState()
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
     val currentOnControlsVisibilityChange by rememberUpdatedState(onControlsVisibilityChange)
     val scrollThreshold = with(LocalDensity.current) { 10.dp.toPx() }
@@ -121,6 +124,11 @@ fun PlayerCommentsContent(
                         isExpanded = isExpanded,
                         floorComments = if (isExpanded) floorComments else Resource.Loading,
                         onToggleFloor = viewModel::toggleFloorComments,
+                        onShowMoreFloor = viewModel::showMoreFloorComments,
+                        floorHasMore = isExpanded && floorHasMore,
+                        floorLoadMoreError = floorLoadMoreError,
+                        floorWaitingForReveal = floorWaitingForReveal,
+                        horizontalPadding = 4.dp,
                         lightText = true,
                     )
                 }

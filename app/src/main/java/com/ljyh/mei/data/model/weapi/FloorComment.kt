@@ -19,5 +19,6 @@ data class FComment(
     @SerialName("ipLocation") val ipLocation: IpLocation = IpLocation(),
     @SerialName("likedCount") val likedCount: Int = 0,
     @SerialName("timeStr") val timeStr: String = "",
+    @SerialName("time") val time: Long = -1,
     @SerialName("user") val user: User = User(),
 )

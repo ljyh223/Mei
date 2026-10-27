@@ -90,4 +90,5 @@ private fun com.ljyh.mei.data.model.weapi.FComment.toDomain() = FloorCommentEntr
     location = ipLocation.location,
     likedCount = likedCount,
     timeText = timeStr,
+    time = time,
 )
