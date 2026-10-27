@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.playlist.component
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,27 +26,34 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.model.PlaylistHeaderStyle
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.utils.image.sizedNeteaseImage
+import kotlinx.coroutines.delay
 
 /** Shared dispatch for both the phone list header and the tablet detail column. */
 @Composable
@@ -95,12 +104,14 @@ fun PlaylistDetailHeader(
             Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
             contentAlignment = Alignment.Center,
         ) {
-            PlaylistCoverStage(
-                covers = covers,
-                liked = liked,
-                onPreview = { preview = it },
-                modifier = Modifier.widthIn(max = if (compact) 280.dp else 420.dp).fillMaxWidth(),
-            )
+            key(playlist.id) {
+                PlaylistCoverStage(
+                    covers = covers,
+                    liked = liked,
+                    onPreview = { preview = it },
+                    modifier = Modifier.widthIn(max = if (compact) 280.dp else 420.dp).fillMaxWidth(),
+                )
+            }
         }
         Spacer(Modifier.height(20.dp))
         Row(
@@ -177,23 +188,37 @@ private fun PlaylistCoverStage(
                     Icon(Icons.Rounded.MusicNote, null, Modifier.size(48.dp))
                 }
             } else if (liked && covers.size == 1) {
-                HeroCover(covers[0], "歌曲封面", onPreview,
-                    Modifier.size(width * 0.65f).align(Alignment.Center)
-                        .graphicsLayer { rotationZ = -10f })
+                LikedCoverEntrance(
+                    url = covers[0], onPreview = onPreview,
+                    rotation = -10f, dropDistance = width,
+                    modifier = Modifier.size(width * 0.65f).align(Alignment.Center),
+                )
             } else if (liked) {
                 covers.getOrNull(2)?.let {
-                    HeroCover(it, "歌曲封面", onPreview,
-                        Modifier.offset(x = width * 0.45f, y = width * 0.04f)
-                            .size(width * 0.48f).graphicsLayer { rotationZ = 9f; alpha = 0.72f })
+                    LikedCoverEntrance(
+                        url = it, onPreview = onPreview,
+                        rotation = 9f, opacity = 0.72f, dropDistance = width,
+                        spreadDistance = width * -0.08f,
+                        modifier = Modifier.offset(x = width * 0.45f, y = width * 0.04f)
+                            .size(width * 0.48f),
+                    )
                 }
                 covers.getOrNull(1)?.let {
-                    HeroCover(it, "歌曲封面", onPreview,
-                        Modifier.offset(x = width * 0.07f, y = width * 0.16f)
-                            .size(width * 0.55f).graphicsLayer { rotationZ = -15f })
+                    LikedCoverEntrance(
+                        url = it, onPreview = onPreview,
+                        rotation = -15f, dropDistance = width, delayMillis = 80,
+                        spreadDistance = width * 0.12f,
+                        modifier = Modifier.offset(x = width * 0.07f, y = width * 0.16f)
+                            .size(width * 0.55f),
+                    )
                 }
-                HeroCover(covers[0], "歌曲封面", onPreview,
-                    Modifier.offset(x = width * 0.40f, y = width * 0.43f)
-                        .size(width * 0.48f).graphicsLayer { rotationZ = 17f })
+                LikedCoverEntrance(
+                    url = covers[0], onPreview = onPreview,
+                    rotation = 17f, dropDistance = width * 1.15f, delayMillis = 150,
+                    spreadDistance = width * -0.10f,
+                    modifier = Modifier.offset(x = width * 0.40f, y = width * 0.43f)
+                        .size(width * 0.48f),
+                )
             } else {
                 covers.getOrNull(1)?.let {
                     HeroCover(it, "第 2 名封面", onPreview,
@@ -213,17 +238,70 @@ private fun PlaylistCoverStage(
     }
 }
 
+/** Play once for each cover, after its own Coil request completes; reserve layout throughout. */
+@Composable
+private fun LikedCoverEntrance(
+    url: String,
+    onPreview: (String) -> Unit,
+    rotation: Float,
+    dropDistance: Dp,
+    modifier: Modifier,
+    spreadDistance: Dp = 0.dp,
+    opacity: Float = 1f,
+    delayMillis: Long = 0,
+) {
+    var entered by rememberSaveable(url) { mutableStateOf(false) }
+    var imageReady by remember(url) { mutableStateOf(false) }
+    val progress = remember(url) { Animatable(if (entered) 1f else 0f) }
+    val density = LocalDensity.current
+    val dropPx = with(density) { dropDistance.toPx() }
+    val spreadPx = with(density) { spreadDistance.toPx() }
+    LaunchedEffect(url, imageReady) {
+        if (!imageReady || entered) return@LaunchedEffect
+        entered = true
+        val durationScale = coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
+        if (durationScale == 0f) {
+            progress.snapTo(1f)
+        } else {
+            delay((delayMillis * durationScale).toLong())
+            progress.animateTo(
+                1f,
+                spring(dampingRatio = 0.68f, stiffness = 65f),
+            )
+        }
+    }
+    HeroCover(
+        url = url,
+        label = "歌曲封面",
+        onPreview = { if (progress.value > 0.5f) onPreview(it) },
+        onReady = { imageReady = true },
+        modifier = modifier.graphicsLayer {
+            val fraction = progress.value
+            val remaining = 1f - fraction
+            translationY = -dropPx * remaining
+            translationX = spreadPx * remaining
+            rotationZ = rotation - 12f * remaining
+            scaleX = 0.92f + 0.08f * fraction
+            scaleY = scaleX
+            alpha = (fraction * 3f).coerceIn(0f, 1f) * opacity
+        },
+    )
+}
+
 @Composable
 private fun HeroCover(
     url: String,
     label: String,
     onPreview: (String) -> Unit,
     modifier: Modifier,
+    onReady: () -> Unit = {},
 ) {
     AsyncImage(
         model = url.sizedNeteaseImage(500),
         contentDescription = label,
         contentScale = ContentScale.Crop,
+        onSuccess = { onReady() },
+        onError = { onReady() },
         modifier = modifier.clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClickLabel = "预览封面") { onPreview(url) },
