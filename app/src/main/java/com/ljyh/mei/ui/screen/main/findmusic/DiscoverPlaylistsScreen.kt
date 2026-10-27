@@ -92,9 +92,15 @@ fun DiscoverPlaylistsScreen(viewModel: DiscoverPlaylistsViewModel = hiltViewMode
         },
     ) { index ->
         val playlist = page.items[index]
-        DiscoverPlaylistCard(playlist, Modifier.fillMaxWidth()) {
-            Screen.PlayList.navigate(nav) { addPath(playlist.id.toString()) }
-        }
+        DiscoverPlaylistCard(
+            playlist,
+            Modifier.fillMaxWidth(),
+            onClick = {
+                Screen.PlayList.navigate(nav) { addPath(playlist.id.toString()) }
+            },
+            onPlayClick = {},
+        )
+        
     }
     if (categorySheet) DiscoverCategorySheet(
         categories,
