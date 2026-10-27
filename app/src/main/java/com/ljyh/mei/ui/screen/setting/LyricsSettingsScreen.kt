@@ -5,24 +5,16 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -59,7 +51,6 @@ import com.ljyh.mei.constants.ShowLyricPhoneticKey
 import com.ljyh.mei.ui.screen.setting.component.EnumListPreference
 import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPickerDialog
 import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPreset
-import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.screen.setting.component.ListPreference
 import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
 import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
@@ -68,11 +59,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
 import com.ljyh.mei.ui.component.glass.MeiPinnedPage
-import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.screen.backToMain
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import androidx.compose.ui.graphics.toArgb
+import com.ljyh.mei.constants.PhoneticLyricTextBoldKey
+import com.ljyh.mei.constants.PhoneticLyricTextSizeKey
+import com.ljyh.mei.constants.ShowLyricTransitionKey
 import com.ljyh.mei.ui.screen.setting.component.ColorPreference
 
 private val desktopLyricColorPresets = listOf(
@@ -95,9 +87,16 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val (mainSize, onMainSize) = rememberEnumPreference(NormalLyricTextSizeKey, LyricTextSize.Size34)
     val (mainBold, onMainBold) = rememberPreference(NormalLyricTextBoldKey, true)
     val (showPhonetic, onShowPhonetic) = rememberPreference(ShowLyricPhoneticKey, true)
+    val (showTranslation, onShowTranslation) = rememberPreference(ShowLyricTransitionKey, true)
     val (seekOnLyricTap, onSeekOnLyricTap) = rememberPreference(SeekOnLyricTapKey, true)
     val (translationSize, onTranslationSize) = rememberEnumPreference(
         AccompanimentLyricTextSizeKey, LyricTextSize.Size20,
+    )
+    val (phoneticSize, onPhoneticSize) = rememberEnumPreference(
+        PhoneticLyricTextSizeKey, LyricTextSize.Size20
+    )
+    val (phoneticBold, onPhoneticBold) = rememberPreference(
+        PhoneticLyricTextBoldKey, true
     )
     val (translationBold, onTranslationBold) = rememberPreference(AccompanimentLyricTextBoldKey, true)
     val (enabled, onEnabled) = rememberPreference(DesktopLyricsEnabledKey, false)
@@ -165,13 +164,6 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     valueText = { it.text.toString() },
                 )
                 SwitchPreference(
-                    title = { Text("显示音译") },
-                    description = "歌词提供发音时显示",
-                    icon = { Icon(Icons.Rounded.Lyrics, null) },
-                    checked = showPhonetic,
-                    onCheckedChange = onShowPhonetic,
-                )
-                SwitchPreference(
                     title = { Text("点击歌词跳转进度") },
                     description = "关闭后点击歌词只显示播放控制",
                     icon = { Icon(Icons.Rounded.Lyrics, null) },
@@ -180,6 +172,13 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 )
             }
             PreferenceSection("翻译歌词") {
+                SwitchPreference(
+                    title = { Text("显示翻译") },
+                    description = "歌词提供翻译显示",
+                    icon = { Icon(Icons.Rounded.Lyrics, null) },
+                    checked = showTranslation,
+                    onCheckedChange = onShowTranslation,
+                )
                 SwitchPreference(
                     title = { Text("翻译歌词字体加粗") },
                     icon = { Icon(Icons.Rounded.FormatBold, null) },
@@ -191,6 +190,29 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     icon = { Icon(Icons.Rounded.FormatSize, null) },
                     selectedValue = translationSize,
                     onValueSelected = onTranslationSize,
+                    valueText = { it.text.toString() },
+                )
+            }
+
+            PreferenceSection("音译歌词") {
+                SwitchPreference(
+                    title = { Text("显示音译") },
+                    description = "歌词提供发音时显示",
+                    icon = { Icon(Icons.Rounded.Lyrics, null) },
+                    checked = showPhonetic,
+                    onCheckedChange = onShowPhonetic,
+                )
+                SwitchPreference(
+                    title = { Text("音译歌词字体加粗") },
+                    icon = { Icon(Icons.Rounded.FormatBold, null) },
+                    checked = phoneticBold,
+                    onCheckedChange = onPhoneticBold,
+                )
+                EnumListPreference(
+                    title = { Text("音译歌词字体大小") },
+                    icon = { Icon(Icons.Rounded.FormatSize, null) },
+                    selectedValue = phoneticSize,
+                    onValueSelected = onPhoneticSize,
                     valueText = { it.text.toString() },
                 )
             }
