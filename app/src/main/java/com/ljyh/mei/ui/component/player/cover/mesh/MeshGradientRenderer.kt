@@ -2,7 +2,6 @@ package com.ljyh.mei.ui.component.player.cover.mesh
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
@@ -55,29 +54,6 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
     private var staticMode: Boolean = false
     private var isStatic: Boolean = false
-    private var backdropColor: Int = Color.BLACK
-    private var renderOpacity: Float = 1f
-
-    fun setBackdropColor(color: Int) {
-        backdropColor = color
-        isStatic = false
-    }
-
-    private fun clearBackdrop() {
-        GLES30.glClearColor(
-            Color.red(backdropColor) / 255f,
-            Color.green(backdropColor) / 255f,
-            Color.blue(backdropColor) / 255f,
-            1f,
-        )
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
-    }
-
-    fun setRenderOpacity(opacity: Float) {
-        renderOpacity = opacity.coerceIn(0f, 1f)
-        // Static/paused backgrounds must still repaint during visibility transitions.
-        isStatic = false
-    }
 
     private var pendingAlbum: Bitmap? = null
     private var pendingAlbumKey: String? = null
@@ -119,7 +95,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         Timber.tag(TAG).d("GPU 厂商: ${GLES30.glGetString(GLES30.GL_VENDOR)}")
         Timber.tag(TAG).d("GL 版本: ${GLES30.glGetString(GLES30.GL_VERSION)}")
 
-        GLES30.glClearColor(0f, 0f, 0f, 0f)
+        GLES30.glClearColor(0f, 0f, 0f, 1f)
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
 
@@ -146,7 +122,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
         if (meshStates.isEmpty() || fbo == 0) {
             GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-            clearBackdrop()
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
             return
         }
 
@@ -164,7 +140,8 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
         updateMeshStates(1f / 60f)
 
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-        clearBackdrop()
+        GLES30.glClearColor(0f, 0f, 0f, 1f)
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
 
         for (i in meshStates.lastIndex downTo 0) {
             val state = meshStates[i]
@@ -186,7 +163,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
                 GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA,
                 GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA
             )
-            drawQuad(fboTexture, easeAlpha * renderOpacity)
+            drawQuad(fboTexture, easeAlpha)
         }
 
         meshStates.firstOrNull()?.albumKey?.let { key ->
@@ -506,8 +483,6 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
     private var appliedSubdivision = renderer.subdivision
     private var appliedStaticMode = false
     private var appliedPlaying = true
-    private var appliedRenderOpacity = 1f
-    private var appliedBackdropColor = Color.BLACK
 
     init {
         renderer.onAlbumRendered = { key -> post { onAlbumRendered?.invoke(key) } }
@@ -515,21 +490,6 @@ class MeshBackgroundView(context: Context) : GLSurfaceView(context) {
         setEGLConfigChooser(8, 8, 8, 8, 0, 0)
         setRenderer(renderer)
         renderMode = RENDERMODE_CONTINUOUSLY
-    }
-
-    fun setBackdropColor(color: Int) {
-        if (appliedBackdropColor == color) return
-        appliedBackdropColor = color
-        queueEvent { renderer.setBackdropColor(color) }
-        requestRender()
-    }
-
-    fun setRenderOpacity(opacity: Float) {
-        val clamped = opacity.coerceIn(0f, 1f)
-        if (appliedRenderOpacity == clamped) return
-        appliedRenderOpacity = clamped
-        queueEvent { renderer.setRenderOpacity(clamped) }
-        requestRender()
     }
 
     fun setAlbum(bitmap: Bitmap, key: String) {

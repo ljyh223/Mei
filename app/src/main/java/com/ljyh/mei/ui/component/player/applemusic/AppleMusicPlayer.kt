@@ -604,11 +604,6 @@ fun AppleMusicPlayer(
                         imageUrl = coverUrl,
                         isPlaying = isPlaying,
                         renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
-                        backgroundColor = lerp(
-                            portraitBackdropState.edgeColor ?: portraitFallbackColor,
-                            backgroundColor,
-                            fluidReveal,
-                        ),
                         onArtworkReady = { readyFluidUrl = it },
                     )
                 }
