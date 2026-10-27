@@ -23,7 +23,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 
 /** Artwork comes from the first track, never from the heart-branded playlist cover. */
 @Composable
@@ -48,7 +47,7 @@ internal fun LibraryLikedPlaylist(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (!artwork.isNullOrBlank()) AsyncImage(
-                model = artwork.sizedNeteaseImage(500), contentDescription = null,
+                model = artwork, contentDescription = null,
                 contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(),
             )
             Box(

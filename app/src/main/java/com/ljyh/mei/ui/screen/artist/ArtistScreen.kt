@@ -86,7 +86,6 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 import java.util.UUID
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 

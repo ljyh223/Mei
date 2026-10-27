@@ -10,7 +10,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.lifecycleScope
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.constants.FirstLaunchKey
-import com.ljyh.mei.constants.UserAgent
 import com.ljyh.mei.data.model.domain.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
@@ -22,8 +21,6 @@ import com.ljyh.mei.utils.log.FileLoggingTree
 import com.ljyh.mei.utils.netease.NeteaseUtils.getAndroidId
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -40,16 +37,12 @@ class MainActivity : ComponentActivity() {
         configureLogging()
         initializeDeviceIdentity()
 
-        val imageClient = OkHttpClient.Builder()
-            .addInterceptor(userAgentInterceptor())
-            .build()
         setContent {
             MeiApp(
                 database = database,
                 colorRepository = colorRepository,
                 userData = UserData.VISITOR,
                 startInLibrary = intent?.action == ACTION_LIBRARY,
-                imageClient = imageClient,
             )
         }
     }
@@ -69,15 +62,6 @@ class MainActivity : ComponentActivity() {
                 if (firstLaunch) settings[FirstLaunchKey] = false
             }
         }
-    }
-
-    private fun userAgentInterceptor() = Interceptor { chain ->
-        chain.proceed(
-            chain.request()
-                .newBuilder()
-                .addHeader("User-Agent", UserAgent)
-                .build(),
-        )
     }
 
     companion object {

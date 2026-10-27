@@ -197,6 +197,7 @@ fun HomeScreen(
                                     }
                                 }
                             }
+
                             is Resource.Error -> {
                                 item(key = "home_error") {
                                     Box(Modifier.fillParentMaxHeight(0.65f), contentAlignment = Alignment.Center) {
@@ -207,6 +208,7 @@ fun HomeScreen(
                                     }
                                 }
                             }
+
                             Resource.Loading -> {
                                 item(key = "home_loading") { HomeShimmer(viewModel = viewModel) }
                             }
@@ -296,12 +298,22 @@ private fun HomeBlockItem(
                                                     ListQueue(
                                                         id = "intelligence-${System.currentTimeMillis()}",
                                                         title = "心动模式",
-                                                        source = QueueSource(QueueSource.Type.RECOMMENDATION, "intelligence", "心动模式"),
+                                                        source = QueueSource(
+                                                            QueueSource.Type.RECOMMENDATION,
+                                                            "intelligence",
+                                                            "心动模式"
+                                                        ),
                                                         items = items.map { it.mediaId to it },
                                                     ),
                                                 )
                                             }
-                                            is Resource.Error -> Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+
+                                            is Resource.Error -> Toast.makeText(
+                                                context,
+                                                result.message,
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+
                                             Resource.Loading -> Unit
                                         }
                                     } finally {
@@ -387,8 +399,6 @@ private fun HomeBlockItem(
                     subTitle = resource.resourceExtInfo?.coverText,
                     showPlay = true,
                     extInfo = resource.resourceInteractInfo?.playCount,
-                    // 只有非 thumbnail 的图片才使用大图加载逻辑，优化内存
-                    imageSize = !resource.coverImg.contains("thumbnail"),
                     cardSize = playlistCardSize,
                     onClick = {
                         Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }

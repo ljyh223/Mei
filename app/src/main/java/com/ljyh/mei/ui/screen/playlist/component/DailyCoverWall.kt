@@ -31,14 +31,14 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import com.ljyh.mei.utils.image.sizedNeteaseImage
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.utils.image.ArtworkSize
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
-import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 internal fun DailyCoverWall(covers: List<String>, today: LocalDate) {
@@ -66,11 +66,10 @@ internal fun DailyCoverWall(covers: List<String>, today: LocalDate) {
                     val side = with(density) { placement.side.toDp() }
                     val left = with(density) { (placement.x - placement.side / 2f).toDp() }
                     val top = with(density) { (placement.y - placement.side / 2f).toDp() }
-                    val requestSide = (((placement.side * 1.15f).roundToInt() + 63) / 64 * 64)
-                        .coerceIn(64, 768)
+                    val requestSide = ArtworkSize.forPixels((placement.side * 1.15f).roundToInt()).pixels
                     val model = remember(context, url, requestSide) {
                         ImageRequest.Builder(context)
-                            .data(url.sizedNeteaseImage(requestSide))
+                            .data(url)
                             .size(requestSide)
                             .crossfade(true)
                             .build()

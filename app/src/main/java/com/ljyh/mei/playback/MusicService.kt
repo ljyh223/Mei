@@ -54,7 +54,9 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
-import coil3.ImageLoader
+import coil3.imageLoader
+import coil3.request.Disposable
+import com.ljyh.mei.utils.cache.preloadImage
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -184,6 +186,8 @@ class MusicService : MediaLibraryService(),
     var scope = CoroutineScope(Dispatchers.Main + serviceJob)
     private var historyJob: Job? = null
     private var queueSaveJob: Job? = null
+    private var nextArtworkUrl: String? = null
+    private var nextArtworkPreload: Disposable? = null
     private var restoringQueue = true
     private lateinit var connectivityManager: ConnectivityManager
     private lateinit var baseMediaSourceFactory: DefaultMediaSourceFactory
@@ -380,7 +384,7 @@ class MusicService : MediaLibraryService(),
                 shown.keys.retainAll(sources.keys)
             }
         }
-        val singletonImageLoader = ImageLoader(this)
+        val singletonImageLoader = imageLoader
         val sessionPlayer = object : ForwardingSimpleBasePlayer(player) {
             override fun handleSeek(
                 mediaItemIndex: Int,
@@ -550,6 +554,19 @@ class MusicService : MediaLibraryService(),
                 audioPlayer.startSmooth()
             } else {
                 audioPlayer.pauseSmooth()
+            }
+        }
+        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY,
+                Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED,
+                Player.EVENT_REPEAT_MODE_CHANGED)) {
+            val nextIndex = player.nextMediaItemIndex
+            val url = if (nextIndex != C.INDEX_UNSET) {
+                player.getMediaItemAt(nextIndex).mediaMetadata.artworkUri?.toString()
+            } else null
+            if (url != nextArtworkUrl) {
+                nextArtworkPreload?.dispose()
+                nextArtworkUrl = url
+                nextArtworkPreload = url?.let { preloadImage(this, it) }
             }
         }
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
@@ -736,6 +753,7 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
+        nextArtworkPreload?.dispose()
         unregisterReceiver(usbReceiver)
         usbReconfigureJob?.cancel()
         UsbOutputState.store.updateEnvironment(false, UsbNativeBridge.available, emptyMap())

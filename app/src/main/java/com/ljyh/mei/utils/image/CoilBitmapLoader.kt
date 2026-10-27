@@ -37,7 +37,7 @@ class CoilBitmapLoader(
     }
 
     override fun loadBitmap(uri: Uri): ListenableFuture<Bitmap> {
-        return loadData(uri)
+        return loadData(uri.toString())
     }
 
     private fun loadData(data: Any): ListenableFuture<Bitmap> {
@@ -45,6 +45,7 @@ class CoilBitmapLoader(
 
         val request = ImageRequest.Builder(context)
             .data(data)
+            .size(ArtworkSize.Card.pixels)
             // 禁用硬件位图。Media3 的某些组件（如视频处理的 Overlay）需要软件位图，
             // 设置为 false 可以提高兼容性，避免潜在的运行时异常。
             .allowHardware(false)

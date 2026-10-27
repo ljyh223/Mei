@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.screen.main.library.LibraryDashboardSelection
 
@@ -85,7 +84,7 @@ private fun PlaylistCoverTile(
         Icon(Icons.Rounded.MusicNote, null, Modifier.align(Alignment.Center).size(if (compact) 24.dp else 32.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant)
         if (!playlist?.cover.isNullOrBlank()) AsyncImage(
-            model = playlist.cover.sizedNeteaseImage(500), contentDescription = null,
+            model = playlist.cover, contentDescription = null,
             modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop,
         )
     }

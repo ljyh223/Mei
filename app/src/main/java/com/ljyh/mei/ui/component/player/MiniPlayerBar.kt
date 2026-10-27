@@ -43,7 +43,6 @@ import com.ljyh.mei.constants.MiniPlayerCoverCornerRadius
 import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.component.glass.meiGlassContentColor
-import com.ljyh.mei.utils.image.smallImage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
@@ -149,11 +148,9 @@ private fun MiniPlayerSongContent(
             contentAlignment = Alignment.Center,
         ) {
             if (drawCover && coverUrl != null) {
-                val thumbnailUrl = coverUrl.smallImage()
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(thumbnailUrl)
-                        .memoryCacheKey(thumbnailUrl)
+                        .data(coverUrl)
                         .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,

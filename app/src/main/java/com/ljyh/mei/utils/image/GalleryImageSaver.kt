@@ -28,7 +28,7 @@ suspend fun saveImageToGallery(context: Context, imageUrl: String) {
 
         // 1. 使用 Coil Loader 获取 Bitmap
         val request = ImageRequest.Builder(context)
-            .data(imageUrl)
+            .originalArtwork(imageUrl)
             .allowHardware(false) // 必须禁用硬件加速才能获取 Bitmap
             .build()
 

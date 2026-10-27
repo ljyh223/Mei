@@ -52,7 +52,6 @@ import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.model.PlaylistHeaderStyle
 import com.ljyh.mei.ui.model.UiPlaylist
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 import kotlinx.coroutines.delay
 
 /** Shared dispatch for both the phone list header and the tablet detail column. */
@@ -297,7 +296,7 @@ private fun HeroCover(
     onReady: () -> Unit = {},
 ) {
     AsyncImage(
-        model = url.sizedNeteaseImage(500),
+        model = url,
         contentDescription = label,
         contentScale = ContentScale.Crop,
         onSuccess = { onReady() },

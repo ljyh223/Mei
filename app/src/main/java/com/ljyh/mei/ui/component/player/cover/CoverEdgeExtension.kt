@@ -26,18 +26,19 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.ljyh.mei.utils.image.AlbumBackgroundAnalysis
+import com.ljyh.mei.utils.image.ArtworkSize
 import com.ljyh.mei.utils.image.CoverBackgroundConfig
 import com.ljyh.mei.utils.image.CoverExtensionMode
 import com.ljyh.mei.utils.image.analyzeCoverBackground
 import com.ljyh.mei.utils.image.buildCoverEdgeTexture
 import com.ljyh.mei.utils.preferences.rememberCoverBackgroundSettings
-import com.ljyh.mei.utils.image.AlbumBackgroundAnalysis
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val AnalysisSize = 128
 private const val TextureSize = 64
@@ -93,7 +94,7 @@ internal fun rememberCoverEdgeResult(imageUrl: String?, config: CoverBackgroundC
                 context.imageLoader.execute(
                     ImageRequest.Builder(context)
                         .data(imageUrl)
-                        .size(256)
+                        .size(ArtworkSize.Small.pixels)
                         .allowHardware(false)
                         .build(),
                 ) as? SuccessResult

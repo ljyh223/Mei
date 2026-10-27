@@ -7,33 +7,37 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
+import coil3.gif.AnimatedImageDecoder
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import com.ljyh.mei.constants.dynamicCoverSources
-import com.ljyh.mei.constants.ImageCacheLimitMbKey
+import coil3.request.crossfade
 import com.ljyh.mei.constants.CookieKey
+import com.ljyh.mei.constants.ImageCacheLimitMbKey
+import com.ljyh.mei.constants.UserAgent
+import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.constants.UserNicknameKey
-import com.ljyh.mei.constants.UserAvatarUrlKey
+import com.ljyh.mei.constants.dynamicCoverSources
+import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.DynamicCoverRepository
 import com.ljyh.mei.data.repository.LikedSongsRepository
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.utils.preferences.dataStore
+import com.ljyh.mei.utils.image.ArtworkRequestInterceptor
 import com.ljyh.mei.utils.power.canUseBatteryIntensiveFeatures
+import com.ljyh.mei.utils.preferences.dataStore
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import javax.inject.Inject
 
 @HiltAndroidApp
 class AppContext : Application(), SingletonImageLoader.Factory {
@@ -90,7 +94,7 @@ class AppContext : Application(), SingletonImageLoader.Factory {
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         val headerInterceptor = Interceptor { chain ->
             val newRequest = chain.request().newBuilder()
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0")
+                .addHeader("User-Agent", UserAgent)
                 .build()
             chain.proceed(newRequest)
         }
@@ -99,6 +103,7 @@ class AppContext : Application(), SingletonImageLoader.Factory {
             .build()
 
         return ImageLoader.Builder(this)
+            .crossfade(true)
             .memoryCache {
                 MemoryCache.Builder()
                     .maxSizePercent(this, 0.1)
@@ -108,6 +113,8 @@ class AppContext : Application(), SingletonImageLoader.Factory {
                 newDiskCache()
             }
             .components {
+                add(ArtworkRequestInterceptor())
+                add(AnimatedImageDecoder.Factory())
                 add(OkHttpNetworkFetcherFactory(okHttpClient))
             }
             .build()

@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.ArtistThumbnailSize
 import com.ljyh.mei.data.model.domain.SearchArtist
-import com.ljyh.mei.utils.image.smallImage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
@@ -42,7 +41,7 @@ fun ArtistItem(
     ) {
 
         AsyncImage(
-            model = artist.imageUrl?.smallImage(),
+            model = artist.imageUrl,
             contentDescription = null,
             modifier = Modifier
                 .size(ArtistThumbnailSize)

@@ -1,29 +1,46 @@
 package com.ljyh.mei.utils.image
 
-import android.net.Uri
-import java.util.Locale
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-fun String.smallImage(): String = if (startsWith("/")) this else "$this?param=100y100"
+/** Shared CDN pixel sizes. UI dimensions in dp must not create new network variants. */
+enum class ArtworkSize(val pixels: Int) {
+    Small(192), Card(512), Detail(1024);
 
-fun String.middleImage(): String = if (startsWith("/")) this else "$this?param=300y300"
+    companion object {
+        fun forPixels(pixels: Int): ArtworkSize = entries.firstOrNull { pixels <= it.pixels } ?: Detail
 
-fun String.largeImage(): String = if (startsWith("/")) this else "$this?param=500y500"
-
-fun String.size1600(): String = "$this?param=1600y1600"
-
-/** Request a square thumbnail from NetEase's image CDN, preserving other query parameters. */
-fun String.sizedNeteaseImage(side: Int): String {
-    if (isBlank()) return this
-    val uri = Uri.parse(this)
-    val host = uri.host?.lowercase(Locale.ROOT) ?: return this
-    if (host != "music.126.net" && !host.endsWith(".music.126.net")) return this
-
-    val builder = uri.buildUpon().clearQuery()
-    uri.queryParameterNames.forEach { name ->
-        if (name != "param") {
-            uri.getQueryParameters(name).forEach { value -> builder.appendQueryParameter(name, value) }
-        }
+        fun forBounds(width: Int?, height: Int?): ArtworkSize = forPixels(
+            listOfNotNull(width, height).filter { it > 0 }.maxOrNull() ?: Card.pixels,
+        )
     }
-    val dimension = side.coerceAtLeast(1)
-    return builder.appendQueryParameter("param", "${dimension}y${dimension}").build().toString()
+}
+
+private val processingParameters = setOf("param", "imageView", "thumbnail", "type", "quality", "enlarge")
+
+internal fun String.neteaseImageUrl(): HttpUrl? = toHttpUrlOrNull()?.takeIf {
+    it.host == "music.126.net" || it.host.endsWith(".music.126.net")
+}
+
+/** Preserve the complete source image; cropping belongs to the displaying component. */
+fun String.artworkImage(size: ArtworkSize): String {
+    val url = neteaseImageUrl() ?: return this
+    // Preserve animation when the source is an animated image. NOS defaults to a static frame.
+    val builder = url.newBuilder()
+    processingParameters.forEach(builder::removeAllQueryParameters)
+    return builder
+        .addQueryParameter("imageView", "1")
+        .addQueryParameter("quality", "80")
+        .addQueryParameter("thumbnail", "${size.pixels}z${size.pixels}")
+        .addQueryParameter("type", "webp")
+        .setQueryParameter("tostatic", "0")
+        .build().toString()
+}
+
+/** Remove our resize/encoding parameters only. Other transforms and query values are retained. */
+fun String.originalArtworkUrl(): String {
+    val url = neteaseImageUrl() ?: return this
+    val builder = url.newBuilder()
+    (processingParameters + "tostatic").forEach(builder::removeAllQueryParameters)
+    return builder.build().toString()
 }

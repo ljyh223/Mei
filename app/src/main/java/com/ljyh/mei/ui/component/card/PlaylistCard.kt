@@ -28,7 +28,6 @@ fun PlaylistCard(
     showPlay: Boolean = false,
     subTitle: List<String>? = null,
     extInfo: String? = null,
-    imageSize: Boolean = true,
     cardSize: Dp = PlaylistCardSize,
     modifier: Modifier = Modifier.width(cardSize),
     isLoading: Boolean = false,
@@ -38,7 +37,7 @@ fun PlaylistCard(
     val textShadow = Shadow(color = Color.Black.copy(alpha = 0.7f), offset = Offset(2f, 2f), blurRadius = 4f)
     ArtworkCard(
         title = title, coverUrl = coverImg, modifier = modifier,
-        isLoading = isLoading, resizeImage = imageSize, onClick = onClick,
+        isLoading = isLoading, onClick = onClick,
         coverContent = {
             // 顶部播放量
             if (!isLoading && extInfo != null) {

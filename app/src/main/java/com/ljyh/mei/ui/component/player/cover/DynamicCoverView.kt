@@ -10,9 +10,9 @@ import android.graphics.Rect
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
+import android.view.TextureView
 import android.view.View
 import android.widget.FrameLayout
-import android.view.TextureView
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -34,10 +34,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -47,9 +47,10 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.playback.source.CacheManager
+import com.ljyh.mei.utils.image.rememberOriginalArtworkRequest
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlin.time.Duration.Companion.milliseconds
 
 /** TextureView.getBitmap may return a blank buffer before a decoded frame reaches the surface. */
 internal fun isBlankMotionFrame(bitmap: Bitmap): Boolean {
@@ -102,6 +103,7 @@ fun DynamicCoverView(
     onArtworkReady: (() -> Unit)? = null,
     bottomFadeColor: Color? = null,
     fitVideoWidth: Boolean = false,
+    originalArtwork: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -212,7 +214,10 @@ fun DynamicCoverView(
         videoDimensions.first > 0 && videoDimensions.second > 0
     Box(modifier.background(bottomFadeColor ?: Color.Transparent)) {
         AsyncImage(
-            model = previewModel,
+            model = if (originalArtwork) {
+                rememberOriginalArtworkRequest(cover?.previewUrl ?: imageUrl)
+                    ?.newBuilder()?.allowHardware(!fitVideoWidth)?.build()
+            } else previewModel,
             contentDescription = "专辑封面",
             contentScale = ContentScale.Crop,
             onSuccess = { success ->

@@ -7,18 +7,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import coil3.Bitmap
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import coil3.Bitmap
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshRenderScaleKey
 import com.ljyh.mei.constants.MeshStaticModeKey
 import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.ui.component.player.cover.mesh.MeshBackgroundView
+import com.ljyh.mei.utils.image.ArtworkSize
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -50,7 +51,7 @@ fun FluidBackground(
         withContext(Dispatchers.IO) {
             val request = ImageRequest.Builder(context)
                 .data(imageUrl)
-                .size(256)
+                .size(ArtworkSize.Small.pixels)
                 .allowHardware(false)
                 .build()
             val result = context.imageLoader.execute(request)

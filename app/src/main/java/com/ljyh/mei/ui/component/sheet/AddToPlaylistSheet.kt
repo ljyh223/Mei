@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.sortedBySmartScore
-import com.ljyh.mei.utils.image.smallImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,7 +149,7 @@ private fun PlaylistSelectionItem(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
             AsyncImage(
-                model = playlist.cover.smallImage(),
+                model = playlist.cover,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

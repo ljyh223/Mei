@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistThumbnailSize
 import com.ljyh.mei.data.model.room.Playlist
-import com.ljyh.mei.utils.image.smallImage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
@@ -45,7 +44,7 @@ fun PlaylistItem(
 
         ) {
         AsyncImage(
-            model = playlist.cover.smallImage(),
+            model = playlist.cover,
             contentDescription = null,
             modifier = Modifier
                 .size(coverSize)

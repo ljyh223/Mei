@@ -29,6 +29,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.ljyh.mei.utils.image.ArtworkSize
 import com.skydoves.cloudy.cloudy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,7 +64,7 @@ fun AmbientBackground(
             val loader = ImageLoader(context)
             val request = ImageRequest.Builder(context)
                 .data(imageUrl)
-                .size(200) // 稍微大一点点以获得更准确的色调，但仍然很小
+                .size(ArtworkSize.Small.pixels) // 稍微大一点点以获得更准确的色调，但仍然很小
                 .allowHardware(false)
                 .build()
 

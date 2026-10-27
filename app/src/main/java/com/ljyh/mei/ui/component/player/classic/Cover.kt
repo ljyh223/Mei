@@ -37,14 +37,13 @@ import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.repository.DynamicCover
-import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.playback.PlayerConnection
+import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
+import com.ljyh.mei.utils.image.rememberOriginalArtworkRequest
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
-import com.ljyh.mei.utils.image.size1600
-import com.ljyh.mei.utils.image.smallImage
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -120,17 +119,17 @@ fun Cover(
                 val activeCover = dynamicCover?.takeIf { it.songId == mediaMetadata.id && url == mediaMetadata.coverUrl }
                 if (activeCover != null) {
                     DynamicCoverView(
-                        imageUrl = if (originalCover) url else url.size1600(),
+                        imageUrl = url,
                         cover = activeCover,
+                        originalArtwork = originalCover,
                         playing = isPlaying,
                         onPlaybackError = { onDynamicCoverError(mediaMetadata) },
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
                     AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .placeholderMemoryCacheKey(url.smallImage())
-                            .data(if (originalCover) url else url.size1600())
+                        model = if (originalCover) rememberOriginalArtworkRequest(url) else ImageRequest.Builder(context)
+                            .data(url)
                             .crossfade(false)
                             .build(),
                         contentScale = ContentScale.Crop,

@@ -40,7 +40,6 @@ import com.ljyh.mei.constants.CommonImageRadius
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.TimeUtils.formatDuration
-import com.ljyh.mei.utils.image.smallImage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 @Composable
 fun Track(
@@ -130,7 +129,7 @@ private fun TrackContent(
                 )
             } else {
                 PlayingImageView(
-                    imageUrl = track!!.coverUrl.smallImage(),
+                    imageUrl = track!!.coverUrl,
                     isPlaying = isPlaying,
                     modifier = Modifier
                         .size(if (isTablet) 40.dp else 48.dp)

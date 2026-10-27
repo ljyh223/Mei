@@ -43,8 +43,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -64,43 +64,23 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.util.UnstableApi
+import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
+import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
-import coil3.size.Precision
-import coil3.size.Size
+import com.ljyh.mei.constants.CoverBackgroundEnabledKey
 import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCornerRadius
+import com.ljyh.mei.constants.MiniPlayerCoverCornerRadius
 import com.ljyh.mei.constants.MiniPlayerCoverSize
 import com.ljyh.mei.constants.PlayerHorizontalPadding
-import com.ljyh.mei.constants.MiniPlayerCoverCornerRadius
-import com.ljyh.mei.constants.CoverBackgroundEnabledKey
 import com.ljyh.mei.data.repository.DynamicCover
-import com.ljyh.mei.utils.image.CoverExtensionMode
 import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
-import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
-import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
-import com.ljyh.mei.ui.component.sheet.BottomSheet
-import com.ljyh.mei.ui.component.sheet.BottomSheetContainerMotion
-import com.ljyh.mei.ui.component.sheet.BottomSheetMorphSpec
-import com.ljyh.mei.ui.component.sheet.BottomSheetState
-import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
-import com.ljyh.mei.ui.component.utils.lerp
-import com.ljyh.mei.ui.model.LyricSource
-import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.motion.PlayerMotionSpec
-import com.ljyh.mei.utils.UnitUtils.toPx
-import com.ljyh.mei.utils.preferences.rememberPreference
-import kotlin.math.min
-import com.ljyh.mei.ui.component.player.cover.rememberCoverEdgeArtwork
-import androidx.core.graphics.toColorInt
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
 import com.ljyh.mei.ui.component.player.LyricScreen
 import com.ljyh.mei.ui.component.player.MiniPlayerBarContent
@@ -110,9 +90,26 @@ import com.ljyh.mei.ui.component.player.cover.CoverEdgeExtensionBackdrop
 import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
 import com.ljyh.mei.ui.component.player.cover.FluidBackground
 import com.ljyh.mei.ui.component.player.cover.coverEdgeFeather
-import com.ljyh.mei.ui.component.player.overlay.OverlayState
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.player.cover.rememberCoverEdgeArtwork
 import com.ljyh.mei.ui.component.player.miniPlayerHorizontalMargin
+import com.ljyh.mei.ui.component.player.overlay.OverlayState
+import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
+import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
+import com.ljyh.mei.ui.component.sheet.BottomSheet
+import com.ljyh.mei.ui.component.sheet.BottomSheetContainerMotion
+import com.ljyh.mei.ui.component.sheet.BottomSheetMorphSpec
+import com.ljyh.mei.ui.component.sheet.BottomSheetState
+import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
+import com.ljyh.mei.ui.component.utils.lerp
+import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.ui.model.LyricSource
+import com.ljyh.mei.ui.motion.PlayerMotionSpec
+import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.utils.UnitUtils.toPx
+import com.ljyh.mei.utils.image.CoverExtensionMode
+import com.ljyh.mei.utils.image.rememberOriginalArtworkRequest
+import com.ljyh.mei.utils.preferences.rememberPreference
+import kotlin.math.min
 
 
 private val PlayerBackgroundSeamOverlap = 1.dp
@@ -545,6 +542,7 @@ fun AppleMusicPlayer(
                             DynamicCoverView(
                                 imageUrl = currentMetadata.coverUrl,
                                 cover = activeCover,
+                                originalArtwork = true,
                                 playing = isPlaying,
                                 onPlaybackError = { stateContainer.playerViewModel.fallbackDynamicCover(currentMetadata) },
                                 onArtworkReady = {
@@ -556,13 +554,9 @@ fun AppleMusicPlayer(
                                 modifier = Modifier.fillMaxSize(),
                             )
                         } else {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(currentMetadata.coverUrl)
-                                    .size(Size.ORIGINAL)
-                                    .precision(Precision.EXACT)
-                                    .crossfade(true)
-                                    .build(),
+                            val artworkRequest = rememberOriginalArtworkRequest(currentMetadata.coverUrl)
+                            if (artworkRequest != null) AsyncImage(
+                                model = artworkRequest,
                                 contentDescription = "Cover",
                                 contentScale = ContentScale.Crop,
                                 onSuccess = {
@@ -637,6 +631,7 @@ fun AppleMusicPlayer(
                         DynamicCoverView(
                             imageUrl = displayedPortrait.imageUrl,
                             cover = displayedPortrait.cover,
+                            originalArtwork = true,
                             playing = isPlaying && displayedPortrait.cover.songId == mediaMetadata!!.id &&
                                 !detailsVisible && sheetProgress > 0.5f,
                             onPlaybackError = {

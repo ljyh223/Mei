@@ -22,7 +22,6 @@ import com.ljyh.mei.ui.component.collection.MeiCollectionStatus
 import com.ljyh.mei.ui.component.card.PlaylistCard
 import com.ljyh.mei.ui.component.card.ArtworkCard
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 import java.util.Locale
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
@@ -173,7 +172,7 @@ internal fun DiscoverChartRow(chart: DiscoverChart, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         AsyncImage(
-            model = chart.cover.sizedNeteaseImage(200),
+            model = chart.cover,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier

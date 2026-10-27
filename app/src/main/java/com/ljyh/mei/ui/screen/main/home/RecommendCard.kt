@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.Dp
 import com.ljyh.mei.constants.RecommendCardHeight
 import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.ui.component.shimmer.skeleton
-import com.ljyh.mei.utils.image.largeImage
 
 @Composable
 fun RecommendCard(
@@ -85,7 +84,7 @@ fun RecommendCard(
             .skeleton(isLoading, RoundedCornerShape(24.dp))
     ) {
         if (!isLoading) AsyncImage(
-            model = cover.largeImage(),
+            model = cover,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()

@@ -51,13 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import coil3.ImageLoader
-import coil3.compose.setSingletonImageLoaderFactory
-import coil3.disk.DiskCache
-import coil3.disk.directory
-import coil3.gif.AnimatedImageDecoder
-import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import coil3.request.crossfade
 import com.ljyh.mei.constants.AlwaysExpandMiniPlayerKey
 import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.constants.LiquidGlassEnabledKey
@@ -68,7 +61,6 @@ import com.ljyh.mei.constants.PageTransitionStyleKey
 import com.ljyh.mei.constants.PageTransitionSpeed
 import com.ljyh.mei.constants.PageTransitionSpeedKey
 import com.ljyh.mei.constants.ThemeColorKey
-import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.data.model.domain.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
@@ -105,13 +97,8 @@ import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.utils.rememberBatteryIntensiveFeaturesAllowed
 import com.ljyh.mei.ui.theme.MusicTheme
 import com.ljyh.mei.ui.theme.rememberPlayerThemeColor
-import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.rememberPreference
-import okhttp3.OkHttpClient
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import java.io.File
 import kotlin.math.abs
 
 private enum class NavigationTab { Home, Library }
@@ -123,7 +110,6 @@ fun MeiApp(
     colorRepository: ColorRepository,
     userData: UserData,
     startInLibrary: Boolean,
-    imageClient: OkHttpClient,
 ) {
     val context = LocalContext.current
     val navController = rememberNavController()
@@ -144,25 +130,6 @@ fun MeiApp(
             .getOrDefault(Color(0xFF0061A4))
     }
     val playerConnection = rememberPlayerConnection(context, database)
-
-    setSingletonImageLoaderFactory {
-        val imageLimitMb = runBlocking {
-            context.dataStore.data.first()[ImageCacheLimitMbKey] ?: 250
-        }
-        ImageLoader.Builder(context)
-            .components {
-                add(OkHttpNetworkFetcherFactory(imageClient))
-                add(AnimatedImageDecoder.Factory())
-            }
-            .crossfade(true)
-            .diskCache {
-                DiskCache.Builder()
-                    .directory(File(context.cacheDir, "image_cache"))
-                    .maxSizeBytes(imageLimitMb.coerceIn(50, 2048) * 1024L * 1024L)
-                    .build()
-            }
-            .build()
-    }
 
     val targetThemeColor = rememberPlayerThemeColor(
         context = context,

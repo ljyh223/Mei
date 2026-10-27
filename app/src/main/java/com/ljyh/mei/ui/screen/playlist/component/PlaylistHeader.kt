@@ -48,7 +48,6 @@ import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
 import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.shimmer.skeleton
-import com.ljyh.mei.utils.image.largeImage
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.model.PlaylistHeaderStyle
@@ -110,14 +109,14 @@ fun PlaylistHeader(
                     if (headerStyle == PlaylistHeaderStyle.Radar) PlaylistCoverStyle.Combination else coverStyle
                 ) {
                     PlaylistCoverStyle.Cover -> AsyncImage(
-                        model = cover.largeImage(),
+                        model = cover,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
 
                     PlaylistCoverStyle.FirstSongImage -> AsyncImage(
-                        model = (coverList.firstOrNull() ?: cover).largeImage(),
+                        model = (coverList.firstOrNull() ?: cover),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -125,7 +124,7 @@ fun PlaylistHeader(
 
                     PlaylistCoverStyle.Combination -> {
                         if (coverList.size < 5) AsyncImage(
-                            model = cover.largeImage(),
+                            model = cover,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),

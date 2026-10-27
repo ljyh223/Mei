@@ -22,15 +22,15 @@ import com.ljyh.mei.di.dao.ColorDao
 import com.ljyh.mei.di.dao.HistoryDao
 import com.ljyh.mei.di.dao.LikeDao
 import com.ljyh.mei.utils.color.extractCoverColor
-import com.ljyh.mei.utils.image.sizedNeteaseImage
+import com.ljyh.mei.utils.image.ArtworkSize
+import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.concurrent.ConcurrentHashMap
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
@@ -54,7 +54,7 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
         }
         val loader = context.imageLoader
         val request = ImageRequest.Builder(context)
-            .data(url.sizedNeteaseImage(128)).allowHardware(false).size(128).build()
+            .data(url).allowHardware(false).size(ArtworkSize.Small.pixels).build()
         val result = loader.execute(request)
         val color = (result as? SuccessResult)?.let { extractCoverColor(it.image.toBitmap()) }
             ?: return@withContext Color(0xFF777777)

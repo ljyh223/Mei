@@ -36,7 +36,7 @@ internal fun AlbumRow(albums: List<String>, songs: List<Song>, onAlbumClick: (St
 internal fun AlbumCard(title: String, count: String, coverUrl: String?, onClick: () -> Unit = {}) {
     ArtworkCard(
         title = title, coverUrl = coverUrl, subtitle = count, modifier = Modifier.width(120.dp),
-        resizeImage = false, cornerRadius = 10.dp, textSpacing = 6.dp, titleMaxLines = 1,
+        cornerRadius = 10.dp, textSpacing = 6.dp, titleMaxLines = 1,
         titleStyle = MaterialTheme.typography.labelMedium, subtitleStyle = MaterialTheme.typography.labelSmall,
         placeholder = {
             Icon(Icons.Rounded.Album, null, modifier = Modifier.align(Alignment.Center).size(36.dp),

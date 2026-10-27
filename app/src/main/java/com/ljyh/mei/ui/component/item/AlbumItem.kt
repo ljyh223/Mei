@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.AlbumThumbnailSize
 import com.ljyh.mei.ui.model.Album
-import com.ljyh.mei.utils.image.smallImage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
@@ -34,7 +33,7 @@ fun AlbumItem(album: Album, onClick: (Long) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(
-            model = album.cover.smallImage(),
+            model = album.cover,
             contentDescription = null,
             modifier = Modifier
                 .size(AlbumThumbnailSize)

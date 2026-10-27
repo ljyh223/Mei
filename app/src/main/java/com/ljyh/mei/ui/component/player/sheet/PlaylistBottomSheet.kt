@@ -67,7 +67,6 @@ import com.ljyh.mei.playback.queue.queueSource
 import com.ljyh.mei.extensions.mediaItems
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.utils.TimeUtils.formatDuration
-import com.ljyh.mei.utils.image.smallImage
 import java.util.IdentityHashMap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -291,7 +290,7 @@ private fun QueueTrackRow(
     ) {
         if (metadata?.coverUrl?.isNotBlank() == true) {
             AsyncImage(
-                model = metadata.coverUrl.smallImage(),
+                model = metadata.coverUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),

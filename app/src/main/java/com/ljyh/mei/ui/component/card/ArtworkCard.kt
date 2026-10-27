@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.ui.component.shimmer.skeleton
-import com.ljyh.mei.utils.image.sizedNeteaseImage
 
 /** One artwork/text layout for playlists, remote albums and local albums. Only the image is clipped. */
 @Composable
@@ -32,7 +31,6 @@ fun ArtworkCard(
     subtitle: String? = null,
     isLoading: Boolean = false,
     enabled: Boolean = true,
-    resizeImage: Boolean = true,
     cornerRadius: Dp = 16.dp,
     textSpacing: Dp = 8.dp,
     titleStyle: TextStyle = MaterialTheme.typography.bodyMedium,
@@ -62,7 +60,7 @@ fun ArtworkCard(
             if (!isLoading) {
                 if (coverUrl.isNullOrBlank()) placeholder()
                 else AsyncImage(
-                    model = if (resizeImage) coverUrl.sizedNeteaseImage(500) else coverUrl,
+                    model = coverUrl,
                     modifier = Modifier.matchParentSize(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
