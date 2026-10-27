@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.component.card
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
@@ -31,7 +32,8 @@ fun PlaylistCard(
     cardSize: Dp = PlaylistCardSize,
     modifier: Modifier = Modifier.width(cardSize),
     isLoading: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onPlayClick: () -> Unit
 ) {
     val textShadow = Shadow(color = Color.Black.copy(alpha = 0.7f), offset = Offset(2f, 2f), blurRadius = 4f)
     ArtworkCard(
@@ -73,9 +75,9 @@ fun PlaylistCard(
                     subTitle.forEach { t ->
                         Text(
                             text = t,
-                            fontSize = 11.sp,
+                            fontSize = 14.sp,
                             color = Color.White,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.ExtraBold,
                             style = TextStyle(shadow = textShadow)
                         )
                     }
@@ -94,6 +96,7 @@ fun PlaylistCard(
                         contentDescription = "Play",
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
+                            .clickable{ onPlayClick () }
                     )
                 }
             }

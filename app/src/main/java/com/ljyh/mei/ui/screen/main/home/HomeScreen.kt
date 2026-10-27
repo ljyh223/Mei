@@ -390,9 +390,13 @@ private fun HomeBlockItem(
                     // 只有非 thumbnail 的图片才使用大图加载逻辑，优化内存
                     imageSize = !resource.coverImg.contains("thumbnail"),
                     cardSize = playlistCardSize,
-                ) {
-                    Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
-                }
+                    onClick = {
+                        Screen.PlayList.navigate(navController) { addPath(resource.resourceId) }
+                    },
+                    onPlayClick = {
+
+                    }
+                )
             }
         }
 

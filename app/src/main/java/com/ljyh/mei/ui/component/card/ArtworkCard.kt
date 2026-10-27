@@ -39,20 +39,33 @@ fun ArtworkCard(
     subtitleStyle: TextStyle = MaterialTheme.typography.bodySmall,
     titleMaxLines: Int = 2,
     placeholder: @Composable BoxScope.() -> Unit = {
-        Icon(Icons.Rounded.MusicNote, contentDescription = null,
-            modifier = Modifier.align(Alignment.Center).size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(
+            Icons.Rounded.MusicNote,
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(36.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     },
     coverContent: @Composable BoxScope.() -> Unit = {},
     onClick: () -> Unit,
 ) {
     Column(modifier.clickable(enabled = enabled && !isLoading, onClick = onClick)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(cornerRadius))
-            .skeleton(isLoading, RoundedCornerShape(cornerRadius))) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(cornerRadius))
+                .skeleton(isLoading, RoundedCornerShape(cornerRadius))
+        ) {
             if (!isLoading) {
                 if (coverUrl.isNullOrBlank()) placeholder()
                 else AsyncImage(
                     model = if (resizeImage) coverUrl.sizedNeteaseImage(500) else coverUrl,
-                    modifier = Modifier.matchParentSize(), contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
                 )
                 coverContent()
             }
@@ -60,14 +73,25 @@ fun ArtworkCard(
         Spacer(Modifier.height(textSpacing))
         Text(
             text = if (isLoading) "正在加载的标题\n标题" else title,
-            modifier = Modifier.fillMaxWidth().skeleton(isLoading),
-            style = titleStyle, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
-            maxLines = titleMaxLines, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .skeleton(isLoading),
+            style = titleStyle,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = titleMaxLines,
+            overflow = TextOverflow.Ellipsis,
         )
         if (!subtitle.isNullOrBlank()) Text(
-            text = subtitle, modifier = Modifier.fillMaxWidth().padding(top = 2.dp).skeleton(isLoading),
-            style = subtitleStyle, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            text = subtitle,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp)
+                .skeleton(isLoading),
+            style = subtitleStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
