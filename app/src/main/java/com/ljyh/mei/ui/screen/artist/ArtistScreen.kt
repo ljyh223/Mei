@@ -3,11 +3,10 @@ package com.ljyh.mei.ui.screen.artist
 import com.ljyh.mei.ui.component.card.ArtworkCard
 import com.ljyh.mei.playback.queue.QueueSource
 
+import android.os.Build
 import androidx.annotation.OptIn
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,14 +28,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -54,8 +51,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -87,6 +91,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.screen.Screen
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 
@@ -104,10 +109,33 @@ fun ArtistScreen(
     val artistAlbums by viewModel.artistAlbums.collectAsState()
     val artistSongs by viewModel.artistSongs.collectAsState()
     var showDescriptionSheet by remember(id) { mutableStateOf(false) }
+    val artist = (artistDetail as? Resource.Success)?.data?.data?.artist
+    val artistImageUrl = artist?.cover?.takeIf { it.isNotBlank() }
+        ?: artist?.avatar?.takeIf { it.isNotBlank() }
+    var artistColor by remember(artistImageUrl) {
+        mutableStateOf(artistImageUrl?.let(viewModel::cachedArtistColor))
+    }
+    LaunchedEffect(artistImageUrl) {
+        if (artistImageUrl != null) {
+            try {
+                artistColor = viewModel.artistColor(artistImageUrl)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Keep the theme background if color extraction fails.
+            }
+        }
+    }
+
+    val pageBackground = MaterialTheme.colorScheme.background
+    val targetHeaderSurface = artistColor?.let {
+        lerp(pageBackground, it, if (pageBackground.luminance() < 0.5f) 0.38f else 0.24f)
+    } ?: pageBackground
+    val headerSurface by animateColorAsState(targetHeaderSurface, label = "artistHeaderColor")
 
     val scrollState = rememberLazyListState()
-    // Hero 高度 320dp，当滚过约 60% 时显示 TopBar 标题
-    val heroHeightPx = with(LocalDensity.current) { 320.dp.toPx() }
+    // Show the compact title after the artist image has mostly scrolled away.
+    val heroHeightPx = with(LocalDensity.current) { 460.dp.toPx() }
     val showTopBarTitle by remember {
         derivedStateOf {
             scrollState.firstVisibleItemIndex > 0 ||
@@ -151,12 +179,55 @@ fun ArtistScreen(
                 when (val detail = artistDetail) {
                     is Resource.Success -> ArtistHeader(
                         artist = detail.data.data.artist,
-                        expertIdentities = detail.data.data.secondaryExpertIdentiy
-                            .filter { it.expertIdentiyCount > 0 },
+                        headerSurface = headerSurface,
+                        canPlayHotSongs = playerConnection != null &&
+                            ((artistSongs as? Resource.Success)?.data?.hotSongs?.isNotEmpty() == true),
+                        onBrowseSongs = { Screen.ArtistSongs.navigate(navController) { addPath(id) } },
+                        onPlayHotSongs = {
+                            val songs = (artistSongs as? Resource.Success)?.data?.hotSongs.orEmpty()
+                            val first = songs.firstOrNull()
+                            if (first != null) {
+                                val source = QueueSource(QueueSource.Type.ARTIST, id, detail.data.data.artist.name)
+                                playerConnection?.onTrackClicked(
+                                    trackId = first.id.toString(),
+                                    fallbackSource = source,
+                                    buildQueue = {
+                                        ListQueue(
+                                            UUID.randomUUID().toString(),
+                                            "热门单曲",
+                                            songs.map { it.id.toString() to it.toMediaMetadata().toMediaItem() },
+                                            0,
+                                            source = source,
+                                        )
+                                    },
+                                )
+                            }
+                        },
+                    )
+                    is Resource.Loading -> ArtistHeaderShimmer(headerSurface)
+                    is Resource.Error -> ErrorItem(detail.message)
+                }
+            }
+
+            val detail = artistDetail as? Resource.Success
+            val artist = detail?.data?.data?.artist
+            if (artist != null && (artist.briefDesc.isNotBlank() ||
+                    detail.data.data.secondaryExpertIdentiy.any { it.expertIdentiyCount > 0 })) {
+                item {
+                    ArtistAbout(
+                        artist = artist,
+                        headerSurface = headerSurface,
+                        expertIdentities = detail.data.data.secondaryExpertIdentiy.filter { it.expertIdentiyCount > 0 },
                         onExpandDescription = { showDescriptionSheet = true },
                     )
-                    is Resource.Loading -> ArtistHeaderShimmer()
-                    is Resource.Error -> ErrorItem(detail.message)
+                }
+            } else if (artist != null) {
+                item {
+                    Spacer(
+                        Modifier.fillMaxWidth().height(48.dp).background(
+                            Brush.verticalGradient(listOf(headerSurface, pageBackground))
+                        )
+                    )
                 }
             }
 
@@ -168,7 +239,8 @@ fun ArtistScreen(
             when (val songsResource = artistSongs) {
                 is Resource.Success -> {
                     val songs = songsResource.data.hotSongs
-                    items(songs.take(10), key = { it.id }) { song ->
+                    if (songs.isEmpty()) item { EmptyArtistSection("暂无热门单曲") }
+                    items(songs.take(8), key = { it.id }) { song ->
                         Track(
                             track = song.toMediaMetadata(),
                             onClick = {
@@ -215,6 +287,7 @@ fun ArtistScreen(
             when (val albumsResource = artistAlbums) {
                 is Resource.Success -> {
                     val albums = albumsResource.data.hotAlbums.take(10)
+                    if (albums.isEmpty()) item { EmptyArtistSection("暂无专辑") }
                     item {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = meiPageGutter()),
@@ -251,286 +324,229 @@ fun ArtistScreen(
                 }
                 is Resource.Error -> item { ErrorItem(albumsResource.message) }
             }
+
         }
     }
     BasicTrackActionMenu(menuTrack) { menuTrack = null }
-    val artist = (artistDetail as? Resource.Success)?.data?.data?.artist
     if (showDescriptionSheet && artist != null) {
         DescriptionSheet(artist.name, artist.briefDesc) { showDescriptionSheet = false }
     }
 }
 
 
-// ─── Hero + Info Header ───────────────────────────────────────────────────────
+// ─── Artist identity and primary action ──────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ArtistHeader(
     artist: ArtistDetail.Data.Artist?,
-    expertIdentities: List<ArtistDetail.Data.SecondaryExpertIdentiy>,
     isLoading: Boolean = false,
-    onExpandDescription: () -> Unit = {},
+    headerSurface: Color = MaterialTheme.colorScheme.background,
+    canPlayHotSongs: Boolean = false,
+    onPlayHotSongs: () -> Unit = {},
+    onBrowseSongs: () -> Unit = {},
 ) {
-    var canExpand by remember(artist?.briefDesc) { mutableStateOf(false) }
-    val bgColor = MaterialTheme.colorScheme.background
     val loading = isLoading || artist == null
+    val colors = MaterialTheme.colorScheme
+    val imageUrl = artist?.cover?.takeIf { it.isNotBlank() }
+        ?: artist?.avatar?.takeIf { it.isNotBlank() }
+    val aliases = artist?.let {
+        (it.transNames + it.alias.mapNotNull { value ->
+            (value as? kotlinx.serialization.json.JsonPrimitive)
+                ?.takeIf { primitive -> primitive.isString }?.content
+        }).filter(String::isNotBlank).distinct()
+    }.orEmpty()
+    val identity = (artist?.identifyTag ?: artist?.identities.orEmpty())
+        .filter(String::isNotBlank).distinct().take(3).joinToString(" · ")
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-
-        // ── Hero: cover 图 + 底部渐变收口 ──────────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(320.dp)
-        ) {
-            // 封面图铺满
-            if (loading) {
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .skeleton(true, RoundedCornerShape(0.dp))
-                )
-            } else {
-                AsyncImage(
-                    model = artist?.cover,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            // 底部渐变：透明 → bgColor，让 Hero 与 body 无缝衔接
-            // 中间留一段纯透明区让封面透出来，底部收口到完全不透明
-            if (!loading) Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.00f to bgColor.copy(alpha = 0.20f), // 顶部轻压
-                                0.35f to Color.Transparent,           // 中段封面完全露出
-                                0.62f to bgColor.copy(alpha = 0.55f),
-                                0.80f to bgColor.copy(alpha = 0.88f),
-                                1.00f to bgColor                      // 底部完全不透明
-                            )
-                        )
-                    )
+    Box(Modifier.fillMaxWidth().background(headerSurface).clip(RoundedCornerShape(0.dp))) {
+        // A blurred copy preserves the colors and light in the photograph across the fade.
+        // On older Android versions blur is unavailable, so the extracted color is used.
+        if (imageUrl != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize().blur(48.dp),
+                contentScale = ContentScale.Crop,
             )
-
-            // Hero 内容：badges + 头像 + 名字 + 副标题 + 统计
-            // 贴底部排列，向上延伸
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(start = meiPageGutter(), end = meiPageGutter(), bottom = 20.dp)
-            ) {
-                // 认证/身份 badges
-                val allTags = if (loading) {
-                    emptyList()
-                } else {
-                    artist?.identifyTag ?: artist?.identities.orEmpty()
+        }
+        Box(
+            Modifier.matchParentSize().background(
+                Brush.verticalGradient(
+                    0f to headerSurface.copy(alpha = 0.35f),
+                    0.55f to headerSurface.copy(alpha = 0.65f),
+                    0.84f to headerSurface,
+                    1f to headerSurface,
+                )
+            )
+        )
+        Column(Modifier.fillMaxWidth()) {
+            Box(Modifier.fillMaxWidth().height(460.dp)) {
+                if (loading) {
+                    Spacer(Modifier.fillMaxSize().skeleton(true, RoundedCornerShape(0.dp)))
+                } else if (imageUrl != null) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                            .drawWithContent {
+                                drawContent()
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        0f to Color.White,
+                                        0.48f to Color.White,
+                                        0.72f to Color.White.copy(alpha = 0.72f),
+                                        1f to Color.Transparent,
+                                    ),
+                                    blendMode = BlendMode.DstIn,
+                                )
+                            },
+                        contentScale = ContentScale.Crop,
+                    )
                 }
-                if (allTags.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.padding(bottom = 10.dp)
-                    ) {
-                        allTags.take(3).forEach { tag ->
-                            HeroBadge(tag)
-                        }
-                    }
-                }
-
-                // 头像 + 名字/副标题横排
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                        .padding(horizontal = meiPageGutter(), vertical = 24.dp),
                 ) {
-                    if (loading) {
-                        Spacer(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .skeleton(true, CircleShape)
+                    if (identity.isNotBlank()) {
+                        Text(
+                            text = identity,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = colors.onBackground.copy(alpha = 0.82f),
+                            modifier = Modifier.padding(bottom = 6.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(
+                        text = artist?.name?.takeIf { it.isNotBlank() } ?: if (loading) "歌手名称" else "未知歌手",
+                        modifier = Modifier.skeleton(loading),
+                        style = MaterialTheme.typography.headlineLarge.copy(fontSize = 38.sp, lineHeight = 44.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onBackground,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (aliases.isNotEmpty()) {
+                        Text(
+                            text = aliases.joinToString(" · "),
+                            modifier = Modifier.padding(top = 4.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onBackground.copy(alpha = 0.78f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (!loading) {
+                        Text(
+                            text = "${artist.musicSize.formatCount()} 首歌曲  ·  ${artist.albumSize.formatCount()} 张专辑  ·  ${artist.mvSize.formatCount()} 个 MV",
+                            modifier = Modifier.padding(top = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onBackground.copy(alpha = 0.72f),
                         )
                     } else {
-                        AsyncImage(
-                            model = artist?.avatar,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = artist?.name ?: "正在加载的艺人名称",
-                            modifier = Modifier.skeleton(loading),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        val subtitleParts = buildList {
-                            if (loading) {
-                                add("艺人别名")
-                            } else {
-                                artist?.transNames?.takeIf { it.isNotEmpty() }?.let(::addAll)
-                                artist?.alias?.takeIf { it.isNotEmpty() }?.let(::addAll)
-                            }
-                        }
-                        if (subtitleParts.isNotEmpty()) {
-                            Text(
-                                text = subtitleParts.joinToString(" · "),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.48f),
-                                modifier = Modifier.padding(top = 2.dp).skeleton(loading),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        Spacer(Modifier.padding(top = 8.dp).width(120.dp).height(18.dp).skeleton(true))
                     }
                 }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()).padding(top = 8.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(
+                    onClick = onPlayHotSongs,
+                    enabled = !loading && canPlayHotSongs,
+                    modifier = Modifier.weight(1f).height(48.dp).skeleton(loading, RoundedCornerShape(50)),
+                    shape = RoundedCornerShape(50),
+                ) {
+                    Icon(Icons.Rounded.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("播放热门")
+                }
+                OutlinedButton(
+                    onClick = onBrowseSongs,
+                    enabled = !loading,
+                    modifier = Modifier.weight(1f).height(48.dp).skeleton(loading, RoundedCornerShape(50)),
+                    shape = RoundedCornerShape(50),
+                ) {
+                    Text("全部歌曲")
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 统计数字行
-                Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    StatItem(value = artist?.musicSize?.formatCount() ?: "000", label = "单曲", isLoading = loading)
-                    StatItem(value = artist?.albumSize?.toString() ?: "00", label = "专辑", isLoading = loading)
-                    StatItem(value = artist?.mvSize?.toString() ?: "00", label = "MV", isLoading = loading)
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ArtistAbout(
+    artist: ArtistDetail.Data.Artist,
+    headerSurface: Color,
+    expertIdentities: List<ArtistDetail.Data.SecondaryExpertIdentiy>,
+    onExpandDescription: () -> Unit,
+) {
+    var canExpand by remember(artist.briefDesc) { mutableStateOf(false) }
+    Column(
+        Modifier.fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(headerSurface, MaterialTheme.colorScheme.background)))
+            .padding(horizontal = meiPageGutter()).padding(top = 4.dp, bottom = 12.dp),
+    ) {
+        Text("关于歌手", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        if (expertIdentities.isNotEmpty()) {
+            FlowRow(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                expertIdentities.forEach { expert ->
+                    Text(
+                        text = "${expert.expertIdentiyName} · ${expert.expertIdentiyCount.formatCount()}",
+                        modifier = Modifier.background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            RoundedCornerShape(6.dp),
+                        ).padding(horizontal = 10.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
-
-        // ── Body: 关注 + 创作领域 + 简介 ─────────────────────────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = meiPageGutter())
-        ) {
-            // 关注按钮
-            OutlinedButton(
-                onClick = { /* TODO */ },
-                enabled = !loading,
-                shape = RoundedCornerShape(50),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp, bottom = 16.dp)
-                    .skeleton(loading, RoundedCornerShape(50))
+        if (artist.briefDesc.isNotBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("关注", style = MaterialTheme.typography.labelLarge)
-            }
-
-            // 创作领域 chips
-            if (!loading && expertIdentities.isNotEmpty()) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(bottom = 14.dp)
-                ) {
-                    expertIdentities.forEach { expert ->
-                        ExpertiseChip(
-                            name = expert.expertIdentiyName,
-                            count = expert.expertIdentiyCount
-                        )
-                    }
-                }
-            }
-
-            // 简介
-            if (loading || !artist?.briefDesc.isNullOrBlank()) {
                 Text(
-                    text = artist?.briefDesc
-                        ?: "艺人简介正在加载中，用于保持正式内容的三行文本布局。\n艺人简介占位内容。\n艺人简介占位内容。",
-                    modifier = Modifier.skeleton(loading),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
-                    lineHeight = 20.sp,
-                    maxLines = 3,
+                    text = artist.briefDesc,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 21.sp,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     onTextLayout = { canExpand = it.hasVisualOverflow },
                 )
-                if (!loading && canExpand) {
-                    TextButton(onClick = onExpandDescription) { Text("展开全部") }
+                if (canExpand) {
+                    TextButton(
+                        onClick = onExpandDescription,
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                    ) { Text("展开") }
                 }
             }
         }
     }
 }
 
-
-// ─── Hero Badge ───────────────────────────────────────────────────────────────
-
 @Composable
-private fun HeroBadge(text: String) {
+private fun EmptyArtistSection(message: String) {
     Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.background.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+        text = message,
+        modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 16.dp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyMedium,
     )
 }
-
-
-// ─── Stat Item ────────────────────────────────────────────────────────────────
-
-@Composable
-private fun StatItem(value: String, label: String, isLoading: Boolean = false) {
-    Column {
-        Text(
-            text = value,
-            modifier = Modifier.skeleton(isLoading),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.42f),
-            modifier = Modifier.padding(top = 1.dp).skeleton(isLoading)
-        )
-    }
-}
-
-
-// ─── Expertise Chip ───────────────────────────────────────────────────────────
-
-@Composable
-private fun ExpertiseChip(name: String, count: Int) {
-    Row(
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(6.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = count.formatCount(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-        )
-    }
-}
-
 
 // ─── Album Card ───────────────────────────────────────────────────────────────
 
@@ -555,12 +571,12 @@ fun AlbumCardShimmer() {
 // ─── Header Shimmer ───────────────────────────────────────────────────────────
 
 @Composable
-fun ArtistHeaderShimmer() {
+fun ArtistHeaderShimmer(headerSurface: Color = MaterialTheme.colorScheme.background) {
     SkeletonShimmerHost(enabled = true) {
         ArtistHeader(
             artist = null,
-            expertIdentities = emptyList(),
             isLoading = true,
+            headerSurface = headerSurface,
         )
     }
 }
@@ -574,7 +590,7 @@ fun SectionTitle(title: String, onShowAll: (() -> Unit)? = null) {
         modifier = Modifier.fillMaxWidth().padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f))
         if (onShowAll != null) TextButton(onClick = onShowAll) { Text("查看全部") }
     }
