@@ -257,13 +257,6 @@ fun AppleMusicPlayer(
         }
     }
     val colorScheme = MaterialTheme.colorScheme
-    // The cover layer paints this behind the artwork; its anti-aliased edge blends with it, so it
-    // must match the extension color or a 1 px lighter outline shows at the square.
-    val coverContainerColor = lerp(
-        colorScheme.surfaceVariant,
-        coverEdgeArtwork?.controlsColor ?: colorScheme.surfaceVariant,
-        edgeExtensionAlpha,
-    )
     val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
         if (isSystemInDarkTheme && state.value > state.collapsedBound) {
             lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
@@ -499,8 +492,7 @@ fun AppleMusicPlayer(
                                         showFullImage = true
                                     }
                                 },
-                            )
-                            .background(coverContainerColor),
+                            ),
                     ) {
                         val currentMetadata = currentMedia
                         val activeCover = dynamicCover?.takeIf {
