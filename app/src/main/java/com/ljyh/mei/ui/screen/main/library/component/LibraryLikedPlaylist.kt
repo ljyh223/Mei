@@ -37,15 +37,23 @@ internal fun LibraryLikedPlaylist(
     songTitle: String? = null,
     playAtBottom: Boolean = false,
 ) {
-    Box(modifier.clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+    Box(
+        modifier
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
         Box(
-            Modifier.matchParentSize().clickable(
-                enabled = playlist != null, role = Role.Button,
-                onClickLabel = "打开我喜欢的音乐", onClick = onOpen
-            )
+            Modifier
+                .matchParentSize()
+                .clickable(
+                    enabled = playlist != null, role = Role.Button,
+                    onClickLabel = "打开我喜欢的音乐", onClick = onOpen
+                )
         ) {
             Icon(
-                Icons.Rounded.MusicNote, null, Modifier.align(Alignment.Center).size(48.dp),
+                Icons.Rounded.MusicNote, null, Modifier
+                    .align(Alignment.Center)
+                    .size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (!artwork.isNullOrBlank()) AsyncImage(
@@ -53,30 +61,44 @@ internal fun LibraryLikedPlaylist(
                 contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(),
             )
             Box(
-                Modifier.matchParentSize().background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Black.copy(alpha = 0.08f),
-                            Color.Black.copy(alpha = 0.18f),
-                            Color.Black.copy(alpha = 0.78f),
+                Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Black.copy(alpha = 0.08f),
+                                Color.Black.copy(alpha = 0.18f),
+                                Color.Black.copy(alpha = 0.78f),
+                            )
                         )
                     )
-                )
             )
             Column(
-                Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 16.dp, top = 16.dp, end = if (playAtBottom) 76.dp else 16.dp),
+                Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(
+                        start = 16.dp,
+                        bottom = 16.dp,
+                        top = 16.dp,
+                        end = if (playAtBottom) 76.dp else 16.dp
+                    ),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    "我喜欢的音乐", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
-                    color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis
+                    "我喜欢的音乐",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = if (playAtBottom) 1 else 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (playlist != null) Text(
-                    "${playlist.count} 首", style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-                if (!songTitle.isNullOrBlank()) Text(
-                    songTitle, style = MaterialTheme.typography.bodyMedium, color = Color.White,
+                    text = buildString {
+                        append("${playlist.count} 首")
+                        if (playAtBottom && !songTitle.isNullOrBlank()) append(" · 最近喜欢《$songTitle》")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.9f),
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
@@ -88,9 +110,13 @@ internal fun LibraryLikedPlaylist(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ),
-            modifier = Modifier.align(if (playAtBottom) Alignment.BottomEnd else Alignment.TopEnd).padding(12.dp).size(48.dp)
+            modifier = Modifier
+                .align(if (playAtBottom) Alignment.BottomEnd else Alignment.TopEnd)
+                .padding(12.dp)
+                .size(48.dp)
                 .semantics {
-                    contentDescription = if (preparingPlayback) "正在准备播放我喜欢的音乐" else "播放我喜欢的音乐"
+                    contentDescription =
+                        if (preparingPlayback) "正在准备播放我喜欢的音乐" else "播放我喜欢的音乐"
                 },
         ) {
             if (preparingPlayback) CircularProgressIndicator(
