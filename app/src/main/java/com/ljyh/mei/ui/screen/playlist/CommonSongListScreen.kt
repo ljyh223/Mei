@@ -76,6 +76,7 @@ fun CommonSongListScreen(
     uiData: UiPlaylist,
     pagingItems: LazyPagingItems<MediaMetadata>? = null,
     isLoading: Boolean,
+    loadingHeaderStyle: PlaylistHeaderStyle? = null,
     // 头部操作
     onPlayAll: () -> Unit,
     onHeaderAction: () -> Unit,
@@ -196,6 +197,7 @@ fun CommonSongListScreen(
                                 if (customHeader != null) customHeader() else PlaylistDetailHeader(
                                     playlist = uiData,
                                     isLoading = isLoading,
+                                    loadingHeaderStyle = loadingHeaderStyle,
                                     onPlayAll = onPlayAll,
                                     onHeaderAction = onHeaderAction,
                                     onDownload = onDownload,
@@ -257,6 +259,7 @@ fun CommonSongListScreen(
                                 if (customHeader != null) customHeader() else PlaylistDetailHeader(
                                     playlist = uiData,
                                     isLoading = isLoading,
+                                    loadingHeaderStyle = loadingHeaderStyle,
                                     onPlayAll = onPlayAll,
                                     onHeaderAction = onHeaderAction,
                                     onDownload = onDownload,

@@ -75,4 +75,38 @@ class ImageUrlsTest {
         assertEquals(ArtworkSize.Detail, ArtworkSize.forBounds(4096, 4096))
     }
 
+    @Test fun `full player keeps 1600 pixels when original artwork is disabled`() {
+        val url = source.artworkImage(ArtworkSize.Small).playerArtworkUrl(original = false).toHttpUrl()
+        assertEquals("1600z1600", url.queryParameter("thumbnail"))
+        assertNull(url.queryParameter("param"))
+        assertEquals(ArtworkSize.Detail, ArtworkSize.forBounds(1600, 1600))
+    }
+
+    @Test fun `full player original setting strips prior thumbnail parameters`() {
+        assertEquals(source, source.playerArtworkUrl(original = false).playerArtworkUrl(original = true))
+    }
+
+    @Test fun `encoded watermark pipeline survives thumbnail and original requests intact`() {
+        val pipeline = "$source?imageView=1&thumbnail=800y800&enlarge=1%7CimageView=1" +
+            "&watermark&type=1&image=b3ZlcmxheS0xLnBuZw==&dx=0&dy=0%7Cwatermark" +
+            "&type=1&image=b3ZlcmxheS0yLnBuZw==&dx=0&dy=0%7CimageView=1"
+        for (size in ArtworkSize.entries) assertEquals(pipeline, pipeline.artworkImage(size))
+        assertEquals(pipeline, pipeline.playerArtworkUrl(original = false))
+        assertEquals(pipeline, pipeline.originalArtworkUrl())
+    }
+
+    @Test fun `raw and lowercase encoded pipeline separators are preserved`() {
+        for (separator in listOf("|", "%7c")) {
+            val pipeline = "$source?imageView=1&thumbnail=800y800${separator}imageView=1"
+            assertEquals(pipeline, pipeline.artworkImage(ArtworkSize.Small))
+            assertEquals(pipeline, pipeline.originalArtworkUrl())
+        }
+    }
+
+    @Test fun `standalone watermark type is not mistaken for an image format`() {
+        val watermark = "$source?watermark&type=1&image=b3ZlcmxheS5wbmc=&dx=0&dy=0"
+        assertEquals(watermark, watermark.artworkImage(ArtworkSize.Small))
+        assertEquals(watermark, watermark.originalArtworkUrl())
+    }
+
 }

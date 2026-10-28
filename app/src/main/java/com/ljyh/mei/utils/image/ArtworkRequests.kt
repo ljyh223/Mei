@@ -21,11 +21,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private val OriginalArtwork = Extras.Key(false)
+private val PlayerArtwork = Extras.Key(false)
 
 /** Explicit opt-in; ordinary image requests always use a bounded CDN thumbnail. */
 fun ImageRequest.Builder.originalArtwork(url: String?): ImageRequest.Builder = apply {
     data(url?.originalArtworkUrl())
     extras[OriginalArtwork] = true
+}
+
+/** Full-player requests opt out of component-based thumbnail sizing. */
+fun ImageRequest.Builder.playerArtwork(url: String?, original: Boolean): ImageRequest.Builder = apply {
+    data(url?.playerArtworkUrl(original))
+    extras[OriginalArtwork] = original
+    extras[PlayerArtwork] = true
+    if (!original) size(1600)
 }
 
 /** Runs before Coil's cache lookup, so the normalized URL is also the disk cache key. */
@@ -40,6 +49,8 @@ class ArtworkRequestInterceptor : Interceptor {
         if (source.neteaseImageUrl() == null) return chain.proceed()
         val normalized = if (request.getExtra(OriginalArtwork)) {
             source.originalArtworkUrl()
+        } else if (request.getExtra(PlayerArtwork)) {
+            source.playerArtworkUrl(original = false)
         } else {
             val size = ArtworkSize.forBounds(
                 (chain.size.width as? Dimension.Pixels)?.px,
@@ -52,9 +63,9 @@ class ArtworkRequestInterceptor : Interceptor {
 }
 
 private fun artworkCacheCandidates(url: String): List<String> {
-    val canonical = ArtworkSize.entries.reversed().map { url.artworkImage(it) }
+    val canonical = listOf(url.playerArtworkUrl(original = false)) + ArtworkSize.entries.reversed().map { url.artworkImage(it) }
     val legacy = url.neteaseImageUrl()?.let { parsed ->
-        listOf(500, 300, 100).map { side ->
+        listOf(1600, 500, 300, 100).map { side ->
             parsed.newBuilder().query(null).addQueryParameter("param", "${side}y${side}").build().toString()
         }
     }.orEmpty()
@@ -70,23 +81,34 @@ private fun cachedArtworkKey(loader: ImageLoader, url: String): MemoryCache.Key?
 }
 
 /**
- * Original artwork uses any existing memory/disk thumbnail as its placeholder. Cache misses never
+ * High-resolution artwork uses any existing memory/disk thumbnail as its placeholder. Cache misses never
  * start a thumbnail download. Disk lookup finishes before the original request is submitted, so
  * finding a placeholder cannot restart an in-flight original download.
  */
 @Composable
-fun rememberOriginalArtworkRequest(url: String?): ImageRequest? {
+fun rememberOriginalArtworkRequest(url: String?): ImageRequest? =
+    rememberHighResolutionArtworkRequest(url, original = true, player = false)
+
+@Composable
+fun rememberPlayerArtworkRequest(url: String?, original: Boolean): ImageRequest? =
+    rememberHighResolutionArtworkRequest(url, original, player = true)
+
+@Composable
+private fun rememberHighResolutionArtworkRequest(url: String?, original: Boolean, player: Boolean): ImageRequest? {
     val context = LocalContext.current
     val loader = context.imageLoader
-    val initial = remember(context, loader, url) {
+    val targetUrl = if (player) url?.playerArtworkUrl(original) else url?.originalArtworkUrl()
+    fun builder() = ImageRequest.Builder(context).apply {
+        if (player) playerArtwork(url, original) else originalArtwork(url)
+    }
+    val initial = remember(context, loader, url, original, player) {
         url?.let { cachedArtworkKey(loader, it) }?.let { key ->
-            ImageRequest.Builder(context).originalArtwork(url)
-                .placeholderMemoryCacheKey(key)
+            builder().placeholderMemoryCacheKey(key)
                 .error(loader.memoryCache?.get(key)?.image)
                 .build()
         }
     }
-    val request by produceState(initial, context, loader, url) {
+    val request by produceState(initial, context, loader, url, original, player) {
         // produceState retains its previous value when keys change; never expose the old song.
         value = initial
         if (initial != null) return@produceState
@@ -113,8 +135,8 @@ fun rememberOriginalArtworkRequest(url: String?): ImageRequest? {
             }
             cached
         }
-        value = ImageRequest.Builder(context).originalArtwork(url).placeholder(placeholder).error(placeholder).build()
+        value = builder().placeholder(placeholder).error(placeholder).build()
     }
     // A new composition key must not show the request retained for the previous URL.
-    return request?.takeIf { it.data == url?.originalArtworkUrl() }
+    return request?.takeIf { it.data == targetUrl }
 }

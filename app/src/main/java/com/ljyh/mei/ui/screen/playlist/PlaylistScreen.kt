@@ -65,6 +65,15 @@ fun PlaylistScreen(
     // 2. 状态收集
     val userId by rememberPreference(UserIdKey, "")
     val playlistDetail by viewModel.playlistDetail.collectAsState()
+    var loadingHeaderStyle by remember(id) { mutableStateOf(playlistHeaderStyleCache.get(id)) }
+    LaunchedEffect(id, playlistDetail) {
+        val detail = (playlistDetail as? Resource.Success)?.data
+        if (detail != null && detail.id == id) {
+            val style = detail.headerStyle()
+            playlistHeaderStyleCache.put(id, style)
+            loadingHeaderStyle = style
+        }
+    }
     val removedTrackIds by viewModel.removedTrackIds.collectAsState()
     val subscriberState by viewModel.subscribePlaylist.collectAsState()
     val unSubscriberState by viewModel.unSubscribePlaylist.collectAsState()
@@ -362,6 +371,7 @@ fun PlaylistScreen(
             uiData = uiData.copy(isSubscribed = isSubscribed),
             pagingItems = lazyPagingItems,
             isLoading = playlistDetail is Resource.Loading,
+            loadingHeaderStyle = loadingHeaderStyle,
 
             // 收藏按钮逻辑
             headerActionIcon = if (isSubscribed) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,

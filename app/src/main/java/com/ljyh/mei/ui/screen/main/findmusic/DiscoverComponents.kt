@@ -18,6 +18,7 @@ import com.ljyh.mei.data.model.domain.*
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.MeiFilterPill
 import com.ljyh.mei.ui.component.MeiSectionTitle
+import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.collection.MeiCollectionStatus
 import com.ljyh.mei.ui.component.card.PlaylistCard
 import com.ljyh.mei.ui.component.card.ArtworkCard
@@ -85,13 +86,12 @@ internal fun DiscoverCategorySheet(
 @Composable
 internal fun DiscoverSectionHeader(
     title: String,
-    action: String = "查看全部",
     onAction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         MeiSectionTitle(title, modifier = Modifier.weight(1f))
-        TextButton(onClick = onAction) { Text(action) }
+        MeiShowAllButton(onClick = onAction)
     }
 }
 
@@ -136,7 +136,7 @@ internal fun DiscoverPlaylistCard(
     playlist: DiscoverPlaylist,
     modifier: Modifier,
     onClick: () -> Unit,
-    onPlayClick: () -> Unit
+    onPlayClick: () -> Unit,
 ) {
     PlaylistCard(
         id = playlist.id.toString(),
@@ -154,6 +154,7 @@ internal fun DiscoverAlbumCard(album: DiscoverAlbum, modifier: Modifier, onClick
     ArtworkCard(
         title = album.name,
         subtitle = album.artist,
+        reserveSubtitleSpace = true,
         coverUrl = album.cover,
         modifier = modifier,
         onClick = onClick

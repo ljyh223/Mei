@@ -191,6 +191,11 @@ fun SongInfoSheet(
                 value = metadata.title,
                 onCopy = { setClipboard(context, metadata.title, "歌曲名称") }
             )
+            InfoItem(
+                label = "歌曲封面URL",
+                value = metadata.coverUrl,
+                onCopy = { setClipboard(context, metadata.coverUrl, "歌曲封面URL") }
+            )
             metadata.tns?.let { tns ->
                 InfoItem(
                     label = "译名",

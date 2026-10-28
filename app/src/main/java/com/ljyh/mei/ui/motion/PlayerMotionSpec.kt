@@ -35,10 +35,7 @@ object PlayerMotionSpec {
     const val CollapseForNavigationDurationMillis = 280
     const val ContainerEnterDurationMillis = 180
     const val ContainerExitDurationMillis = 120
-    const val InitialCoverEnterDurationMillis = 120
     const val CoverSwapDurationMillis = 400
-    const val ClassicCoverSwapDurationMillis = 500
-    const val CoverSwapInitialScale = 0.92f
     const val CoverShadowStartProgress = 0.8f
 
     val BackgroundReveal = MotionProgressWindow(start = 0.12f, end = 0.40f)

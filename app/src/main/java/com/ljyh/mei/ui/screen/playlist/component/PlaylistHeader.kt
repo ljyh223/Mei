@@ -87,8 +87,7 @@ fun PlaylistHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val artworkSize = if (maxWidth >= 560.dp) 200.dp
-            else (maxWidth * 0.62f).coerceIn(160.dp, 248.dp)
+            val artworkSize = playlistArtworkSize(maxWidth)
             Box(
                 modifier = Modifier
                     .size(artworkSize)
@@ -280,3 +279,6 @@ private fun NeutralIconButton(
         content = content,
     )
 }
+
+internal fun playlistArtworkSize(availableWidth: androidx.compose.ui.unit.Dp): androidx.compose.ui.unit.Dp =
+    if (availableWidth >= 560.dp) 200.dp else (availableWidth * 0.62f).coerceIn(160.dp, 248.dp)

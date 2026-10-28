@@ -13,11 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.ui.component.shimmer.skeleton
@@ -33,9 +37,10 @@ fun ArtworkCard(
     enabled: Boolean = true,
     cornerRadius: Dp = 16.dp,
     textSpacing: Dp = 8.dp,
+    maxTitleLine: Int = 1,
     titleStyle: TextStyle = MaterialTheme.typography.bodyMedium,
     subtitleStyle: TextStyle = MaterialTheme.typography.bodySmall,
-    titleMaxLines: Int = 2,
+    reserveSubtitleSpace: Boolean = false,
     placeholder: @Composable BoxScope.() -> Unit = {
         Icon(
             Icons.Rounded.MusicNote,
@@ -69,27 +74,44 @@ fun ArtworkCard(
             }
         }
         Spacer(Modifier.height(textSpacing))
-        Text(
-            text = if (isLoading) "正在加载的标题\n标题" else title,
+        StableArtworkText(
+            text = if (isLoading) "正在加载的标题" else title,
             modifier = Modifier
                 .fillMaxWidth()
                 .skeleton(isLoading),
             style = titleStyle,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = titleMaxLines,
-            overflow = TextOverflow.Ellipsis,
         )
-        if (!subtitle.isNullOrBlank()) Text(
-            text = subtitle,
+        if (reserveSubtitleSpace || !subtitle.isNullOrBlank()) StableArtworkText(
+            text = subtitle.orEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 2.dp)
                 .skeleton(isLoading),
             style = subtitleStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** A content-independent line box prevents lazy shelves resizing when font fallback changes. */
+@Composable
+internal fun StableArtworkText(
+    text: String,
+    style: TextStyle,
+    color: Color,
+    modifier: Modifier = Modifier,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign = TextAlign.Start,
+) {
+    val fontSize = style.fontSize.takeIf { it.isSp }?.value ?: 14f
+    val lineHeight = style.lineHeight.takeIf { it.isSp }?.value ?: 0f
+    val height = with(LocalDensity.current) { maxOf(lineHeight, fontSize * 1.4f).sp.toDp() }
+    Box(modifier.height(height), contentAlignment = Alignment.CenterStart) {
+        Text(
+            text = text, style = style, color = color, fontWeight = fontWeight, textAlign = textAlign,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(),
         )
     }
 }

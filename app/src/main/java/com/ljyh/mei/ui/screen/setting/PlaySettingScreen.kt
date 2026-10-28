@@ -18,11 +18,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.HideSource
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Loop
-import androidx.compose.material.icons.rounded.Equalizer
-import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,8 +30,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
@@ -48,7 +43,6 @@ import com.ljyh.mei.constants.SmartTransitionEnabledKey
 import com.ljyh.mei.constants.SmartTransitionMode
 import com.ljyh.mei.constants.SmartTransitionModeKey
 import com.ljyh.mei.constants.UsbExclusivePlaybackKey
-import com.ljyh.mei.playback.UsbOutputState
 import com.ljyh.mei.ui.screen.setting.component.EnumListPreference
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.screen.setting.component.ListPreference
@@ -81,7 +75,6 @@ fun PlaySettingScreen(
         key = UsbExclusivePlaybackKey,
         defaultValue = false,
     )
-    val usbStatus by UsbOutputState.status.collectAsState()
     val (loopPlayback, onLoopPlaybackChange) = rememberPreference(
         key = LoopPlaybackKey,
         defaultValue = true
@@ -116,33 +109,13 @@ fun PlaySettingScreen(
         item(key = "page-content") {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-            PreferenceSection("音频输出") {
-                PreferenceEntry(
-                    title = { Text("USB 独占播放") },
-                    description = if (usbExclusive) usbStatus.message.ifEmpty { "已开启" } else "已关闭 · 输出、缓冲与后台运行设置",
-                    icon = { Icon(Icons.Rounded.Usb, null) },
-                    onClick = { Screen.UsbExclusiveSettings.navigate(navController) },
-                )
-                PreferenceEntry(
-                    title = { Text("均衡器与音效") },
-                    description = if (usbExclusive) "USB 独占播放时不可用" else "参数均衡器、频响曲线与预设",
-                    icon = { Icon(Icons.Rounded.Equalizer, null) },
-                    onClick = { Screen.Equalizer.navigate(navController) },
-                    isEnabled = !usbExclusive,
-                )
-                PreferenceEntry(
-                    title = { Text("混响") },
-                    description = if (usbExclusive) "USB 独占播放时不可用" else "房间、大厅、板式与自定义参数",
-                    icon = { Icon(Icons.Rounded.Waves, null) },
-                    onClick = { Screen.ReverbSettings.navigate(navController) },
-                    isEnabled = !usbExclusive,
-                )
+            PreferenceSection("音质") {
                 EnumListPreference(
                     title = { Text("音乐质量") },
                     icon = { Icon(Icons.Rounded.HighQuality, null) },
                     selectedValue = musicQuality,
                     onValueSelected = onMusicQualityChange,
-                    valueText = { "${it.text} ${it.explanation}" }
+                    valueText = { "${it.text} ${it.explanation}" },
                 )
             }
             PreferenceSection("播放行为") {
@@ -161,23 +134,21 @@ fun PlaySettingScreen(
                     isEnabled = !usbExclusive,
                 )
                 if (transitionEnabled && !usbExclusive) {
-                    PreferenceSubsection {
-                        EnumListPreference(
-                            title = { Text("过渡方式") },
-                            icon = { Icon(Icons.Rounded.GraphicEq, null) },
-                            selectedValue = transitionMode,
-                            valueText = { if (it == SmartTransitionMode.Smart) "智能过渡" else "固定时长淡化" },
-                            onValueSelected = onTransitionModeChange,
+                    EnumListPreference(
+                        title = { Text("过渡方式") },
+                        icon = { Icon(Icons.Rounded.GraphicEq, null) },
+                        selectedValue = transitionMode,
+                        valueText = { if (it == SmartTransitionMode.Smart) "智能过渡" else "固定时长淡化" },
+                        onValueSelected = onTransitionModeChange,
+                    )
+                    if (transitionMode == SmartTransitionMode.Fixed) {
+                        ListPreference(
+                            title = { Text("淡化时长") },
+                            selectedValue = transitionSeconds,
+                            values = listOf(4, 6, 8, 10),
+                            valueText = { "$it 秒" },
+                            onValueSelected = onTransitionSecondsChange,
                         )
-                        if (transitionMode == SmartTransitionMode.Fixed) {
-                            ListPreference(
-                                title = { Text("淡化时长") },
-                                selectedValue = transitionSeconds,
-                                values = listOf(4, 6, 8, 10),
-                                valueText = { "$it 秒" },
-                                onValueSelected = onTransitionSecondsChange,
-                            )
-                        }
                     }
                 }
                 SwitchPreference(

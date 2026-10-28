@@ -5,7 +5,6 @@ import android.content.res.Configuration
 import android.view.animation.DecelerateInterpolator
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animateDpAsState
@@ -14,10 +13,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -60,7 +57,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -71,7 +67,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
 import androidx.media3.common.util.UnstableApi
-import coil3.compose.AsyncImage
+import coil3.request.crossfade
 import com.ljyh.mei.constants.CoverBackgroundEnabledKey
 import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.constants.MiniPlayerCornerRadius
@@ -89,6 +85,7 @@ import com.ljyh.mei.ui.component.player.controls.PlayerControlsSection
 import com.ljyh.mei.ui.component.player.cover.CoverEdgeExtensionBackdrop
 import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
 import com.ljyh.mei.ui.component.player.cover.FluidBackground
+import com.ljyh.mei.ui.component.player.cover.PlayerArtworkImage
 import com.ljyh.mei.ui.component.player.cover.coverEdgeFeather
 import com.ljyh.mei.ui.component.player.cover.rememberCoverEdgeArtwork
 import com.ljyh.mei.ui.component.player.miniPlayerHorizontalMargin
@@ -144,6 +141,7 @@ fun AppleMusicPlayer(
     var showLyrics by remember { mutableStateOf(false) }
     val showComments by overlayHandler.phoneComments
     val detailsVisible = showLyrics || showComments
+    val detailsControlsVisible = !showComments && stateContainer.controlsVisible
     var showFullImage by remember { mutableStateOf(false) }
 
     fun toggleLyrics() {
@@ -225,13 +223,9 @@ fun AppleMusicPlayer(
     val sheetProgress = state.progress
     val expandedUiAlpha = PlayerMotionSpec.ExpandedUiReveal.transform(sheetProgress)
     val meshBackgroundAlpha = PlayerMotionSpec.BackgroundReveal.transform(sheetProgress)
-    val portraitReveal by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (portraitCover != null) {
-            if (portraitReady) 1f else 0f
-        } else if (retainedPortrait != null && !staticArtworkReady) 1f else 0f,
-        animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis),
-        label = "PortraitArtworkReveal",
-    )
+    val portraitReveal = if (portraitCover != null) {
+        if (portraitReady) 1f else 0f
+    } else if (retainedPortrait != null && !staticArtworkReady) 1f else 0f
     val fluidReveal by animateFloatAsState(
         targetValue = if (fluidReady) 1f else 0f,
         animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis),
@@ -473,37 +467,7 @@ fun AppleMusicPlayer(
             },
             overlayContent = {
                 mediaMetadata?.let { currentMedia ->
-                    AnimatedContent(
-                        targetState = currentMedia,
-                        transitionSpec = {
-                            val enter = if (state.revealProgress <= 0f) {
-                                fadeIn(
-                                    animationSpec = PlayerMotionSpec.tween(
-                                        PlayerMotionSpec.InitialCoverEnterDurationMillis,
-                                    ),
-                                )
-                            } else {
-                                fadeIn(
-                                    animationSpec = PlayerMotionSpec.tween(
-                                        PlayerMotionSpec.CoverSwapDurationMillis,
-                                    ),
-                                ) +
-                                    scaleIn(
-                                        initialScale = PlayerMotionSpec.CoverSwapInitialScale,
-                                        animationSpec = PlayerMotionSpec.tween(
-                                            PlayerMotionSpec.CoverSwapDurationMillis,
-                                        ),
-                                    )
-                            }
-                            enter.togetherWith(
-                                fadeOut(
-                                    animationSpec = PlayerMotionSpec.tween(
-                                        PlayerMotionSpec.CoverSwapDurationMillis,
-                                    ),
-                                ),
-                            )
-                        },
-                        label = "CoverTransition",
+                    Box(
                         modifier = Modifier
                             .graphicsLayer {
                                 // The collapsed bar already has the cached thumbnail. Keep it
@@ -537,11 +501,31 @@ fun AppleMusicPlayer(
                                 },
                             )
                             .background(coverContainerColor),
-                    ) { currentMetadata ->
+                    ) {
+                        val currentMetadata = currentMedia
                         val activeCover = dynamicCover?.takeIf {
                             it.songId == currentMetadata.id && portraitCover == null &&
                                 state.isExpanded && !detailsVisible
                         }
+                        val artworkRequest = rememberPlayerArtworkRequest(currentMetadata.coverUrl, originalCover)
+                            ?.newBuilder()?.crossfade(false)?.build()
+                        PlayerArtworkImage(
+                            artworkKey = currentMetadata.coverUrl,
+                            request = artworkRequest,
+                            onSuccess = {
+                                if (currentMetadata.id == mediaMetadata?.id) {
+                                    readyCoverId = currentMetadata.id
+                                    readyFullCover = currentMetadata.id to currentMetadata.coverUrl
+                                }
+                            },
+                            onError = {
+                                if (currentMetadata.id == mediaMetadata?.id) readyCoverId = currentMetadata.id
+                            },
+                            modifier = Modifier.fillMaxSize().coverEdgeFeather(
+                                coverEdgeArtwork.takeIf { currentMetadata.coverUrl == coverUrl },
+                                edgeExtensionAlpha,
+                            ),
+                        )
                         if (activeCover != null) {
                             DynamicCoverView(
                                 imageUrl = currentMetadata.coverUrl,
@@ -557,26 +541,6 @@ fun AppleMusicPlayer(
                                     }
                                 },
                                 modifier = Modifier.fillMaxSize(),
-                            )
-                        } else {
-                            val artworkRequest = rememberPlayerArtworkRequest(currentMetadata.coverUrl, originalCover)
-                            if (artworkRequest != null) AsyncImage(
-                                model = artworkRequest,
-                                contentDescription = "Cover",
-                                contentScale = ContentScale.Crop,
-                                onSuccess = {
-                                    if (currentMetadata.id == mediaMetadata?.id) {
-                                        readyCoverId = currentMetadata.id
-                                        readyFullCover = currentMetadata.id to currentMetadata.coverUrl
-                                    }
-                                },
-                                onError = {
-                                    if (currentMetadata.id == mediaMetadata?.id) readyCoverId = currentMetadata.id
-                                },
-                                modifier = Modifier.fillMaxSize().coverEdgeFeather(
-                                    coverEdgeArtwork.takeIf { currentMetadata.coverUrl == coverUrl },
-                                    edgeExtensionAlpha,
-                                ),
                             )
                         }
                     }
@@ -688,7 +652,6 @@ fun AppleMusicPlayer(
                         if (showComments) {
                             PlayerCommentsContent(
                                 songId = mediaMetadata?.id?.toString().orEmpty(),
-                                onControlsVisibilityChange = { stateContainer.controlsVisible = it },
                                 onViewAllComments = {
                                     mediaMetadata?.let { song ->
                                         state.collapseThen {
@@ -727,7 +690,7 @@ fun AppleMusicPlayer(
                             onToggleControls = { stateContainer.controlsVisible = it },
                         )
                         val spacerHeight by animateDpAsState(
-                            targetValue = if (stateContainer.controlsVisible) bottomControlsHeightDp else 16.dp,
+                            targetValue = if (detailsControlsVisible) bottomControlsHeightDp else 16.dp,
                             label = "spacer"
                         )
                         Spacer(modifier = Modifier.height(spacerHeight))
@@ -805,7 +768,7 @@ fun AppleMusicPlayer(
                         .background(Color.Transparent)
                         .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                 ) {
-                    val isBottomBarVisible = !detailsVisible || stateContainer.controlsVisible
+                    val isBottomBarVisible = !detailsVisible || detailsControlsVisible
 
                     AnimatedVisibility(
                         visible = isBottomBarVisible,

@@ -91,7 +91,6 @@ fun FindMusicScreen(
                     ) {
                         DiscoverSectionHeader(
                             "探索歌单",
-                            "全部歌单",
                             { openPlaylists("全部") },
                             Modifier.padding(rowInsets)
                         )

@@ -37,7 +37,7 @@ fun PlaylistCard(
     val textShadow = Shadow(color = Color.Black.copy(alpha = 0.7f), offset = Offset(2f, 2f), blurRadius = 4f)
     ArtworkCard(
         title = title, coverUrl = coverImg, modifier = modifier,
-        isLoading = isLoading, onClick = onClick,
+        isLoading = isLoading, onClick = onClick, maxTitleLine = 2,
         coverContent = {
             // 顶部播放量
             if (!isLoading && extInfo != null) {
@@ -74,7 +74,7 @@ fun PlaylistCard(
                     subTitle.forEach { t ->
                         Text(
                             text = t,
-                            fontSize = 14.sp,
+                            fontSize = 18.sp,
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold,
                             style = TextStyle(shadow = textShadow)

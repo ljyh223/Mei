@@ -1,11 +1,7 @@
 package com.ljyh.mei.ui.component.player.classic
 
 import androidx.annotation.OptIn
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
@@ -25,12 +21,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
@@ -40,8 +32,9 @@ import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
+import com.ljyh.mei.ui.component.player.cover.PlayerArtworkImage
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
-import com.ljyh.mei.utils.image.rememberOriginalArtworkRequest
+import com.ljyh.mei.utils.image.rememberPlayerArtworkRequest
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 
@@ -56,7 +49,6 @@ fun Cover(
     modifier: Modifier,
     onDoubleClick: (Offset, Int) -> Unit = { _, _ ->}
 ) {
-    val context = LocalContext.current
     // 获取当前的封面样式设置
     val coverStyle by rememberEnumPreference(CoverStyleKey, defaultValue = CoverStyle.Square)
     val originalCover by rememberPreference(
@@ -82,21 +74,13 @@ fun Cover(
         contentAlignment = Alignment.Center
     ) {
 
-        AnimatedContent(
-            targetState = mediaMetadata.coverUrl,
-            transitionSpec = {
-                fadeIn(
-                    PlayerMotionSpec.tween(PlayerMotionSpec.ClassicCoverSwapDurationMillis),
-                ) togetherWith fadeOut(
-                    PlayerMotionSpec.tween(PlayerMotionSpec.ClassicCoverSwapDurationMillis),
-                )
-            },
-            label = "CoverTransition",
+        Box(
             modifier = Modifier.graphicsLayer {
                 scaleX = coverScale
                 scaleY = coverScale
             }
-        ) { url ->
+        ) {
+            val url = mediaMetadata.coverUrl
 
             Surface(
                 modifier = Modifier
@@ -117,25 +101,24 @@ fun Cover(
                 color = MaterialTheme.colorScheme.surfaceContainerHighest
             ) {
                 val activeCover = dynamicCover?.takeIf { it.songId == mediaMetadata.id && url == mediaMetadata.coverUrl }
-                if (activeCover != null) {
-                    DynamicCoverView(
-                        imageUrl = url,
-                        cover = activeCover,
-                        originalArtwork = originalCover,
-                        playing = isPlaying,
-                        onPlaybackError = { onDynamicCoverError(mediaMetadata) },
-                        modifier = Modifier.fillMaxSize()
+                Box {
+                    PlayerArtworkImage(
+                        artworkKey = url,
+                        request = rememberPlayerArtworkRequest(url, originalCover)
+                            ?.newBuilder()?.crossfade(false)?.build(),
+                        modifier = Modifier.fillMaxSize(),
                     )
-                } else {
-                    AsyncImage(
-                        model = if (originalCover) rememberOriginalArtworkRequest(url) else ImageRequest.Builder(context)
-                            .data(url)
-                            .crossfade(false)
-                            .build(),
-                        contentScale = ContentScale.Crop,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    if (activeCover != null) {
+                        DynamicCoverView(
+                            imageUrl = url,
+                            cover = activeCover,
+                            originalArtwork = originalCover,
+                            playerArtwork = true,
+                            playing = isPlaying,
+                            onPlaybackError = { onDynamicCoverError(mediaMetadata) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }

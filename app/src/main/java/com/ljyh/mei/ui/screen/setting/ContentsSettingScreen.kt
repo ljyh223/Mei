@@ -75,10 +75,6 @@ fun ContentsSettingScreen(
         CookieKey,
         defaultValue = ""
     )
-    val (ttmlLyricsBaseUrl, onTtmlLyricsBaseUrlChange) = rememberPreference(
-        TtmlLyricsBaseUrlKey,
-        defaultValue = DefaultTtmlLyricsBaseUrl,
-    )
     var showQrLogin by rememberSaveable { mutableStateOf(false) }
     var showCookieCheckResult by remember { mutableStateOf(false) }
     val userAccount by viewModel.userAccount.collectAsState()
@@ -141,7 +137,7 @@ fun ContentsSettingScreen(
     }
 
     MeiPinnedPage(
-        title = "账号与内容",
+        title = "账号",
         onNavigateBack = navController::navigateUp,
     ) { paddingValues ->
         Column(
@@ -150,7 +146,7 @@ fun ContentsSettingScreen(
                 .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
         ) {
-            MeiLargeTitle("账号与内容")
+            MeiLargeTitle("账号")
 
             PreferenceSection("网易云账号") {
 
@@ -186,26 +182,7 @@ fun ContentsSettingScreen(
                     }
                 )
             }
-            PreferenceSection("其他音源与歌词") {
-                val (audioSourceMode, onAudioSourceModeChange) = rememberEnumPreference(AudioSourceModeKey, AudioSourceMode.Lx)
-                AudioSourceModePreference(audioSourceMode, onAudioSourceModeChange)
-                PreferenceEntry(
-                    title = { Text("LX 自定义音源") },
-                    description = "管理脚本与优先级",
-                    icon = { Icon(Icons.Rounded.Lyrics, contentDescription = null) },
-                    onClick = { Screen.LxSources.navigate(navController) },
-                )
-                val (qqLyricApi, onQqLyricApi) = rememberEnumPreference(QqLyricApiKey, QqLyricApi.Auto)
-                ListPreference(
-                    title = { Text("QQ 搜索与歌词接口") },
-                    description = "选择 QQ 搜索和歌词使用的接口，切换到下一次请求生效",
-                    icon = { Icon(Icons.Rounded.Lyrics, "QQ 搜索与歌词接口") },
-                    selectedValue = qqLyricApi,
-                    values = QqLyricApi.entries.toList(),
-                    valueText = { it.label },
-                    onValueSelected = onQqLyricApi,
-                )
-
+            PreferenceSection("QQ 音乐账号") {
                 val (qqCookie, onQqCookieChange) = rememberPreference(QqCookieKey, defaultValue = "")
                 EditTextPreference(
                     title = { Text("QQ 音乐 Cookie") },
@@ -217,36 +194,6 @@ fun ContentsSettingScreen(
                     isInputValid = { true },
                 )
 
-                val (qqTimeout, onQqTimeoutChange) = rememberPreference(
-                    QqTimeoutKey,
-                    defaultValue = QqTimeout.Sec8.name
-                )
-                val currentTimeout = try {
-                    QqTimeout.valueOf(qqTimeout)
-                } catch (_: Exception) {
-                    QqTimeout.Sec8
-                }
-
-                ListPreference(
-                    title = { Text("QQ音乐获取歌词超时") },
-                    description = null,
-                    icon = { Icon(Icons.Rounded.TipsAndUpdates, "QQ音乐获取歌词超时") },
-                    selectedValue = currentTimeout,
-                    values = QqTimeout.entries.toList(),
-                    valueText = { it.label },
-                    onValueSelected = { onQqTimeoutChange(it.name) }
-                )
-                EditTextPreference(
-                    title = { Text("TTML 歌词服务根地址") },
-                    icon = { Icon(Icons.Rounded.Lyrics, "TTML 歌词服务根地址") },
-                    value = ttmlLyricsBaseUrl,
-                    onValueChange = onTtmlLyricsBaseUrlChange,
-                    isInputValid = { input ->
-                        input.trim().trimEnd('/').toHttpUrlOrNull()?.let {
-                            it.query == null && it.fragment == null
-                        } == true
-                    },
-                )
             }
         }
     }

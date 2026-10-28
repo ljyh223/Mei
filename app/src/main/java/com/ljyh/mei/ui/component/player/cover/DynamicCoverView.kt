@@ -42,12 +42,14 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import coil3.compose.AsyncImage
+import coil3.request.crossfade
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.playback.source.CacheManager
 import com.ljyh.mei.utils.image.rememberOriginalArtworkRequest
+import com.ljyh.mei.utils.image.rememberPlayerArtworkRequest
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -104,6 +106,7 @@ fun DynamicCoverView(
     bottomFadeColor: Color? = null,
     fitVideoWidth: Boolean = false,
     originalArtwork: Boolean = false,
+    playerArtwork: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -214,7 +217,10 @@ fun DynamicCoverView(
         videoDimensions.first > 0 && videoDimensions.second > 0
     Box(modifier.background(bottomFadeColor ?: Color.Transparent)) {
         AsyncImage(
-            model = if (originalArtwork) {
+            model = if (playerArtwork) {
+                rememberPlayerArtworkRequest(cover?.previewUrl ?: imageUrl, originalArtwork)
+                    ?.newBuilder()?.allowHardware(!fitVideoWidth)?.crossfade(false)?.build()
+            } else if (originalArtwork) {
                 rememberOriginalArtworkRequest(cover?.previewUrl ?: imageUrl)
                     ?.newBuilder()?.allowHardware(!fitVideoWidth)?.build()
             } else previewModel,

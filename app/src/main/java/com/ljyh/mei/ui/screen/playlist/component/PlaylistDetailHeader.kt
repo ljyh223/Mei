@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.model.PlaylistHeaderStyle
 import com.ljyh.mei.ui.model.UiPlaylist
 import kotlinx.coroutines.delay
@@ -65,7 +66,14 @@ fun PlaylistDetailHeader(
     actionIcon: ImageVector,
     actionLabel: String,
     compact: Boolean = false,
+    loadingHeaderStyle: PlaylistHeaderStyle? = null,
 ) {
+    if (isLoading && (loadingHeaderStyle == null ||
+            loadingHeaderStyle == PlaylistHeaderStyle.Liked ||
+            loadingHeaderStyle == PlaylistHeaderStyle.Chart)) {
+        PlaylistHeaderSkeleton(style = loadingHeaderStyle, compact = compact)
+        return
+    }
     if (playlist.headerStyle == PlaylistHeaderStyle.Standard ||
         playlist.headerStyle == PlaylistHeaderStyle.Radar || isLoading
     ) {
@@ -168,6 +176,71 @@ fun PlaylistDetailHeader(
     preview?.let { FullScreenImageViewer(it) { preview = null } }
 }
 
+/**
+ * Known special types use their actual cover-stage proportions. Unknown playlists use a neutral
+ * placeholder until the detail response identifies their layout.
+ */
+@Composable
+private fun PlaylistHeaderSkeleton(style: PlaylistHeaderStyle?, compact: Boolean) {
+    val special = style == PlaylistHeaderStyle.Chart || style == PlaylistHeaderStyle.Liked
+    val liked = style == PlaylistHeaderStyle.Liked
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = if (special) 16.dp else 24.dp, bottom = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
+            contentAlignment = Alignment.Center,
+        ) {
+            BoxWithConstraints(
+                Modifier.then(if (special) Modifier.widthIn(max = if (compact) 280.dp else 420.dp) else Modifier)
+                    .fillMaxWidth(),
+            ) {
+                val width = maxWidth
+                val artworkSize = playlistArtworkSize(width)
+                val height = if (special) width * if (liked) 1.02f else 0.65f else artworkSize
+                Box(Modifier.fillMaxWidth().height(height)) {
+                    if (special) {
+                        if (liked) {
+                            Spacer(Modifier.offset(x = width * 0.45f, y = width * 0.04f)
+                                .size(width * 0.48f).graphicsLayer { rotationZ = 9f; alpha = 0.72f }
+                                .skeleton(true, RoundedCornerShape(10.dp)))
+                            Spacer(Modifier.offset(x = width * 0.07f, y = width * 0.16f)
+                                .size(width * 0.55f).graphicsLayer { rotationZ = -15f }
+                                .skeleton(true, RoundedCornerShape(10.dp)))
+                            Spacer(Modifier.offset(x = width * 0.40f, y = width * 0.43f)
+                                .size(width * 0.48f).graphicsLayer { rotationZ = 17f }
+                                .skeleton(true, RoundedCornerShape(10.dp)))
+                        } else {
+                            Spacer(Modifier.offset(x = width * 0.04f, y = width * 0.16f)
+                                .size(width * 0.40f).graphicsLayer { rotationZ = -7f }
+                                .skeleton(true, RoundedCornerShape(10.dp)))
+                            Spacer(Modifier.offset(x = width * 0.56f, y = width * 0.16f)
+                                .size(width * 0.40f).graphicsLayer { rotationZ = 7f }
+                                .skeleton(true, RoundedCornerShape(10.dp)))
+                            Spacer(Modifier.offset(x = width * 0.23f, y = width * 0.02f)
+                                .size(width * 0.54f).skeleton(true, RoundedCornerShape(10.dp)))
+                        }
+                    } else {
+                        Spacer(Modifier.size(artworkSize).align(Alignment.Center)
+                            .skeleton(true, MaterialTheme.shapes.large))
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.width(176.dp).height(28.dp).skeleton(true))
+        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.width(136.dp).height(20.dp).skeleton(true))
+        Spacer(Modifier.height(20.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.size(40.dp).skeleton(true, RoundedCornerShape(50)))
+            Spacer(Modifier.width(148.dp).height(48.dp).skeleton(true, RoundedCornerShape(50)))
+            Spacer(Modifier.size(40.dp).skeleton(true, RoundedCornerShape(50)))
+        }
+    }
+}
+
 @Composable
 private fun PlaylistCoverStage(
     covers: List<String>,
@@ -237,7 +310,7 @@ private fun PlaylistCoverStage(
     }
 }
 
-/** Play once for each cover, after its own Coil request completes; reserve layout throughout. */
+/** Animate each cover independently while its image loads into the reserved space. */
 @Composable
 private fun LikedCoverEntrance(
     url: String,
@@ -250,14 +323,12 @@ private fun LikedCoverEntrance(
     delayMillis: Long = 0,
 ) {
     var entered by rememberSaveable(url) { mutableStateOf(false) }
-    var imageReady by remember(url) { mutableStateOf(false) }
     val progress = remember(url) { Animatable(if (entered) 1f else 0f) }
     val density = LocalDensity.current
     val dropPx = with(density) { dropDistance.toPx() }
     val spreadPx = with(density) { spreadDistance.toPx() }
-    LaunchedEffect(url, imageReady) {
-        if (!imageReady || entered) return@LaunchedEffect
-        entered = true
+    LaunchedEffect(url) {
+        if (entered) return@LaunchedEffect
         val durationScale = coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
         if (durationScale == 0f) {
             progress.snapTo(1f)
@@ -268,12 +339,12 @@ private fun LikedCoverEntrance(
                 spring(dampingRatio = 0.68f, stiffness = 65f),
             )
         }
+        entered = true
     }
     HeroCover(
         url = url,
         label = "歌曲封面",
         onPreview = { if (progress.value > 0.5f) onPreview(it) },
-        onReady = { imageReady = true },
         modifier = modifier.graphicsLayer {
             val fraction = progress.value
             val remaining = 1f - fraction
@@ -293,14 +364,11 @@ private fun HeroCover(
     label: String,
     onPreview: (String) -> Unit,
     modifier: Modifier,
-    onReady: () -> Unit = {},
 ) {
     AsyncImage(
         model = url,
         contentDescription = label,
         contentScale = ContentScale.Crop,
-        onSuccess = { onReady() },
-        onError = { onReady() },
         modifier = modifier.clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClickLabel = "预览封面") { onPreview(url) },

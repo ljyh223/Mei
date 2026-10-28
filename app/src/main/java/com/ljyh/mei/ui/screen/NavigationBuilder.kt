@@ -37,6 +37,8 @@ import com.ljyh.mei.ui.screen.main.findmusic.DiscoverChartsScreen
 import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
 import com.ljyh.mei.ui.screen.main.findmusic.AudioMatchScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSettingScreen
+import com.ljyh.mei.ui.screen.setting.AudioOutputSettingsScreen
+import com.ljyh.mei.ui.screen.setting.SourceAndLyricsSettingsScreen
 import com.ljyh.mei.ui.screen.setting.DownloadManageScreen
 import com.ljyh.mei.ui.screen.setting.DownloadSettingScreen
 import com.ljyh.mei.ui.screen.setting.CacheSettingsScreen
@@ -118,6 +120,8 @@ fun NavGraphBuilder.navigationBuilder(
     pageDestination(Screen.ContentSettings.route) {
         ContentsSettingScreen(scrollBehavior)
     }
+    pageDestination(Screen.SourceAndLyricsSettings.route) { SourceAndLyricsSettingsScreen() }
+    pageDestination(Screen.AudioOutputSettings.route) { AudioOutputSettingsScreen() }
     pageDestination(Screen.UsbExclusiveSettings.route) {
         UsbExclusiveSettingsScreen(scrollBehavior)
     }

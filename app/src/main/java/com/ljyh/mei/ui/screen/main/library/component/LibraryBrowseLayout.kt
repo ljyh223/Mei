@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.MeiSectionTitle
+import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.MeiStatePanel
 import com.ljyh.mei.ui.component.card.ArtworkCard
 import com.ljyh.mei.ui.component.glass.*
@@ -215,6 +216,7 @@ fun LibraryBrowseLayout(
                                             playlist.cover,
                                             Modifier.width(if (tablet) 144.dp else 128.dp),
                                             subtitle = playlist.authorName,
+                                            reserveSubtitleSpace = true,
                                             onClick = { onOpenPlaylist(playlist.id) })
                                     }
                                 }
@@ -299,13 +301,7 @@ private fun LibrarySectionHeading(
         verticalAlignment = Alignment.CenterVertically
     ) {
         MeiSectionTitle(title, Modifier.weight(1f))
-        if (showAll) TextButton(
-            onClick = onShowAll,
-            contentPadding = PaddingValues(start = 12.dp)
-        ) {
-            Text("全部")
-            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, Modifier.size(18.dp))
-        }
+        if (showAll) MeiShowAllButton(onClick = onShowAll)
     }
 }
 
@@ -348,7 +344,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
     item(key = "mobile_created_heading") {
         LibrarySectionHeading(
             "我创建的歌单",
-            created.size > 4,
+            true,
             Modifier
                 .padding(rowPadding)
                 .padding(top = 8.dp)
@@ -375,7 +371,6 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
                     playlist.cover,
                     Modifier.weight(1f),
                     subtitle = "${playlist.count} 首",
-                    titleMaxLines = 1
                 ) {
                     onOpenPlaylist(playlist.id)
                 }
@@ -386,7 +381,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
     item(key = "mobile_collected_heading") {
         LibrarySectionHeading(
             "收藏歌单",
-            collected.size > 4,
+            true,
             Modifier
                 .padding(rowPadding)
                 .padding(top = 8.dp)
@@ -413,7 +408,6 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
                     playlist.cover,
                     Modifier.weight(1f),
                     subtitle = playlist.authorName,
-                    titleMaxLines = 1
                 ) {
                     onOpenPlaylist(playlist.id)
                 }
@@ -438,7 +432,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
             items(data.albums, key = { it.id }) { album ->
                 ArtworkCard(
                     album.title, album.cover, Modifier.width(144.dp),
-                    subtitle = album.artist.joinToString(" / ") { it.name }, titleMaxLines = 1
+                    subtitle = album.artist.joinToString(" / ") { it.name },
+                    reserveSubtitleSpace = true
                 ) { onOpenAlbum(album.id) }
             }
         }

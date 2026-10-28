@@ -15,16 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
@@ -34,13 +27,12 @@ import com.ljyh.mei.data.model.api.CommentSortType
 import com.ljyh.mei.ui.screen.comment.CommentViewModel
 import com.ljyh.mei.ui.screen.comment.component.CommentItem
 
-/** Compact, in-player comments panel for the tablet layout. */
+/** In-player comments panel shared by phone and tablet layouts. */
 @Composable
 fun PlayerCommentsContent(
     songId: String,
     onViewAllComments: () -> Unit,
     modifier: Modifier = Modifier,
-    onControlsVisibilityChange: (Boolean) -> Unit = {},
     viewModel: CommentViewModel = hiltViewModel(),
 ) {
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
@@ -49,25 +41,6 @@ fun PlayerCommentsContent(
     val floorLoadMoreError by viewModel.floorLoadMoreError.collectAsState()
     val floorWaitingForReveal by viewModel.floorWaitingForReveal.collectAsState()
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
-    val currentOnControlsVisibilityChange by rememberUpdatedState(onControlsVisibilityChange)
-    val scrollThreshold = with(LocalDensity.current) { 10.dp.toPx() }
-    val scrollConnection = remember(scrollThreshold) {
-        object : NestedScrollConnection {
-            private var accumulatedScroll = 0f
-
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (source != NestedScrollSource.UserInput) return Offset.Zero
-                val delta = available.y
-                if (accumulatedScroll * delta < 0f) accumulatedScroll = 0f
-                accumulatedScroll += delta
-                if (kotlin.math.abs(accumulatedScroll) >= scrollThreshold) {
-                    currentOnControlsVisibilityChange(accumulatedScroll > 0f)
-                    accumulatedScroll = 0f
-                }
-                return Offset.Zero
-            }
-        }
-    }
 
     LaunchedEffect(songId) {
         if (songId.isNotBlank()) {
@@ -76,7 +49,7 @@ fun PlayerCommentsContent(
         }
     }
 
-    LazyColumn(modifier = modifier.nestedScroll(scrollConnection)) {
+    LazyColumn(modifier = modifier) {
         item {
             Box(
                 modifier = Modifier.fillMaxWidth(),

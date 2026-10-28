@@ -85,6 +85,7 @@ import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.local.LocalNavController
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -592,7 +593,7 @@ fun SectionTitle(title: String, onShowAll: (() -> Unit)? = null) {
     ) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f))
-        if (onShowAll != null) TextButton(onClick = onShowAll) { Text("查看全部") }
+        if (onShowAll != null) MeiShowAllButton(onClick = onShowAll)
     }
 }
 

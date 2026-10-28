@@ -209,12 +209,14 @@ fun AppearanceSettingsScreen(
                     checked = glassEnabled,
                     onCheckedChange = onGlassEnabledChange,
                 )
-                PreferenceEntry(
-                    title = { Text("玻璃材质") },
-                    description = "透明度、折射与清晰度",
-                    icon = { Icon(Icons.Rounded.Visibility, contentDescription = null) },
-                    onClick = { navController.navigate(Screen.GlassSettings.route) },
-                )
+                if(glassEnabled){
+                    PreferenceEntry(
+                        title = { Text("玻璃材质") },
+                        description = "透明度、折射与清晰度",
+                        icon = { Icon(Icons.Rounded.Visibility, contentDescription = null) },
+                        onClick = { navController.navigate(Screen.GlassSettings.route) },
+                    )
+                }
                 SwitchPreference(
                     title = { Text("动态主题") },
                     icon = { Icon(Icons.Rounded.Palette, null) },
