@@ -61,8 +61,14 @@ object StorageCacheManager {
         cache.keys.toList().filter { isMusicKey(it) == music }.forEach(cache::removeResource)
     }
 
-    internal fun isMusicKey(key: String): Boolean =
-        MusicQuality.entries.any { key.endsWith("|${it.text}") }
+    internal fun isMusicKey(key: String): Boolean {
+        // Playback uses id|quality|full-v1, optionally followed by an LX/unblock identity.
+        // Keep recognizing id|quality entries written before full-track cache versioning.
+        val parts = key.split('|', limit = 4)
+        if (parts.size < 2 || parts[0].isBlank()) return false
+        if (parts.size > 2 && parts[2] != "full-v1") return false
+        return MusicQuality.entries.any { parts[1] == it.text }
+    }
 
     private fun otherFiles(context: Context): List<File> = context.cacheDir.listFiles()
         ?.filterNot {

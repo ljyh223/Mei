@@ -95,8 +95,8 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
             text = {
                 Text(
                     when (category) {
-                        CacheCategory.MUSIC -> "已缓存的在线播放音乐会被移除，正在播放的歌曲可能短暂重新缓冲。已下载的歌曲不会删除。"
-                        CacheCategory.OTHER -> "动态封面和临时缓存会被移除，封面可能重新加载。已下载的歌曲和正在下载的文件不会删除。"
+                        CacheCategory.MUSIC -> "已缓存的在线播放音乐会被移除，正在播放的歌曲可能短暂重新缓冲。动态封面和已下载的歌曲不会删除。"
+                        CacheCategory.OTHER -> "动态封面和临时缓存会被移除，封面可能重新加载。音乐缓存、已下载的歌曲和正在下载的文件不会删除。"
                         CacheCategory.IMAGE -> "图片会在需要时重新加载。已下载的歌曲和个人数据不会删除。"
                     }
                 )
@@ -167,7 +167,9 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     usage?.otherBytes,
                     busy,
                     loadFailed,
-                    { pendingClear = CacheCategory.OTHER }) {
+                    { pendingClear = CacheCategory.OTHER },
+                    details = "含动态封面与临时文件",
+                ) {
                     Icon(Icons.Rounded.Cached, contentDescription = null)
                 }
             }
@@ -182,7 +184,7 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     icon = { Icon(Icons.Rounded.Image, contentDescription = null) },
                 )
                 ListPreference(
-                    title = { Text("音乐缓存") },
+                    title = { Text("音乐与动态封面") },
                     description = "${musicLimit.toCacheLimitLabel()} · 下次启动生效",
                     selectedValue = musicLimit,
                     values = listOf(256, 512, 1024, 2048, 5120, 10240, 20480),
@@ -191,7 +193,7 @@ fun CacheSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                     icon = { Icon(Icons.Rounded.LibraryMusic, contentDescription = null) },
                 )
                 Text(
-                    "音乐与动态封面共用缓存上限。其他临时缓存不设单独上限；正在下载的文件不计入，也不会被清理。",
+                    "音乐与动态封面共用此上限，动态封面占用计入“其他缓存”。其他临时文件不受此上限限制；正在下载的文件不计入，也不会被清理。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -211,13 +213,17 @@ private fun CacheRow(
     busy: Boolean,
     loadFailed: Boolean,
     onClear: () -> Unit,
+    details: String? = null,
     icon: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     PreferenceEntry(
         title = { Text("${title}缓存") },
-        description = bytes?.let { Formatter.formatShortFileSize(context, it) }
-            ?: if (loadFailed) "读取失败" else "正在计算…",
+        description = listOfNotNull(
+            bytes?.let { Formatter.formatShortFileSize(context, it) }
+                ?: if (loadFailed) "读取失败" else "正在计算…",
+            details,
+        ).joinToString(" · "),
         icon = icon,
         trailingContent = {
             TextButton(onClick = onClear, enabled = !busy && bytes != null && bytes > 0L) {
