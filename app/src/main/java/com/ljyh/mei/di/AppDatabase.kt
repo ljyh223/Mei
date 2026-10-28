@@ -141,7 +141,32 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_14_15 = object : Migration(14, 15) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE cached_lyric DROP COLUMN aiProcessed")
+                // Rebuild for older SQLite versions that do not support DROP COLUMN.
+                // Explicit columns also support upgrade paths where aiProcessed never existed.
+                db.execSQL("""
+                    CREATE TABLE `cached_lyric_new` (
+                        `songId` TEXT NOT NULL,
+                        `content` TEXT NOT NULL,
+                        `translation` TEXT,
+                        `isVerbatim` INTEGER NOT NULL,
+                        `isPureMusic` INTEGER NOT NULL,
+                        `sourceName` TEXT NOT NULL,
+                        `parserType` TEXT NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`songId`)
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO `cached_lyric_new` (
+                        `songId`, `content`, `translation`, `isVerbatim`,
+                        `isPureMusic`, `sourceName`, `parserType`, `updatedAt`
+                    )
+                    SELECT `songId`, `content`, `translation`, `isVerbatim`,
+                        `isPureMusic`, `sourceName`, `parserType`, `updatedAt`
+                    FROM `cached_lyric`
+                """.trimIndent())
+                db.execSQL("DROP TABLE `cached_lyric`")
+                db.execSQL("ALTER TABLE `cached_lyric_new` RENAME TO `cached_lyric`")
             }
         }
 
