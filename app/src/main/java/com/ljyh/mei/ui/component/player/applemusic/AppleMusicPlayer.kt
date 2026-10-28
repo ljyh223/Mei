@@ -185,7 +185,9 @@ fun AppleMusicPlayer(
     val portraitReady = portraitKey != null && readyPortraitKey == portraitKey
     val staticArtworkReady = mediaMetadata != null && readyCoverId == mediaMetadata?.id
     val miniOverlayReady = mediaMetadata?.let { readyFullCover == (it.id to it.coverUrl) } == true
-    val fluidReady = coverUrl != null && readyFluidUrl == coverUrl
+    // A rendered mesh remains usable while the next artwork loads. The renderer owns the
+    // album crossfade; hiding the whole surface here exposes the pale fallback between songs.
+    val fluidReady = readyFluidUrl != null
 
     // --- Apple Music 特定的 LaunchedEffect ---
     LaunchedEffect(state.isCollapsed) {
@@ -604,7 +606,7 @@ fun AppleMusicPlayer(
                         imageUrl = coverUrl,
                         isPlaying = isPlaying,
                         renderAlpha = meshBackgroundAlpha * fluidReveal * (1f - edgeExtensionAlpha),
-                        onArtworkReady = { readyFluidUrl = it },
+                        onRenderedArtworkChange = { readyFluidUrl = it },
                     )
                 }
                 coverEdgeArtwork?.let { artwork ->

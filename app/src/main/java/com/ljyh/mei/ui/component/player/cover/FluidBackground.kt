@@ -23,15 +23,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 
+private data class LoadedFluidArtwork(val url: String, val bitmap: Bitmap)
+
 @Composable
 fun FluidBackground(
     imageUrl: String?,
     isPlaying: Boolean = true,
     renderAlpha: Float = 1f,
-    onArtworkReady: ((String) -> Unit)? = null,
+    // Reports the artwork actually drawn by this View; null means the View was released.
+    onRenderedArtworkChange: ((String?) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val artworkListener by rememberUpdatedState(onRenderedArtworkChange)
+    var hasRenderedFrame by remember { mutableStateOf(false) }
     val (flowSpeed) = rememberPreference(MeshFlowSpeedKey, defaultValue = 0.25f)
     val (renderScale) = rememberPreference(MeshRenderScaleKey, defaultValue = 0.75f)
     val (staticMode) = rememberPreference(MeshStaticModeKey, defaultValue = false)
@@ -40,7 +45,7 @@ fun FluidBackground(
 
     // 1. 将图片加载逻辑独立出来，只负责把 Bitmap 提取出来
     // 使用 produceState 是处理这种“异步数据转同步状态”的最佳实践
-    val albumBitmap by produceState<Bitmap?>(null, imageUrl) {
+    val albumArtwork by produceState<LoadedFluidArtwork?>(null, imageUrl) {
         if (imageUrl.isNullOrEmpty()) {
             value = null
             return@produceState
@@ -53,7 +58,9 @@ fun FluidBackground(
                 .build()
             val result = context.imageLoader.execute(request)
             if (result is SuccessResult) {
-                value = result.image.toBitmap()
+                // produceState retains the last value while the next URL loads. Keep that
+                // bitmap paired with its own URL so it cannot be submitted as the next album.
+                value = LoadedFluidArtwork(imageUrl, result.image.toBitmap())
             }
         }
     }
@@ -66,7 +73,10 @@ fun FluidBackground(
     AndroidView(
         factory = { ctx ->
             MeshBackgroundView(ctx).apply {
-                onAlbumRendered = onArtworkReady
+                onAlbumRendered = {
+                    hasRenderedFrame = true
+                    artworkListener?.invoke(it)
+                }
                 // 初始化时的默认值
                 setFlowSpeed(flowSpeed)
                 setRenderScale(renderScale)
@@ -76,12 +86,18 @@ fun FluidBackground(
                 setPreserveEGLContextOnPause(true)
             }
         },
+        onRelease = { view ->
+            // Ignore queued GL callbacks from a released View, and wait for the first real
+            // frame when a new View is created after collapsing/reopening the player.
+            view.onAlbumRendered = null
+            hasRenderedFrame = false
+            artworkListener?.invoke(null)
+        },
         update = { view ->
-            view.onAlbumRendered = onArtworkReady
-            view.alpha = renderAlpha.coerceIn(0f, 1f)
-            albumBitmap?.let { bmp ->
-                imageUrl?.let { view.setAlbum(bmp, it) }
-            }
+            // An interrupted reveal animation may still have nonzero alpha after reopening.
+            // Never expose a new Surface's empty buffer before its first rendered frame.
+            view.alpha = if (hasRenderedFrame) renderAlpha.coerceIn(0f, 1f) else 0f
+            albumArtwork?.let { artwork -> view.setAlbum(artwork.bitmap, artwork.url) }
 
             view.setFlowSpeed(flowSpeed)
             view.setRenderScale(renderScale)
