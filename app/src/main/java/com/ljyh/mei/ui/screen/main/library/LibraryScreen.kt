@@ -27,6 +27,7 @@ fun LibraryScreen(
     val uiState by viewModel.libraryUiState.collectAsStateWithLifecycle()
     val signedIn = bindLibraryAccount(viewModel)
     val likedArtwork by viewModel.likedArtwork.collectAsStateWithLifecycle()
+    val likedSongTitle by viewModel.likedSongTitle.collectAsStateWithLifecycle()
     val likedPlaylist = (uiState as? LibraryUiState.Content)?.data?.likedPlaylist()
     val likedId = likedPlaylist?.id
     LaunchedEffect(signedIn, likedId, likedPlaylist?.count) { viewModel.loadLikedArtwork(likedId.takeIf { signedIn }) }
@@ -38,6 +39,7 @@ fun LibraryScreen(
     LibraryBrowseLayout(
         state = uiState,
         likedArtwork = likedArtwork,
+        likedSongTitle = likedSongTitle,
         signedIn = signedIn,
         scrollBehavior = scrollBehavior,
         preparingPlayback = preparingPlayback,
@@ -58,6 +60,7 @@ fun LibraryScreen(
             }
         },
         onOpenPlaylist = { id -> Screen.PlayList.navigate(nav) { addPath(id) } },
+        onOpenAlbum = { id -> Screen.Album.navigate(nav) { addPath(id.toString()) } },
         onOpenCollection = { collection -> Screen.LibraryCollection.navigate(nav) { addPath(collection.name) } },
         onLogin = { Screen.ContentSettings.navigate(nav) },
         onRetry = { viewModel.getUserAccount(force = true) },

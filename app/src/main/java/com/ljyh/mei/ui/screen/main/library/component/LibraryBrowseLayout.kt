@@ -37,12 +37,14 @@ import dev.chrisbanes.haze.rememberHazeState
 fun LibraryBrowseLayout(
     state: LibraryUiState,
     likedArtwork: String?,
+    likedSongTitle: String?,
     signedIn: Boolean,
     scrollBehavior: TopAppBarScrollBehavior,
     preparingPlayback: Boolean,
     canPlay: Boolean,
     onPlayLiked: (String) -> Unit,
     onOpenPlaylist: (String) -> Unit,
+    onOpenAlbum: (Long) -> Unit,
     onOpenCollection: (LibraryCollection) -> Unit,
     onLogin: () -> Unit,
     onRetry: () -> Unit,
@@ -96,6 +98,10 @@ fun LibraryBrowseLayout(
                         MeiStatePanel("暂时无法同步音乐库", Icons.Rounded.CloudOff, actionLabel = "重试", onAction = onRetry)
                     }
                     else -> {
+                        if (!tablet && data != null) {
+                            mobileLibraryContent(data, likedArtwork, likedSongTitle, preparingPlayback, canPlay, rowPadding,
+                                onOpenPlaylist, onPlayLiked, onOpenAlbum, onOpenCollection)
+                        } else {
                         if (composition != null) item(key = "library_dashboard") {
                             LibraryDashboard(composition, likedArtwork, preparingPlayback, canPlay,
                                 loadingRecent = data?.playlistsLoading == true, recentSyncFailed = data?.playlistsError != null,
@@ -147,6 +153,7 @@ fun LibraryBrowseLayout(
                                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
+                        }
                         if (state is LibraryUiState.Content && state.warning != null) item(key = "warning") {
                             Row(Modifier.fillMaxWidth().padding(rowPadding), verticalAlignment = Alignment.CenterVertically) {
                                 Text("部分收藏同步失败", style = MaterialTheme.typography.bodySmall,
@@ -177,4 +184,80 @@ private fun LibrarySectionHeading(title: String, showAll: Boolean, modifier: Mod
 private fun LibraryEmptyLabel(text: String, modifier: Modifier = Modifier) {
     Text(text, modifier.padding(vertical = 8.dp), style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+
+private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
+    data: LibraryContentUiState,
+    likedArtwork: String?,
+    likedSongTitle: String?,
+    preparingPlayback: Boolean,
+    canPlay: Boolean,
+    rowPadding: PaddingValues,
+    onOpenPlaylist: (String) -> Unit,
+    onPlayLiked: (String) -> Unit,
+    onOpenAlbum: (Long) -> Unit,
+    onOpenCollection: (LibraryCollection) -> Unit,
+) {
+    val liked = data.likedPlaylist()
+    val created = data.createdPlaylistOverview()
+    val collected = data.playlistsIn(LibraryCollection.Collected)
+    item(key = "mobile_liked") {
+        LibraryLikedPlaylist(liked, likedArtwork, preparingPlayback, canPlay,
+            modifier = Modifier.fillMaxWidth().padding(rowPadding).height(240.dp),
+            onOpen = { liked?.let { onOpenPlaylist(it.id) } },
+            onPlay = { liked?.let { onPlayLiked(it.id) } },
+            songTitle = likedSongTitle, playAtBottom = true)
+    }
+    item(key = "mobile_created_heading") {
+        LibrarySectionHeading("我创建的歌单", created.size > 4, Modifier.padding(rowPadding).padding(top = 8.dp)) {
+            onOpenCollection(LibraryCollection.Created)
+        }
+    }
+    if (created.isEmpty()) item(key = "mobile_created_empty") {
+        LibraryEmptyLabel(if (data.playlistsLoading) "同步中" else if (data.playlistsError != null) "暂时无法同步歌单" else "还没有创建歌单", Modifier.padding(rowPadding))
+    }
+    items(created.take(4).chunked(2), key = { "mobile_created_${it.first().id}" }) { row ->
+        Row(Modifier.fillMaxWidth().padding(rowPadding), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            row.forEach { playlist ->
+                ArtworkCard(playlist.title, playlist.cover, Modifier.weight(1f), subtitle = "${playlist.count} 首") {
+                    onOpenPlaylist(playlist.id)
+                }
+            }
+            if (row.size == 1) Spacer(Modifier.weight(1f))
+        }
+    }
+    item(key = "mobile_collected_heading") {
+        LibrarySectionHeading("收藏歌单", collected.size > 4, Modifier.padding(rowPadding).padding(top = 8.dp)) {
+            onOpenCollection(LibraryCollection.Collected)
+        }
+    }
+    if (collected.isEmpty()) item(key = "mobile_collected_empty") {
+        LibraryEmptyLabel(if (data.playlistsLoading) "同步中" else if (data.playlistsError != null) "暂时无法同步歌单" else "还没有收藏歌单", Modifier.padding(rowPadding))
+    }
+    items(collected.take(4).chunked(2), key = { "mobile_collected_${it.first().id}" }) { row ->
+        Row(Modifier.fillMaxWidth().padding(rowPadding), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            row.forEach { playlist ->
+                ArtworkCard(playlist.title, playlist.cover, Modifier.weight(1f), subtitle = playlist.authorName) {
+                    onOpenPlaylist(playlist.id)
+                }
+            }
+            if (row.size == 1) Spacer(Modifier.weight(1f))
+        }
+    }
+    item(key = "mobile_albums_heading") {
+        LibrarySectionHeading("收藏专辑", true, Modifier.padding(rowPadding).padding(top = 8.dp)) {
+            onOpenCollection(LibraryCollection.Albums)
+        }
+    }
+    if (data.albums.isEmpty()) item(key = "mobile_albums_empty") {
+        LibraryEmptyLabel(if (data.albumsLoading) "同步中" else if (data.albumsError != null) "暂时无法同步专辑" else "还没有收藏专辑", Modifier.padding(rowPadding))
+    } else item(key = "mobile_albums_shelf") {
+        LazyRow(contentPadding = rowPadding, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(data.albums, key = { it.id }) { album ->
+                ArtworkCard(album.title, album.cover, Modifier.width(144.dp),
+                    subtitle = album.artist.joinToString(" / ") { it.name }) { onOpenAlbum(album.id) }
+            }
+        }
+    }
 }

@@ -110,6 +110,8 @@ class LibraryViewModel @Inject constructor(
     private val recentCollectedOrder = MutableStateFlow<List<String>>(emptyList())
     private val _likedArtwork = MutableStateFlow<String?>(null)
     val likedArtwork: StateFlow<String?> = _likedArtwork
+    private val _likedSongTitle = MutableStateFlow<String?>(null)
+    val likedSongTitle: StateFlow<String?> = _likedSongTitle
     private var likedArtworkId: String? = null
     private var likedArtworkJob: Job? = null
     private val selectedSection = MutableStateFlow(LibrarySection.Created)
@@ -276,21 +278,29 @@ class LibraryViewModel @Inject constructor(
     fun loadLikedArtwork(id: String?) {
         if (likedArtworkId == id && likedArtworkJob?.isActive == true) return
         likedArtworkJob?.cancel()
-        if (likedArtworkId != id) _likedArtwork.value = null
+        if (likedArtworkId != id) { _likedArtwork.value = null; _likedSongTitle.value = null }
         likedArtworkId = id
         if (id == null) return
         likedArtworkJob = viewModelScope.launch {
             val result = playlistRepository.getPlaylistDetail(id)
             if (result is Resource.Success) {
-                val firstId = firstLikedTrackId(result.data) ?: return@launch
+                val firstId = firstLikedTrackId(result.data)
+                if (firstId == null) {
+                    if (currentCoroutineContext().isActive && likedArtworkId == id) {
+                        _likedArtwork.value = null
+                        _likedSongTitle.value = null
+                    }
+                    return@launch
+                }
                 val known = result.data.tracks.firstOrNull { it.id == firstId }
-                val cover = if (known != null) known.coverUrl else try {
-                    playlistRepository.getSongDetails(listOf(firstId.toString())).firstOrNull()?.coverUrl
+                val song = known ?: try {
+                    playlistRepository.getSongDetails(listOf(firstId.toString())).firstOrNull()
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (_: Exception) { null }
                 if (currentCoroutineContext().isActive && likedArtworkId == id) {
-                    _likedArtwork.value = cover?.takeIf(String::isNotBlank)
+                    _likedArtwork.value = song?.coverUrl?.takeIf(String::isNotBlank)
+                    _likedSongTitle.value = song?.title?.takeIf(String::isNotBlank)
                 }
             }
         }

@@ -34,6 +34,8 @@ internal fun LibraryLikedPlaylist(
     modifier: Modifier = Modifier,
     onOpen: () -> Unit,
     onPlay: () -> Unit,
+    songTitle: String? = null,
+    playAtBottom: Boolean = false,
 ) {
     Box(modifier.clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
         Box(
@@ -62,7 +64,7 @@ internal fun LibraryLikedPlaylist(
                 )
             )
             Column(
-                Modifier.align(Alignment.BottomStart).padding(16.dp),
+                Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 16.dp, top = 16.dp, end = if (playAtBottom) 76.dp else 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
@@ -73,6 +75,10 @@ internal fun LibraryLikedPlaylist(
                     "${playlist.count} 首", style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.9f)
                 )
+                if (!songTitle.isNullOrBlank()) Text(
+                    songTitle, style = MaterialTheme.typography.bodyMedium, color = Color.White,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
             }
         }
         FilledIconButton(
@@ -82,7 +88,7 @@ internal fun LibraryLikedPlaylist(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ),
-            modifier = Modifier.align(Alignment.TopEnd).padding(12.dp).size(48.dp)
+            modifier = Modifier.align(if (playAtBottom) Alignment.BottomEnd else Alignment.TopEnd).padding(12.dp).size(48.dp)
                 .semantics {
                     contentDescription = if (preparingPlayback) "正在准备播放我喜欢的音乐" else "播放我喜欢的音乐"
                 },
