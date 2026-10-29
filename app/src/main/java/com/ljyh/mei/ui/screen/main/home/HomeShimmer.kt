@@ -30,7 +30,7 @@ fun HomeShimmer(viewModel: HomeViewModel) {
     SkeletonShimmerHost(enabled = true, modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(if (device.isTablet) 40.dp else 28.dp),
+            verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             RecommendRowShimmer(
                 cardWidth = recommendCardWidth,
@@ -54,7 +54,7 @@ private fun RecommendRowShimmer(
 ) {
     Column {
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(homeCardSpacing()),
             contentPadding = PaddingValues(horizontal = meiPageGutter())
         ) {
             items(count) {
@@ -80,7 +80,7 @@ private fun PlaylistBlockShimmer(
     Column {
         Title(text = "", isLoading = true)
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(homeCardSpacing()),
             contentPadding = PaddingValues(horizontal = meiPageGutter())
         ) {
             items(count) {
