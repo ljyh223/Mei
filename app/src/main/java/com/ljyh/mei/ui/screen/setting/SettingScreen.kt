@@ -55,6 +55,7 @@ import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.tablet.TabletPageContent
 import com.ljyh.mei.ui.theme.MeiCategory
 import com.ljyh.mei.ui.theme.MeiCategoryIcon
 
@@ -119,7 +120,7 @@ private fun TabletSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 startDestination = Screen.PlaySettings.route,
                 modifier = Modifier.weight(0.58f).fillMaxSize(),
             ) {
-                navigationBuilder(detailNavController, scrollBehavior)
+                navigationBuilder(detailNavController, scrollBehavior, TabletPageContent)
             }
         }
     }
