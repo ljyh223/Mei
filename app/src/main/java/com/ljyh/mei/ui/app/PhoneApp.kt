@@ -50,6 +50,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.motion.PageNavigationMotion
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.search.SearchType
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
 import dev.chrisbanes.haze.hazeSource
@@ -203,7 +204,7 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                             onSearchQueryChange = onQueryChange,
                             onSearchActivate = { onActiveChange(true) },
                             onSearchClose = { onActiveChange(false) },
-                            onSearchSubmit = { submitBottomSearch(it, 1) },
+                            onSearchSubmit = { submitBottomSearch(it, SearchType.All.type) },
                             searchFocusRequester = bottomSearchFocusRequester,
                         )
                     }

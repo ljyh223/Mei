@@ -3,7 +3,7 @@ package com.ljyh.mei.data.model.response
 import com.ljyh.mei.data.model.api.ArtistAlbum
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.api.ArtistSong
-import com.ljyh.mei.data.model.api.SearchResult
+import com.ljyh.mei.data.model.api.SearchResponseParser
 import com.ljyh.mei.data.model.domain.metadata
 import com.ljyh.mei.data.model.domain.toDomain
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
@@ -45,14 +45,15 @@ class NeteaseResponseDtoTest {
 
     @Test
     fun decodesSearchSongAndIgnoresUnconsumedResponseFields() {
-        val response = json.decodeFromString<SearchResult>(
+        val response = json.parseToJsonElement(
             """{"code":200,"result":{"songs":[{"id":11,"name":"Song","duration":210000,"artists":[{"id":4,"name":"Artist","picId":400,"alias":["Alias"],"unused":1}],"album":{"id":8,"name":"Album","picId":800,"unused":true},"fee":0}],"artists":[],"albums":[],"playlists":[]},"trp":{"rules":[]}}"""
         )
 
-        val song = response.result.songs!!.single()
+        val song = SearchResponseParser.page(response.jsonObject, type = 1, offset = 0, limit = 30).songs.single()
         assertEquals(11L, song.id)
         assertEquals(210000L, song.duration)
-        assertEquals(800L, song.album.picId)
+        assertEquals(8L, song.album.id)
+        org.junit.Assert.assertTrue(song.coverUrl.endsWith("/800.jpg"))
     }
 
     @Test

@@ -41,6 +41,13 @@ class MainShellStateTest {
     }
 
     @Test
+    fun searchResultsOwnTheirSearchField() {
+        val state = resolveMainShellState("search_result/query/1018", false)
+        assertFalse(state.showSearchBar)
+        assertEquals(MainNavigationPresentation.Hidden, state.navigation)
+    }
+
+    @Test
     fun playerBoundsAlwaysIncludeSystemGestureInset() {
         val systemInset = 24.dp
         val scaffoldInset = 104.dp

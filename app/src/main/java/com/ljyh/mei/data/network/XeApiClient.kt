@@ -83,6 +83,9 @@ class XeApiClient(
     suspend fun getLyricV1(id: String): Lyric =
         json.decodeFromString(requestRaw(buildLyricV1Request(id)))
 
+    suspend fun searchOverview(keyword: String): JsonObject =
+        json.parseToJsonElement(requestRaw(buildSearchOverviewRequest(keyword))).jsonObject
+
     suspend fun like(body: Like): BaseResponse {
         return json.decodeFromString(requestRaw(buildLikeRequest(body)))
     }
@@ -103,6 +106,7 @@ class XeApiClient(
         }
         val response = http.client.post(request.url.toString()) {
             header("X-Netease-Crypto", "xeapi")
+            header("cmpageid", request.pageId)
             if (antiCheatToken != null) header("X-antiCheatToken", antiCheatToken)
             setBody(
                 TextContent(

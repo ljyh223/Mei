@@ -130,4 +130,18 @@ class MeiAppNavigationTest {
         state.onDestinationChanged(Screen.Library.route)
         assertEquals("", state.query.text)
     }
+
+    @Test
+    fun sharedSearchSubmissionDefaultsToOverviewAndPreservesSpecialCharacters() {
+        for (pages in listOf(SharedMeiPageContent, TabletPageContent)) {
+            val nav = controller(pages)
+            val state = state(nav)
+            state.searchActive = true
+            state.submitSearch(" AC/DC & A+B ? ")
+            val args = nav.currentBackStackEntry!!.arguments!!
+            assertEquals("AC/DC & A+B ?", args.getString("query"))
+            assertEquals(1018, args.getInt("type"))
+            assertFalse(state.searchActive)
+        }
+    }
 }

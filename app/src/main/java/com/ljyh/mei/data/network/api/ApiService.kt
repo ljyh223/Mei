@@ -39,13 +39,13 @@ import com.ljyh.mei.data.model.api.Intelligence
 import com.ljyh.mei.data.model.api.ManipulateTrack
 import com.ljyh.mei.data.model.api.UpdatePlaylistTrackOrder
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
-import com.ljyh.mei.data.model.api.SearchResult
 import com.ljyh.mei.data.model.api.SearchSuggest
 import com.ljyh.mei.data.model.api.SubscribePlaylist
 import com.ljyh.mei.data.model.weapi.Comment
 import com.ljyh.mei.data.model.weapi.Like
 import com.ljyh.mei.data.network.NeteaseHttp
 import com.ljyh.mei.data.network.XeApiClient
+import kotlinx.serialization.json.JsonObject
 
 class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) {
     private val base = "https://interface.music.163.com"
@@ -69,8 +69,9 @@ class ApiService(private val http: NeteaseHttp, private val xeApi: XeApiClient) 
         http.post(base, "/api/album/sublist", body)
     suspend fun getAlbumDetail(body: Map<String, String> = emptyMap(), id: String): AlbumDetail =
         http.post(base, "/api/v1/album/$id", body)
-    suspend fun search(body: GetSearch): SearchResult =
+    suspend fun search(body: GetSearch): JsonObject =
         http.post(base, "/api/search/get/", body)
+    suspend fun searchOverview(keyword: String): JsonObject = xeApi.searchOverview(keyword)
     suspend fun searchSuggest(body: GetSearchSuggest): SearchSuggest =
         http.post(base, "/api/search/suggest/web/", body)
     suspend fun getSongUrlV1(body: GetSongUrlV1): SongUrl =

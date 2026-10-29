@@ -46,6 +46,7 @@ import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.motion.PageNavigationMotion
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.search.SearchType
 import com.ljyh.mei.ui.tablet.component.TabletBottomBar
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -134,7 +135,7 @@ internal fun TabletApp(appState: MeiAppState, pageMotion: PageNavigationMotion) 
                                     if (!appState.searchActive) focus.clearFocus()
                                 },
                                 onQueryChange = { appState.query = it },
-                                onSubmit = { submit(it, 1) },
+                                onSubmit = { submit(it, SearchType.All.type) },
                             )
                         }
                     }

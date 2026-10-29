@@ -28,9 +28,30 @@ internal data class XeApiRequest(
     val url: Url,
     val originalBody: XeApiOriginalBody = XeApiOriginalBody.Form(),
     val antiCheatTokenVersion: AntiCheatTokenVersion? = null,
+    val pageId: String = "page_songlist",
 )
 
 internal fun xeApiUrl(path: String): Url = Url("$XEAPI_BASE/xeapi/${path.trimStart('/')}")
+
+/** Captured v3 search uses form fields; extInfo is the only JSON-valued field we need. */
+internal fun buildSearchOverviewRequest(keyword: String): XeApiRequest = XeApiRequest(
+    url = xeApiUrl("search/complex/page/v3"),
+    originalBody = XeApiOriginalBody.Form(listOf(
+        "keyword" to keyword,
+        "channel" to "typing",
+        "needCorrect" to "true",
+        "bizQueryInfo" to "",
+        "scene" to "normal",
+        "newStyle" to "true",
+        "extInfo" to buildJsonObject {
+            put("publishVersion", 1)
+            put("hotResultSupportNote", false)
+            put("searchUI", "t3")
+        }.toString(),
+    ).formUrlEncode()),
+    antiCheatTokenVersion = AntiCheatTokenVersion.V2,
+    pageId = "page_search_all",
+)
 
 internal fun buildPublicKeyRegistrationParams(
     currentVersion: String,

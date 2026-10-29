@@ -124,7 +124,7 @@ fun SearchScreen(
                         query = keyword,
                         type = SearchType.History,
                         onClick = {
-                            onSearch(keyword, SearchType.Song.type)
+                            onSearch(keyword, SearchType.All.type)
                             onDismiss()
                         },
                         onDelete = {
@@ -157,7 +157,7 @@ fun SearchScreen(
                     query = "搜索“${query.trim()}”",
                     type = SearchType.Song,
                     icon = Icons.Rounded.Search,
-                    onClick = { onSearch(query.trim(), SearchType.Song.type); onDismiss() },
+                    onClick = { onSearch(query.trim(), SearchType.All.type); onDismiss() },
                 )
             }
             when (val result = searchSuggest) {
@@ -336,6 +336,7 @@ fun SuggestionItem(
 //type: 搜索类型；默认为 1 即单曲 , 取值意义 : 1: 单曲, 10: 专辑, 100: 歌手, 1000: 歌单, 1002: 用户, 1004: MV, 1006: 歌词, 1009: 电台, 1014: 视频, 1018:综合, 2000:声音(搜索声音返回字段格式会不一样)
 
 enum class SearchType(val icon: ImageVector, val type: Int, val displayName: String) {
+    All(Icons.Rounded.Search, 1018, "综合"),
     Song(Icons.Rounded.MusicNote, 1, "单曲"),
     Artist(Icons.Rounded.Person, 100, "歌手"),
     Album(Icons.Rounded.Album, 10, "专辑"),

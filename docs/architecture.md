@@ -191,6 +191,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | 协作与当前 UI 约束 | [AGENTS.md](../AGENTS.md) |
 | 平板外层与页面接入 | [tablet-ui.md](tablet-ui.md) |
 | 歌单展示、布局与状态恢复 | [playlist-detail-architecture.md](playlist-detail-architecture.md) |
+| 综合搜索、分类分页与结果状态 | [search-results.md](search-results.md) |
 | 完整集合页与公共卡片 | [collection-pages.md](collection-pages.md) |
 | UI 边距、顶栏与材质背景 | [ui-chrome-alignment.md](ui-chrome-alignment.md)，范围以 AGENTS.md 为准 |
 | 页面转场 | [page-navigation-motion.md](page-navigation-motion.md) |

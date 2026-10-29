@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.app
 
 import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
@@ -26,6 +27,7 @@ import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.main.library.LibrarySearchState
 import com.ljyh.mei.ui.screen.search.recordSearchHistory
+import com.ljyh.mei.ui.screen.search.SearchType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -62,12 +64,13 @@ internal class MeiAppState(
         navController.selectMainDestination(destination)
     }
 
-    fun submitSearch(text: String, type: Int) {
-        if (text.isBlank()) return
-        scope.launch { context.recordSearchHistory(text) }
+    fun submitSearch(text: String, type: Int = SearchType.All.type) {
+        val keyword = text.trim()
+        if (keyword.isBlank()) return
+        scope.launch { context.recordSearchHistory(keyword) }
         searchActive = false
         Screen.SearchResult.navigate(navController) {
-            addPath(text)
+            addPath(Uri.encode(keyword))
             addPath(type.toString())
         }
     }
