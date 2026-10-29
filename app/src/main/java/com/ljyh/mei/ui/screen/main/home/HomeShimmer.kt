@@ -30,7 +30,7 @@ fun HomeShimmer(viewModel: HomeViewModel) {
     SkeletonShimmerHost(enabled = true, modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(28.dp),
+            verticalArrangement = Arrangement.spacedBy(if (device.isTablet) 40.dp else 28.dp),
         ) {
             RecommendRowShimmer(
                 cardWidth = recommendCardWidth,
