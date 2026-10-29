@@ -3,6 +3,8 @@ package com.ljyh.mei.ui.app
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
 import com.ljyh.mei.ui.screen.artist.ArtistAlbumsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
@@ -27,6 +29,8 @@ internal interface MeiPageContent {
     @Composable fun Discovery(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun Library(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun Settings(scrollBehavior: TopAppBarScrollBehavior)
+    @Composable fun PageHost(navController: NavHostController, modifier: Modifier, content: @Composable (Modifier) -> Unit) { content(modifier) }
+    fun useImmediateTransition(navController: NavHostController, from: String?, to: String?): Boolean = false
     @Composable fun Collection(collection: LibraryCollection, viewModel: LibraryViewModel)
     @Composable fun Playlist(id: Long)
     @Composable fun Album(id: Long)

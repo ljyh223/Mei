@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.app
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -40,16 +42,30 @@ internal fun MeiAppPages(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MeiAppPageHost(spec: MeiAppPagesSpec) = with(spec) {
-    NavHost(
-        modifier = modifier,
-        navController = navController,
-        startDestination = startDestination,
-        enterTransition = { pageMotion.enter(this) },
-        exitTransition = { pageMotion.exit(this) },
-        popEnterTransition = { pageMotion.enter(this, isPop = true) },
-        popExitTransition = { pageMotion.exit(this, isPop = true) },
-        builder = { navigationBuilder(navController, scrollBehavior, pages) },
-    )
+    pages.PageHost(navController, modifier) { hostModifier ->
+        NavHost(
+            modifier = hostModifier,
+            navController = navController,
+            startDestination = startDestination,
+            enterTransition = {
+                if (pages.useImmediateTransition(navController, initialState.destination.route, targetState.destination.route)) EnterTransition.None
+                else pageMotion.enter(this)
+            },
+            exitTransition = {
+                if (pages.useImmediateTransition(navController, initialState.destination.route, targetState.destination.route)) ExitTransition.None
+                else pageMotion.exit(this)
+            },
+            popEnterTransition = {
+                if (pages.useImmediateTransition(navController, initialState.destination.route, targetState.destination.route)) EnterTransition.None
+                else pageMotion.enter(this, isPop = true)
+            },
+            popExitTransition = {
+                if (pages.useImmediateTransition(navController, initialState.destination.route, targetState.destination.route)) ExitTransition.None
+                else pageMotion.exit(this, isPop = true)
+            },
+            builder = { navigationBuilder(navController, scrollBehavior, pages) },
+        )
+    }
 }
 
 /** A single owner for page composition when its chrome container moves across window layouts. */

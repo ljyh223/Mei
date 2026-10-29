@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
@@ -30,7 +28,6 @@ import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,24 +35,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.ui.component.glass.LocalMeiShowBackButton
 import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
 import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.rememberNavController
-import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.screen.navigationBuilder
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.ui.tablet.TabletPageContent
 import com.ljyh.mei.ui.theme.MeiCategory
 import com.ljyh.mei.ui.theme.MeiCategoryIcon
 
@@ -63,10 +52,6 @@ import com.ljyh.mei.ui.theme.MeiCategoryIcon
 @Composable
 fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val navController = LocalNavController.current
-    if (rememberDeviceInfo().isTablet) {
-        TabletSettingsScreen(scrollBehavior)
-        return
-    }
     MeiPinnedPage(title = "设置", contentTopPadding = 12.dp) { paddingValues ->
         Column(
             Modifier.fillMaxSize().verticalScroll(LocalMeiPageScroll.current!!)
@@ -79,55 +64,8 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TabletSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
-    val detailNavController = rememberNavController()
-    val entry by detailNavController.currentBackStackEntryAsState()
-    val selectedRoute = when (entry?.destination?.route) {
-        Screen.UsbExclusiveSettings.route, Screen.Equalizer.route, Screen.ReverbSettings.route -> Screen.AudioOutputSettings.route
-        Screen.GlassSettings.route -> Screen.AppearanceSettings.route
-        Screen.LxSources.route -> Screen.SourceAndLyricsSettings.route
-        Screen.DownloadManage.route -> Screen.DownloadSettings.route
-        Screen.DeveloperSettings.route -> Screen.About.route
-        Screen.Log.route -> Screen.About.route
-        null -> Screen.PlaySettings.route
-        else -> entry?.destination?.route
-    }
-    Row(Modifier.fillMaxSize()) {
-        MeiPinnedPage(title = "设置", modifier = Modifier.weight(0.42f), contentTopPadding = 12.dp) { paddingValues ->
-            Column(
-                Modifier.fillMaxSize().verticalScroll(LocalMeiPageScroll.current!!)
-                    .padding(paddingValues).padding(horizontal = meiPageGutter()),
-            ) {
-                MeiLargeTitle("设置", modifier = Modifier.padding(bottom = 16.dp), startPadding = 0.dp)
-                SettingsCategories(selectedRoute) { screen ->
-                    detailNavController.navigate(screen.route) {
-                        popUpTo(detailNavController.graph.id) { inclusive = false }
-                        launchSingleTop = true
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-        VerticalDivider(Modifier.fillMaxHeight().width(0.5.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-        CompositionLocalProvider(
-            LocalNavController provides detailNavController,
-            LocalMeiShowBackButton provides (entry?.destination?.route != selectedRoute),
-        ) {
-            NavHost(
-                navController = detailNavController,
-                startDestination = Screen.PlaySettings.route,
-                modifier = Modifier.weight(0.58f).fillMaxSize(),
-            ) {
-                navigationBuilder(detailNavController, scrollBehavior, TabletPageContent)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsCategories(selectedRoute: String? = null, onSelect: (Screen) -> Unit) {
+internal fun SettingsCategories(selectedRoute: String? = null, onSelect: (Screen) -> Unit) {
     CompositionLocalProvider(LocalSelectedSettingsRoute provides selectedRoute) {
         Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
             SettingsGroup("播放与界面") {
