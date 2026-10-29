@@ -639,7 +639,12 @@ fun AppleMusicPlayer(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     Column(Modifier.fillMaxSize()) {
-                        Spacer(modifier = Modifier.height(with(density) { (headerTop + headerSize).toDp() + 16.dp }))
+                        val headerContentGap = if (showComments) 16.dp else 0.dp
+                        Spacer(
+                            modifier = Modifier.height(
+                                with(density) { (headerTop + headerSize).toDp() } + headerContentGap
+                            )
+                        )
 
                         if (showComments) {
                             PlayerCommentsContent(
