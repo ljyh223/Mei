@@ -60,6 +60,9 @@ fun PlayerControlsSection(
             FluidProgressSlider(
                 position = sliderPosition.toLong(),
                 duration = duration,
+                isPlaying = isPlaying,
+                playbackSpeed = playerConnection.player.playbackParameters.speed,
+                mediaKey = playerConnection.player.currentMediaItem?.mediaId,
                 onPositionPreview = onPositionPreview,
                 onPositionChange = onPositionChange,
                 onMusicQualityClick = onMusicQualityClick,

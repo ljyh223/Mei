@@ -174,6 +174,9 @@ fun ClassicPhoneLayout(
             FluidProgressSlider(
                 position = sliderPosition.toLong(),
                 duration = duration,
+                isPlaying = isPlaying,
+                playbackSpeed = stateContainer.playerConnection.player.playbackParameters.speed,
+                mediaKey = stateContainer.playerConnection.player.currentMediaItem?.mediaId,
                 onPositionPreview = stateContainer::previewSeek,
                 onPositionChange = stateContainer::commitSeek,
                 onMusicQualityClick = overlayHandler::showMusicQualitySelection,

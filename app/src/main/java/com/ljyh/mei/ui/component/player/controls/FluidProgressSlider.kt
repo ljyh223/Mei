@@ -22,6 +22,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,9 +45,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.MusicQualityKey
+import com.ljyh.mei.playback.SmoothPlaybackPosition
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
 import com.ljyh.mei.utils.TimeUtils.makeTimeString
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
+import kotlinx.coroutines.isActive
 import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,12 +57,15 @@ import kotlin.math.roundToLong
 fun FluidProgressSlider(
     position: Long,
     duration: Long,
+    isPlaying: Boolean,
     onPositionChange: (Long) -> Unit,
     onPositionPreview: (Long) -> Unit = {},
     onMusicQualityClick: () -> Unit,
     isBuffering: Boolean,
     showMusicQuality: Boolean = true,
     showRemainingTime: Boolean = false,
+    playbackSpeed: Float = 1f,
+    mediaKey: String? = null,
     modifier: Modifier = Modifier
 ) {
     val foreground = LocalPlayerForegroundColor.current
@@ -83,6 +92,14 @@ fun FluidProgressSlider(
     } else {
         position.toFloat()
     }.coerceIn(valueRange)
+    val drawnPosition = rememberSmoothSliderPosition(
+        position = sliderPosition,
+        duration = duration,
+        playing = isPlaying && !isBuffering && isDurationValid,
+        interacting = isInteracting || hasScrubbed,
+        speed = playbackSpeed,
+        mediaKey = mediaKey,
+    )
 
     val trackHeight = 6.dp
     val activeTrackAlpha by animateFloatAsState(
@@ -139,10 +156,12 @@ fun FluidProgressSlider(
                         val height = size.height
                         val centerY = height / 2
 
-                        // 计算进度比例
-                        val fraction = if (valueRange.endInclusive > 0) {
-                            (sliderState.value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
-                        } else 0f
+                        // Read frame updates only while drawing; keep the Slider's gestures
+                        // and time labels on the authoritative playback/drag position.
+                        val trackPosition = if (isInteracting || hasScrubbed) sliderState.value
+                            else drawnPosition.value
+                        val fraction = ((trackPosition - valueRange.start) /
+                            (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
 
                         val activeWidth = width * fraction
 
@@ -237,4 +256,44 @@ fun FluidProgressSlider(
             )
         }
     }
+}
+
+/** Smooth the track locally, without recomposing the whole player on every display frame. */
+@Composable
+private fun rememberSmoothSliderPosition(
+    position: Float,
+    duration: Long,
+    playing: Boolean,
+    interacting: Boolean,
+    speed: Float,
+    mediaKey: String?,
+): State<Float> {
+    val latestPosition = rememberUpdatedState(position)
+    val latestDuration by rememberUpdatedState(duration)
+    val latestSpeed by rememberUpdatedState(speed)
+    val clock = remember(mediaKey) { SmoothPlaybackPosition() }
+    val drawnPosition = remember(mediaKey) { mutableFloatStateOf(position) }
+    val animate = playing && !interacting
+    LaunchedEffect(clock, animate) {
+        if (!animate) return@LaunchedEffect
+        clock.reset()
+        drawnPosition.floatValue = latestPosition.value
+        var previousRawPosition = latestPosition.value.toLong()
+        while (isActive) {
+            withFrameNanos { frameTime ->
+                val rawPosition = latestPosition.value.toLong()
+                // Even a small backward seek must bypass the clock's monotonic playback rule.
+                if (rawPosition < previousRawPosition) clock.reset()
+                previousRawPosition = rawPosition
+                drawnPosition.floatValue = clock.sample(
+                    rawPositionMs = rawPosition,
+                    frameTimeNanos = frameTime,
+                    isPlaying = true,
+                    speed = latestSpeed,
+                    durationMs = latestDuration,
+                ).toFloat()
+            }
+        }
+    }
+    return if (animate) drawnPosition else latestPosition
 }
