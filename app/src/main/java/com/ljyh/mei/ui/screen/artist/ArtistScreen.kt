@@ -43,7 +43,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +61,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -87,6 +85,8 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
+import com.ljyh.mei.ui.component.glass.rememberMeiArtworkTopBarState
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.Album
@@ -135,17 +135,10 @@ fun ArtistScreen(
     val headerSurface by animateColorAsState(targetHeaderSurface, label = "artistHeaderColor")
 
     val scrollState = rememberLazyListState()
-    // Show the compact title after the artist image has mostly scrolled away.
-    val heroHeightPx = with(LocalDensity.current) { 460.dp.toPx() }
-    val showTopBarTitle by remember {
-        derivedStateOf {
-            scrollState.firstVisibleItemIndex > 0 ||
-                    scrollState.firstVisibleItemScrollOffset > heroHeightPx * 0.6f
-        }
-    }
+    val artworkBar = rememberMeiArtworkTopBarState(scrollState, id)
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val pageHaze = rememberHazeState()
-    val barProgress by animateFloatAsState(if (showTopBarTitle) 1f else 0f, label = "artistBar")
+    val barProgress by animateFloatAsState(if (artworkBar.artworkPassed) 1f else 0f, label = "artistBar")
 
     LaunchedEffect(id) {
         viewModel.getArtistDetail(id)
@@ -157,6 +150,8 @@ fun ArtistScreen(
         topBar = {
 
             MeiHazeTopBar(
+                backgroundMode = meiArtworkTopBarBackground(artworkBar.artworkPassed),
+                modifier = artworkBar.toolbarModifier,
                 state = pageHaze,
                 title = (artistDetail as? Resource.Success)?.data?.data?.artist?.name ?: "",
                 progress = barProgress,
@@ -181,6 +176,7 @@ fun ArtistScreen(
                     is Resource.Success -> ArtistHeader(
                         artist = detail.data.data.artist,
                         headerSurface = headerSurface,
+                        artworkModifier = artworkBar.artworkModifier,
                         canPlayHotSongs = playerConnection != null &&
                             ((artistSongs as? Resource.Success)?.data?.hotSongs?.isNotEmpty() == true),
                         onBrowseSongs = { Screen.ArtistSongs.navigate(navController) { addPath(id) } },
@@ -205,7 +201,7 @@ fun ArtistScreen(
                             }
                         },
                     )
-                    is Resource.Loading -> ArtistHeaderShimmer(headerSurface)
+                    is Resource.Loading -> ArtistHeaderShimmer(headerSurface, artworkBar.artworkModifier)
                     is Resource.Error -> ErrorItem(detail.message)
                 }
             }
@@ -345,6 +341,7 @@ fun ArtistHeader(
     canPlayHotSongs: Boolean = false,
     onPlayHotSongs: () -> Unit = {},
     onBrowseSongs: () -> Unit = {},
+    artworkModifier: Modifier = Modifier,
 ) {
     val loading = isLoading || artist == null
     val colors = MaterialTheme.colorScheme
@@ -381,7 +378,7 @@ fun ArtistHeader(
             )
         )
         Column(Modifier.fillMaxWidth()) {
-            Box(Modifier.fillMaxWidth().height(460.dp)) {
+            Box(Modifier.fillMaxWidth().height(460.dp).then(artworkModifier)) {
                 if (loading) {
                     Spacer(Modifier.fillMaxSize().skeleton(true, RoundedCornerShape(0.dp)))
                 } else if (imageUrl != null) {
@@ -572,12 +569,16 @@ fun AlbumCardShimmer() {
 // ─── Header Shimmer ───────────────────────────────────────────────────────────
 
 @Composable
-fun ArtistHeaderShimmer(headerSurface: Color = MaterialTheme.colorScheme.background) {
+fun ArtistHeaderShimmer(
+    headerSurface: Color = MaterialTheme.colorScheme.background,
+    artworkModifier: Modifier = Modifier,
+) {
     SkeletonShimmerHost(enabled = true) {
         ArtistHeader(
             artist = null,
             isLoading = true,
             headerSurface = headerSurface,
+            artworkModifier = artworkModifier,
         )
     }
 }

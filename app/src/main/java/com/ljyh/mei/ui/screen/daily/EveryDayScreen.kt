@@ -1,6 +1,4 @@
-package com.ljyh.mei.ui.screen.playlist
-
-import com.ljyh.mei.playback.queue.QueueSource
+package com.ljyh.mei.ui.screen.daily
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,10 +21,17 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
-import com.ljyh.mei.ui.screen.playlist.component.DailyRecommendationHeader
+import com.ljyh.mei.ui.screen.playlist.PlaylistActions
+import com.ljyh.mei.ui.screen.playlist.PlaylistContent
+import com.ljyh.mei.ui.screen.playlist.PlaylistUiState
+import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.ljyh.mei.ui.screen.playlist.matchesPlaylistSearch
+import com.ljyh.mei.ui.screen.playlist.rememberPlaylistMenuActions
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,8 +42,12 @@ fun EveryDay(
     val everyDaySongs by viewModel.everyDay.collectAsState()
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    var isDailySearchActive by remember { mutableStateOf(false) }
-    var dailySearchQuery by remember { mutableStateOf("") }
+    var isDailySearchActive by rememberSaveable { mutableStateOf(false) }
+    var dailySearchQuery by rememberSaveable { mutableStateOf("") }
+
+    val playlists by viewModel.playlist.collectAsState()
+    var overlay by remember { mutableStateOf<OverlayState>(OverlayState.None) }
+    val menu = rememberPlaylistMenuActions(viewModel, -1L)
 
     val isLoading = everyDaySongs is Resource.Loading
     LaunchedEffect(true) {
@@ -98,52 +108,66 @@ fun EveryDay(
             Text("Error: ${(everyDaySongs as Resource.Error).message}")
         }
     } else {
-        CommonSongListScreen(
-            uiData = displayedUiData,
-            pagingItems = null,
-            isLoading = isLoading,
-            onPlayAll = playAll,
-            customHeader = {
-                DailyRecommendationHeader(tracks = uiData.tracks, isLoading = isLoading, onPlayAll = playAll)
-            },
-            headerActionIcon = Icons.Default.FavoriteBorder,
-            headerActionLabel = "收藏",
-            onTrackClick = { mediaMetadata, index ->
+        PlaylistContent(
+            state = PlaylistUiState(
+                playlistId = -1L,
+                playlists = playlists,
+                overlay = overlay,
+                uiData = displayedUiData,
+                pagingItems = null,
+                isLoading = isLoading,
+                headerActionIcon = Icons.Default.FavoriteBorder,
+                headerActionLabel = "收藏",
+                playlistSearchQuery = dailySearchQuery,
+                isPlaylistSearchActive = isDailySearchActive,
+            ),
+            actions = PlaylistActions(
+                onOverlayChange = { overlay = it },
+                menu = menu,
+                onPlayAll = playAll,
+                onTrackClick = { mediaMetadata, index ->
 
-                playerConnection.onTrackClicked(
-                    trackId = mediaMetadata.id.toString(),
-                    fallbackSource = QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title),
-                    buildQueue = {
-                        if (everyDaySongs is Resource.Success) {
-                            val allIds =
-                                (everyDaySongs as Resource.Success).data.map {
-                                    it.id.toString() to it.toMediaItem()
-                                }
-                            ListQueue(
-                                id = "dailySongs",
-                                title = uiData.title,
-                                source = QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title),
-                                items = allIds,
-                                startIndex = uiData.tracks.indexOfFirst { it.id == mediaMetadata.id }
-                                    .takeIf { it >= 0 } ?: index
-                            )
-                        } else {
-                            null
+                    playerConnection.onTrackClicked(
+                        trackId = mediaMetadata.id.toString(),
+                        fallbackSource = QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title),
+                        buildQueue = {
+                            if (everyDaySongs is Resource.Success) {
+                                val allIds =
+                                    (everyDaySongs as Resource.Success).data.map {
+                                        it.id.toString() to it.toMediaItem()
+                                    }
+                                ListQueue(
+                                    id = "dailySongs",
+                                    title = uiData.title,
+                                    source = QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title),
+                                    items = allIds,
+                                    startIndex = uiData.tracks.indexOfFirst { it.id == mediaMetadata.id }
+                                        .takeIf { it >= 0 } ?: index
+                                )
+                            } else {
+                                null
+                            }
                         }
-                    }
+                    )
+                },
+                onBack = {
+                    navController.popBackStack()
+                },
+                onHeaderAction = {},
+                onPlaylistSearchQueryChange = { dailySearchQuery = it },
+                onPlaylistSearchActiveChange = { active ->
+                    isDailySearchActive = active
+                    if (!active) dailySearchQuery = ""
+                },
+            ),
+            customHeader = { titleModifier ->
+                DailyRecommendationHeader(
+                    tracks = uiData.tracks,
+                    isLoading = isLoading,
+                    onPlayAll = playAll,
+                    titleModifier = titleModifier,
                 )
             },
-            onBack = {
-                navController.popBackStack()
-            },
-            onHeaderAction = {},
-            playlistSearchQuery = dailySearchQuery,
-            isPlaylistSearchActive = isDailySearchActive,
-            onPlaylistSearchQueryChange = { dailySearchQuery = it },
-            onPlaylistSearchActiveChange = { active ->
-                isDailySearchActive = active
-                if (!active) dailySearchQuery = ""
-            }
         )
     }
 }

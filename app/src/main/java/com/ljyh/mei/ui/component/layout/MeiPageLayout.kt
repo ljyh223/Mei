@@ -15,4 +15,8 @@ object MeiPageLayout {
 }
 
 @Composable
-fun meiPageGutter(): Dp = if (rememberDeviceInfo().isTablet) MeiPageLayout.TabletGutter else MeiPageLayout.PhoneGutter
+fun meiPageGutter(): Dp = when (LocalAppWindowLayout.current) {
+    AppWindowLayout.Wide -> MeiPageLayout.TabletGutter
+    AppWindowLayout.Compact -> MeiPageLayout.PhoneGutter
+    null -> if (rememberDeviceInfo().isTablet) MeiPageLayout.TabletGutter else MeiPageLayout.PhoneGutter
+}

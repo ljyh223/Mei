@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.playlist
+package com.ljyh.mei.ui.screen.playlist.component
 
 import com.ljyh.mei.ui.model.PlaylistHeaderStyle
 

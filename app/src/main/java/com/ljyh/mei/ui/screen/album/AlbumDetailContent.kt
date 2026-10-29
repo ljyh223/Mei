@@ -45,7 +45,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +54,8 @@ import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
+import com.ljyh.mei.ui.component.glass.rememberMeiArtworkTopBarState
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -103,7 +104,7 @@ internal fun AlbumDetailContent(
     onTrackMore: (MediaMetadata, IntRect) -> Unit,
 ) {
     val listState = rememberLazyListState()
-    val titleInBar by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+    val artworkBar = rememberMeiArtworkTopBarState(listState, album.id)
     val surface = MaterialTheme.colorScheme.surface
     val textColor = MaterialTheme.colorScheme.onSurface
     val tintStrength = when {
@@ -148,6 +149,7 @@ internal fun AlbumDetailContent(
                     tint = albumTint,
                     onArtistClick = onArtistClick,
                     onShowArtists = { showArtistsSheet = true },
+                    artworkModifier = artworkBar.artworkModifier,
                 )
             }
             item(key = "album_actions") {
@@ -203,9 +205,11 @@ internal fun AlbumDetailContent(
         }
 
         MeiHazeTopBar(
+            backgroundMode = meiArtworkTopBarBackground(artworkBar.artworkPassed),
+            modifier = artworkBar.toolbarModifier,
             state = pageHaze,
             title = "",
-            progress = if (titleInBar || isSearchActive) 1f else 0f,
+            progress = if (artworkBar.artworkPassed || isSearchActive) 1f else 0f,
             onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
             actions = {
                 MeiDetailMoreButton(
@@ -267,10 +271,11 @@ private fun AlbumHeader(
     tint: Color,
     onArtistClick: (Long) -> Unit,
     onShowArtists: () -> Unit,
+    artworkModifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val heroHeight = (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
-        Box(Modifier.fillMaxWidth().height(heroHeight)) {
+        Box(Modifier.fillMaxWidth().height(heroHeight).then(artworkModifier)) {
             if (album.picUrl.isNotBlank()) {
                 AsyncImage(
                     model = album.picUrl,

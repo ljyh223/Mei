@@ -41,6 +41,7 @@ fun ClassicPlayer(
     overlayHandler: PlayerOverlayHandler,
     collapsedBottomOffset: Dp = 0.dp,
     miniPlayerBottomInset: Dp = 0.dp,
+    collapsedPlayerContent: (@Composable () -> Unit)? = null,
 ) {
 
     val device = rememberDeviceInfo()
@@ -83,7 +84,7 @@ fun ClassicPlayer(
             }
         },
         collapsedContent = {
-            MiniPlayerBarContent(
+            if (collapsedPlayerContent != null) collapsedPlayerContent() else MiniPlayerBarContent(
                 title = mediaMetadata?.title,
                 artist = mediaMetadata?.artists?.joinToString { it.name },
                 coverUrl = mediaMetadata?.coverUrl,

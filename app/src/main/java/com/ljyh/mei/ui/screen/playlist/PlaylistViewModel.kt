@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.playlist
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
@@ -10,21 +11,25 @@ import androidx.paging.filter
 import com.ljyh.mei.AppContext
 import com.ljyh.mei.constants.MusicQuality
 import com.ljyh.mei.constants.UserIdKey
-import com.ljyh.mei.data.model.domain.MediaMetadata
-import com.ljyh.mei.data.model.response.MiniPlaylistDetail
 import com.ljyh.mei.data.model.api.BaseMessageResponse
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.model.api.CreatePlaylistResult
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
+import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.model.response.MiniPlaylistDetail
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.download.DownloadManager
+import com.ljyh.mei.download.SongDownloadInfo
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.safeApiCall
+import com.ljyh.mei.data.paging.PlaylistTrackPagingSource
+import com.ljyh.mei.data.repository.LikedSongsRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.data.repository.UserRepository
-import com.ljyh.mei.data.repository.LikedSongsRepository
 import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.utils.preferences.get
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,15 +40,65 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
+    private val savedState: SavedStateHandle,
     private val repository: PlaylistRepository,
     private val userRepository: UserRepository,
     private val likedSongsRepository: LikedSongsRepository,
     private val localPlaylistRepository: com.ljyh.mei.di.repository.LocalPlaylistRepository,
 ) : ViewModel() {
+    val searchQuery = savedState.getStateFlow("playlist_search_query", "")
+    val searchActive = savedState.getStateFlow("playlist_search_active", false)
+    fun setSearchQuery(query: String) { savedState["playlist_search_query"] = query }
+    fun setSearchActive(active: Boolean) {
+        savedState["playlist_search_active"] = active
+        if (!active) setSearchQuery("")
+    }
+    internal val orderEditor = PlaylistOrderEditor(savedState, viewModelScope, ::loadTracksForReorder, ::saveTrackOrder)
+    internal val downloads by lazy {
+        PlaylistDownloadController(savedState, viewModelScope, ::prepareDownload, ::enqueueDownload)
+    }
+
+    private suspend fun prepareDownload(selection: PlaylistDownloadSelection): Resource<List<MediaMetadata>> = safeApiCall {
+        val detail = (_playlistDetail.value as? Resource.Success)?.data?.takeIf { it.id == selection.playlistId }
+        val known = detail?.tracks.orEmpty().associateBy(MediaMetadata::id).toMutableMap()
+        selection.ids.filterNot(known::containsKey).chunked(200).forEach { ids ->
+            repository.getSongDetails(ids.map(Long::toString)).forEach { known[it.id] = it }
+        }
+        selection.ids.mapNotNull(known::get)
+    }
+
+    private suspend fun enqueueDownload(
+        selection: PlaylistDownloadSelection,
+        tracks: List<MediaMetadata>,
+        options: PlaylistDownloadOptions,
+    ): Resource<Int> {
+        val context = AppContext.instance
+        val ids = tracks.map { it.id.toString() }
+        val localIds = DownloadManager.existingLocalSongIds(context, ids)
+        val remoteIds = ids.filterNot { it in localIds }
+        val result = if (remoteIds.isNotEmpty()) repository.getSongUrlV1(remoteIds, options.quality.toMusicQuality()) else null
+        val urls = if (result is Resource.Success) result.data.data.associate { it.id.toString() to (it.url to it.encodeType.orEmpty()) } else emptyMap()
+        val songs = tracks.mapNotNull { track ->
+            val id = track.id.toString()
+            val local = id in localIds
+            val (url, type) = if (local) null to "" else urls[id] ?: return@mapNotNull null
+            if (!local && url == null) return@mapNotNull null
+            SongDownloadInfo(id, url, track.title, track.artists.map { it.name }, track.album.title,
+                track.coverUrl, track.duration, type)
+        }
+        if (songs.isEmpty()) return Resource.Error("无法获取歌曲链接，请稍后重试")
+        DownloadManager.enqueue(context, songs, selection.title, selection.playlistId.toString(), options.path, options.separateLyrics)
+        return Resource.Success(songs.size)
+    }
+
+    private var detailRequestId: String? = null
+    private var detailRequest: kotlinx.coroutines.Job? = null
+    private var cachedSearchKey: Triple<Resource<MiniPlaylistDetail>, String, Set<Long>>? = null
+    private var cachedSearch: Flow<PagingData<MediaMetadata>>? = null
+
     val userId: String get() = AppContext.instance.dataStore[UserIdKey] ?: ""
     private val _playlistDetail = MutableStateFlow<Resource<MiniPlaylistDetail>>(Resource.Loading)
     val playlistDetail: StateFlow<Resource<MiniPlaylistDetail>> = _playlistDetail
@@ -83,10 +138,14 @@ class PlaylistViewModel @Inject constructor(
     val deletePlaylist: StateFlow<Resource<BaseMessageResponse>> = _deletePlaylist
 
     fun getPlaylistDetail(id: String) {
-        viewModelScope.launch {
+        if (detailRequestId == id && (detailRequest?.isActive == true || _playlistDetail.value is Resource.Success)) return
+        detailRequest?.cancel()
+        detailRequestId = id
+        detailRequest = viewModelScope.launch {
             _removedTrackIds.value = emptySet()
             _playlistDetail.value = Resource.Loading
             val detail = repository.getPlaylistDetail(id)
+            if (detailRequestId != id) return@launch
             _playlistDetail.value = detail
             val currentUserId = AppContext.instance.dataStore[UserIdKey].orEmpty()
             if (detail is Resource.Success && currentUserId.isNotEmpty() &&
@@ -178,7 +237,7 @@ class PlaylistViewModel @Inject constructor(
                     Pager(
                         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                         pagingSourceFactory = {
-                            PlaylistTrackSource(
+                            PlaylistTrackPagingSource(
                                 repository = repository,
                                 firstData = playlist.tracks,
                                 ids = playlist.trackIds.map(Long::toString)
@@ -199,6 +258,19 @@ class PlaylistViewModel @Inject constructor(
      * larger playlists.
      */
     fun searchPlaylistTracks(
+        detail: Resource<MiniPlaylistDetail>,
+        query: String,
+        removed: Set<Long> = emptySet(),
+    ): Flow<PagingData<MediaMetadata>> {
+        val key = Triple(detail, query, removed.toSet())
+        if (cachedSearchKey == key) cachedSearch?.let { return it }
+        return createPlaylistSearch(detail, query, removed).also {
+            cachedSearchKey = key
+            cachedSearch = it
+        }
+    }
+
+    private fun createPlaylistSearch(
         playlistDetailResource: Resource<MiniPlaylistDetail>,
         query: String,
         removedTrackIds: Set<Long> = emptySet()

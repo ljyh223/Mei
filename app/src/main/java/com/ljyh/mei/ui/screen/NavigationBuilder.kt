@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.screen
 
 import androidx.compose.runtime.remember
+import com.ljyh.mei.ui.app.MeiPageContent
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -13,28 +14,19 @@ import androidx.navigation.navArgument
 import androidx.compose.ui.platform.LocalContext
 import java.net.URLDecoder
 import com.ljyh.mei.ui.screen.about.AboutScreen
-import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
 import com.ljyh.mei.ui.screen.history.HistoryScreen
 import com.ljyh.mei.ui.screen.local.LocalMusicScreen
 import com.ljyh.mei.ui.screen.local.LocalSongListScreen
-import com.ljyh.mei.ui.screen.main.home.HomeScreen
-import com.ljyh.mei.ui.screen.main.library.LibraryScreen
 import com.ljyh.mei.ui.screen.main.library.LibraryCollection
-import com.ljyh.mei.ui.screen.main.library.LibraryCollectionScreen
-import com.ljyh.mei.ui.screen.playlist.EveryDay
-import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
+import com.ljyh.mei.ui.screen.daily.EveryDay
 import com.ljyh.mei.ui.screen.search.SearchResultScreen
 import com.ljyh.mei.ui.screen.setting.GlassSettingsScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettingsScreen
 import com.ljyh.mei.ui.screen.setting.BetaSettingsScreen
 import com.ljyh.mei.ui.screen.setting.LyricsSettingsScreen
-import com.ljyh.mei.ui.screen.artist.ArtistScreen
-import com.ljyh.mei.ui.screen.artist.ArtistSongsScreen
-import com.ljyh.mei.ui.screen.artist.ArtistAlbumsScreen
 import com.ljyh.mei.ui.screen.main.findmusic.DiscoverPlaylistsScreen
 import com.ljyh.mei.ui.screen.main.findmusic.DiscoverAlbumsScreen
 import com.ljyh.mei.ui.screen.main.findmusic.DiscoverChartsScreen
-import com.ljyh.mei.ui.screen.main.findmusic.FindMusicScreen
 import com.ljyh.mei.ui.screen.main.findmusic.AudioMatchScreen
 import com.ljyh.mei.ui.screen.setting.ContentsSettingScreen
 import com.ljyh.mei.ui.screen.setting.AudioOutputSettingsScreen
@@ -47,23 +39,23 @@ import com.ljyh.mei.ui.screen.setting.PlaySettingScreen
 import com.ljyh.mei.ui.screen.setting.EqualizerSettingScreen
 import com.ljyh.mei.ui.screen.setting.ReverbSettingScreen
 import com.ljyh.mei.ui.screen.setting.LxSourcesScreen
-import com.ljyh.mei.ui.screen.setting.SettingScreen
 import com.ljyh.mei.ui.screen.setting.DeveloperSettingsScreen
 import com.ljyh.mei.ui.screen.log.LogScreen
 import com.ljyh.mei.ui.screen.comment.CommentScreen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
-fun NavGraphBuilder.navigationBuilder(
+internal fun NavGraphBuilder.navigationBuilder(
     navController: NavHostController,
     scrollBehavior: TopAppBarScrollBehavior,
+    pages: MeiPageContent,
 ) {
     pageDestination(Screen.Home.route) {
-        HomeScreen(scrollBehavior = scrollBehavior)
+        pages.Home(scrollBehavior)
     }
 
     pageDestination(Screen.Library.route) {
-        LibraryScreen(scrollBehavior = scrollBehavior)
+        pages.Library(scrollBehavior)
     }
 
     pageDestination(
@@ -74,11 +66,11 @@ fun NavGraphBuilder.navigationBuilder(
         val collection = LibraryCollection.entries.firstOrNull {
             it.name == entry.arguments?.getString("collection")
         } ?: LibraryCollection.Created
-        LibraryCollectionScreen(collection = collection, viewModel = hiltViewModel(parentEntry))
+        pages.Collection(collection = collection, viewModel = hiltViewModel(parentEntry))
     }
 
     pageDestination(Screen.FindMusic.route) {
-        FindMusicScreen(scrollBehavior = scrollBehavior)
+        pages.Discovery(scrollBehavior)
     }
 
     pageDestination(
@@ -97,7 +89,7 @@ fun NavGraphBuilder.navigationBuilder(
     }
 
     pageDestination(Screen.Setting.route) {
-        SettingScreen(scrollBehavior)
+        pages.Settings(scrollBehavior)
     }
 
     pageDestination(Screen.GlassSettings.route) {
@@ -235,7 +227,7 @@ fun NavGraphBuilder.navigationBuilder(
             }
         )
     ) {
-        PlaylistScreen(id = it.arguments!!.getLong("id"))
+        pages.Playlist(id = it.arguments!!.getLong("id"))
     }
 
 
@@ -247,7 +239,7 @@ fun NavGraphBuilder.navigationBuilder(
             }
         )
     ) {
-        AlbumDetailScreen(id = it.arguments!!.getLong("id"))
+        pages.Album(id = it.arguments!!.getLong("id"))
     }
     
     pageDestination(
@@ -258,21 +250,21 @@ fun NavGraphBuilder.navigationBuilder(
             }
         )
     ) {
-        ArtistScreen(id = it.arguments!!.getString("id")!!)
+        pages.Artist(id = it.arguments!!.getString("id")!!)
     }
 
     pageDestination(
         route = "${Screen.ArtistSongs.route}/{id}",
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
-        ArtistSongsScreen(id = it.arguments!!.getString("id")!!)
+        pages.ArtistSongs(id = it.arguments!!.getString("id")!!)
     }
 
     pageDestination(
         route = "${Screen.ArtistAlbums.route}/{id}",
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
-        ArtistAlbumsScreen(id = it.arguments!!.getString("id")!!)
+        pages.ArtistAlbums(id = it.arguments!!.getString("id")!!)
     }
 
     pageDestination(Screen.History.route) {

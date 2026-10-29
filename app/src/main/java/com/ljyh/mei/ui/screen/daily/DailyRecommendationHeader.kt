@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.playlist.component
+package com.ljyh.mei.ui.screen.daily
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,14 +23,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.domain.MediaMetadata
-import java.time.LocalDate
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import java.time.LocalDate
 
 @Composable
 fun DailyRecommendationHeader(
     tracks: List<MediaMetadata>,
     isLoading: Boolean,
     onPlayAll: () -> Unit,
+    titleModifier: Modifier = Modifier,
 ) {
     val today = LocalDate.now()
     val covers = remember(tracks) { tracks.map { it.coverUrl } }
@@ -44,6 +45,7 @@ fun DailyRecommendationHeader(
             Column(Modifier.weight(1f)) {
                 Text(
                     text = "每日推荐",
+                    modifier = titleModifier,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,

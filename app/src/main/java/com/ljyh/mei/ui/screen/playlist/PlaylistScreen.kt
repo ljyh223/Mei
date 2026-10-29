@@ -1,7 +1,5 @@
 package com.ljyh.mei.ui.screen.playlist
 
-import com.ljyh.mei.playback.queue.QueueSource
-
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +14,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,18 +28,19 @@ import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.download.SongDownloadInfo
+import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.playback.queue.ListQueue
+import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
+import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.model.headerStyle
 import com.ljyh.mei.ui.screen.Screen
-import com.ljyh.mei.download.DownloadManager
+import com.ljyh.mei.ui.screen.playlist.component.playlistHeaderStyleCache
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
-import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -50,7 +48,7 @@ import timber.log.Timber
 @Composable
 fun PlaylistScreen(
     id: Long,
-    viewModel: PlaylistViewModel = hiltViewModel()
+    viewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     // 1. 初始化数据请求
     LaunchedEffect(key1 = id) {
@@ -60,7 +58,6 @@ fun PlaylistScreen(
     val context = LocalContext.current
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current ?: return
-    val scope = rememberCoroutineScope()
 
     // 2. 状态收集
     val userId by rememberPreference(UserIdKey, "")
@@ -79,21 +76,27 @@ fun PlaylistScreen(
     val unSubscriberState by viewModel.unSubscribePlaylist.collectAsState()
 
     // 3. Paging 数据
-    var isPlaylistSearchActive by remember { mutableStateOf(false) }
-    var playlistSearchQuery by remember { mutableStateOf("") }
+    val isPlaylistSearchActive by viewModel.searchActive.collectAsState()
+    val playlistSearchQuery by viewModel.searchQuery.collectAsState()
+    val orderState by viewModel.orderEditor.state.collectAsState()
+    val orderItems = orderState.items
+    val isPreparingOrder = orderState.loading
+    val isSavingOrder = orderState.saving
+    val allMePlaylist by viewModel.playlist.collectAsState()
+    var overlay by remember(id) { mutableStateOf<OverlayState>(OverlayState.None) }
+    val menu = rememberPlaylistMenuActions(viewModel, id)
+    LaunchedEffect(viewModel) {
+        viewModel.orderEditor.feedback.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+    }
     val pagingFlow = remember(id, playlistDetail, playlistSearchQuery, removedTrackIds) {
         viewModel.searchPlaylistTracks(playlistDetail, playlistSearchQuery, removedTrackIds)
     }
     val lazyPagingItems = pagingFlow.collectAsLazyPagingItems()
 
-    // Download dialog state
-    var showDownloadDialog by remember { mutableStateOf(false) }
-    var pendingDownloadTracks by remember { mutableStateOf<List<MediaMetadata>>(emptyList()) }
-    var isPreparingDownload by remember { mutableStateOf(false) }
-    var isPreparingOrder by remember(id) { mutableStateOf(false) }
-    var isSavingOrder by remember(id) { mutableStateOf(false) }
-    var orderItems by remember(id) { mutableStateOf<List<PlaylistOrderItem>?>(null) }
-    var confirmedOrder by remember(id) { mutableStateOf<List<PlaylistOrderItem>?>(null) }
+    val downloadState by viewModel.downloads.state.collectAsState()
+    LaunchedEffect(viewModel) {
+        viewModel.downloads.feedback.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+    }
 
     val (downloadPath) = rememberPreference(DownloadPathKey, DownloadManager.getDefaultDownloadPath())
     val (downloadQuality) = rememberEnumPreference(DownloadQualityKey, DownloadQuality.EXHIGH)
@@ -179,29 +182,10 @@ fun PlaylistScreen(
         }
     }
 
-    LaunchedEffect(id, playlistDetail, userId, removedTrackIds) {
-        if (uiData.isCreator && !isSavingOrder) {
-            isPreparingOrder = true
-            try {
-                when (val result = viewModel.loadTracksForReorder(id)) {
-                    is Resource.Success -> {
-                        confirmedOrder = result.data
-                        orderItems = result.data
-                    }
-                    is Resource.Error -> {
-                        orderItems = null
-                        Toast.makeText(context, "排序准备失败，请重新打开歌单重试", Toast.LENGTH_SHORT).show()
-                        Timber.tag("PlaylistOrder").w("无法准备排序: %s", result.message)
-                    }
-                    Resource.Loading -> Unit
-                }
-            } finally {
-                isPreparingOrder = false
-            }
-        } else if (!uiData.isCreator) {
-            orderItems = null
-            confirmedOrder = null
-            isPreparingOrder = false
+    val currentDetail = (playlistDetail as? Resource.Success)?.data
+    LaunchedEffect(id, uiData.isCreator, currentDetail?.trackIds, removedTrackIds, isSavingOrder) {
+        if (uiData.isCreator && currentDetail != null) {
+            viewModel.orderEditor.prepare(id, currentDetail.trackIds.filterNot { it in removedTrackIds })
         }
     }
 
@@ -236,128 +220,34 @@ fun PlaylistScreen(
         return null
     }
 
-    // 7. 下载处理逻辑
-    fun doBulkDownload(allTracks: List<MediaMetadata>, saveSeparateLyrics: Boolean) {
-        scope.launch {
-            val songIds = allTracks.map { it.id.toString() }
-            val localIds = DownloadManager.existingLocalSongIds(context, songIds)
-            val remoteIds = songIds.filterNot { it in localIds }
-            val result = if (remoteIds.isNotEmpty()) {
-                viewModel.resolveSongUrls(remoteIds, downloadQuality.toMusicQuality())
-            } else null
-            val urlMap = if (result is Resource.Success) {
-                result.data.data.associate { it.id.toString() to (it.url to it.encodeType.orEmpty()) }
-            } else {
-                emptyMap()
-            }
-
-            val downloadInfos = allTracks.mapNotNull { track ->
-                val songId = track.id.toString()
-                val (url, encodeType) = if (songId in localIds) {
-                    null to ""
-                } else {
-                    urlMap[songId] ?: return@mapNotNull null
-                }
-                if (url != null || songId in localIds) {
-                    SongDownloadInfo(
-                        songId = songId,
-                        url = url,
-                        songTitle = track.title,
-                        songArtist = track.artists.map { it.name },
-                        songAlbum = track.album.title,
-                        songCover = track.coverUrl,
-                        duration = track.duration,
-                        fileType = encodeType
-                    )
-                } else null
-            }
-
-            if (downloadInfos.isEmpty()) {
-                Toast.makeText(context, "无法获取歌曲链接，请稍后重试", Toast.LENGTH_SHORT).show()
-                return@launch
-            }
-
-            val detail = playlistDetail
-            val playlistName = if (detail is Resource.Success) {
-                detail.data.name
-            } else {
-                "未分类"
-            }
-
-            DownloadManager.enqueue(
-                context = context,
-                songs = downloadInfos,
-                playlistName = playlistName,
-                playlistId = id.toString(),
-                downloadPath = downloadPath,
-                saveSeparateLyrics = saveSeparateLyrics,
-            )
-            Toast.makeText(context, "已添加 ${downloadInfos.size} 首到下载队列", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     fun handleDownload() {
-        val detail = playlistDetail
-        if (detail !is Resource.Success) return
-        val playlist = detail.data
-
-        if (playlist.count > 500) {
-            Toast.makeText(context, "暂不支持超过500首歌曲下载", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (isPreparingDownload) return
-        isPreparingDownload = true
-
-        scope.launch {
-            val allIds = playlist.trackIds
-                .filterNot { it in removedTrackIds }
-            val knownTracks = playlist.tracks.associateBy { it.id }.toMutableMap()
-
-            val missingIds = allIds.filter { it !in knownTracks }.map { it.toString() }
-            if (missingIds.isNotEmpty()) {
-                missingIds.chunked(200).forEach { chunk ->
-                    try {
-                        val details = viewModel.getSongDetails(chunk)
-                        details.forEach { track ->
-                            knownTracks[track.id] = track
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-
-            val allTracks = allIds.mapNotNull { id ->
-                knownTracks[id]
-            }
-
-            isPreparingDownload = false
-            pendingDownloadTracks = allTracks
-            showDownloadDialog = true
-        }
+        val detail = currentDetail ?: return
+        val selection = PlaylistDownloadSelection(id, detail.name, detail.trackIds.filterNot { it in removedTrackIds })
+        viewModel.downloads.begin(selection, detail.tracks)
     }
 
     fun handleTrackDownload(track: MediaMetadata) {
-        pendingDownloadTracks = listOf(track)
-        showDownloadDialog = true
+        viewModel.downloads.begin(PlaylistDownloadSelection(id, uiData.title, listOf(track.id)), listOf(track))
     }
 
-    if (showDownloadDialog) {
+    if (downloadState.phase == PlaylistDownloadPhase.Confirming) {
         DownloadConfirmDialog(
             currentQuality = downloadQuality,
             downloadPath = downloadPath,
-            onDismiss = { showDownloadDialog = false },
-            onConfirm = { saveSeparateLyrics ->
-                showDownloadDialog = false
-                doBulkDownload(pendingDownloadTracks, saveSeparateLyrics)
+            recoveryNote = if (downloadState.uncertainSubmission)
+                "上次下载提交结果尚未确认，请先查看下载管理，避免重复提交。" else null,
+            onDismiss = viewModel.downloads::dismiss,
+            onConfirm = { separateLyrics ->
+                viewModel.downloads.confirm(PlaylistDownloadOptions(downloadQuality, downloadPath, separateLyrics))
             },
             onGoToSettings = {
-                showDownloadDialog = false
+                viewModel.downloads.dismiss()
                 Screen.DownloadSettings.navigate(navController)
             },
             onGoToDownloadManage = {
-                showDownloadDialog = false
+                viewModel.downloads.dismiss()
                 Screen.DownloadManage.navigate(navController)
-            }
+            },
         )
     }
 
@@ -367,99 +257,63 @@ fun PlaylistScreen(
             Text("Error: ${(playlistDetail as Resource.Error).message}")
         }
     } else {
-        CommonSongListScreen(
-            uiData = uiData.copy(isSubscribed = isSubscribed),
-            pagingItems = lazyPagingItems,
-            isLoading = playlistDetail is Resource.Loading,
-            loadingHeaderStyle = loadingHeaderStyle,
-
-            // 收藏按钮逻辑
-            headerActionIcon = if (isSubscribed) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-            headerActionLabel = if (isSubscribed) "取消收藏" else "收藏",
-            onHeaderAction = {
-                if(uiData.isCreator){
-                    Toast.makeText(context, "不能收藏自己创建的歌单", Toast.LENGTH_SHORT).show()
-                    return@CommonSongListScreen
-                }
-                // 乐观更新：立即改变 UI 状态
-                val newState = !isSubscribed
-                isSubscribed = newState
-
-                // 发起网络请求
-                if (newState) {
-                    viewModel.subscribePlaylist(uiData.id.toString())
-                } else {
-                    viewModel.unsubscribePlaylist(uiData.id.toString())
-                }
-            },
-
-            // 下载
-            onDownload = { handleDownload() },
-            onTrackDownload = { track -> handleTrackDownload(track) },
-
-            // 播放全部
-            onPlayAll = {
-                buildListQueue()?.let { queue ->
-                    playerConnection.playQueue(queue)
-                    viewModel.recordPlaylistPlayback(id.toString())
-                }
-            },
-
-            // 点击单曲播放
-            onTrackClick = { mediaMetadata, index ->
-                playerConnection.onTrackClicked(
-                    trackId = mediaMetadata.id.toString(),
-                    buildQueue = { buildListQueue(mediaMetadata.id) },
-                    fallbackSource = QueueSource(QueueSource.Type.PLAYLIST, uiData.id.toString(), uiData.title)
-                )
-                viewModel.recordPlaylistPlayback(id.toString())
-            },
-
-            playlistSearchQuery = playlistSearchQuery,
-            isPlaylistSearchActive = isPlaylistSearchActive,
-            onPlaylistSearchQueryChange = { playlistSearchQuery = it },
-            onPlaylistSearchActiveChange = { active ->
-                isPlaylistSearchActive = active
-                if (!active) playlistSearchQuery = ""
-            },
-            reorderItems = orderItems.takeIf {
-                uiData.isCreator && !isPreparingOrder
-            },
-            reorderSaving = isSavingOrder,
-            onMoveTrack = { from, to ->
-                val current = orderItems
-                if (!isSavingOrder && current != null && from in current.indices && to in current.indices) {
-                    orderItems = current.toMutableList().apply { add(to, removeAt(from)) }
-                }
-            },
-            onReorderFinished = {
-                val snapshot = orderItems
-                if (!isSavingOrder && snapshot != null &&
-                    snapshot.map(PlaylistOrderItem::id) != confirmedOrder?.map(PlaylistOrderItem::id)) {
-                    isSavingOrder = true
-                    scope.launch {
-                        val result = viewModel.saveTrackOrder(id, snapshot)
-                        when (result) {
-                            is Resource.Success -> {
-                                if (result.data.code == 200) {
-                                    confirmedOrder = snapshot
-                                    Toast.makeText(context, "歌曲顺序已保存", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    orderItems = confirmedOrder
-                                    Toast.makeText(context, "排序保存失败（${result.data.code}），已恢复原顺序", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                            is Resource.Error -> {
-                                orderItems = confirmedOrder
-                                Toast.makeText(context, "排序保存失败：${result.message}", Toast.LENGTH_SHORT).show()
-                            }
-                            Resource.Loading -> Unit
-                        }
-                        isSavingOrder = false
+        PlaylistContent(
+            state = PlaylistUiState(
+                uiData = uiData.copy(isSubscribed = isSubscribed),
+                playlistId = id,
+                trackIds = currentDetail?.trackIds.orEmpty().filterNot { it in removedTrackIds },
+                playlists = allMePlaylist,
+                overlay = overlay,
+                pagingItems = lazyPagingItems,
+                isLoading = playlistDetail is Resource.Loading,
+                loadingHeaderStyle = loadingHeaderStyle,
+                headerActionIcon = if (isSubscribed) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                headerActionLabel = if (isSubscribed) "取消收藏" else "收藏",
+                playlistSearchQuery = playlistSearchQuery,
+                isPlaylistSearchActive = isPlaylistSearchActive,
+                reorderItems = orderItems.takeIf {
+                    uiData.isCreator && !isPreparingOrder
+                },
+                reorderSaving = isSavingOrder,
+            ),
+            actions = PlaylistActions(
+                onOverlayChange = { overlay = it },
+                menu = menu,
+                onPlayAll = {
+                    buildListQueue()?.let { queue ->
+                        playerConnection.playQueue(queue)
+                        viewModel.recordPlaylistPlayback(id.toString())
                     }
-                }
-            },
-            onBack = { navController.popBackStack() }
+                },
+                onHeaderAction = headerAction@{
+                    if(uiData.isCreator){
+                        Toast.makeText(context, "不能收藏自己创建的歌单", Toast.LENGTH_SHORT).show()
+                        return@headerAction
+                    }
+                    val newState = !isSubscribed
+                    isSubscribed = newState
+                    if (newState) {
+                        viewModel.subscribePlaylist(uiData.id.toString())
+                    } else {
+                        viewModel.unsubscribePlaylist(uiData.id.toString())
+                    }
+                },
+                onDownload = { handleDownload() },
+                onTrackClick = { mediaMetadata, index ->
+                    playerConnection.onTrackClicked(
+                        trackId = mediaMetadata.id.toString(),
+                        buildQueue = { buildListQueue(mediaMetadata.id) },
+                        fallbackSource = QueueSource(QueueSource.Type.PLAYLIST, uiData.id.toString(), uiData.title)
+                    )
+                    viewModel.recordPlaylistPlayback(id.toString())
+                },
+                onTrackDownload = { track -> handleTrackDownload(track) },
+                onBack = { navController.popBackStack() },
+                onPlaylistSearchQueryChange = viewModel::setSearchQuery,
+                onPlaylistSearchActiveChange = viewModel::setSearchActive,
+                onMoveTrack = viewModel.orderEditor::move,
+                onReorderFinished = viewModel.orderEditor::finish,
+            ),
         )
     }
 }

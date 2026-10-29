@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.playlist.component
+package com.ljyh.mei.ui.screen.daily
 
 import android.graphics.RectF
 import androidx.compose.foundation.background
