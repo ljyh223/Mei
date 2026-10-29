@@ -160,8 +160,13 @@ fun EveryDay(
                     if (!active) dailySearchQuery = ""
                 },
             ),
-            customHeader = {
-                DailyRecommendationHeader(tracks = uiData.tracks, isLoading = isLoading, onPlayAll = playAll)
+            customHeader = { titleModifier ->
+                DailyRecommendationHeader(
+                    tracks = uiData.tracks,
+                    isLoading = isLoading,
+                    onPlayAll = playAll,
+                    titleModifier = titleModifier,
+                )
             },
         )
     }

@@ -46,6 +46,7 @@ import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.track.Track
 import com.ljyh.mei.ui.component.track.TrackPlaceholder
 import com.ljyh.mei.ui.screen.playlist.PlaylistHeaderKey
+import com.ljyh.mei.ui.screen.playlist.PlaylistToolsKey
 import com.ljyh.mei.ui.screen.playlist.PlaylistOrderItem
 import com.ljyh.mei.ui.screen.playlist.displayTrack
 import com.ljyh.mei.utils.preferences.rememberPreference
@@ -71,6 +72,7 @@ fun PlaylistTrackList(
     emptyMessage: String? = null,
     isLoading: Boolean = false,
     loadingItemCount: Int = 8,
+    scrollingControls: (@Composable () -> Unit)? = null,
 ) {
 
     val playlistTrackTableHeader by rememberPreference(PlaylistTrackTableHeaderKey,  false)
@@ -78,7 +80,7 @@ fun PlaylistTrackList(
     val currentReorderItems by rememberUpdatedState(reorderItems)
     val currentSaving by rememberUpdatedState(reorderSaving)
     val haptics = LocalHapticFeedback.current
-    val headerOffset = if (headerContent == null) 0 else 1
+    val headerOffset = (if (headerContent == null) 0 else 1) + (if (scrollingControls == null) 0 else 1)
     val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val fromIndex = from.index - headerOffset
         val toIndex = to.index - headerOffset
@@ -91,7 +93,7 @@ fun PlaylistTrackList(
 
     Column(modifier = modifier.fillMaxSize()) {
 
-        if (tableRows && playlistTrackTableHeader) {
+        if (tableRows && playlistTrackTableHeader && scrollingControls == null) {
             TrackTableHeader(isLoading = isLoading)
         }
 
@@ -105,7 +107,14 @@ fun PlaylistTrackList(
                     headerContent()
                 }
             }
-            // 如果是平板，可以在这里加一个 StickyHeader 作为“表头”
+            if (scrollingControls != null) {
+                item(key = PlaylistToolsKey) {
+                    Column {
+                        scrollingControls()
+                        if (tableRows && playlistTrackTableHeader) TrackTableHeader(isLoading = isLoading)
+                    }
+                }
+            }
 
             if (isLoading) {
                 items(

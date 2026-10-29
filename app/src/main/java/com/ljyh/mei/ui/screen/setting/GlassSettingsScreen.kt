@@ -96,7 +96,7 @@ fun GlassSettingsScreen() {
                 }
                 if (!live) Text(
                     text = when {
-                        !enabled -> "当前使用实色外观，已保存的玻璃参数会保留"
+                        !enabled -> "当前使用普通主题外观，已保存的玻璃参数会保留"
                         Build.VERSION.SDK_INT < 33 -> "此设备使用实色外观，实时玻璃需要 Android 13 或更新版本"
                         else -> "当前省电或设备内存策略已切换为实色外观"
                     },
@@ -106,7 +106,7 @@ fun GlassSettingsScreen() {
                 )
                 PreferenceSection("外观") {
                     SwitchPreference(
-                        title = { Text("液态玻璃") }, description = "关闭后使用不透明的主题色外观",
+                        title = { Text("液态玻璃") }, description = "关闭后使用普通主题外观，保留页面原有背景",
                         checked = enabled, onCheckedChange = onEnabledChange,
                     )
                     ListPreference(

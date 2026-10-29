@@ -56,4 +56,26 @@ class PlaylistScrollAnchorTest {
         assertEquals(PlaylistScrollAnchor(10, 0, 0, false), capturePlaylistAnchor(header, 10L, 0, 0, true, true))
     }
 
+    @Test fun scrollingToolsKeepTheSameSongOrdinalAcrossLayoutsAndDeletionFallback() {
+        val previous = PlaylistScrollAnchor()
+        val captured = capturePlaylistAnchor(previous, 20L, 2, 37, true, true, leadingItemCount = 1)!!
+        assertEquals(PlaylistScrollAnchor(20, 1, 37, false), captured)
+        assertEquals(PlaylistAnchorTarget.Item(2, 37),
+            resolvePlaylistAnchor(captured, ids, false, false, false, ids, leadingItemCount = 1))
+        assertEquals(PlaylistAnchorTarget.Item(2, 37),
+            resolvePlaylistAnchor(captured, ids, true, false, false, ids, leadingItemCount = 1))
+        assertEquals(PlaylistAnchorTarget.Item(2, 0),
+            resolvePlaylistAnchor(captured, listOf(10, 30), false, false, false, listOf(10, 30), leadingItemCount = 1))
+    }
+
+    @Test fun untouchedToolsPreserveTheDetailAnchorButReturningToToolsRecordsTheTop() {
+        val detail = PlaylistScrollAnchor(offset = 210)
+        assertNull(capturePlaylistAnchor(detail, PlaylistToolsKey, 0, 0, true, false, leadingItemCount = 1))
+        assertEquals(PlaylistScrollAnchor(),
+            capturePlaylistAnchor(PlaylistScrollAnchor(30, 2, 37, false), PlaylistToolsKey, 0, 0, true, false, leadingItemCount = 1))
+        assertEquals(PlaylistScrollAnchor(),
+            capturePlaylistAnchor(detail, PlaylistToolsKey, 0, 0, true, true, leadingItemCount = 1))
+        assertNull(capturePlaylistAnchor(detail, 10L, 1, 0, true, false, leadingItemCount = 1))
+    }
+
 }

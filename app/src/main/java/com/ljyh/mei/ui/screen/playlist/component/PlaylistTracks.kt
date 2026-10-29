@@ -16,6 +16,7 @@ internal fun PlaylistTracks(
     tableRows: Boolean = false,
     headerContent: (@Composable () -> Unit)? = null,
     contentPadding: PaddingValues? = null,
+    scrollingControls: (@Composable () -> Unit)? = null,
 ) {
     val state = content.state
     val actions = content.actions
@@ -25,6 +26,7 @@ internal fun PlaylistTracks(
         staticTracks = state.uiData.tracks,
         tableRows = tableRows,
         headerContent = headerContent,
+        scrollingControls = scrollingControls,
         lazyListState = content.listState,
         onTrackClick = actions.onTrackClick,
         onMoreClick = content.onTrackMore,

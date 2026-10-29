@@ -31,6 +31,7 @@ fun DailyRecommendationHeader(
     tracks: List<MediaMetadata>,
     isLoading: Boolean,
     onPlayAll: () -> Unit,
+    titleModifier: Modifier = Modifier,
 ) {
     val today = LocalDate.now()
     val covers = remember(tracks) { tracks.map { it.coverUrl } }
@@ -44,6 +45,7 @@ fun DailyRecommendationHeader(
             Column(Modifier.weight(1f)) {
                 Text(
                     text = "每日推荐",
+                    modifier = titleModifier,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,

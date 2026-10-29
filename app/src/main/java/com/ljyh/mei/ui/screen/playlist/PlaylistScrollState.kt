@@ -16,6 +16,7 @@ import androidx.paging.LoadState
 import kotlinx.coroutines.flow.first
 
 internal const val PlaylistHeaderKey = "playlist_detail_header"
+internal const val PlaylistToolsKey = "playlist_track_tools"
 
 internal data class PlaylistScrollAnchor(
     val songId: Long? = null,
@@ -43,11 +44,12 @@ internal fun resolvePlaylistAnchor(
     loading: Boolean,
     hasMore: Boolean,
     allIds: List<Long>? = null,
+    leadingItemCount: Int = if (header) 1 else 0,
 ): PlaylistAnchorTarget {
     if (loading) return PlaylistAnchorTarget.Wait
     if (anchor.header) return PlaylistAnchorTarget.Item(0, if (header) anchor.offset else 0)
     val index = ids.indexOf(anchor.songId)
-    val headerOffset = if (header) 1 else 0
+    val headerOffset = leadingItemCount
     if (index >= 0) return PlaylistAnchorTarget.Item(index + headerOffset, anchor.offset)
     val removed = allIds != null && anchor.songId !in allIds
     if (removed && allIds!!.isNotEmpty()) {
@@ -69,10 +71,12 @@ internal fun capturePlaylistAnchor(
     offset: Int,
     splitPane: Boolean,
     userScrolling: Boolean,
+    leadingItemCount: Int = if (splitPane) 0 else 1,
 ): PlaylistScrollAnchor? = when (key) {
     PlaylistHeaderKey -> PlaylistScrollAnchor(offset = offset)
-    is Long -> if (previous.header && splitPane && index == 0 && offset == 0 && !userScrolling) null
-        else PlaylistScrollAnchor(key, (index - if (splitPane) 0 else 1).coerceAtLeast(0), offset, false)
+    PlaylistToolsKey -> if (previous.header && splitPane && !userScrolling) null else PlaylistScrollAnchor()
+    is Long -> if (previous.header && splitPane && index == leadingItemCount && offset == 0 && !userScrolling) null
+        else PlaylistScrollAnchor(key, (index - leadingItemCount).coerceAtLeast(0), offset, false)
     else -> null
 }
 
@@ -102,7 +106,7 @@ internal fun rememberPlaylistScrollState(state: PlaylistUiState, splitPane: Bool
             val hasMore = ordered == null && paging != null && !paging.loadState.append.endOfPaginationReached
             val completeIds = ordered?.map(PlaylistOrderItem::id)
                 ?: current.trackIds.takeIf { current.playlistSearchQuery.isBlank() }
-            Triple(resolvePlaylistAnchor(anchor, ids, !splitPane, loading, hasMore, completeIds),
+            Triple(resolvePlaylistAnchor(anchor, ids, !splitPane, loading, hasMore, completeIds, leadingItemCount = 1),
                 list.isScrollInProgress, list.layoutInfo.totalItemsCount)
         }.first { (resolution, userScrolling, _) ->
             if (userScrolling) true else when (resolution) {
@@ -125,10 +129,12 @@ internal fun rememberPlaylistScrollState(state: PlaylistUiState, splitPane: Bool
     }
     LaunchedEffect(list) {
         snapshotFlow {
-            val first = list.layoutInfo.visibleItemsInfo.firstOrNull()
+            // Visible items also include rows behind the toolbar inside content padding. Match
+            // the saved index/offset to its own key, not to an earlier row in that sampled area.
+            val first = list.layoutInfo.visibleItemsInfo.firstOrNull { it.index == list.firstVisibleItemIndex }
             if (settledLayout != currentSplit || current.isLoading || first == null) null
             else capturePlaylistAnchor(saved.value, first.key, list.firstVisibleItemIndex,
-                list.firstVisibleItemScrollOffset, currentSplit, list.isScrollInProgress)
+                list.firstVisibleItemScrollOffset, currentSplit, list.isScrollInProgress, leadingItemCount = 1)
         }.collect { anchor -> if (anchor != null) saved.value = anchor }
     }
     return list

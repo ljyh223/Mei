@@ -14,13 +14,19 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
 import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
@@ -42,7 +48,7 @@ import dev.chrisbanes.haze.rememberHazeState
 internal fun PlaylistContent(
     state: PlaylistUiState,
     actions: PlaylistActions,
-    customHeader: (@Composable () -> Unit)? = null,
+    customHeader: (@Composable (titleModifier: Modifier) -> Unit)? = null,
 ) {
     val uiData = state.uiData
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -50,12 +56,14 @@ internal fun PlaylistContent(
         val splitPane = metrics.layout == PlaylistLayout.TwoPane
         val listState = rememberPlaylistScrollState(state, splitPane)
         val searchInTopBar = !splitPane
-        val showTitle by remember(listState) { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
-        val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
-        val backgroundProgress by remember(listState, collapseDistance) {
+        val titleBottom = remember(state.playlistId, splitPane, uiData.title, state.isLoading) {
+            mutableStateOf<Float?>(null)
+        }
+        var toolbarBottom by remember { mutableFloatStateOf(0f) }
+        val showTitle by remember(listState, splitPane, titleBottom) {
             derivedStateOf {
-                if (listState.firstVisibleItemIndex > 0) 1f
-                else (listState.firstVisibleItemScrollOffset / collapseDistance).coerceIn(0f, 1f)
+                splitPane || listState.firstVisibleItemIndex > 0 ||
+                    (toolbarBottom > 0f && titleBottom.value?.let { it <= toolbarBottom } == true)
             }
         }
         val titleProgress by animateFloatAsState(
@@ -71,7 +79,12 @@ internal fun PlaylistContent(
                     state = pageHaze,
                     title = uiData.title,
                     progress = titleProgress,
-                    backgroundProgress = if (state.isPlaylistSearchActive) 1f else backgroundProgress,
+                    backgroundProgress = 1f,
+                    backgroundMode = meiArtworkTopBarBackground(),
+                    centerTitle = !splitPane,
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        toolbarBottom = coordinates.positionInRoot().y + coordinates.size.height
+                    },
                     onNavigateBack = {
                         if (state.isPlaylistSearchActive) actions.onPlaylistSearchActiveChange(false)
                         else actions.onBack()
@@ -130,7 +143,10 @@ internal fun PlaylistContent(
                     detailPaneWidth = metrics.detailWidthDp.dp,
                     onTrackMore = { track, anchor -> actions.onOverlayChange(OverlayState.TrackActionMenu(track, anchor)) },
                     header = { compact ->
-                        if (customHeader != null) customHeader() else PlaylistDetailHeader(
+                        val titleModifier = if (splitPane) Modifier else Modifier.onGloballyPositioned { coordinates ->
+                            titleBottom.value = coordinates.positionInRoot().y + coordinates.size.height
+                        }
+                        if (customHeader != null) customHeader(titleModifier) else PlaylistDetailHeader(
                             playlist = uiData,
                             isLoading = state.isLoading,
                             loadingHeaderStyle = state.loadingHeaderStyle,
@@ -140,6 +156,7 @@ internal fun PlaylistContent(
                             actionIcon = state.headerActionIcon,
                             actionLabel = state.headerActionLabel,
                             compact = compact,
+                            titleModifier = titleModifier,
                         )
                     },
                 )

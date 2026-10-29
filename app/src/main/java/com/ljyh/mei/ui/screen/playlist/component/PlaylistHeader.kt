@@ -79,6 +79,7 @@ fun PlaylistHeader(
     headerStyle: PlaylistHeaderStyle = PlaylistHeaderStyle.Standard,
     description: String? = null,
     updateTime: Long = 0,
+    titleModifier: Modifier = Modifier,
 ) {
     val coverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
     var showCoverPreview by remember(cover) { mutableStateOf(false) }
@@ -137,7 +138,7 @@ fun PlaylistHeader(
 
         Text(
             text = if (isLoading) "正在加载的歌单标题" else title,
-            modifier = Modifier.skeleton(isLoading),
+            modifier = titleModifier.skeleton(isLoading),
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.screen.playlist.PlaylistLayoutScope
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistTracks
 
@@ -20,7 +21,7 @@ internal fun SinglePanePlaylistLayout(content: PlaylistLayoutScope) {
         contentPadding = PaddingValues(
             start = content.padding.calculateStartPadding(direction),
             end = content.padding.calculateEndPadding(direction),
-            top = content.padding.calculateTopPadding(),
+            top = content.padding.calculateTopPadding() + meiTopBarContentClearance(),
             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding(),
         ),
     )

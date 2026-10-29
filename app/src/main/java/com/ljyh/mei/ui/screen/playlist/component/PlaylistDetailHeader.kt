@@ -67,6 +67,7 @@ fun PlaylistDetailHeader(
     actionLabel: String,
     compact: Boolean = false,
     loadingHeaderStyle: PlaylistHeaderStyle? = null,
+    titleModifier: Modifier = Modifier,
 ) {
     if (isLoading && (loadingHeaderStyle == null ||
             loadingHeaderStyle == PlaylistHeaderStyle.Liked ||
@@ -90,6 +91,7 @@ fun PlaylistDetailHeader(
             headerStyle = playlist.headerStyle,
             description = playlist.description,
             updateTime = playlist.updateTime,
+            titleModifier = titleModifier,
             onPlayAll = onPlayAll,
             onSubscribed = { onHeaderAction() },
             onDownload = onDownload,
@@ -122,7 +124,7 @@ fun PlaylistDetailHeader(
         }
         Spacer(Modifier.height(20.dp))
         Row(
-            Modifier.padding(horizontal = meiPageGutter()),
+            Modifier.padding(horizontal = meiPageGutter()).then(titleModifier),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
