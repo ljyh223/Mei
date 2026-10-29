@@ -65,7 +65,7 @@ fun BoxScope.AppSearchOverlay(
         SearchBar(
             query = query,
             onQueryChange = onQueryChange,
-            onSearch = { if (it.isNotEmpty()) submitSearch(it, 1) },
+            onSearch = { if (it.isNotBlank()) submitSearch(it, com.ljyh.mei.ui.screen.search.SearchType.All.type) },
             active = shellState.isSearchActive,
             onActiveChange = onActiveChange,
             scrollBehavior = scrollBehavior,

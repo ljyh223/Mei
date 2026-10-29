@@ -44,8 +44,7 @@ fun resolveMainShellState(
         navigation = navigation,
         isMainDestination = isMainDestination,
         showSearchBar = isSearchActive ||
-            route == Screen.Home.route ||
-            route?.startsWith("search_result/") == true,
+            route == Screen.Home.route,
     )
 }
 

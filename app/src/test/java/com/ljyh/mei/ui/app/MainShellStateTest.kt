@@ -45,6 +45,15 @@ class MainShellStateTest {
     }
 
     @Test
+    fun searchResultsOwnTheirSearchFieldOnPhoneAndTablet() {
+        for (tablet in listOf(false, true)) {
+            val state = resolveMainShellState("search_result/query/1018", false, tablet)
+            assertFalse(state.showSearchBar)
+            assertEquals(MainNavigationPresentation.Hidden, state.navigation)
+        }
+    }
+
+    @Test
     fun playerBoundsAlwaysIncludeSystemGestureInset() {
         val systemInset = 24.dp
         val scaffoldInset = 104.dp

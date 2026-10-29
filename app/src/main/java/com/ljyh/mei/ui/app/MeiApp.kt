@@ -257,7 +257,7 @@ fun MeiApp(
                     searchScope.launch { context.recordSearchHistory(searchQuery) }
                     onActiveChange(false)
                     Screen.SearchResult.navigate(navController) {
-                        addPath(searchQuery)
+                        addPath(android.net.Uri.encode(searchQuery.trim()))
                         addPath(type.toString())
                     }
                 }
@@ -335,7 +335,7 @@ fun MeiApp(
                                     onSearchQueryChange = onQueryChange,
                                     onSearchActivate = { onActiveChange(true) },
                                     onSearchClose = { onActiveChange(false) },
-                                    onSearchSubmit = { submitBottomSearch(it, 1) },
+                                    onSearchSubmit = { submitBottomSearch(it, com.ljyh.mei.ui.screen.search.SearchType.All.type) },
                                     searchFocusRequester = bottomSearchFocusRequester,
                                 )
                             }
@@ -403,7 +403,7 @@ fun MeiApp(
                                     } else if (searchQuery.isNotEmpty()) {
                                         onActiveChange(false)
                                         Screen.SearchResult.navigate(navController) {
-                                            addPath(searchQuery)
+                                            addPath(android.net.Uri.encode(searchQuery.trim()))
                                             addPath(type.toString())
                                         }
                                     }

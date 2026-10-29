@@ -30,6 +30,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +52,9 @@ fun Track(
     onMoreClick: (IntRect) -> Unit,
     moreButtonModifier: Modifier = Modifier,
     moreContentDescription: String = "更多",
+    title: AnnotatedString? = null,
+    subtitle: AnnotatedString? = null,
+    supportingText: String? = null,
 ) {
     TrackContent(
         track = track,
@@ -62,6 +66,9 @@ fun Track(
         onMoreClick = onMoreClick,
         moreButtonModifier = moreButtonModifier,
         moreContentDescription = moreContentDescription,
+        title = title,
+        subtitle = subtitle,
+        supportingText = supportingText,
     )
 }
 
@@ -94,6 +101,9 @@ private fun TrackContent(
     onMoreClick: (IntRect) -> Unit,
     moreButtonModifier: Modifier,
     moreContentDescription: String,
+    title: AnnotatedString? = null,
+    subtitle: AnnotatedString? = null,
+    supportingText: String? = null,
 ) {
     var moreBounds by remember(track?.id) { mutableStateOf(IntRect.Zero) }
     Row(
@@ -142,7 +152,7 @@ private fun TrackContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = track?.title ?: "歌曲标题占位文字",
+                    text = title ?: AnnotatedString(track?.title ?: "歌曲标题占位文字"),
                     modifier = Modifier.skeleton(isLoading),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium,
@@ -154,12 +164,19 @@ private fun TrackContent(
                 )
 
                 Text(
-                    text = track?.artists?.joinToString(" / ") { it.name } ?: "歌手名称",
+                    text = subtitle ?: AnnotatedString(track?.artists?.joinToString(" / ") { it.name } ?: "歌手名称"),
                     modifier = Modifier.skeleton(isLoading),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+                if (!supportingText.isNullOrBlank()) Text(
+                    text = supportingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
