@@ -185,7 +185,7 @@ fun HomeScreen(
                                 }
                                 sortedBlocks.forEach { block ->
                                     item(key = block.positionCode) {
-                                        Column(Modifier.padding(bottom = 28.dp)) {
+                                        Column(Modifier.padding(bottom = if (device.isTablet) 40.dp else 28.dp)) {
                                             HomeBlockItem(
                                                 block = block,
                                                 navController = navController,

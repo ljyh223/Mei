@@ -50,6 +50,9 @@ val LocalMeiPageScroll = staticCompositionLocalOf<ScrollState?> { null }
 /** 0 = large title fully visible, 1 = collapsed into the compact bar. */
 val LocalMeiPageProgress = staticCompositionLocalOf { 0f }
 
+/** Allows a pane showing a top-level destination to omit its redundant back button. */
+val LocalMeiShowBackButton = staticCompositionLocalOf { true }
+
 private val CollapseDistance = 56.dp
 private val BarHeight = 54.dp
 
@@ -84,7 +87,7 @@ fun MeiHazeTopBar(
                 .height(BarHeight)
                 .padding(horizontal = meiPageGutter() - 4.dp),
         ) {
-            if (onNavigateBack != null) {
+            if (onNavigateBack != null && LocalMeiShowBackButton.current) {
                 Box(Modifier.align(Alignment.CenterStart)) {
                     MeiGlassBackButton(
                         onClick = onNavigateBack,
