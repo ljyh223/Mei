@@ -7,7 +7,7 @@ import com.ljyh.mei.constants.MiniPlayerBarHeight
 import com.ljyh.mei.ui.component.navigation.isMainDestination
 import com.ljyh.mei.ui.screen.Screen
 
-enum class MainNavigationPresentation { Hidden, Sidebar, BottomBar }
+enum class MainNavigationPresentation { Hidden, BottomBar }
 
 @Immutable
 data class MainShellState(
@@ -20,9 +20,6 @@ data class MainShellState(
     val showMainNavigation: Boolean
         get() = navigation != MainNavigationPresentation.Hidden
 
-    val showTabletSidebar: Boolean
-        get() = navigation == MainNavigationPresentation.Sidebar
-
     val showBottomNavigation: Boolean
         get() = navigation == MainNavigationPresentation.BottomBar
 }
@@ -30,12 +27,10 @@ data class MainShellState(
 fun resolveMainShellState(
     route: String?,
     isSearchActive: Boolean,
-    useTabletSidebar: Boolean,
 ): MainShellState {
     val isMainDestination = route.isMainDestination()
     val navigation = when {
         isSearchActive || !isMainDestination -> MainNavigationPresentation.Hidden
-        useTabletSidebar -> MainNavigationPresentation.Sidebar
         else -> MainNavigationPresentation.BottomBar
     }
     return MainShellState(

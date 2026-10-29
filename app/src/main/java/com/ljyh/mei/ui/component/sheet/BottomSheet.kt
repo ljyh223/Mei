@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -512,13 +513,13 @@ fun rememberBottomSheetState(
     collapsedBound: Dp = dismissedBound,
     initialAnchor: Int = dismissedAnchor,
     allowDismissGesture: Boolean = true,
+    savedAnchor: MutableIntState? = null,
 ): BottomSheetState {
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
 
-    var previousAnchor by rememberSaveable {
-        mutableIntStateOf(initialAnchor)
-    }
+    val localAnchor = rememberSaveable { mutableIntStateOf(initialAnchor) }
+    var previousAnchor by (savedAnchor ?: localAnchor)
     val anchors = DraggableAnchors {
         BottomSheetValue.Dismissed at with(density) { dismissedBound.toPx() }
         BottomSheetValue.Collapsed at with(density) { collapsedBound.toPx() }

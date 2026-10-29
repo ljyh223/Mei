@@ -180,7 +180,7 @@ fun LocalSongListScreen(
                             modifier = Modifier.weight(0.6f),
                             pagingItems = null,
                             staticTracks = tracks,
-                            isTablet = true,
+                            tableRows = true,
                             onTrackClick = { track, index ->
                                 val isLost = songs.find { it.toMediaMetadata().id == track.id }
                                     ?.let { !isLocalFileAvailable(context, it) } ?: false

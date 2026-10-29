@@ -1,11 +1,11 @@
-package com.ljyh.mei.ui.screen.playlist
+package com.ljyh.mei.data.paging
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.repository.PlaylistRepository
 
-class PlaylistTrackSource(
+class PlaylistTrackPagingSource(
     private val repository: PlaylistRepository,
     private val firstData: List<MediaMetadata>,
     private val ids: List<String>

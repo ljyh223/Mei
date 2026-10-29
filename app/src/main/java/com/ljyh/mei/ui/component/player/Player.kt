@@ -45,6 +45,7 @@ fun BottomSheetPlayer(
     systemBottomInset: Dp = 0.dp,
     bottomNavigationVisibilityProgress: Float = 1f,
     compactProgress: Float = 0f,
+    collapsedPlayerContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
@@ -120,6 +121,7 @@ fun BottomSheetPlayer(
             overlayHandler = overlayHandler,
             collapsedBottomOffset = collapsedBottomOffset,
             miniPlayerBottomInset = miniPlayerBottomInset,
+            collapsedPlayerContent = collapsedPlayerContent,
         )
     } else {
         AppleMusicPlayer(

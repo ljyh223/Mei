@@ -1,9 +1,5 @@
 package com.ljyh.mei.ui.screen.playlist.component
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CloudOff
-import androidx.compose.material.icons.rounded.LibraryMusic
-import com.ljyh.mei.ui.component.MeiStatePanel
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -33,30 +32,32 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.ui.component.MeiStatePanel
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.track.Track
 import com.ljyh.mei.ui.component.track.TrackPlaceholder
+import com.ljyh.mei.ui.screen.playlist.PlaylistHeaderKey
 import com.ljyh.mei.ui.screen.playlist.PlaylistOrderItem
 import com.ljyh.mei.ui.screen.playlist.displayTrack
-import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.utils.preferences.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
 fun PlaylistTrackList(
     modifier: Modifier = Modifier,
     pagingItems: LazyPagingItems<MediaMetadata>? = null,
     staticTracks: List<MediaMetadata> = emptyList(),
-    isTablet: Boolean = false,
+    tableRows: Boolean = false,
     headerContent: (@Composable () -> Unit)? = null, // 新增：可选的头部内容
     onTrackClick: (MediaMetadata, Int) -> Unit,
     onMoreClick: (MediaMetadata, IntRect) -> Unit,
@@ -90,7 +91,7 @@ fun PlaylistTrackList(
 
     Column(modifier = modifier.fillMaxSize()) {
 
-        if (isTablet && playlistTrackTableHeader) {
+        if (tableRows && playlistTrackTableHeader) {
             TrackTableHeader(isLoading = isLoading)
         }
 
@@ -100,7 +101,7 @@ fun PlaylistTrackList(
             contentPadding = contentPadding
         ) {
             if (headerContent != null) {
-                item {
+                item(key = PlaylistHeaderKey) {
                     headerContent()
                 }
             }
@@ -111,7 +112,7 @@ fun PlaylistTrackList(
                     count = loadingItemCount,
                     key = { "playlist_track_placeholder_$it" },
                 ) { index ->
-                    TrackPlaceholder(index = index, isTablet = isTablet)
+                    TrackPlaceholder(index = index, isTablet = tableRows)
                 }
             } else if (reorderItems != null) {
                 itemsIndexed(reorderItems, key = { _, item -> item.id }) { index, item ->
@@ -119,7 +120,7 @@ fun PlaylistTrackList(
                         Track(
                             track = item.displayTrack,
                             index = index,
-                            isTablet = isTablet,
+                            isTablet = tableRows,
                             onClick = { if (item.track != null) onTrackClick(item.track, index) },
                             onMoreClick = { anchor -> if (item.track != null) onMoreClick(item.track, anchor) },
                             moreButtonModifier = if (reorderSaving) Modifier else
@@ -160,7 +161,7 @@ fun PlaylistTrackList(
                         Track(
                             track = track,
                             index = index,
-                            isTablet = isTablet,
+                            isTablet = tableRows,
                             onClick = { onTrackClick(track, index) },
                             onMoreClick = { anchor -> onMoreClick(track, anchor) }
                         )
@@ -214,7 +215,7 @@ fun PlaylistTrackList(
                     Track(
                         track = track,
                         index = index,
-                        isTablet = isTablet,
+                        isTablet = tableRows,
                         onClick = { onTrackClick(track, index) },
                         onMoreClick = { anchor -> onMoreClick(track, anchor) }
                     )

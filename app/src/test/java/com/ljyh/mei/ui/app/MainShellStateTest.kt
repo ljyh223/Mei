@@ -9,16 +9,14 @@ import org.junit.Test
 
 class MainShellStateTest {
     @Test
-    fun tabletMainDestinationUsesSidebar() {
+    fun mainDestinationUsesBottomNavigation() {
         val state = resolveMainShellState(
             route = Screen.Library.route,
             isSearchActive = false,
-            useTabletSidebar = true,
         )
 
-        assertEquals(MainNavigationPresentation.Sidebar, state.navigation)
-        assertTrue(state.showTabletSidebar)
-        assertFalse(state.showBottomNavigation)
+        assertEquals(MainNavigationPresentation.BottomBar, state.navigation)
+        assertTrue(state.showBottomNavigation)
     }
 
     @Test
@@ -26,7 +24,6 @@ class MainShellStateTest {
         val state = resolveMainShellState(
             route = Screen.PlayList.route,
             isSearchActive = false,
-            useTabletSidebar = true,
         )
 
         assertEquals(MainNavigationPresentation.Hidden, state.navigation)
@@ -37,7 +34,6 @@ class MainShellStateTest {
         val state = resolveMainShellState(
             route = Screen.Home.route,
             isSearchActive = true,
-            useTabletSidebar = false,
         )
 
         assertEquals(MainNavigationPresentation.Hidden, state.navigation)
