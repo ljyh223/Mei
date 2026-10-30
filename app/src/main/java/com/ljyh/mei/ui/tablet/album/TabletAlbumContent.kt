@@ -89,11 +89,12 @@ internal fun TabletAlbumContent(state: AlbumDetailUiState, actions: AlbumDetailA
                             tint = MaterialTheme.colorScheme.surface, hasSongs = state.songs.isNotEmpty(), canPlay = state.canPlay,
                             isSubscribed = state.isSubscribed, isSubscriptionLoading = state.isSubscriptionLoading,
                             canSubscribe = state.canSubscribe, onPlayAll = actions.onPlayAll,
-                            onSubscribe = actions.onSubscribe, onDownload = actions.onDownload,
+                            onSubscribe = actions.onSubscribe, onDownload = actions.onDownload, playInCenter = true,
                         )
                     }
                     if (album.description.isNotBlank()) item(key = "album_description") {
-                        AlbumDescription(album.id, album.description, maxLines = 6) { description = true }
+                        AlbumDescription(album.id, album.description, maxLines = 3,
+                            expandBelowDescription = true) { description = true }
                     }
                 }
             },

@@ -1,11 +1,14 @@
 package com.ljyh.mei.ui.tablet.search
 
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
+
 internal data class TabletSearchLayout(
     val twoPanes: Boolean,
     val primaryWidthDp: Float,
     val songColumns: Boolean,
     val artworkColumns: Int,
     val artistColumns: Int,
+    val albumColumns: Int,
 )
 
 /** Uses the search viewport, including its gutters, rather than a physical-device flag. */
@@ -25,5 +28,6 @@ internal fun tabletSearchLayout(widthDp: Float, fontScale: Float, gutterDp: Floa
         songColumns = body >= 760f * scale,
         artworkColumns = ((body + 24f) / (156f * scale + 24f)).toInt().coerceIn(1, 6),
         artistColumns = ((body + 24f) / (176f * scale + 24f)).toInt().coerceIn(1, 5),
+        albumColumns = ((body + 24f) / (156f * scale * VinylAlbumArtworkRatio + 24f)).toInt().coerceIn(1, 6),
     )
 }

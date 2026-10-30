@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.*
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtwork
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.track.TrackPlaceholder
@@ -43,7 +45,8 @@ private fun TabletSearchResults(state: SearchResultContentState) = with(state) {
         val metrics = tabletSearchLayout(maxWidth.value, LocalDensity.current.fontScale, meiPageGutter().value)
         val columns = when (type) {
             SearchType.Artist -> metrics.artistColumns
-            SearchType.Album, SearchType.Playlist -> metrics.artworkColumns
+            SearchType.Album -> metrics.albumColumns
+            SearchType.Playlist -> metrics.artworkColumns
             else -> 1
         }
         val grid = rememberLazyGridState()
@@ -85,7 +88,7 @@ private fun TabletSearchResults(state: SearchResultContentState) = with(state) {
                             else items(if (type == SearchType.Song) 8 else columns * 3, key = { "loading-$it" }) { index ->
                                 if (type == SearchType.Song) TrackPlaceholder(index, isTablet = metrics.songColumns)
                                 else TabletSearchTile("", "", null, words = emptyList(), round = type == SearchType.Artist,
-                                    isLoading = true, onClick = {})
+                                    vinyl = type == SearchType.Album, isLoading = true, onClick = {})
                             }
                         }
                         page.error && page.data == null -> item("error", span = { GridItemSpan(maxLineSpan) }) {
@@ -111,7 +114,7 @@ private fun TabletSearchResults(state: SearchResultContentState) = with(state) {
                                         words, round = true, onClick = { actions.onArtist(artist) })
                                 }
                                 SearchType.Album -> items(data.albums, key = { "album-${it.id}" }) { album ->
-                                    TabletSearchTile(album.title, albumSubtitle(album), album.coverUrl, words,
+                                    TabletSearchTile(album.title, albumSubtitle(album), album.coverUrl, words, vinyl = true,
                                         onClick = { actions.onAlbum(album) })
                                 }
                                 SearchType.Playlist -> items(data.playlists, key = { "playlist-${it.id}" }) { playlist ->
@@ -162,7 +165,8 @@ private fun TabletSearchOverview(data: SearchResults, words: List<String>, actio
             SearchSectionHeader("专辑", { actions.onType(SearchType.Album) })
             LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 items(albums, key = { it.id }) { album ->
-                    TabletSearchTile(album.title, albumSubtitle(album), album.coverUrl, words, modifier = Modifier.width(144.dp),
+                    TabletSearchTile(album.title, albumSubtitle(album), album.coverUrl, words,
+                        modifier = Modifier.width(144.dp * VinylAlbumArtworkRatio), vinyl = true,
                         onClick = { actions.onAlbum(album) })
                 }
             }
@@ -206,16 +210,20 @@ private fun TabletSearchSongPreview(songs: List<MediaMetadata>, section: String,
 @Composable
 private fun TabletSearchTile(
     title: String, subtitle: String, image: String?, words: List<String>, modifier: Modifier = Modifier,
-    round: Boolean = false, isLoading: Boolean = false, onClick: () -> Unit,
+    round: Boolean = false, vinyl: Boolean = false, isLoading: Boolean = false, onClick: () -> Unit,
 ) {
     Column(modifier.fillMaxWidth().clickable(enabled = !isLoading, onClick = onClick)
         .then(if (isLoading) Modifier.clearAndSetSemantics { } else Modifier).padding(bottom = 8.dp),
         horizontalAlignment = if (round) Alignment.CenterHorizontally else Alignment.Start) {
-        val shape = if (round) CircleShape else MaterialTheme.shapes.medium
-        val artwork = (if (round) Modifier.size(96.dp) else Modifier.fillMaxWidth().aspectRatio(1f))
-            .clip(shape).background(MaterialTheme.colorScheme.surfaceContainer)
-        if (isLoading) Spacer(artwork.skeleton(true, shape))
-        else AsyncImage(image, contentDescription = null, modifier = artwork, contentScale = ContentScale.Crop)
+        if (vinyl) {
+            VinylAlbumArtwork(image, isLoading = isLoading)
+        } else {
+            val shape = if (round) CircleShape else MaterialTheme.shapes.medium
+            val artwork = (if (round) Modifier.size(96.dp) else Modifier.fillMaxWidth().aspectRatio(1f))
+                .clip(shape).background(MaterialTheme.colorScheme.surfaceContainer)
+            if (isLoading) Spacer(artwork.skeleton(true, shape))
+            else AsyncImage(image, contentDescription = null, modifier = artwork, contentScale = ContentScale.Crop)
+        }
         Text(highlight(if (isLoading) "正在加载的标题" else title, words),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp).skeleton(isLoading),
             style = MaterialTheme.typography.titleSmall, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,

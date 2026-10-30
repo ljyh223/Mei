@@ -21,7 +21,7 @@ import com.ljyh.mei.ui.component.MeiSectionTitle
 import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.collection.MeiCollectionStatus
 import com.ljyh.mei.ui.component.card.PlaylistCard
-import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import java.util.Locale
 import com.ljyh.mei.ui.component.layout.meiPageGutter
@@ -151,10 +151,9 @@ internal fun DiscoverPlaylistCard(
 
 @Composable
 internal fun DiscoverAlbumCard(album: DiscoverAlbum, modifier: Modifier, onClick: () -> Unit) {
-    ArtworkCard(
+    VinylAlbumCard(
         title = album.name,
         subtitle = album.artist,
-        reserveSubtitleSpace = true,
         coverUrl = album.cover,
         modifier = modifier,
         onClick = onClick

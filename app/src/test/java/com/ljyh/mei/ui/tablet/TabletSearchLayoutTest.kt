@@ -55,6 +55,16 @@ class TabletSearchLayoutTest {
     }
 
     @Test
+    fun albumGridsReserveExtraDiscWidthWithoutShrinkingTheirSquareSleeves() {
+        for (width in listOf(600f, 900f, 1280f, 2400f)) for (scale in listOf(1f, 1.3f, 2f)) {
+            val layout = tabletSearchLayout(width, scale, 28f)
+            assertTrue(layout.albumColumns <= layout.artworkColumns)
+            val cell = (width - 56f - 24f * (layout.albumColumns - 1)) / layout.albumColumns
+            if (layout.albumColumns > 1) assertTrue(cell / 1.2f >= 156f * scale - .01f)
+        }
+    }
+
+    @Test
     fun invalidFontScalesUseNormalTextMetrics() {
         val normal = tabletSearchLayout(1024f, 1f, 28f)
         for (scale in listOf(Float.NaN, Float.POSITIVE_INFINITY, 0f, -1f, 0.8f)) {

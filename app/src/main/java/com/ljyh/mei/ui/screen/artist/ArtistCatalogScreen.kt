@@ -31,7 +31,8 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
-import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.collection.MeiCollectionPage
 import com.ljyh.mei.ui.component.collection.MeiCollectionLoadMore
 import com.ljyh.mei.ui.component.track.Track
@@ -133,7 +134,7 @@ fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewM
         onNavigateBack = { if (isSearchActive) closeSearch() else navController.popBackStack() },
         onRetry = { if (searching) viewModel.searchAlbums(searchQuery) else albums.retry() },
         state = if (searching) searchScroll else normalScroll,
-        columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(148.dp),
+        columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(148.dp * VinylAlbumArtworkRatio),
         loading = if (searching) currentSearch.isSearching else albums.loadState.refresh is LoadState.Loading,
         failed = if (searching) currentSearch.error != null else albums.loadState.refresh is LoadState.Error,
         emptyText = if (searching) "没有找到匹配的专辑" else "暂无专辑", emptyActionLabel = null,
@@ -147,7 +148,7 @@ fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewM
     ) { index ->
         val album = if (searching) currentSearch.matches[index] else albums[index]
         album?.let {
-            ArtworkCard(title = album.name, subtitle = "${album.size} 首", coverUrl = album.picUrl, modifier = Modifier.fillMaxWidth()) {
+            VinylAlbumCard(title = album.name, subtitle = "${album.size} 首", coverUrl = album.picUrl, modifier = Modifier.fillMaxWidth()) {
                 Screen.Album.navigate(navController) { addPath(album.id.toString()) }
             }
         }

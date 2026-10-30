@@ -327,17 +327,37 @@ internal fun AlbumActions(
     onPlayAll: () -> Unit,
     onSubscribe: () -> Unit,
     onDownload: () -> Unit,
+    playInCenter: Boolean = false,
 ) {
+    @Composable
+    fun SubscribeButton() {
+        FilledTonalIconButton(onClick = onSubscribe, enabled = canSubscribe, modifier = Modifier.size(48.dp)) {
+            if (isSubscribed == null && isSubscriptionLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    if (isSubscribed == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = when (isSubscribed) {
+                        true -> "取消收藏专辑"
+                        false -> "收藏专辑"
+                        null -> "重试获取收藏状态"
+                    },
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
     val surface = MaterialTheme.colorScheme.surface
     Box(
         modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface))),
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = if (playInCenter) Alignment.Center else Alignment.CenterStart,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (playInCenter) 16.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (playInCenter) SubscribeButton()
             Button(
                 onClick = onPlayAll,
                 enabled = hasSongs && canPlay,
@@ -348,21 +368,7 @@ internal fun AlbumActions(
                 Spacer(Modifier.width(6.dp))
                 Text("播放全部")
             }
-            FilledTonalIconButton(onClick = onSubscribe, enabled = canSubscribe, modifier = Modifier.size(48.dp)) {
-                if (isSubscribed == null && isSubscriptionLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(
-                        if (isSubscribed == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = when (isSubscribed) {
-                            true -> "取消收藏专辑"
-                            false -> "收藏专辑"
-                            null -> "重试获取收藏状态"
-                        },
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
+            if (!playInCenter) SubscribeButton()
             FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Default.Download, contentDescription = "下载专辑", modifier = Modifier.size(20.dp))
             }
@@ -371,29 +377,44 @@ internal fun AlbumActions(
 }
 
 @Composable
-internal fun AlbumDescription(albumId: Long, description: String, maxLines: Int = 1, onExpand: () -> Unit) {
-    var canExpand by remember(albumId, description) { mutableStateOf(false) }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+internal fun AlbumDescription(
+    albumId: Long,
+    description: String,
+    maxLines: Int = 1,
+    expandBelowDescription: Boolean = false,
+    onExpand: () -> Unit,
+) {
+    var canExpand by remember(albumId, description, maxLines, expandBelowDescription) { mutableStateOf(false) }
+    @Composable
+    fun DescriptionText(modifier: Modifier) {
         Text(
             text = description.trim(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
+            modifier = modifier,
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { canExpand = it.hasVisualOverflow },
         )
-        if (canExpand) {
-            TextButton(
+    }
+    val modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 2.dp)
+    if (expandBelowDescription) {
+        Column(modifier) {
+            DescriptionText(Modifier.fillMaxWidth())
+            if (canExpand) TextButton(
+                onClick = onExpand,
+                modifier = Modifier.align(Alignment.Start),
+                contentPadding = PaddingValues(horizontal = 0.dp),
+            ) { Text("展开") }
+        }
+    } else {
+        Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+            DescriptionText(Modifier.weight(1f))
+            if (canExpand) TextButton(
                 onClick = onExpand,
                 modifier = Modifier.size(width = 48.dp, height = 48.dp),
                 contentPadding = PaddingValues(horizontal = 0.dp),
-            ) {
-                Text("展开")
-            }
+            ) { Text("展开") }
         }
     }
 }

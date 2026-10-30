@@ -24,6 +24,8 @@ import com.ljyh.mei.ui.component.MeiSectionTitle
 import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.MeiStatePanel
 import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.glass.*
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
@@ -430,10 +432,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
     } else item(key = "mobile_albums_shelf") {
         LazyRow(contentPadding = rowPadding, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(data.albums, key = { it.id }) { album ->
-                ArtworkCard(
-                    album.title, album.cover, Modifier.width(144.dp),
+                VinylAlbumCard(
+                    title = album.title, coverUrl = album.cover,
+                    modifier = Modifier.width(144.dp * VinylAlbumArtworkRatio),
                     subtitle = album.artist.joinToString(" / ") { it.name },
-                    reserveSubtitleSpace = true
                 ) { onOpenAlbum(album.id) }
             }
         }

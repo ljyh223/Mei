@@ -49,7 +49,8 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.ui.component.MeiShowAllButton
-import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
@@ -288,11 +289,11 @@ internal fun EmptyArtistSection(message: String) {
 
 @Composable
 fun AlbumCard(album: Album? = null, isLoading: Boolean = false, onClick: (Long) -> Unit) {
-    ArtworkCard(
+    VinylAlbumCard(
         title = album?.title.orEmpty(), coverUrl = album?.cover,
         subtitle = album?.let { "${it.size} 首" } ?: "00 首",
-        modifier = Modifier.width(116.dp), isLoading = isLoading, enabled = album != null,
-        cornerRadius = 8.dp, textSpacing = 6.dp,
+        modifier = Modifier.width(116.dp * VinylAlbumArtworkRatio), isLoading = isLoading, enabled = album != null,
+        textSpacing = 6.dp,
         titleStyle = MaterialTheme.typography.labelMedium, subtitleStyle = MaterialTheme.typography.labelSmall,
         onClick = { album?.id?.let(onClick) },
     )

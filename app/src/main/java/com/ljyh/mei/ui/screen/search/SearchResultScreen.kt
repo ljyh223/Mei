@@ -54,6 +54,8 @@ import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtwork
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.component.track.*
 import com.ljyh.mei.ui.local.*
@@ -293,6 +295,7 @@ private fun SearchResultPage(
                                 image = null,
                                 words = emptyList(),
                                 round = type == SearchType.Artist,
+                                albumArtwork = type == SearchType.Album,
                                 titleLines = if (type == SearchType.Playlist) 2 else 1,
                                 isLoading = true,
                                 onClick = {},
@@ -386,11 +389,9 @@ private fun LazyListScope.overview(data: SearchResults, words: List<String>, act
         item("albums") {
             LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 items(albums, key = { it.id }) { album ->
-                    Column(Modifier.width(136.dp).clip(MaterialTheme.shapes.medium).clickable { actions.onAlbum(album) }
+                    Column(Modifier.width(136.dp * VinylAlbumArtworkRatio).clickable { actions.onAlbum(album) }
                         .padding(bottom = 8.dp)) {
-                        AsyncImage(model = album.coverUrl, contentDescription = null, contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(136.dp).clip(MaterialTheme.shapes.medium)
-                                .background(MaterialTheme.colorScheme.surfaceContainer))
+                        VinylAlbumArtwork(album.coverUrl)
                         Text(highlight(album.title, words), modifier = Modifier.padding(top = 8.dp),
                             style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Text(albumSubtitle(album), modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall,
@@ -440,7 +441,7 @@ internal fun SearchArtistRow(artist: SearchArtist, words: List<String>, onClick:
 internal fun SearchAlbumRow(album: SearchAlbum, words: List<String>, onClick: (SearchAlbum) -> Unit, bestMatch: Boolean = false) {
     SearchEntityRow(album.title, listOf(albumSubtitle(album), if (bestMatch) "专辑" else "${album.size} 首")
         .filter(String::isNotBlank).joinToString(" · "), album.coverUrl, words,
-        bestMatch = bestMatch, onClick = { onClick(album) })
+        bestMatch = bestMatch, albumArtwork = true, onClick = { onClick(album) })
 }
 
 @Composable
@@ -454,18 +455,25 @@ internal fun SearchPlaylistRow(playlist: SearchPlaylist, words: List<String>, on
 @Composable
 private fun SearchEntityRow(
     title: String, subtitle: String, image: String?, words: List<String>, round: Boolean = false,
-    bestMatch: Boolean = false, titleLines: Int = 1, isLoading: Boolean = false, onClick: () -> Unit,
+    bestMatch: Boolean = false, titleLines: Int = 1, isLoading: Boolean = false,
+    albumArtwork: Boolean = false, onClick: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth().clickable(enabled = !isLoading, onClick = onClick)
         .then(if (isLoading) Modifier.clearAndSetSemantics { } else Modifier)
         .padding(horizontal = meiPageGutter(), vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        val artworkShape = if (round) CircleShape else MaterialTheme.shapes.small
-        val artworkModifier = Modifier.size(if (bestMatch) 64.dp else 56.dp).clip(artworkShape)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-        if (isLoading) Spacer(artworkModifier.skeleton(true, artworkShape))
-        else AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = artworkModifier)
+        val coverSize = if (bestMatch) 64.dp else 56.dp
+        if (albumArtwork) {
+            VinylAlbumArtwork(image, Modifier.size(width = coverSize * VinylAlbumArtworkRatio, height = coverSize),
+                isLoading = isLoading)
+        } else {
+            val artworkShape = if (round) CircleShape else MaterialTheme.shapes.small
+            val artworkModifier = Modifier.size(coverSize).clip(artworkShape)
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+            if (isLoading) Spacer(artworkModifier.skeleton(true, artworkShape))
+            else AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop,
+                modifier = artworkModifier)
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(highlight(title, words), modifier = Modifier.skeleton(isLoading), style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium, maxLines = titleLines, overflow = TextOverflow.Ellipsis)

@@ -46,7 +46,9 @@ internal fun AdaptiveTabletContent(
     }
 }
 
-internal fun tabletArtworkColumns(widthDp: Float, fontScale: Float, gutterDp: Float): Int {
+internal fun tabletArtworkColumns(
+    widthDp: Float, fontScale: Float, gutterDp: Float, artworkWidthRatio: Float = 1f,
+): Int {
     val scale = fontScale.takeIf { it.isFinite() }?.coerceAtLeast(1f) ?: 1f
-    return ((widthDp - gutterDp * 2f + 16f) / (156f * scale + 16f)).toInt().coerceIn(1, 6)
+    return ((widthDp - gutterDp * 2f + 16f) / (156f * scale * artworkWidthRatio + 16f)).toInt().coerceIn(1, 6)
 }

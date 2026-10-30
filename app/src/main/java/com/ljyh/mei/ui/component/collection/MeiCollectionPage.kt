@@ -43,7 +43,8 @@ fun MeiCollectionPage(
     emptyText: String = "暂时没有内容",
     emptyActionLabel: String? = "重新加载",
     horizontalContentPadding: Dp? = null,
-    verticalItemSpacing: Dp = 16.dp,
+    horizontalItemSpacing: Dp? = null,
+    verticalItemSpacing: Dp? = null,
     showLargeTitle: Boolean = true,
     titleContent: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
@@ -64,7 +65,11 @@ fun MeiCollectionPage(
             else (state.firstVisibleItemScrollOffset / collapseDistance).coerceIn(0f, 1f)
         }
     }
-    Box(modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        // Use this collection's actual width, including when hosted in a resized window.
+        val wideArtworkGrid = maxWidth >= 600.dp && columns != GridCells.Fixed(1)
+        val columnSpacing = horizontalItemSpacing ?: if (wideArtworkGrid) 24.dp else 12.dp
+        val rowSpacing = verticalItemSpacing ?: if (wideArtworkGrid) 28.dp else 16.dp
         CompositionLocalProvider(LocalMeiPageProgress provides progress) {
             LazyVerticalGrid(
                 columns = columns,
@@ -76,8 +81,8 @@ fun MeiCollectionPage(
                     top = top + 64.dp,
                     bottom = insets.calculateBottomPadding() + 24.dp,
                 ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(verticalItemSpacing),
+                horizontalArrangement = Arrangement.spacedBy(columnSpacing),
+                verticalArrangement = Arrangement.spacedBy(rowSpacing),
             ) {
                 if (showLargeTitle) item(key = "collection_title", span = { GridItemSpan(maxLineSpan) }) {
                     MeiLargeTitle(title, startPadding = (titleGutter - gutter).coerceAtLeast(0.dp))

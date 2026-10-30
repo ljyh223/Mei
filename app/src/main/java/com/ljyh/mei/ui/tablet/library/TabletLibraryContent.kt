@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.MeiStatePanel
 import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.screen.main.library.*
@@ -58,6 +60,8 @@ internal fun TabletLibraryContent(state: LibraryPageState, actions: LibraryPageA
             mainPane = { padding ->
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     val columns = tabletArtworkColumns(maxWidth.value, LocalDensity.current.fontScale, meiPageGutter().value)
+                    val albumColumns = tabletArtworkColumns(maxWidth.value, LocalDensity.current.fontScale,
+                        meiPageGutter().value, VinylAlbumArtworkRatio)
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding,
                         verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         when {
@@ -94,16 +98,16 @@ internal fun TabletLibraryContent(state: LibraryPageState, actions: LibraryPageA
                                             onClick = { actions.onOpenPlaylist(playlist.id) })
                                     }
                                 }
-                                item(key = "albums_heading") { TabletSectionHeading("收藏专辑", if (content.albums.size > columns) ({ actions.onOpenCollection(LibraryCollection.Albums) }) else null) }
+                                item(key = "albums_heading") { TabletSectionHeading("收藏专辑", if (content.albums.size > albumColumns) ({ actions.onOpenCollection(LibraryCollection.Albums) }) else null) }
                                 when {
                                     content.albumsLoading && content.albums.isEmpty() -> item {
-                                        TabletArtworkRow((0 until columns).toList(), columns) { _, modifier -> ArtworkCard("", null, modifier, isLoading = true, onClick = {}) }
+                                        TabletArtworkRow((0 until albumColumns).toList(), albumColumns) { _, modifier -> VinylAlbumCard("", "", null, modifier, isLoading = true, onClick = {}) }
                                     }
                                     content.albumsError != null && content.albums.isEmpty() -> item { MeiStatePanel("专辑暂未同步", Icons.Rounded.CloudOff,
                                         actionLabel = "重试", onAction = actions.onRetry) }
                                     content.albums.isEmpty() -> item { LibraryEmpty("还没有收藏专辑") }
-                                    else -> item { TabletArtworkRow(content.albums.take(columns), columns) { album, modifier ->
-                                        ArtworkCard(album.title, album.cover, modifier, subtitle = album.artist.joinToString(" / ") { it.name },
+                                    else -> item { TabletArtworkRow(content.albums.take(albumColumns), albumColumns) { album, modifier ->
+                                        VinylAlbumCard(album.title, album.artist.joinToString(" / ") { it.name }, album.cover, modifier,
                                             onClick = { actions.onOpenAlbum(album.id) })
                                     } }
                                 }
@@ -150,7 +154,7 @@ private fun LibraryLikedSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     Text("我喜欢的音乐", modifier = Modifier.skeleton(metadataLoading),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,

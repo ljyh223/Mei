@@ -22,6 +22,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.collection.MeiCollectionPage
 import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
@@ -67,7 +69,7 @@ fun LibraryCollectionScreen(collection: LibraryCollection, viewModel: LibraryVie
             if (signedIn) viewModel.refresh()
             else Screen.ContentSettings.navigate(nav)
         },
-        columns = if (rememberDeviceInfo().isTablet) GridCells.Adaptive(168.dp) else GridCells.Fixed(
+        columns = if (rememberDeviceInfo().isTablet) GridCells.Adaptive(168.dp * if (isAlbums) VinylAlbumArtworkRatio else 1f) else GridCells.Fixed(
             2
         ),
         showLargeTitle = !searchActive,
@@ -101,10 +103,8 @@ fun LibraryCollectionScreen(collection: LibraryCollection, viewModel: LibraryVie
     ) { index ->
         if (isAlbums) {
             val album = albums[index]
-            ArtworkCard(
-                album.title,
-                album.cover,
-                Modifier.fillMaxWidth(),
+            VinylAlbumCard(
+                title = album.title, coverUrl = album.cover, modifier = Modifier.fillMaxWidth(),
                 subtitle = album.artist.joinToString(" / ") { it.name }) {
                 Screen.Album.navigate(nav) { addPath(album.id.toString()) }
             }

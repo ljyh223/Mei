@@ -29,7 +29,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
-import com.ljyh.mei.ui.component.card.VinylAlbumArtworkRatio
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 
 /** Discovery owns the overview only; complete collections are navigation destinations. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -157,7 +157,7 @@ fun FindMusicScreen(
                             items(entries.take(8), key = { it.id }) { album ->
                                 VinylAlbumCard(
                                     title = album.name,
-                                    artist = album.artist,
+                                    subtitle = album.artist,
                                     coverUrl = album.cover,
                                     modifier = Modifier.width((if (tablet) 168.dp else 136.dp) * VinylAlbumArtworkRatio),
                                 ) { openAlbum(album.id) }

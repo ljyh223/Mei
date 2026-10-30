@@ -19,7 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.ui.component.MeiStatePanel
-import com.ljyh.mei.ui.component.card.ArtworkCard
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.glass.*
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
@@ -89,7 +90,7 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
             },
             mainPane = { padding ->
                 BoxWithConstraints(Modifier.fillMaxSize()) {
-                    val columns = tabletArtworkColumns(maxWidth.value, LocalDensity.current.fontScale, gutter.value)
+                    val columns = tabletArtworkColumns(maxWidth.value, LocalDensity.current.fontScale, gutter.value, VinylAlbumArtworkRatio)
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding,
                         verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         item(key = "songs_heading") { TabletSectionHeading("热门单曲", actions.onBrowseSongs) }
@@ -107,7 +108,7 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                         item(key = "albums_heading") { TabletSectionHeading("专辑", actions.onBrowseAlbums) }
                         when {
                             state.albumsLoading -> item { TabletArtworkRow((0 until columns).toList(), columns) { _, modifier ->
-                                ArtworkCard("", null, modifier, isLoading = true, onClick = {})
+                                VinylAlbumCard("", "", null, modifier, isLoading = true, onClick = {})
                             } }
                             state.albumsError != null -> item { MeiStatePanel("专辑暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetryAlbums) }
@@ -115,7 +116,7 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                                 color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             else -> items(state.albums.take(12).chunked(columns), key = { "albums_${it.first().id}" }) { row ->
                                 TabletArtworkRow(row, columns) { album, modifier ->
-                                    ArtworkCard(album.title, album.cover, modifier, subtitle = "${album.size} 首",
+                                    VinylAlbumCard(album.title, "${album.size} 首", album.cover, modifier,
                                         onClick = { actions.onAlbumClick(album.id) })
                                 }
                             }
