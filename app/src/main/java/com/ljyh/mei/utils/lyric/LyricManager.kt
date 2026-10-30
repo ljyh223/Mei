@@ -77,6 +77,10 @@ class LyricManager @Inject constructor(
     /** 当前正在加载歌词的歌曲 ID，用于防止重复加载 */
     private var currentSongId: String? = null
 
+    /** Main-thread snapshot: callers must not attach another song's retained flow value. */
+    internal fun lyricsForSong(songId: String): LyricData? =
+        _lyricData.value.takeIf { currentSongId == songId }
+
     /** 当前歌词拉取协程 Job，切歌时 cancel */
     private var fetchJob: Job? = null
 
@@ -553,6 +557,10 @@ class LyricManager @Inject constructor(
         fetchJob?.cancel()
         manualQqFetchJob?.cancel()
         currentSongId = null
+        lyricLoadRevision++
+        selectionReady = false
+        _selectionState.value = LyricSelectionState()
+        _lyricData.value = createDefaultLyricData("暂无歌词", source = LyricSource.Empty)
     }
 
     // ==================== 歌词预加载 ====================
@@ -560,7 +568,7 @@ class LyricManager @Inject constructor(
     /**
      * 预加载指定歌曲的歌词到内存缓存
      *
-     * 由 [com.ljyh.mei.ui.component.player.state.PlayerStateContainer] 在切歌时调用，提前拉取下一首。
+     * 由播放服务根据实际播放顺序调用，提前拉取下一首。
      * 委托给 [LyricPreloader] 执行，不干扰当前歌词展示。
      */
     fun preloadLyrics(metadata: MediaMetadata) {

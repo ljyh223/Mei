@@ -144,7 +144,7 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 | 均衡器、混响、限制器 | `playback/equalizer/` |
 | 智能过渡与节拍分析 | `playback/transition/` |
 | USB 权限、输出状态与 JNI 调用 | `playback/usb/` 及播放根目录的输出适配 |
-| 桌面歌词与窗口 | `playback/lyrics/`；共享歌词获取与合并在 `utils/lyric/LyricManager.kt` |
+| 歌词加载、桌面窗口与系统歌词发布 | `playback/lyrics/`；服务持有 `PlaybackLyricsController`，共享获取与合并在 `utils/lyric/LyricManager.kt`；[ColorOS 接入](coloros-lockscreen-lyrics.md) |
 | 下载准备与后台执行 | 页面任务持有者 → `download/DownloadManager.kt` → `DownloadWorker` |
 
 手机与平板播放器从共享 `PlayerHost` 绑定当前播放状态与弹层；平板展示独立位于 `ui/tablet/player/`，具体入口、视觉复用和恢复边界见 [平板播放器](tablet-player.md)。

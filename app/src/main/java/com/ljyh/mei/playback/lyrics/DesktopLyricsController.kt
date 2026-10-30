@@ -236,7 +236,6 @@ internal class DesktopLyricsController(
         val songId = metadata.id.toString()
         if (currentSongId != songId) {
             currentSongId = songId
-            lyricManager.loadLyrics(metadata)
             lastLine = null
         }
 
