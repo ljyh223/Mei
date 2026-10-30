@@ -82,184 +82,158 @@ import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AlbumDetailContent(
-    album: AlbumOverview,
-    coverColor: Color?,
-    songs: List<MediaMetadata>,
-    displayedSongs: List<MediaMetadata>,
-    isSubscribed: Boolean?,
-    isSubscriptionLoading: Boolean,
-    canSubscribe: Boolean,
-    canPlay: Boolean,
-    searchQuery: String,
-    isSearchActive: Boolean,
-    onSearchQueryChange: (String) -> Unit,
-    onSearchActiveChange: (Boolean) -> Unit,
-    onBack: () -> Unit,
-    onArtistClick: (Long) -> Unit,
-    onPlayAll: () -> Unit,
-    onSubscribe: () -> Unit,
-    onDownload: () -> Unit,
-    onTrackClick: (MediaMetadata, Int) -> Unit,
-    onTrackMore: (MediaMetadata, IntRect) -> Unit,
-) {
-    val listState = rememberLazyListState()
-    val artworkBar = rememberMeiArtworkTopBarState(listState, album.id)
-    val surface = MaterialTheme.colorScheme.surface
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val tintStrength = when {
-        coverColor == null -> 0f
-        surface.luminance() > 0.5f && coverColor.luminance() < 0.18f -> 0.08f
-        surface.luminance() <= 0.5f && coverColor.luminance() > 0.65f -> 0.08f
-        surface.luminance() > 0.5f -> 0.14f
-        else -> 0.18f
-    }
-    val albumTint by animateColorAsState(
-        targetValue = coverColor?.let { lerp(surface, it, tintStrength) } ?: surface,
-        label = "AlbumCoverTint",
-    )
-    val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-    val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
-    val participatingArtists = remember(album.artistIds, songs) {
-        val albumArtistIds = album.artistIds.toSet()
-        songs.flatMap { it.artists }
-            .filter { it.name.isNotBlank() && it.id !in albumArtistIds }
-            .distinctBy { if (it.id > 0) it.id.toString() else it.name }
-    }
-    val allArtists = remember(album.artistIds, album.artistNames, participatingArtists) {
-        album.artistNames.mapIndexed { index, name ->
-            MediaMetadata.Artist(album.artistIds.getOrNull(index) ?: 0L, name)
-        }.filter { it.name.isNotBlank() } + participatingArtists
-    }
-    var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
-    var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
+internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailActions) {
+    with(state) {
+        with(actions) {
+            val listState = rememberLazyListState()
+            val artworkBar = rememberMeiArtworkTopBarState(listState, album.id)
+            val surface = MaterialTheme.colorScheme.surface
+            val textColor = MaterialTheme.colorScheme.onSurface
+            val tintStrength = when {
+                coverColor == null -> 0f
+                surface.luminance() > 0.5f && coverColor.luminance() < 0.18f -> 0.08f
+                surface.luminance() <= 0.5f && coverColor.luminance() > 0.65f -> 0.08f
+                surface.luminance() > 0.5f -> 0.14f
+                else -> 0.18f
+            }
+            val albumTint by animateColorAsState(
+                targetValue = coverColor?.let { lerp(surface, it, tintStrength) } ?: surface,
+                label = "AlbumCoverTint",
+            )
+            val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
+            val allArtists = remember(album.artistIds, album.artistNames, songs) { albumDisplayArtists(album, songs) }
+            var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
+            var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
-    val pageHaze = rememberHazeState()
-    Box(Modifier.fillMaxSize().background(surface)) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize().hazeSource(pageHaze),
-            contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
-        ) {
-            item(key = "album_header") {
-                AlbumHeader(
-                    album = album,
-                    trackCount = songs.size,
-                    artists = allArtists,
-                    tint = albumTint,
-                    onArtistClick = onArtistClick,
-                    onShowArtists = { showArtistsSheet = true },
-                    artworkModifier = artworkBar.artworkModifier,
-                )
-            }
-            item(key = "album_actions") {
-                AlbumActions(
-                    tint = albumTint,
-                    hasSongs = songs.isNotEmpty(),
-                    canPlay = canPlay,
-                    isSubscribed = isSubscribed,
-                    isSubscriptionLoading = isSubscriptionLoading,
-                    canSubscribe = canSubscribe,
-                    onPlayAll = onPlayAll,
-                    onSubscribe = onSubscribe,
-                    onDownload = onDownload,
-                )
-            }
-            if (album.description.isNotBlank()) {
-                item(key = "album_description") {
-                    AlbumDescription(album.id, album.description, onExpand = { showDescriptionSheet = true })
+            val pageHaze = rememberHazeState()
+            Box(Modifier.fillMaxSize().background(surface)) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize().hazeSource(pageHaze),
+                    contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
+                ) {
+                    item(key = "album_header") {
+                        AlbumHeader(
+                            album = album,
+                            trackCount = songs.size,
+                            artists = allArtists,
+                            tint = albumTint,
+                            onArtistClick = onArtistClick,
+                            onShowArtists = { showArtistsSheet = true },
+                            artworkModifier = artworkBar.artworkModifier,
+                        )
+                    }
+                    item(key = "album_actions") {
+                        AlbumActions(
+                            tint = albumTint,
+                            hasSongs = songs.isNotEmpty(),
+                            canPlay = canPlay,
+                            isSubscribed = isSubscribed,
+                            isSubscriptionLoading = isSubscriptionLoading,
+                            canSubscribe = canSubscribe,
+                            onPlayAll = onPlayAll,
+                            onSubscribe = onSubscribe,
+                            onDownload = onDownload,
+                        )
+                    }
+                    if (album.description.isNotBlank()) {
+                        item(key = "album_description") {
+                            AlbumDescription(album.id, album.description, onExpand = { showDescriptionSheet = true })
+                        }
+                    }
+                    if (searchQuery.isNotBlank()) {
+                        item(key = "album_search_results_title") {
+                            Text(
+                                text = "搜索结果 · ${displayedSongs.size}",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 8.dp),
+                            )
+                        }
+                    } else {
+                        item(key = "album_tracks_spacing") { Spacer(Modifier.height(16.dp)) }
+                    }
+                    itemsIndexed(displayedSongs, key = { _, song -> song.id }) { index, song ->
+                        AlbumTrackRow(
+                            song = song,
+                            index = songIndexById[song.id] ?: index,
+                            onClick = { onTrackClick(song, index) },
+                            onMore = { anchor -> onTrackMore(song, anchor) },
+                            canPlay = canPlay,
+                        )
+                    }
+                    if (displayedSongs.isEmpty()) {
+                        item(key = "album_empty") {
+                            Text(
+                                text = if (searchQuery.isNotBlank()) "没有找到匹配的歌曲" else "暂无歌曲",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
                 }
-            }
-            if (searchQuery.isNotBlank()) {
-                item(key = "album_search_results_title") {
-                    Text(
-                        text = "搜索结果 · ${displayedSongs.size}",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 8.dp),
-                    )
-                }
-            } else {
-                item(key = "album_tracks_spacing") { Spacer(Modifier.height(16.dp)) }
-            }
-            itemsIndexed(displayedSongs, key = { _, song -> song.id }) { index, song ->
-                AlbumTrackRow(
-                    song = song,
-                    index = songIndexById[song.id] ?: index,
-                    onClick = { onTrackClick(song, index) },
-                    onMore = { anchor -> onTrackMore(song, anchor) },
-                    canPlay = canPlay,
-                )
-            }
-            if (displayedSongs.isEmpty()) {
-                item(key = "album_empty") {
-                    Text(
-                        text = if (searchQuery.isNotBlank()) "没有找到匹配的歌曲" else "暂无歌曲",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
 
-        MeiHazeTopBar(
-            backgroundMode = meiArtworkTopBarBackground(artworkBar.artworkPassed),
-            modifier = artworkBar.toolbarModifier,
-            state = pageHaze,
-            title = "",
-            progress = if (artworkBar.artworkPassed || isSearchActive) 1f else 0f,
-            onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
-            actions = {
-                MeiDetailMoreButton(
-                    shareContent = MediaShareLink.album(album),
-                    searchActive = isSearchActive,
-                    searchLabel = "搜索专辑歌曲",
-                    onSearchActiveChange = { active ->
-                        if (!active) onSearchQueryChange("")
-                        onSearchActiveChange(active)
+                MeiHazeTopBar(
+                    backgroundMode = meiArtworkTopBarBackground(artworkBar.artworkPassed),
+                    modifier = artworkBar.toolbarModifier,
+                    state = pageHaze,
+                    title = "",
+                    progress = if (artworkBar.artworkPassed || isSearchActive) 1f else 0f,
+                    onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
+                    actions = {
+                        MeiDetailMoreButton(
+                            shareContent = MediaShareLink.album(album),
+                            searchActive = isSearchActive,
+                            searchLabel = "搜索专辑歌曲",
+                            onSearchActiveChange = { active ->
+                                if (!active) onSearchQueryChange("")
+                                onSearchActiveChange(active)
+                            },
+                        )
+                    },
+                    titleContent = {
+                        if (isSearchActive) {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = onSearchQueryChange,
+                                placeholder = { Text("搜索专辑歌曲") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                            )
+                        } else {
+                            Text(album.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     },
                 )
-            },
-            titleContent = {
-                if (isSearchActive) {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        placeholder = { Text("搜索专辑歌曲") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                        ),
-                    )
-                } else {
-                    Text(album.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            },
-        )
-    }
+            }
 
-    if (showDescriptionSheet) {
-        DescriptionSheet(album.name, album.description) { showDescriptionSheet = false }
-    }
-    if (showArtistsSheet) {
-        AlbumArtistBottomSheet(
-            albumInfo = MediaMetadata.Album(album.id, album.name),
-            artistList = allArtists,
-            coverUrl = album.picUrl,
-            onAlbumClick = {},
-            onArtistClick = { id ->
-                showArtistsSheet = false
-                onArtistClick(id)
-            },
-            onDismissRequest = { showArtistsSheet = false },
-            showAlbumDestination = false,
-        )
+            if (showDescriptionSheet) {
+                DescriptionSheet(album.name, album.description) { showDescriptionSheet = false }
+            }
+            if (showArtistsSheet) {
+                AlbumArtistBottomSheet(
+                    albumInfo = MediaMetadata.Album(album.id, album.name),
+                    artistList = allArtists,
+                    coverUrl = album.picUrl,
+                    onAlbumClick = {},
+                    onArtistClick = { id ->
+                        showArtistsSheet = false
+                        onArtistClick(id)
+                    },
+                    onDismissRequest = { showArtistsSheet = false },
+                    showAlbumDestination = false,
+                )
+            }
+        }
     }
 }
 
@@ -343,7 +317,7 @@ private fun AlbumHeader(
 }
 
 @Composable
-private fun AlbumActions(
+internal fun AlbumActions(
     tint: Color,
     hasSongs: Boolean,
     canPlay: Boolean,
@@ -397,7 +371,7 @@ private fun AlbumActions(
 }
 
 @Composable
-private fun AlbumDescription(albumId: Long, description: String, onExpand: () -> Unit) {
+internal fun AlbumDescription(albumId: Long, description: String, maxLines: Int = 1, onExpand: () -> Unit) {
     var canExpand by remember(albumId, description) { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 2.dp),
@@ -408,7 +382,7 @@ private fun AlbumDescription(albumId: Long, description: String, onExpand: () ->
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
-            maxLines = 1,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { canExpand = it.hasVisualOverflow },
         )
@@ -425,7 +399,7 @@ private fun AlbumDescription(albumId: Long, description: String, onExpand: () ->
 }
 
 @Composable
-private fun AlbumTrackRow(
+internal fun AlbumTrackRow(
     song: MediaMetadata,
     index: Int,
     onClick: () -> Unit,

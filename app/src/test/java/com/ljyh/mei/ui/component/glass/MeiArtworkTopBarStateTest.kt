@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -138,4 +139,57 @@ class MeiArtworkTopBarStateTest {
             HostActivity.content = {}
         }
     }
+
+    @Test
+    fun imageVisibleInsideTopPaddingDoesNotCollapseTheToolbarEarly() {
+        var list: LazyListState? = null
+        var scope: CoroutineScope? = null
+        var passed = false
+        var boundaryPx = 0
+        HostActivity.content = {
+            val currentList = rememberLazyListState()
+            val chrome = rememberMeiArtworkTopBarState(currentList, "padded-hero")
+            val currentScope = rememberCoroutineScope()
+            val density = LocalDensity.current
+            val currentPassed = chrome.artworkPassed
+            SideEffect {
+                list = currentList
+                scope = currentScope
+                passed = currentPassed
+                boundaryPx = with(density) { 40.dp.roundToPx() }
+            }
+            Box(Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = currentList,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = 120.dp),
+                ) {
+                    item(key = "hero") {
+                        Box(Modifier.fillMaxWidth().height(360.dp).then(chrome.artworkModifier))
+                    }
+                    items(50) { Box(Modifier.fillMaxWidth().height(40.dp)) }
+                }
+                Box(Modifier.fillMaxWidth().height(80.dp).then(chrome.toolbarModifier))
+            }
+        }
+        fun scroll(offset: Int) {
+            compose.runOnIdle { scope!!.launch { list!!.scrollToItem(1, offset) } }
+            compose.waitForIdle()
+        }
+        val activity = Robolectric.buildActivity(HostActivity::class.java).setup()
+        try {
+            compose.waitForIdle()
+            scroll(0)
+            assertEquals(1, list!!.firstVisibleItemIndex)
+            assertFalse("The image still ends below the toolbar inside the 120dp padding", passed)
+            scroll(boundaryPx + 1)
+            assertTrue("Collapse only after the image actually passes the 80dp toolbar", passed)
+            scroll(0)
+            assertFalse(passed)
+        } finally {
+            activity.pause().stop().destroy()
+            HostActivity.content = {}
+        }
+    }
+
 }

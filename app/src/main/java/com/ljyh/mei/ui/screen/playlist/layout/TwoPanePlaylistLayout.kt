@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.layout.meiPageGutter
@@ -53,12 +54,14 @@ internal fun TwoPanePlaylistLayout(content: PlaylistLayoutScope) {
         // The viewport reaches behind the bar; only initial content receives the top inset.
         BoxWithConstraints(Modifier.width(content.detailPaneWidth).fillMaxHeight()) {
             val viewportHeight = maxHeight
+            val artworkBudget = (viewportHeight - topInset - bottomInset -
+                220.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)).coerceAtLeast(144.dp)
             Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 Box(
                     Modifier.fillMaxWidth().heightIn(min = viewportHeight)
                         .padding(top = topInset, bottom = bottomInset),
                     contentAlignment = Alignment.Center,
-                ) { content.header(true) }
+                ) { content.header(true, artworkBudget) }
             }
         }
         PlaylistTracks(

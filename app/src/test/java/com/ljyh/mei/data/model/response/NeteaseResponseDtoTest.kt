@@ -137,11 +137,27 @@ class NeteaseResponseDtoTest {
 
         val song = response.songs.single()
         assertEquals("Album", response.album.name)
+        assertEquals("description", response.toDomain().album.description)
         assertEquals("Artist", response.album.artists.single().name)
         assertEquals(3L, response.toDomain().album.artistIds.single())
         assertEquals(1609459200000L, response.toDomain().album.publishTime)
         assertEquals(500L, song.album.pictureId)
         assertEquals(190000L, song.duration)
+    }
+
+    @Test
+    fun missingNullOrEmptyAlbumDescriptionDoesNotDiscardAlbumAndSongs() {
+        for (description in listOf("\"description\":null,", "", "\"description\":\"\",")) {
+            val response = json.decodeFromString<AlbumDetail>(
+                """{"code":200,"album":{$description"id":5,"name":"Album","picUrl":"cover"},"songs":[{"id":7,"name":"Song"}]}"""
+            )
+            val content = response.toDomain()
+            assertEquals("", content.album.description)
+            assertEquals(5L, content.album.id)
+            assertEquals("Album", content.album.name)
+            assertEquals(7L, content.songs.single().id)
+            assertEquals("cover", content.songs.single().coverUrl)
+        }
     }
 
     @Test

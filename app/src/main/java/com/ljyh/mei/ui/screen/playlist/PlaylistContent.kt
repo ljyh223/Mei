@@ -142,7 +142,7 @@ internal fun PlaylistContent(
                     padding = padding,
                     detailPaneWidth = metrics.detailWidthDp.dp,
                     onTrackMore = { track, anchor -> actions.onOverlayChange(OverlayState.TrackActionMenu(track, anchor)) },
-                    header = { compact ->
+                    header = { compact, maxArtworkHeight ->
                         val titleModifier = if (splitPane) Modifier else Modifier.onGloballyPositioned { coordinates ->
                             titleBottom.value = coordinates.positionInRoot().y + coordinates.size.height
                         }
@@ -156,6 +156,7 @@ internal fun PlaylistContent(
                             actionIcon = state.headerActionIcon,
                             actionLabel = state.headerActionLabel,
                             compact = compact,
+                            maxArtworkHeight = maxArtworkHeight,
                             titleModifier = titleModifier,
                         )
                     },

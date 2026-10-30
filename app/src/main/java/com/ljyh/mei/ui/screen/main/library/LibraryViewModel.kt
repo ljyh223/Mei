@@ -108,6 +108,10 @@ class LibraryViewModel @Inject constructor(
         )
     private val playlistSync = MutableStateFlow<Resource<Unit>>(Resource.Loading)
     private val recentCollectedOrder = MutableStateFlow<List<String>>(emptyList())
+    private val _likedArtworkLoading = MutableStateFlow(false)
+    val likedArtworkLoading: StateFlow<Boolean> = _likedArtworkLoading
+    private val _likedArtworks = MutableStateFlow<List<String>>(emptyList())
+    val likedArtworks: StateFlow<List<String>> = _likedArtworks
     private val _likedArtwork = MutableStateFlow<String?>(null)
     val likedArtwork: StateFlow<String?> = _likedArtwork
     private val _likedSongTitle = MutableStateFlow<String?>(null)
@@ -278,29 +282,44 @@ class LibraryViewModel @Inject constructor(
     fun loadLikedArtwork(id: String?) {
         if (likedArtworkId == id && likedArtworkJob?.isActive == true) return
         likedArtworkJob?.cancel()
-        if (likedArtworkId != id) { _likedArtwork.value = null; _likedSongTitle.value = null }
+        if (likedArtworkId != id) {
+            _likedArtwork.value = null
+            _likedArtworks.value = emptyList()
+            _likedSongTitle.value = null
+        }
         likedArtworkId = id
+        _likedArtworkLoading.value = id != null
         if (id == null) return
         likedArtworkJob = viewModelScope.launch {
-            val result = playlistRepository.getPlaylistDetail(id)
-            if (result is Resource.Success) {
-                val firstId = firstLikedTrackId(result.data)
-                if (firstId == null) {
-                    if (currentCoroutineContext().isActive && likedArtworkId == id) {
-                        _likedArtwork.value = null
-                        _likedSongTitle.value = null
+            try {
+                val result = playlistRepository.getPlaylistDetail(id)
+                if (result is Resource.Success) {
+                    val ids = likedArtworkTrackIds(result.data)
+                    val songs = result.data.tracks.associateBy { it.id }.toMutableMap()
+                    fun publishArtwork() {
+                        if (likedArtworkId != id) return
+                        val first = ids.firstOrNull()?.let(songs::get)
+                        _likedArtwork.value = first?.coverUrl?.takeIf(String::isNotBlank)
+                        _likedSongTitle.value = first?.title?.takeIf(String::isNotBlank)
+                        _likedArtworks.value = ids.map { songs[it]?.coverUrl.orEmpty() }
                     }
-                    return@launch
+                    // Publish available covers immediately; each image loads independently through Coil.
+                    if (currentCoroutineContext().isActive) publishArtwork()
+                    val missing = ids.filterNot(songs::containsKey)
+                    if (missing.isNotEmpty()) {
+                        try {
+                            playlistRepository.getSongDetails(missing.map(Long::toString)).forEach { songs[it.id] = it }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            // Keep covers already present in the playlist detail.
+                        }
+                        if (currentCoroutineContext().isActive) publishArtwork()
+                    }
                 }
-                val known = result.data.tracks.firstOrNull { it.id == firstId }
-                val song = known ?: try {
-                    playlistRepository.getSongDetails(listOf(firstId.toString())).firstOrNull()
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) { null }
+            } finally {
                 if (currentCoroutineContext().isActive && likedArtworkId == id) {
-                    _likedArtwork.value = song?.coverUrl?.takeIf(String::isNotBlank)
-                    _likedSongTitle.value = song?.title?.takeIf(String::isNotBlank)
+                    _likedArtworkLoading.value = false
                 }
             }
         }

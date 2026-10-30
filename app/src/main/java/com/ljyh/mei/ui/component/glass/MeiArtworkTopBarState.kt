@@ -20,7 +20,10 @@ internal class MeiArtworkTopBarState(private val list: LazyListState) {
     private var toolbarBottom by mutableFloatStateOf(0f)
 
     val artworkPassed by derivedStateOf {
-        list.firstVisibleItemIndex > 0 ||
+        // An earlier item can still be visible inside top content padding, behind the bar.
+        // Only use the index fallback when that item is actually out of the viewport.
+        val headerVisible = list.layoutInfo.visibleItemsInfo.any { it.index == 0 }
+        (!headerVisible && list.firstVisibleItemIndex > 0) ||
             (toolbarBottom > 0f && artworkBottom?.let { it <= toolbarBottom } == true)
     }
 

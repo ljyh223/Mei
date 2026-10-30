@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -216,6 +217,7 @@ internal fun PlaylistHeaderActions(
         NeutralIconButton(
             onClick = onSubscribed,
             enabled = !isLoading,
+            isLoading = isLoading,
             contentDescription = actionLabel,
         ) {
             Icon(
@@ -232,7 +234,7 @@ internal fun PlaylistHeaderActions(
         Button(
             onClick = onPlayAll,
             enabled = !isLoading,
-            modifier = Modifier.widthIn(min = 148.dp).heightIn(min = 48.dp),
+            modifier = Modifier.widthIn(min = 148.dp).heightIn(min = 48.dp).skeleton(isLoading, RoundedCornerShape(50)),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         ) {
             Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -245,6 +247,7 @@ internal fun PlaylistHeaderActions(
         NeutralIconButton(
             onClick = onDownload,
             enabled = !isLoading,
+            isLoading = isLoading,
             contentDescription = "下载歌单",
         ) {
             Icon(
@@ -267,6 +270,7 @@ private fun NeutralIconButton(
     onClick: () -> Unit,
     contentDescription: String,
     enabled: Boolean = true,
+    isLoading: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     IconButton(
@@ -276,6 +280,7 @@ private fun NeutralIconButton(
             .size(48.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .skeleton(isLoading, CircleShape)
             .semantics { this.contentDescription = contentDescription },
         content = content,
     )

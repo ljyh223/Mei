@@ -56,5 +56,5 @@ internal class PlaylistLayoutScope(
     val padding: PaddingValues,
     val detailPaneWidth: Dp = 280.dp,
     val onTrackMore: (MediaMetadata, IntRect) -> Unit,
-    val header: @Composable (compact: Boolean) -> Unit,
+    val header: @Composable (compact: Boolean, maxArtworkHeight: Dp?) -> Unit,
 )

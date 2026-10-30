@@ -17,7 +17,7 @@ internal fun SinglePanePlaylistLayout(content: PlaylistLayoutScope) {
     val direction = LocalLayoutDirection.current
     PlaylistTracks(
         content = content,
-        headerContent = { content.header(false) },
+        headerContent = { content.header(false, null) },
         contentPadding = PaddingValues(
             start = content.padding.calculateStartPadding(direction),
             end = content.padding.calculateEndPadding(direction),

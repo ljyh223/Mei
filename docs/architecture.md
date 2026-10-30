@@ -91,17 +91,17 @@ flowchart TD
 
 ### 页面集合：某个功能是否需要另一套内容结构
 
-`MeiAppPages` 承载共享 NavHost，`NavigationBuilder` 统一注册目的地与参数。`MeiPageContent` 定义当前可替换的页面入口；`TabletPageContent` 暂时委托共享实现，后续确实不同的平板页面可在此覆盖。
+`MeiAppPages` 承载共享 NavHost，`NavigationBuilder` 统一注册目的地与参数。`MeiPageContent` 定义当前可替换的页面入口；`TabletPageContent` 已覆盖音乐库、歌手、专辑、搜索和设置等入口，其余方法委托共享实现。
 
 并非所有目的地都已经通过 `MeiPageContent` 接入；`NavigationBuilder` 中仍有直接装配的页面。改造某个目的地时按需要补入口，不复制整份路由图。
 
-独立平板页面共用原目的地与导航 entry 的业务作用域。数据加载、播放队列与账号状态继续复用原实现。
+独立平板页面共用原目的地与导航 entry 的业务作用域。音乐库、歌手和专辑由业务入口将展示状态与操作回调交给独立内容函数，数据加载、播放队列与账号状态继续复用原实现；文件边界见 [平板内容页](tablet-content-pages.md)。
 
 ### 页面内部：同一个功能如何利用当前空间
 
 歌单进入同一个 `PlaylistScreen`。它接入业务状态与操作，`PlaylistContent` 接收展示数据和回调，再按自身实际宽度与字体选择 `SinglePanePlaylistLayout` 或 `TwoPanePlaylistLayout`，普通字体下双栏起点为 840dp。
 
-600dp 与 840dp 分别服务应用底栏和歌单内容。出现宽底栏配单栏歌单是有效组合。只有排列不同的页面可在内容层适配；确实存在内容结构差异的页面再由页面集合接入独立实现。细节见 [平板架构](tablet-ui.md)。
+600dp 与 840dp 分别服务应用底栏和内容分栏；音乐库、歌手和专辑的两栏也以 840dp 为普通字体起点，并随字体增大提高所需宽度。出现宽底栏配单栏歌单是有效组合。只有排列不同的页面可在内容层适配；确实存在内容结构差异的页面再由页面集合接入独立实现。细节见 [平板架构](tablet-ui.md)。
 
 新增页面专用布局放在对应功能内的 `layout/`，具体控件放在 `component/`。不要机械给每个页面都生成 Phone／Tablet 转发文件，也不要把排序模型、缓存和数据源一起归进含义不明的 `state/`。
 
@@ -190,6 +190,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | --- | --- |
 | 协作与当前 UI 约束 | [AGENTS.md](../AGENTS.md) |
 | 平板外层与页面接入 | [tablet-ui.md](tablet-ui.md) |
+| 音乐库、歌手与专辑的平板内容边界 | [tablet-content-pages.md](tablet-content-pages.md) |
 | 歌单展示、布局与状态恢复 | [playlist-detail-architecture.md](playlist-detail-architecture.md) |
 | 综合搜索、分类分页与结果状态 | [search-results.md](search-results.md) |
 | 完整集合页与公共卡片 | [collection-pages.md](collection-pages.md) |

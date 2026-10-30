@@ -37,7 +37,7 @@ data class AlbumDetail(
     @Serializable
     data class Album(
         @SerialName("artists") val artists: List<Artist> = emptyList(),
-        @SerialName("description") val description: String = "",
+        @SerialName("description") val description: String? = null,
         @SerialName("id") val id: Long = 0,
         @SerialName("name") val name: String = "",
         @SerialName("picUrl") val picUrl: String = "",
