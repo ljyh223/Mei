@@ -12,6 +12,8 @@ import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.createGraph
 import com.ljyh.mei.ui.app.MeiPageContent
 import com.ljyh.mei.ui.app.SharedMeiPageContent
+import com.ljyh.mei.ui.component.navigation.selectMainDestination
+import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.navigationBuilder
 import org.junit.Assert.assertFalse
@@ -50,15 +52,29 @@ class TabletSettingsNavigationTest {
     }
 
     @Test
-    fun onlyTabletSettingsDetailTransitionsAreImmediate() {
+    fun enteringTabletSettingsAndSwitchingDetailsAreImmediate() {
         val nav = controller()
         assertTrue(TabletPageContent.useImmediateTransition(nav, Screen.Setting.route, Screen.AppearanceSettings.route))
         assertTrue(TabletPageContent.useImmediateTransition(nav, Screen.AppearanceSettings.route, Screen.GlassSettings.route))
         assertFalse(SharedMeiPageContent.useImmediateTransition(nav, Screen.Setting.route, Screen.AppearanceSettings.route))
         assertFalse(TabletPageContent.useImmediateTransition(nav, Screen.Setting.route, Screen.Home.route))
-        assertFalse(TabletPageContent.useImmediateTransition(nav, Screen.Home.route, Screen.Setting.route))
+        assertTrue(TabletPageContent.useImmediateTransition(nav, Screen.Home.route, Screen.Setting.route))
+        assertTrue(TabletPageContent.useImmediateTransition(nav, Screen.Library.route, Screen.AppearanceSettings.route))
+        assertFalse(TabletPageContent.useImmediateTransition(nav, Screen.Home.route, Screen.Library.route))
+        assertFalse(TabletPageContent.useImmediateTransition(nav, null, Screen.Setting.route))
         assertTrue(nav.popBackStack())
         assertFalse(TabletPageContent.useImmediateTransition(nav, Screen.About.route, Screen.Log.route))
+    }
+
+    @Test
+    fun returningToSavedSettingsDetailFromAnotherTabIsImmediate() {
+        val nav = controller()
+        nav.selectSettingsCategory(Screen.AppearanceSettings.route)
+        nav.selectMainDestination(Index.Library)
+        assertEquals(Screen.Library.route, nav.currentDestination!!.route)
+        nav.selectMainDestination(Index.Setting)
+        assertEquals(Screen.AppearanceSettings.route, nav.currentDestination!!.route)
+        assertTrue(TabletPageContent.useImmediateTransition(nav, Screen.Library.route, nav.currentDestination!!.route))
     }
 
     @Test

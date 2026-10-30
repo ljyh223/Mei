@@ -65,7 +65,7 @@ private val settingsRoutes = setOf(
 )
 
 internal fun NavController.isSettingsDetailTransition(from: String?, to: String?): Boolean =
-    from in settingsRoutes && to in settingsRoutes &&
+    from != null && to in settingsRoutes &&
         runCatching { getBackStackEntry(Screen.Setting.route) }.isSuccess
 
 @OptIn(ExperimentalMaterial3Api::class)
