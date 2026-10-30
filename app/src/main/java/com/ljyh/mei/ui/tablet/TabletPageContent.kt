@@ -7,10 +7,12 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import com.ljyh.mei.ui.app.MeiPageContent
 import com.ljyh.mei.ui.app.SharedMeiPageContent
+import com.ljyh.mei.ui.tablet.search.TabletSearchResultScreen
 
 /** Wide-window settings use the shared routes and business owners. */
 @OptIn(ExperimentalMaterial3Api::class)
 internal object TabletPageContent : MeiPageContent by SharedMeiPageContent {
+    @Composable override fun Search(query: String, type: Int) { TabletSearchResultScreen(query, type) }
     @Composable override fun Settings(scrollBehavior: TopAppBarScrollBehavior) {
         TabletSettingsHome(scrollBehavior)
     }

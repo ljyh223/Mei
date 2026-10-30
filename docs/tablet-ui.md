@@ -42,6 +42,12 @@
 
 歌单功能已集中为 `PlaylistScreen` 接入、纯展示 `PlaylistContent` 与单栏 / 双栏布局。排序草稿、搜索和下载待确认意图由 ViewModel / SavedStateHandle 管理，列表使用歌曲语义锚点恢复。目录、行为和验证边界见 [歌单页面架构与自适应布局](playlist-detail-architecture.md)。
 
+## 搜索结果
+
+搜索结果通过 `MeiPageContent.Search` 接入，`TabletPageContent` 注入独立的平板内容，继续使用同一路由、导航 entry 下的 `SearchViewModel` 和播放操作。输入、分类选择与请求状态保持共享，平板只负责结果布局。
+
+综合结果按页面宽度与字体选择双栏或单列，共用一个纵向滚动容器。单曲分类按可用空间展示歌曲／专辑／时长列，歌手、专辑与歌单采用自适应网格。分类 shimmer 复用实际歌曲行与网格单元的测量尺寸，综合加载保持小转圈，避免假定服务端返回分区。具体宽度、条数和恢复边界见 [搜索结果](search-results.md)。
+
 ## 后续
 
 1. 独立的平板音乐库及歌单选择／内容浏览关系。

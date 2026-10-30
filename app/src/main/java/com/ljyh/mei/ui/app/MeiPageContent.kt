@@ -17,6 +17,7 @@ import com.ljyh.mei.ui.screen.main.library.LibraryScreen
 import com.ljyh.mei.ui.screen.main.library.LibraryViewModel
 import com.ljyh.mei.ui.screen.playlist.PlaylistScreen
 import com.ljyh.mei.ui.screen.setting.SettingScreen
+import com.ljyh.mei.ui.screen.search.SearchResultScreen
 
 /**
  * Page rendering boundary, independent of route parsing and shell geometry.
@@ -37,6 +38,7 @@ internal interface MeiPageContent {
     @Composable fun Artist(id: String)
     @Composable fun ArtistSongs(id: String)
     @Composable fun ArtistAlbums(id: String)
+    @Composable fun Search(query: String, type: Int) { SearchResultScreen(query, type) }
 }
 
 /** Existing responsive pages remain the default until a form factor needs its own presentation. */

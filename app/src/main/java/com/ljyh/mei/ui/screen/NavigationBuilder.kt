@@ -19,7 +19,6 @@ import com.ljyh.mei.ui.screen.local.LocalMusicScreen
 import com.ljyh.mei.ui.screen.local.LocalSongListScreen
 import com.ljyh.mei.ui.screen.main.library.LibraryCollection
 import com.ljyh.mei.ui.screen.daily.EveryDay
-import com.ljyh.mei.ui.screen.search.SearchResultScreen
 import com.ljyh.mei.ui.screen.setting.GlassSettingsScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettingsScreen
 import com.ljyh.mei.ui.screen.setting.BetaSettingsScreen
@@ -214,7 +213,7 @@ internal fun NavGraphBuilder.navigationBuilder(
             }
         ),
     ) {
-        SearchResultScreen(
+        pages.Search(
             query = it.arguments!!.getString("query")!!,
             type= it.arguments!!.getInt("type"),
         )

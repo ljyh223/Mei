@@ -32,6 +32,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -41,6 +44,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
@@ -56,6 +60,7 @@ import com.ljyh.mei.ui.local.*
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -64,7 +69,14 @@ import java.util.Locale
 @OptIn(UnstableApi::class)
 @kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchResultScreen(query: String, type: Int, viewModel: SearchViewModel = hiltViewModel()) {
+internal fun SearchResultScreen(
+    query: String,
+    type: Int,
+    viewModel: SearchViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier,
+    searchFieldMaxWidth: Dp = Dp.Infinity,
+    resultsContent: @Composable (SearchResultContentState) -> Unit = { state -> SearchResultPage(state) },
+) {
     val page by viewModel.pageState.collectAsState()
     val selected by viewModel.currentTab.collectAsState()
     val keyword by viewModel.currentQuery.collectAsState()
@@ -126,7 +138,7 @@ fun SearchResultScreen(query: String, type: Int, viewModel: SearchViewModel = hi
         playingId = metadata?.id?.takeIf { playing },
     )
     val stateHolder = rememberSaveableStateHolder()
-    Column(Modifier.fillMaxSize().then(if (editing) Modifier.imePadding() else Modifier)) {
+    Column(modifier.fillMaxSize().then(if (editing) Modifier.imePadding() else Modifier)) {
         Row(
             Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.statusBars)
@@ -141,7 +153,8 @@ fun SearchResultScreen(query: String, type: Int, viewModel: SearchViewModel = hi
             TextField(
                 value = input,
                 onValueChange = { input = it },
-                modifier = Modifier.weight(1f).focusRequester(inputFocus).onFocusChanged { if (it.isFocused) editing = true }
+                modifier = Modifier.weight(1f, fill = false).widthIn(max = searchFieldMaxWidth).fillMaxWidth()
+                    .focusRequester(inputFocus).onFocusChanged { if (it.isFocused) editing = true }
                     .semantics { contentDescription = "搜索歌曲、歌手、专辑或歌单" },
                 singleLine = true,
                 placeholder = { Text("搜索歌曲、歌手、专辑", maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -176,8 +189,9 @@ fun SearchResultScreen(query: String, type: Int, viewModel: SearchViewModel = hi
             SearchTypeFilterRow(selected, viewModel::onTabChange)
             key(keyword) {
                 stateHolder.SaveableStateProvider("$keyword-${selected.name}") {
-                    SearchResultPage(page, selected, keyword, actions, viewModel::retry, viewModel::loadMore,
-                        Modifier.weight(1f))
+                    Box(Modifier.weight(1f)) {
+                        resultsContent(SearchResultContentState(page, selected, keyword, actions, viewModel::retry, viewModel::loadMore))
+                    }
                 }
             }
         }
@@ -203,7 +217,7 @@ private fun SearchTypeFilterRow(selected: SearchType, onSelect: (SearchType) -> 
     }
 }
 
-private data class SearchActions(
+internal data class SearchActions(
     val onSong: (List<MediaMetadata>, Int, String) -> Unit,
     val onMore: (MediaMetadata, IntRect) -> Unit,
     val onArtist: (SearchArtist) -> Unit,
@@ -213,6 +227,33 @@ private data class SearchActions(
     val playingId: Long?,
 )
 
+internal data class SearchResultContentState(
+    val page: SearchPageState,
+    val type: SearchType,
+    val keyword: String,
+    val actions: SearchActions,
+    val onRetry: () -> Unit,
+    val onLoadMore: () -> Unit,
+)
+
+@Composable
+private fun SearchResultPage(state: SearchResultContentState) = with(state) {
+    SearchResultPage(page, type, keyword, actions, onRetry, onLoadMore, Modifier.fillMaxSize())
+}
+
+@Composable
+internal fun rememberSearchLoading(page: SearchPageState, type: SearchType, keyword: String): Boolean {
+    val initialLoading = page.loading && page.data == null
+    var visible by remember(keyword, type, initialLoading) { mutableStateOf(false) }
+    LaunchedEffect(keyword, type, initialLoading) {
+        if (initialLoading) {
+            delay(250)
+            visible = true
+        }
+    }
+    return visible
+}
+
 @Composable
 private fun SearchResultPage(
     page: SearchPageState, type: SearchType, keyword: String, actions: SearchActions,
@@ -221,6 +262,8 @@ private fun SearchResultPage(
     val listState = rememberLazyListState()
     val currentPage by rememberUpdatedState(page)
     val currentLoadMore by rememberUpdatedState(onLoadMore)
+    val initialLoading = page.loading && page.data == null
+    val showInitialLoading = rememberSearchLoading(page, type, keyword)
     LaunchedEffect(listState) {
         snapshotFlow {
             val state = currentPage
@@ -236,12 +279,27 @@ private fun SearchResultPage(
             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 16.dp),
     ) {
         when {
-            page.loading && page.data == null -> {
-                item("loading_title") {
-                    Spacer(Modifier.padding(horizontal = meiPageGutter(), vertical = 16.dp)
-                        .size(width = 88.dp, height = 20.dp).skeleton(true))
+            initialLoading -> {
+                if (showInitialLoading) {
+                    if (type == SearchType.All) {
+                        item("overview_loading") { SearchOverviewLoading() }
+                    } else {
+                        item("loading_title") { SearchCategoryHeading(type) }
+                        items(7, key = { "placeholder-$it" }) { index ->
+                            if (type == SearchType.Song) TrackPlaceholder(index = index)
+                            else SearchEntityRow(
+                                title = "${type.displayName}名称占位文字",
+                                subtitle = "相关信息占位文字",
+                                image = null,
+                                words = emptyList(),
+                                round = type == SearchType.Artist,
+                                titleLines = if (type == SearchType.Playlist) 2 else 1,
+                                isLoading = true,
+                                onClick = {},
+                            )
+                        }
+                    }
                 }
-                items(7, key = { "placeholder-$it" }) { TrackPlaceholder(index = it) }
             }
             page.error && page.data == null -> item("error") {
                 SearchStatusPanel("搜索暂时不可用", "检查网络连接后再试一次", "重新加载", onRetry)
@@ -257,9 +315,7 @@ private fun SearchResultPage(
                 val words = data.highlightWords.ifEmpty { listOf(keyword) }
                 if (type == SearchType.All) overview(data, words, actions) else {
                     item("result_count") {
-                        Text(data.totalCount?.let { "${type.displayName} · $it" } ?: type.displayName,
-                            modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 12.dp).semantics { heading() },
-                            style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        SearchCategoryHeading(type, data.totalCount)
                     }
                     when (type) {
                         SearchType.Song -> songs(data.songs, "songs", words, actions)
@@ -278,6 +334,27 @@ private fun SearchResultPage(
             }
         }
     }
+}
+
+@Composable
+internal fun SearchOverviewLoading() {
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 48.dp)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CircularProgressIndicator(Modifier.size(24.dp).clearAndSetSemantics { }, strokeWidth = 2.dp)
+        Text("正在搜索…", style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+internal fun SearchCategoryHeading(type: SearchType, totalCount: Int? = null) {
+    Text(totalCount?.let { "${type.displayName} · $it" } ?: type.displayName,
+        modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 12.dp).semantics { heading() },
+        style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 private fun LazyListScope.overview(data: SearchResults, words: List<String>, actions: SearchActions) {
@@ -341,29 +418,33 @@ private fun LazyListScope.songs(songs: List<MediaMetadata>, section: String, wor
 }
 
 @Composable
-private fun SearchSongRow(song: MediaMetadata, words: List<String>, actions: SearchActions, onClick: () -> Unit) {
-    val subtitle = listOf(song.artists.joinToString(" / ") { it.name }, song.album.title).filter(String::isNotBlank).joinToString(" · ")
+internal fun SearchSongRow(
+    song: MediaMetadata, words: List<String>, actions: SearchActions, onClick: () -> Unit,
+    showColumns: Boolean = false, index: Int? = null,
+) {
+    val subtitle = listOf(song.artists.joinToString(" / ") { it.name }, song.album.title.takeUnless { showColumns }.orEmpty())
+        .filter(String::isNotBlank).joinToString(" · ")
     // Track owns menu positioning and the shared playing artwork; search adds only text presentation.
-    Track(track = song, isPlaying = actions.playingId == song.id, onClick = onClick,
+    Track(track = song, index = index, isTablet = showColumns, isPlaying = actions.playingId == song.id, onClick = onClick,
         onMoreClick = { actions.onMore(song, it) }, moreContentDescription = "更多操作：${song.title}",
         title = highlight(song.title, words), subtitle = highlight(subtitle, words), supportingText = song.tns)
 }
 
 @Composable
-private fun SearchArtistRow(artist: SearchArtist, words: List<String>, onClick: (SearchArtist) -> Unit, bestMatch: Boolean = false) {
+internal fun SearchArtistRow(artist: SearchArtist, words: List<String>, onClick: (SearchArtist) -> Unit, bestMatch: Boolean = false) {
     SearchEntityRow(artist.name, artist.aliases.joinToString(" / ").ifBlank { "歌手" }, artist.imageUrl,
         words, round = true, bestMatch = bestMatch, onClick = { onClick(artist) })
 }
 
 @Composable
-private fun SearchAlbumRow(album: SearchAlbum, words: List<String>, onClick: (SearchAlbum) -> Unit, bestMatch: Boolean = false) {
+internal fun SearchAlbumRow(album: SearchAlbum, words: List<String>, onClick: (SearchAlbum) -> Unit, bestMatch: Boolean = false) {
     SearchEntityRow(album.title, listOf(albumSubtitle(album), if (bestMatch) "专辑" else "${album.size} 首")
         .filter(String::isNotBlank).joinToString(" · "), album.coverUrl, words,
         bestMatch = bestMatch, onClick = { onClick(album) })
 }
 
 @Composable
-private fun SearchPlaylistRow(playlist: SearchPlaylist, words: List<String>, onClick: (SearchPlaylist) -> Unit) {
+internal fun SearchPlaylistRow(playlist: SearchPlaylist, words: List<String>, onClick: (SearchPlaylist) -> Unit) {
     val subtitle = listOf("${playlist.trackCount} 首", playlist.creatorName,
         playlist.playCount?.takeIf { it > 0 }?.let { "${formatSearchPlayCount(it)}次播放" }.orEmpty())
         .filter(String::isNotBlank).joinToString(" · ")
@@ -373,18 +454,22 @@ private fun SearchPlaylistRow(playlist: SearchPlaylist, words: List<String>, onC
 @Composable
 private fun SearchEntityRow(
     title: String, subtitle: String, image: String?, words: List<String>, round: Boolean = false,
-    bestMatch: Boolean = false, titleLines: Int = 1, onClick: () -> Unit,
+    bestMatch: Boolean = false, titleLines: Int = 1, isLoading: Boolean = false, onClick: () -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = meiPageGutter(), vertical = 10.dp),
+    Row(Modifier.fillMaxWidth().clickable(enabled = !isLoading, onClick = onClick)
+        .then(if (isLoading) Modifier.clearAndSetSemantics { } else Modifier)
+        .padding(horizontal = meiPageGutter(), vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(if (bestMatch) 64.dp else 56.dp)
-                .clip(if (round) CircleShape else MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.surfaceContainer))
+        val artworkShape = if (round) CircleShape else MaterialTheme.shapes.small
+        val artworkModifier = Modifier.size(if (bestMatch) 64.dp else 56.dp).clip(artworkShape)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+        if (isLoading) Spacer(artworkModifier.skeleton(true, artworkShape))
+        else AsyncImage(model = image, contentDescription = null, contentScale = ContentScale.Crop,
+            modifier = artworkModifier)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(highlight(title, words), style = MaterialTheme.typography.titleMedium,
+            Text(highlight(title, words), modifier = Modifier.skeleton(isLoading), style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium, maxLines = titleLines, overflow = TextOverflow.Ellipsis)
-            Text(highlight(subtitle, words), style = MaterialTheme.typography.bodySmall,
+            Text(highlight(subtitle, words), modifier = Modifier.skeleton(isLoading), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         if (bestMatch) Icon(Icons.Rounded.ChevronRight, contentDescription = null,
@@ -393,7 +478,7 @@ private fun SearchEntityRow(
 }
 
 @Composable
-private fun SearchSectionHeader(title: String, onMore: (() -> Unit)? = null) {
+internal fun SearchSectionHeader(title: String, onMore: (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth().padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, modifier = Modifier.weight(1f).semantics { heading() },
@@ -406,7 +491,7 @@ private fun SearchSectionHeader(title: String, onMore: (() -> Unit)? = null) {
 }
 
 @Composable
-private fun SearchStatusPanel(title: String, description: String, action: String?, onAction: () -> Unit) {
+internal fun SearchStatusPanel(title: String, description: String, action: String?, onAction: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -419,7 +504,7 @@ private fun SearchStatusPanel(title: String, description: String, action: String
 }
 
 @Composable
-private fun highlight(text: String, words: List<String>): AnnotatedString {
+internal fun highlight(text: String, words: List<String>): AnnotatedString {
     val color = MaterialTheme.colorScheme.primary
     return remember(text, words, color) {
         buildAnnotatedString {
@@ -435,7 +520,7 @@ private fun highlight(text: String, words: List<String>): AnnotatedString {
     }
 }
 
-private fun albumSubtitle(album: SearchAlbum): String = listOf(
+internal fun albumSubtitle(album: SearchAlbum): String = listOf(
     album.artists.joinToString(" / ") { it.name },
     album.publishTime?.let { SimpleDateFormat("yyyy", Locale.getDefault()).format(Date(it)) }.orEmpty(),
 ).filter(String::isNotBlank).joinToString(" · ")
