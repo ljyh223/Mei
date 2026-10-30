@@ -63,7 +63,7 @@ class TabletLibraryInteractionTest {
             compose.waitForIdle()
             compose.onAllNodesWithText("我喜欢的音乐").assertCountEquals(1)
             compose.onNodeWithText("5 首 · 最近喜欢《最近喜欢的歌》").assertExists()
-            compose.onNodeWithText("我喜欢的音乐").performClick()
+            compose.onNodeWithText("我喜欢的音乐", useUnmergedTree = true).performClick()
             compose.runOnIdle { assertEquals("liked", opened) }
             compose.onNodeWithContentDescription("播放我喜欢的音乐").performClick()
             compose.runOnIdle { assertEquals("liked", played) }

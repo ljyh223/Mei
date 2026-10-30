@@ -64,7 +64,7 @@ fun LibraryCollectionScreen(collection: LibraryCollection, viewModel: LibraryVie
         itemKey = { if (isAlbums) "album_${albums[it].id}" else "playlist_${playlists[it].id}" },
         onNavigateBack = { if (searchActive) closeSearch() else nav.navigateUp() },
         onRetry = {
-            if (signedIn) viewModel.getUserAccount(force = true)
+            if (signedIn) viewModel.refresh()
             else Screen.ContentSettings.navigate(nav)
         },
         columns = if (rememberDeviceInfo().isTablet) GridCells.Adaptive(168.dp) else GridCells.Fixed(
@@ -92,7 +92,7 @@ fun LibraryCollectionScreen(collection: LibraryCollection, viewModel: LibraryVie
         },
         emptyActionLabel = if (signedIn) null else "登录账号",
         footer = if (failed) ({
-            TextButton(onClick = { viewModel.getUserAccount(force = true) }) {
+            TextButton(onClick = { viewModel.refresh() }) {
                 Text(
                     "同步失败，重试"
                 )
