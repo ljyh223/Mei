@@ -26,7 +26,7 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.PlaylistCardSize
 import com.ljyh.mei.ui.component.shimmer.skeleton
 
-/** One artwork/text layout for playlists, remote albums and local albums. Only the image is clipped. */
+/** Shared card text and interaction. A specialized artwork slot may own its image geometry. */
 @Composable
 fun ArtworkCard(
     title: String,
@@ -52,10 +52,11 @@ fun ArtworkCard(
         )
     },
     coverContent: @Composable BoxScope.() -> Unit = {},
+    artworkContent: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Column(modifier.clickable(enabled = enabled && !isLoading, onClick = onClick)) {
-        Box(
+        if (artworkContent != null) artworkContent() else Box(
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
