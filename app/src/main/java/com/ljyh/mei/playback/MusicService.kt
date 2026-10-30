@@ -50,6 +50,7 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.PlatformLyricsSessionAccess
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionResult
@@ -91,6 +92,8 @@ import com.ljyh.mei.playback.equalizer.FreeverbProcessor
 import com.ljyh.mei.playback.equalizer.ParametricEqualizerProcessor
 import com.ljyh.mei.playback.equalizer.SoftLimiterProcessor
 import com.ljyh.mei.playback.lyrics.DesktopLyricsController
+import com.ljyh.mei.playback.lyrics.ColorOsLyricsPublisher
+import com.ljyh.mei.playback.lyrics.PlaybackLyricsController
 import com.ljyh.mei.playback.queue.PlaybackQueueManager
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshot
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshotCodec
@@ -149,6 +152,8 @@ class MusicService : MediaLibraryService(),
     private lateinit var standbyAudioEffectsController: AudioEffectsController
     private lateinit var transitionController: SmartTransitionController
     private lateinit var desktopLyricsController: DesktopLyricsController
+    private lateinit var playbackLyricsController: PlaybackLyricsController
+    private var colorOsLyricsPublisher: ColorOsLyricsPublisher? = null
     private val parametricEqualizerProcessor = ParametricEqualizerProcessor()
     private val standbyEqualizerProcessor = ParametricEqualizerProcessor()
     private val reverbProcessor = FreeverbProcessor()
@@ -416,6 +421,19 @@ class MusicService : MediaLibraryService(),
             )
             .setBitmapLoader(CoilBitmapLoader(this, singletonImageLoader))
             .build()
+
+        colorOsLyricsPublisher = try {
+            ColorOsLyricsPublisher(PlatformLyricsSessionAccess.get(mediaSession)) {
+                player.currentMediaItem?.mediaId
+            }
+        } catch (error: RuntimeException) {
+            Timber.w("System lyric session unavailable (%s)", error.javaClass.simpleName)
+            null
+        }
+        playbackLyricsController = PlaybackLyricsController(player, lyricManager, scope) { id, payload ->
+            colorOsLyricsPublisher?.setLyrics(id, payload)
+        }
+        playbackLyricsController.start()
 
         scope.launch {
             dataStore.data
@@ -763,6 +781,8 @@ class MusicService : MediaLibraryService(),
             runBlocking { savePlaybackQueue() }
         }
         transitionController.release()
+        playbackLyricsController.close()
+        colorOsLyricsPublisher?.close()
         mediaSession.release()
         player.removeListener(this)
         player.removeListener(sleepTimer)

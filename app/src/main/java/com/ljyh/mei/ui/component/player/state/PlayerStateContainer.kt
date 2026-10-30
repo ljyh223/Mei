@@ -16,7 +16,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.data.model.domain.MediaMetadata
-import com.ljyh.mei.data.model.domain.metadata
 import com.ljyh.unblockneteasemusic.model.MusicTrack
 import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.network.Resource
@@ -193,25 +192,11 @@ fun rememberPlayerStateContainer(
         container.mediaMetadata.value?.let { meta ->
             container.currentSongId = meta.id.toString()
             container.reset()
-            playerViewModel.lyricManager.loadLyrics(meta)
         }
     }
 
     LaunchedEffect(container.lyricResult.value) {
         container.lyricLine = container.lyricResult.value
-    }
-
-    val currentWindowIndex by playerConnection.currentWindowIndex.collectAsState()
-    val queueWindows by playerConnection.queueWindows.collectAsState()
-
-    LaunchedEffect(currentWindowIndex, queueWindows.size) {
-        val idx = currentWindowIndex
-        if (idx >= 0 && idx + 1 < queueWindows.size) {
-            val nextMeta = queueWindows[idx + 1].mediaItem?.metadata
-            if (nextMeta != null) {
-                playerViewModel.lyricManager.preloadLyrics(nextMeta)
-            }
-        }
     }
 
     return container
