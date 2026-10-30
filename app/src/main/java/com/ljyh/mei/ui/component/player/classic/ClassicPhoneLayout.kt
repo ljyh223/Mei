@@ -226,20 +226,7 @@ fun ClassicPhoneLayout(
                     )
                 }
             },
-            onPlaylistClick = {
-                overlayHandler.showPlaylist()
-            },
-            onSleepTimerClick = {
-                overlayHandler.showSleepTimer()
-            },
-            onAddToPlaylistClick = {
-                mediaMetadata?.let {
-                    overlayHandler.showAddToPlaylist(it.id)
-                }
-            },
-            onMoreClick = {
-                overlayHandler.showMoreAction()
-            }
+            onAction = { overlayHandler.handlePlayerAction(it) },
         )
 
         // 底部安全区，防止被手势条遮挡

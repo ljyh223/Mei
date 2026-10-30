@@ -95,11 +95,20 @@ fun CommonOverlayHandler(
         sheetState?.collapseThen(navigate) ?: navigate()
     }
 
+    val requestedDownload by overlayHandler.downloadRequest
     val overlay = overlayHandler.currentOverlayValue
     val isSheet = overlay != OverlayState.None && overlay !is OverlayState.TrackActionMenu
     val moreEditing = remember { mutableStateOf(false) }
     LaunchedEffect(overlay) {
         if (overlay != OverlayState.MoreAction) moreEditing.value = false
+    }
+
+    // Direct toolbar downloads and menu downloads both reach the same confirmation dialog.
+    LaunchedEffect(requestedDownload, isSheet) {
+        if (!isSheet && requestedDownload != null) {
+            pendingDownload = requestedDownload
+            overlayHandler.consumeDownloadRequest()
+        }
     }
 
     if (isSheet) {
@@ -109,6 +118,12 @@ fun CommonOverlayHandler(
             confirmValueChange = { next -> next != SheetValue.Hidden || !dismissBlocked.value },
         )
         val scope = rememberCoroutineScope()
+        LaunchedEffect(requestedDownload) {
+            if (requestedDownload != null) {
+                modalState.hide()
+                overlayHandler.dismiss()
+            }
+        }
         val closeSheet: () -> Unit = {
             scope.launch {
                 modalState.hide()
@@ -232,28 +247,15 @@ fun CommonOverlayHandler(
                     OverlayState.BottomAction -> PlayerActionSettingsSheet(
                         onDismiss = closeSheet,
                         embedded = true,
+                        profile = overlayHandler.actionProfile,
                     )
 
                     OverlayState.MoreAction -> MoreActionsSheet(
                         onDismissRequest = closeSheet,
-                        onActionClick = { action ->
-                            when (action) {
-                                MoreAction.COMMENT -> stateContainer.mediaMetadata.value?.let {
-                                    overlayHandler.showInlineComments()
-                                }
-                                MoreAction.DOWNLOAD -> {
-                                    val song = stateContainer.mediaMetadata.value
-                                    scope.launch {
-                                        modalState.hide()
-                                        overlayHandler.dismiss()
-                                        pendingDownload = song
-                                    }
-                                }
-                                else -> overlayHandler.handleMoreAction(action)
-                            }
-                        },
+                        onActionClick = overlayHandler::handleMoreAction,
                         embedded = true,
                         editingState = moreEditing,
+                        profile = overlayHandler.actionProfile,
                     )
 
                     else -> Unit

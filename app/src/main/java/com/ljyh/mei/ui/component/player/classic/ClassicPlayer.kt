@@ -27,8 +27,6 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetMorphSpec
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.HorizontalSwipeDirection
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
-import com.ljyh.mei.ui.local.LocalNavController
-import com.ljyh.mei.ui.screen.Screen
 
 
 @SuppressLint("ConfigurationScreenWidthHeight")
@@ -45,7 +43,6 @@ fun ClassicPlayer(
 ) {
 
     val device = rememberDeviceInfo()
-    val navController = LocalNavController.current
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
 
@@ -121,31 +118,9 @@ fun ClassicPlayer(
         )
 
 
-        val layoutMode = when {
-            device.isTablet && device.isLandscape -> PlayerLayoutMode.Tablet
-            !device.isTablet && device.isLandscape -> PlayerLayoutMode.ImmersiveLandscape
-            else -> PlayerLayoutMode.PhonePortrait
-        }
+        if (device.isLandscape) ClassicImmersiveLayout(stateContainer, overlayHandler)
+        else ClassicPhoneLayout(stateContainer, overlayHandler)
 
-//        Timber.tag("PlayerLayoutMode").d(layoutMode.name)
-
-
-        when (layoutMode) {
-            PlayerLayoutMode.PhonePortrait -> ClassicPhoneLayout(stateContainer, overlayHandler)
-            PlayerLayoutMode.Tablet -> ClassicTabletLayout(
-                stateContainer = stateContainer,
-                overlayHandler = overlayHandler,
-                onViewAllComments = { songId ->
-                    overlayHandler.showLyrics()
-                    state.collapseThen {
-                        Screen.Comment.navigate(navController) {
-                            addPath(songId.toString())
-                        }
-                    }
-                },
-            )
-            PlayerLayoutMode.ImmersiveLandscape -> ClassicImmersiveLayout(stateContainer, overlayHandler)
-        }
 
 
     }

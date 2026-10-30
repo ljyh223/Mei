@@ -15,11 +15,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.Player.STATE_BUFFERING
 import com.ljyh.mei.constants.PlayerHorizontalPadding
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
+import com.ljyh.mei.ui.model.PlayerAction
+import com.ljyh.mei.ui.model.PlayerActionProfile
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 
@@ -32,15 +35,16 @@ fun PlayerControlsSection(
     playbackState: Int,
     playerConnection: PlayerConnection,
     onLyricClick: () -> Unit,
-    onPlaylistClick: () -> Unit,
-    onSleepTimerClick: () -> Unit,
-    onAddToPlaylistClick: () -> Unit,
-    onMoreClick: () -> Unit,
+    onAction: (PlayerAction) -> Unit,
     onPositionPreview: (Long) -> Unit,
     onPositionChange: (Long) -> Unit,
     onMusicQualityClick: () -> Unit,
     portraitMotionStyle: Boolean = false,
-    isCompact: Boolean = false // 新增参数
+    isCompact: Boolean = false,
+    horizontalPadding: Dp = PlayerHorizontalPadding,
+    includeNavigationBarPadding: Boolean = true,
+    actionProfile: PlayerActionProfile = PlayerActionProfile.Phone,
+    selectedAction: PlayerAction? = null,
 ) {
     // 紧凑模式下间距减半
     val spacerHeight = if (isCompact) 8.dp else 16.dp
@@ -71,7 +75,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding)
+                    .padding(horizontal = horizontalPadding)
             )
         } else {
             PlayerProgressSlider(
@@ -86,7 +90,7 @@ fun PlayerControlsSection(
                 showRemainingTime = portraitMotionStyle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding)
+                    .padding(horizontal = horizontalPadding)
             )
         }
 
@@ -96,7 +100,7 @@ fun PlayerControlsSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PlayerHorizontalPadding)
+                .padding(horizontal = horizontalPadding)
         ) {
             PlayerControls(
                 playerConnection = playerConnection,
@@ -112,14 +116,13 @@ fun PlayerControlsSection(
         if (!isCompact) {
             Spacer(Modifier.height(spacerHeight))
             PlayerActionToolbar(
-                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                modifier = Modifier.padding(horizontal = horizontalPadding),
                 onLyricClick = onLyricClick,
-                onPlaylistClick = onPlaylistClick,
-                onSleepTimerClick = onSleepTimerClick,
-                onAddToPlaylistClick = onAddToPlaylistClick,
-                onMoreClick = onMoreClick
+                onAction = onAction,
+                profile = actionProfile,
+                selectedAction = selectedAction,
             )
-            Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+            if (includeNavigationBarPadding) Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         } else {
             // 紧凑模式底部留白少一点
             Spacer(Modifier.height(16.dp))

@@ -147,6 +147,8 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 | 桌面歌词与窗口 | `playback/lyrics/`；共享歌词获取与合并在 `utils/lyric/LyricManager.kt` |
 | 下载准备与后台执行 | 页面任务持有者 → `download/DownloadManager.kt` → `DownloadWorker` |
 
+手机与平板播放器从共享 `PlayerHost` 绑定当前播放状态与弹层；平板展示独立位于 `ui/tablet/player/`，具体入口、视觉复用和恢复边界见 [平板播放器](tablet-player.md)。
+
 歌词与下一首封面等预加载由播放侧触发，进入共享数据源或缓存；页面消费结果。修改手机或平板显示不应另建播放器、歌词管理器或图片加载器。
 
 图片统一使用 `AppContext` 提供的 Coil ImageLoader，普通 UI 将 URL 交给现有组件；`ArtworkRequestInterceptor` 与 `ImageUrls.kt` 统一处理尺寸。播放器高清封面有明确的专用入口。详见 [图片加载](image-loading.md)，不要在页面散落 CDN 参数或额外建立缓存键。
@@ -190,6 +192,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | --- | --- |
 | 协作与当前 UI 约束 | [AGENTS.md](../AGENTS.md) |
 | 平板外层与页面接入 | [tablet-ui.md](tablet-ui.md) |
+| 平板全屏播放器、共享状态与面板 | [tablet-player.md](tablet-player.md) |
 | 音乐库、歌手与专辑的平板内容边界 | [tablet-content-pages.md](tablet-content-pages.md) |
 | 歌单展示、布局与状态恢复 | [playlist-detail-architecture.md](playlist-detail-architecture.md) |
 | 综合搜索、分类分页与结果状态 | [search-results.md](search-results.md) |

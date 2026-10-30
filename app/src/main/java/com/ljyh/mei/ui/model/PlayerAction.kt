@@ -1,58 +1,61 @@
 package com.ljyh.mei.ui.model
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Comment
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.Lyrics
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
-enum class PlayerAction(
-    val id: String,
-    val label: String,
-    val icon: ImageVector,
-    val isDefault: Boolean = false
-) {
-    // 播放模式 (循环/随机)
-    PLAY_MODE("mode", "播放模式", Icons.Rounded.Repeat, true),
 
-    // 播放队列
-    QUEUE("queue", "播放队列", Icons.AutoMirrored.Rounded.QueueMusic, true),
-
-    // 歌词开关
-    LYRICS("lyrics", "歌词显示", Icons.Rounded.Lyrics, true),
-
-    // 喜欢
-    // LIKE("like", "我喜欢", Icons.Rounded.Favorite),
-
-    // 睡眠定时器
+enum class PlayerAction(val id: String, val label: String, val icon: ImageVector) {
+    PLAY_MODE("mode", "播放模式", Icons.Rounded.Repeat),
+    QUEUE("queue", "播放队列", Icons.AutoMirrored.Rounded.QueueMusic),
+    LYRICS("lyrics", "歌词显示", Icons.Rounded.Lyrics),
+    COMMENTS("comment", "查看评论", Icons.AutoMirrored.Rounded.Comment),
     SLEEP_TIMER("sleep", "睡眠定时", Icons.Rounded.Bedtime),
-
-    // 添加到歌单
-    ADD_TO_PLAYLIST("add", "收藏到歌单", Icons.Rounded.Add),
-
-    // 下载 (如果有)
+    ADD_TO_PLAYLIST("add", "添加到歌单", Icons.Rounded.Add),
     DOWNLOAD("download", "下载", Icons.Rounded.Download),
-
-    // 更多菜单
+    SHARE("share", "分享", Icons.Rounded.Share),
+    SONG_INFO("song_info", "歌曲信息", Icons.Rounded.Info),
+    // Existing phone configurations may keep this shortcut; new configurations use the title menu.
     MORE("more", "更多", Icons.Rounded.MoreVert);
 
+    fun isAvailable(hasSong: Boolean, canShare: Boolean): Boolean = when (this) {
+        PLAY_MODE, QUEUE, SLEEP_TIMER, MORE -> true
+        SHARE -> hasSong && canShare
+        else -> hasSong
+    }
+
     companion object {
-        // 将存储的字符串 (e.g., "mode,queue,lyrics") 转为 List<PlayerAction>
-        fun fromSettings(settingString: String): List<PlayerAction> {
-            if (settingString.isBlank()) return defaultActions
-            return settingString.split(",")
-                .mapNotNull { id -> entries.find { it.id == id } }
-        }
-
-        // 将 List<PlayerAction> 转为字符串存储
-        fun toSettings(actions: List<PlayerAction>): String {
-            return actions.joinToString(",") { it.id }
-        }
-
         val defaultActions = listOf(PLAY_MODE, QUEUE, LYRICS)
+        fun fromSettings(value: String): List<PlayerAction> = PlayerActionProfile.Phone.parse(value)
+        fun toSettings(actions: List<PlayerAction>): String = actions.joinToString(",") { it.id }
+    }
+}
+
+/** Persistent toolbar policy is independent of the current window's single/two-pane arrangement. */
+enum class PlayerActionProfile {
+    Phone, Tablet;
+
+    val defaults: List<PlayerAction> get() = if (this == Tablet)
+        listOf(PlayerAction.PLAY_MODE, PlayerAction.QUEUE, PlayerAction.COMMENTS)
+    else PlayerAction.defaultActions
+
+    val candidates: List<PlayerAction> get() = PlayerAction.entries.filter {
+        it != PlayerAction.MORE && (this == Phone || it != PlayerAction.LYRICS)
+    }
+
+    fun parse(value: String): List<PlayerAction> {
+        val decoded = value.split(',').mapNotNull { id -> PlayerAction.entries.find { it.id == id.trim() } }
+            .filter { it in candidates || (this == Phone && it == PlayerAction.MORE) }.distinct()
+        if (decoded.isEmpty()) return defaults
+        // Keep valid legacy phone arrangements, including a deliberately omitted playback mode.
+        return if (this == Phone) decoded.take(5)
+        else (listOf(PlayerAction.PLAY_MODE) + decoded.filterNot { it == PlayerAction.PLAY_MODE }).take(5)
+    }
+
+    fun move(actions: List<PlayerAction>, from: Int, to: Int): List<PlayerAction> {
+        if (from !in actions.indices || to !in actions.indices) return actions
+        if (this == Tablet && (from == 0 || to == 0)) return actions
+        return actions.toMutableList().apply { add(to, removeAt(from)) }
     }
 }
