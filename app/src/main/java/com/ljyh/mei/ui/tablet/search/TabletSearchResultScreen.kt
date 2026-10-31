@@ -66,68 +66,71 @@ private fun TabletSearchResults(state: SearchResultContentState) = with(state) {
         val words = page.data?.highlightWords.orEmpty().ifEmpty { listOf(keyword) }
         val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 24.dp
         val gutter = meiPageGutter()
-        Column(Modifier.fillMaxSize()) {
-            if (type != SearchType.All && ((initialLoading && showLoading) || page.data?.isEmpty == false)) {
-                SearchCategoryHeading(type, page.data?.totalCount)
-                if (type == SearchType.Song && metrics.songColumns) TabletSearchSongHeading()
-            }
-            SkeletonShimmerHost(initialLoading && showLoading && type != SearchType.All, Modifier.weight(1f)) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(columns), state = grid, modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = if (columns == 1 && type in listOf(SearchType.All, SearchType.Song)) 0.dp else gutter,
-                        end = if (columns == 1 && type in listOf(SearchType.All, SearchType.Song)) 0.dp else gutter,
-                        top = 8.dp, bottom = bottom,
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (type in listOf(SearchType.Album, SearchType.Playlist, SearchType.Artist)) 24.dp else 0.dp),
-                ) {
-                    when {
-                        initialLoading -> if (showLoading) {
-                            if (type == SearchType.All) item("overview_loading", span = { GridItemSpan(maxLineSpan) }) { SearchOverviewLoading() }
-                            else items(if (type == SearchType.Song) 8 else columns * 3, key = { "loading-$it" }) { index ->
-                                if (type == SearchType.Song) TrackPlaceholder(index, isTablet = metrics.songColumns)
-                                else TabletSearchTile("", "", null, words = emptyList(), round = type == SearchType.Artist,
-                                    vinyl = type == SearchType.Album, isLoading = true, onClick = {})
+        SkeletonShimmerHost(initialLoading && showLoading && type != SearchType.All, Modifier.fillMaxSize()) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns), state = grid, modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = if (columns == 1 && type in listOf(SearchType.All, SearchType.Song)) 0.dp else gutter,
+                    end = if (columns == 1 && type in listOf(SearchType.All, SearchType.Song)) 0.dp else gutter,
+                    top = topPadding + 8.dp, bottom = bottom,
+                ),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(if (type in listOf(SearchType.Album, SearchType.Playlist, SearchType.Artist)) 24.dp else 0.dp),
+            ) {
+                if (type != SearchType.All && ((initialLoading && showLoading) || page.data?.isEmpty == false)) {
+                    item("category_heading", span = { GridItemSpan(maxLineSpan) }) {
+                        Column {
+                            SearchCategoryHeading(type, page.data?.totalCount,
+                                horizontalPadding = if (type == SearchType.Song) gutter else 0.dp)
+                            if (type == SearchType.Song && metrics.songColumns) TabletSearchSongHeading()
+                        }
+                    }
+                }
+                when {
+                    initialLoading -> if (showLoading) {
+                        if (type == SearchType.All) item("overview_loading", span = { GridItemSpan(maxLineSpan) }) { SearchOverviewLoading() }
+                        else items(if (type == SearchType.Song) 8 else columns * 3, key = { "loading-$it" }) { index ->
+                            if (type == SearchType.Song) TrackPlaceholder(index, isTablet = metrics.songColumns)
+                            else TabletSearchTile("", "", null, words = emptyList(), round = type == SearchType.Artist,
+                                vinyl = type == SearchType.Album, isLoading = true, onClick = {})
+                        }
+                    }
+                    page.error && page.data == null -> item("error", span = { GridItemSpan(maxLineSpan) }) {
+                        SearchStatusPanel("搜索暂时不可用", "检查网络连接后再试一次", "重新加载", onRetry)
+                    }
+                    page.data?.isEmpty == true -> item("empty", span = { GridItemSpan(maxLineSpan) }) {
+                        SearchStatusPanel("未找到“$keyword”相关${if (type == SearchType.All) "结果" else type.displayName}",
+                            "试试其他名称、译名或更短的关键词", if (type == SearchType.All) null else "查看综合结果",
+                            { actions.onType(SearchType.All) })
+                    }
+                    page.data != null -> {
+                        val data = page.data
+                        when (type) {
+                            SearchType.All -> item("overview", span = { GridItemSpan(maxLineSpan) }) {
+                                TabletSearchOverview(data, words, actions, metrics)
                             }
-                        }
-                        page.error && page.data == null -> item("error", span = { GridItemSpan(maxLineSpan) }) {
-                            SearchStatusPanel("搜索暂时不可用", "检查网络连接后再试一次", "重新加载", onRetry)
-                        }
-                        page.data?.isEmpty == true -> item("empty", span = { GridItemSpan(maxLineSpan) }) {
-                            SearchStatusPanel("未找到“$keyword”相关${if (type == SearchType.All) "结果" else type.displayName}",
-                                "试试其他名称、译名或更短的关键词", if (type == SearchType.All) null else "查看综合结果",
-                                { actions.onType(SearchType.All) })
-                        }
-                        page.data != null -> {
-                            val data = page.data
-                            when (type) {
-                                SearchType.All -> item("overview", span = { GridItemSpan(maxLineSpan) }) {
-                                    TabletSearchOverview(data, words, actions, metrics)
-                                }
-                                SearchType.Song -> itemsIndexed(data.songs, key = { _, song -> "song-${song.id}" }) { index, song ->
-                                    SearchSongRow(song, words, actions, { actions.onSong(data.songs, index, "songs") },
-                                        showColumns = metrics.songColumns, index = index)
-                                }
-                                SearchType.Artist -> items(data.artists, key = { "artist-${it.id}" }) { artist ->
-                                    TabletSearchTile(artist.name, artist.aliases.joinToString(" / ").ifBlank { "歌手" }, artist.imageUrl,
-                                        words, round = true, onClick = { actions.onArtist(artist) })
-                                }
-                                SearchType.Album -> items(data.albums, key = { "album-${it.id}" }) { album ->
-                                    TabletSearchTile(album.title, albumSubtitle(album), album.coverUrl, words, vinyl = true,
-                                        onClick = { actions.onAlbum(album) })
-                                }
-                                SearchType.Playlist -> items(data.playlists, key = { "playlist-${it.id}" }) { playlist ->
-                                    TabletSearchTile(playlist.title, "${playlist.trackCount} 首 · ${playlist.creatorName}", playlist.coverUrl,
-                                        words, onClick = { actions.onPlaylist(playlist) })
-                                }
-                                SearchType.History -> Unit
+                            SearchType.Song -> itemsIndexed(data.songs, key = { _, song -> "song-${song.id}" }) { index, song ->
+                                SearchSongRow(song, words, actions, { actions.onSong(data.songs, index, "songs") },
+                                    showColumns = metrics.songColumns, index = index)
                             }
-                            if (page.appending || page.appendError || data.hasMore) item("pagination", span = { GridItemSpan(maxLineSpan) }) {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    if (page.appending) CircularProgressIndicator(Modifier.size(24.dp))
-                                    else TextButton(onClick = onLoadMore) { Text(if (page.appendError) "加载失败，点击重试" else "加载更多") }
-                                }
+                            SearchType.Artist -> items(data.artists, key = { "artist-${it.id}" }) { artist ->
+                                TabletSearchTile(artist.name, artist.aliases.joinToString(" / ").ifBlank { "歌手" }, artist.imageUrl,
+                                    words, round = true, onClick = { actions.onArtist(artist) })
+                            }
+                            SearchType.Album -> items(data.albums, key = { "album-${it.id}" }) { album ->
+                                TabletSearchTile(album.title, albumSubtitle(album), album.coverUrl, words, vinyl = true,
+                                    onClick = { actions.onAlbum(album) })
+                            }
+                            SearchType.Playlist -> items(data.playlists, key = { "playlist-${it.id}" }) { playlist ->
+                                TabletSearchTile(playlist.title, "${playlist.trackCount} 首 · ${playlist.creatorName}", playlist.coverUrl,
+                                    words, onClick = { actions.onPlaylist(playlist) })
+                            }
+                            SearchType.History -> Unit
+                        }
+                        if (page.appending || page.appendError || data.hasMore) item("pagination", span = { GridItemSpan(maxLineSpan) }) {
+                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                if (page.appending) CircularProgressIndicator(Modifier.size(24.dp))
+                                else TextButton(onClick = onLoadMore) { Text(if (page.appendError) "加载失败，点击重试" else "加载更多") }
                             }
                         }
                     }

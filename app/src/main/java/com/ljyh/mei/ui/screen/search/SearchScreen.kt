@@ -46,6 +46,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.SearchHistoryKey
 import com.ljyh.mei.constants.SuggestionItemHeight
@@ -66,6 +67,7 @@ fun SearchScreen(
     onDismiss: () -> Unit,
     showTitle: Boolean = false,
     viewModel: SearchViewModel = hiltViewModel(),
+    contentTopPadding: Dp = 0.dp,
 ) {
     val searchSuggest by viewModel.searchSuggest.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -96,8 +98,8 @@ fun SearchScreen(
         state = lazyListState,
         modifier = modifier,
         verticalArrangement = Arrangement.Top,
-        // The host owns system/IME insets and reserves the input bar's measured height.
-        contentPadding = PaddingValues(bottom = 16.dp)
+        // Insets stay inside the scroll viewport so suggestions can pass behind the glass bar.
+        contentPadding = PaddingValues(top = contentTopPadding, bottom = 16.dp)
     ) {
         if (showTitle) item(key = "search_title") {
             MeiLargeTitle("搜索")

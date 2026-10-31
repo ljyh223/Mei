@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -39,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -53,6 +55,9 @@ import com.ljyh.mei.data.model.domain.*
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.glass.MeiGlassSurface
+import com.ljyh.mei.ui.component.glass.meiGlassContentColor
+import com.ljyh.mei.ui.component.glass.meiGlassAccentColor
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtwork
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
@@ -140,60 +145,79 @@ internal fun SearchResultScreen(
         playingId = metadata?.id?.takeIf { playing },
     )
     val stateHolder = rememberSaveableStateHolder()
-    Column(modifier.fillMaxSize().then(if (editing) Modifier.imePadding() else Modifier)) {
-        Row(
-            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = meiPageGutter(), vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            MeiGlassBackButton(
-                onClick = { if (editing) leaveEditing() else navController.navigateUp() },
-                onLongClick = { if (editing) leaveEditing() else navController.backToMain() },
-            )
-            TextField(
-                value = input,
-                onValueChange = { input = it },
-                modifier = Modifier.weight(1f, fill = false).widthIn(max = searchFieldMaxWidth).fillMaxWidth()
-                    .focusRequester(inputFocus).onFocusChanged { if (it.isFocused) editing = true }
-                    .semantics { contentDescription = "搜索歌曲、歌手、专辑或歌单" },
-                singleLine = true,
-                placeholder = { Text("搜索歌曲、歌手、专辑", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                shape = RoundedCornerShape(28.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { submit(input.text, SearchType.All.type) }),
-                trailingIcon = {
-                    if (input.text.isNotEmpty()) IconButton(onClick = {
-                        input = TextFieldValue()
-                        editing = true
-                        inputFocus.requestFocus()
-                        keyboard?.show()
-                    }) {
-                        Icon(Icons.Rounded.Close, contentDescription = "清空搜索")
-                    }
-                },
-            )
-        }
+    SearchResultChrome(
+        modifier = modifier.then(if (editing) Modifier.imePadding() else Modifier),
+        toolbar = {
+            Row(
+                Modifier.fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(horizontal = meiPageGutter(), vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MeiGlassBackButton(
+                    onClick = { if (editing) leaveEditing() else navController.navigateUp() },
+                    onLongClick = { if (editing) leaveEditing() else navController.backToMain() },
+                )
+                MeiGlassSurface(
+                    modifier = Modifier.weight(1f, fill = false).widthIn(max = searchFieldMaxWidth).fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                ) {
+                    val ink = meiGlassContentColor()
+                    val secondaryInk = meiGlassContentColor(secondary = true)
+                    TextField(
+                        value = input,
+                        onValueChange = { input = it },
+                        modifier = Modifier.fillMaxWidth()
+                            .focusRequester(inputFocus).onFocusChanged { if (it.isFocused) editing = true }
+                            .semantics { contentDescription = "搜索歌曲、歌手、专辑或歌单" },
+                        singleLine = true,
+                        placeholder = { Text("搜索歌曲、歌手、专辑", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        shape = RoundedCornerShape(28.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedTextColor = ink,
+                            unfocusedTextColor = ink,
+                            focusedPlaceholderColor = secondaryInk,
+                            unfocusedPlaceholderColor = secondaryInk,
+                            focusedTrailingIconColor = secondaryInk,
+                            unfocusedTrailingIconColor = secondaryInk,
+                            cursorColor = meiGlassAccentColor(),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { submit(input.text, SearchType.All.type) }),
+                        trailingIcon = {
+                            if (input.text.isNotEmpty()) IconButton(onClick = {
+                                input = TextFieldValue()
+                                editing = true
+                                inputFocus.requestFocus()
+                                keyboard?.show()
+                            }) {
+                                Icon(Icons.Rounded.Close, contentDescription = "清空搜索")
+                            }
+                        },
+                    )
+                }
+            }
+        },
+        tabs = if (editing) null else ({ SearchTypeFilterRow(selected, viewModel::onTabChange) }),
+    ) { contentTopPadding ->
         if (editing) {
             SearchScreen(
-                modifier = Modifier.weight(1f).padding(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
+                modifier = Modifier.fillMaxSize()
+                    .padding(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
                 query = input.text, onQueryChange = { input = it }, onSearch = submit,
                 onDismiss = { editing = false; focus.clearFocus(); keyboard?.hide() }, viewModel = viewModel,
+                contentTopPadding = contentTopPadding,
             )
         } else {
-            SearchTypeFilterRow(selected, viewModel::onTabChange)
             key(keyword) {
                 stateHolder.SaveableStateProvider("$keyword-${selected.name}") {
-                    Box(Modifier.weight(1f)) {
-                        resultsContent(SearchResultContentState(page, selected, keyword, actions, viewModel::retry, viewModel::loadMore))
-                    }
+                    resultsContent(SearchResultContentState(page, selected, keyword, actions, viewModel::retry,
+                        viewModel::loadMore, contentTopPadding))
                 }
             }
         }
@@ -203,18 +227,54 @@ internal fun SearchResultScreen(
 
 @kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SearchTypeFilterRow(selected: SearchType, onSelect: (SearchType) -> Unit) {
+internal fun SearchTypeFilterRow(selected: SearchType, onSelect: (SearchType) -> Unit) {
     val types = remember { SearchType.entries.filter { it != SearchType.History } }
-    PrimaryScrollableTabRow(
-        selectedTabIndex = types.indexOf(selected).coerceAtLeast(0),
-        edgePadding = meiPageGutter(),
-        containerColor = MaterialTheme.colorScheme.background,
-        divider = {},
+    val ink = meiGlassContentColor()
+    val secondaryInk = meiGlassContentColor(secondary = true)
+    val accent = meiGlassAccentColor()
+    val density = LocalDensity.current
+    val measurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+    val minTabWidth = maxOf(90.dp, with(density) {
+        types.maxOf { measurer.measure(it.displayName, labelStyle, maxLines = 1).size.width }.toDp()
+    } + 32.dp)
+    MeiGlassSurface(
+        modifier = Modifier.padding(horizontal = meiPageGutter()).padding(top = 4.dp, bottom = 8.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
     ) {
-        types.forEach { type ->
-            Tab(selected = selected == type, onClick = { onSelect(type) }, text = {
-                Text(type.displayName, fontWeight = if (selected == type) FontWeight.SemiBold else FontWeight.Normal)
-            })
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val selectedIndex = types.indexOf(selected).coerceAtLeast(0)
+            val tabs: @Composable () -> Unit = {
+                types.forEach { type ->
+                    Tab(
+                        selected = selected == type,
+                        onClick = { onSelect(type) },
+                        selectedContentColor = ink,
+                        unselectedContentColor = secondaryInk,
+                        text = {
+                            Text(type.displayName, style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (selected == type) FontWeight.SemiBold else FontWeight.Normal,
+                                maxLines = 1, softWrap = false)
+                        },
+                    )
+                }
+            }
+            val indicator: @Composable TabIndicatorScope.() -> Unit = {
+                TabRowDefaults.PrimaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(selectedIndex, matchContentSize = true),
+                    width = Dp.Unspecified,
+                    color = accent,
+                )
+            }
+            if (maxWidth >= minTabWidth * types.size) {
+                PrimaryTabRow(selectedTabIndex = selectedIndex, containerColor = Color.Transparent,
+                    indicator = indicator, divider = {}, tabs = tabs)
+            } else {
+                PrimaryScrollableTabRow(selectedTabIndex = selectedIndex, edgePadding = 0.dp,
+                    minTabWidth = minTabWidth, containerColor = Color.Transparent,
+                    indicator = indicator, divider = {}, tabs = tabs)
+            }
         }
     }
 }
@@ -236,11 +296,12 @@ internal data class SearchResultContentState(
     val actions: SearchActions,
     val onRetry: () -> Unit,
     val onLoadMore: () -> Unit,
+    val topPadding: Dp = 0.dp,
 )
 
 @Composable
 private fun SearchResultPage(state: SearchResultContentState) = with(state) {
-    SearchResultPage(page, type, keyword, actions, onRetry, onLoadMore, Modifier.fillMaxSize())
+    SearchResultPage(page, type, keyword, actions, onRetry, onLoadMore, Modifier.fillMaxSize(), topPadding)
 }
 
 @Composable
@@ -260,6 +321,7 @@ internal fun rememberSearchLoading(page: SearchPageState, type: SearchType, keyw
 private fun SearchResultPage(
     page: SearchPageState, type: SearchType, keyword: String, actions: SearchActions,
     onRetry: () -> Unit, onLoadMore: () -> Unit, modifier: Modifier = Modifier,
+    topPadding: Dp = 0.dp,
 ) {
     val listState = rememberLazyListState()
     val currentPage by rememberUpdatedState(page)
@@ -277,7 +339,7 @@ private fun SearchResultPage(
     }
     LazyColumn(
         modifier = modifier.fillMaxWidth(), state = listState,
-        contentPadding = PaddingValues(top = 8.dp,
+        contentPadding = PaddingValues(top = topPadding + 8.dp,
             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 16.dp),
     ) {
         when {
@@ -354,9 +416,9 @@ internal fun SearchOverviewLoading() {
 }
 
 @Composable
-internal fun SearchCategoryHeading(type: SearchType, totalCount: Int? = null) {
+internal fun SearchCategoryHeading(type: SearchType, totalCount: Int? = null, horizontalPadding: Dp = meiPageGutter()) {
     Text(totalCount?.let { "${type.displayName} · $it" } ?: type.displayName,
-        modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 12.dp).semantics { heading() },
+        modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 12.dp).semantics { heading() },
         style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
