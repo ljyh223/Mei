@@ -2,12 +2,19 @@ package com.ljyh.mei
 
 import android.os.Build
 import android.os.Bundle
+import android.content.ComponentName
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import com.ljyh.mei.playback.MusicService
+import com.ljyh.mei.playback.handleMediaKey
 import com.ljyh.mei.constants.DeviceIdKey
 import com.ljyh.mei.constants.FirstLaunchKey
 import com.ljyh.mei.data.model.domain.UserData
@@ -26,6 +33,8 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private var keyboardControllerFuture: ListenableFuture<MediaController>? = null
+    private var keyboardController: MediaController? = null
     @Inject lateinit var database: AppDatabase
     @Inject lateinit var colorRepository: ColorRepository
 
@@ -45,6 +54,32 @@ class MainActivity : ComponentActivity() {
                 startInLibrary = intent?.action == ACTION_LIBRARY,
             )
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val future = MediaController.Builder(this, SessionToken(this, ComponentName(this, MusicService::class.java)))
+            .buildAsync()
+        keyboardControllerFuture = future
+        future.addListener({
+            if (keyboardControllerFuture === future) {
+                runCatching { future.get() }
+                    .onSuccess { keyboardController = it }
+                    .onFailure { Timber.w("Keyboard media controller connection failed") }
+            }
+        }, mainExecutor)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val controller = keyboardController
+        return (controller != null && handleMediaKey(event, controller)) || super.dispatchKeyEvent(event)
+    }
+
+    override fun onStop() {
+        keyboardController = null
+        keyboardControllerFuture?.let(MediaController::releaseFuture)
+        keyboardControllerFuture = null
+        super.onStop()
     }
 
     private fun configureLogging() {

@@ -140,6 +140,7 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 | 区域 | 修改入口 |
 | --- | --- |
 | 队列与来源、恢复快照 | `playback/queue/` |
+| 外接键盘媒体键与控制器播放权限 | `MainActivity`、`playback/MediaKeyboardControls.kt`、`MediaControllerCommands.kt`；[键盘媒体控制](keyboard-media-controls.md) |
 | 音频地址、本地／缓存与备用音源解析 | `playback/source/`、`data/repository/PlayerRepository.kt` |
 | 均衡器、混响、限制器 | `playback/equalizer/` |
 | 智能过渡与节拍分析 | `playback/transition/` |
