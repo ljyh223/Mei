@@ -634,11 +634,7 @@ class MusicService : MediaLibraryService(),
             } else {
                 MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_SESSION_AND_LIBRARY_COMMANDS
             }
-            val defaultPlayerCommands = if (controller.isTrusted) {
-                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
-            } else {
-                MediaSession.ConnectionResult.DEFAULT_UNTRUSTED_PLAYER_COMMANDS
-            }
+            val defaultPlayerCommands = mediaControllerCommands(controller.isTrusted)
             val availableSessionCommands = SessionCommands.Builder()
                 .addSessionCommands(defaultSessionCommands.commands)
                 .add(desktopLyricsToggleCommand)
