@@ -124,12 +124,13 @@ fun PlaylistHeader(
                     )
 
                     PlaylistCoverStyle.Combination -> {
-                        if (coverList.size < 5) AsyncImage(
+                        val validCovers = coverList.filter(String::isNotBlank)
+                        if (validCovers.size < 5) AsyncImage(
                             model = cover,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
-                        ) else FinalPerfectCollage(imageUrls = coverList, modifier = Modifier.fillMaxSize())
+                        ) else FinalPerfectCollage(imageUrls = validCovers, modifier = Modifier.fillMaxSize())
                     }
                 }
             }
