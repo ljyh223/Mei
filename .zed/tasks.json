@@ -29,7 +29,7 @@
   },
   {
     "label": "Android: Build & Run",
-    "command": "./gradlew :app:installDebug --console=plain && adb shell monkey -p com.ljyh.mei 1",
+    "command": "./gradlew :app:installDebug --console=plain && adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n com.ljyh.mei/.MainActivity",
     "cwd": "$ZED_WORKTREE_ROOT",
     "save": "all",
     "reveal": "always",

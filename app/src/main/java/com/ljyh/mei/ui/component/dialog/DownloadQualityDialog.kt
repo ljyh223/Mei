@@ -40,7 +40,8 @@ fun DownloadConfirmDialog(
     onDismiss: () -> Unit,
     onConfirm: (saveSeparateLyrics: Boolean) -> Unit,
     onGoToSettings: () -> Unit,
-    onGoToDownloadManage: () -> Unit = {}
+    onGoToDownloadManage: () -> Unit = {},
+    recoveryNote: String? = null,
 ) {
     val context = LocalContext.current
     var saveSeparateLyrics by rememberSaveable { mutableStateOf(false) }
@@ -85,6 +86,11 @@ fun DownloadConfirmDialog(
         title = { Text("确认下载") },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
+                if (recoveryNote != null) {
+                    Text(recoveryNote, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                }
                 Text(
                     text = "当前音质",
                     style = MaterialTheme.typography.labelMedium,

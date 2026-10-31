@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,17 +39,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /** Scroll state of the current pinned page, so the caller's column can share it. */
 val LocalMeiPageScroll = staticCompositionLocalOf<ScrollState?> { null }
 
 /** 0 = large title fully visible, 1 = collapsed into the compact bar. */
 val LocalMeiPageProgress = staticCompositionLocalOf { 0f }
+
+/** Allows a pane showing a top-level destination to omit its redundant back button. */
+val LocalMeiShowBackButton = staticCompositionLocalOf { true }
 
 private val CollapseDistance = 56.dp
 private val BarHeight = 54.dp
@@ -68,6 +72,8 @@ fun MeiHazeTopBar(
     titleContent: (@Composable () -> Unit)? = null,
     backgroundProgress: Float = progress,
     onBackLongClick: (() -> Unit)? = null,
+    centerTitle: Boolean = true,
+    backgroundMode: MeiTopBarBackground = MeiTopBarBackground.Auto,
 ) {
     val alpha = progress.coerceIn(0f, 1f)
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -75,7 +81,8 @@ fun MeiHazeTopBar(
         MeiTopBarBackdrop(
             state = state,
             progress = backgroundProgress,
-            modifier = Modifier.fillMaxSize(),
+            backgroundMode = backgroundMode,
+                modifier = Modifier.fillMaxSize(),
         )
         Box(
             Modifier
@@ -84,41 +91,45 @@ fun MeiHazeTopBar(
                 .height(BarHeight)
                 .padding(horizontal = meiPageGutter() - 4.dp),
         ) {
-            if (onNavigateBack != null) {
-                Box(Modifier.align(Alignment.CenterStart)) {
+            val titleSlot: @Composable () -> Unit = {
+                Box(Modifier.graphicsLayer { this.alpha = alpha }) {
+                    if (titleContent != null) titleContent() else Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (centerTitle) {
+                // Screen centering stays independent of the number of toolbar actions.
+                Box(
+                    Modifier.align(Alignment.Center).padding(horizontal = 72.dp),
+                    contentAlignment = Alignment.Center,
+                ) { titleSlot() }
+            }
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                if (onNavigateBack != null && LocalMeiShowBackButton.current) {
                     MeiGlassBackButton(
                         onClick = onNavigateBack,
                         onLongClick = onBackLongClick,
                         hazeState = state,
-                        modifier = Modifier.padding(0.dp),
                     )
                 }
-            }
-            // Title is centered on the screen, not in the space left over by the icons.
-            Box(
-                Modifier.align(Alignment.Center).padding(horizontal = 72.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(Modifier.graphicsLayer { this.alpha = alpha }) {
-                    if (titleContent != null) {
-                        titleContent()
-                    } else {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                if (centerTitle) Spacer(Modifier.weight(1f)) else {
+                    // Allocate actual remaining width so a long title cannot cover actions.
+                    Box(
+                        Modifier.weight(1f).padding(start = 12.dp, end = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) { titleSlot() }
                 }
-            }
-            Row(
-                Modifier.align(Alignment.CenterEnd),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CompositionLocalProvider(LocalMeiHazeState provides state) { actions() }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CompositionLocalProvider(LocalMeiHazeState provides state) { actions() }
+                }
             }
         }
     }

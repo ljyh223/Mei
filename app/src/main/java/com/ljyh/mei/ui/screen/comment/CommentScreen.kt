@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.comment.component.CommentItem
@@ -64,6 +65,7 @@ fun CommentScreen(
     }
 
     val insets = LocalPlayerAwareWindowInsets.current
+    val topBarClearance = meiTopBarContentClearance()
     val showCollapseFab = expandedCommentId != null && expandedFloorCount > 10 && floorComments is com.ljyh.mei.data.network.Resource.Success
 
     Scaffold(
@@ -137,6 +139,8 @@ fun CommentScreen(
                         .background(MaterialTheme.colorScheme.surface)
                         .padding(paddingValues),
                     contentPadding = PaddingValues(
+                        // The progressive backdrop extends below the measured toolbar.
+                        top = topBarClearance,
                         bottom = insets.asPaddingValues().calculateBottomPadding()
                     )
                 ) {

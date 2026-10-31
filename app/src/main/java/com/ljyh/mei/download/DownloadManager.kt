@@ -81,7 +81,9 @@ object DownloadManager {
                 .build()
 
             val wm = WorkManager.getInstance(context)
-            wm.enqueueUniqueWork(uniqueWorkName, ExistingWorkPolicy.REPLACE, workRequest)
+            // Return only after WorkManager has persisted the operation. Callers may clear saved
+            // confirmation state after success, so acknowledging the queued operation early loses intent.
+            wm.enqueueUniqueWork(uniqueWorkName, ExistingWorkPolicy.REPLACE, workRequest).result.get()
             Timber.tag("DownloadManager").d("Work enqueued: name=$uniqueWorkName, songs=${songs.size}")
         }
     }

@@ -5,6 +5,7 @@ import com.ljyh.mei.data.model.api.GetSearchSuggest
 import com.ljyh.mei.data.model.domain.SearchResults
 import com.ljyh.mei.data.model.domain.SearchSuggestions
 import com.ljyh.mei.data.model.api.toDomain
+import com.ljyh.mei.data.model.api.SearchResponseParser
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.safeApiCall
@@ -14,18 +15,24 @@ import kotlinx.coroutines.withContext
 class SearchRepository(
     val apiService: ApiService
 ) {
-    suspend fun search(keyword: String, type: Int, limit: Int): Resource<SearchResults> {
+    suspend fun search(keyword: String, type: Int, limit: Int, offset: Int = 0): Resource<SearchResults> {
         return withContext(Dispatchers.IO) {
             safeApiCall {
-                apiService.search(
+                val response = apiService.search(
                     GetSearch(
                         s = keyword,
                         type = type,
-                        limit = limit
+                        limit = limit,
+                        offset = offset,
                     )
-                ).toDomain()
+                )
+                SearchResponseParser.page(response, type, offset, limit)
             }
         }
+    }
+
+    suspend fun overview(keyword: String): Resource<SearchResults> = withContext(Dispatchers.IO) {
+        safeApiCall { SearchResponseParser.overview(apiService.searchOverview(keyword)) }
     }
 
     suspend fun searchSuggest(keyword: String): Resource<SearchSuggestions> {

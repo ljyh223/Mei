@@ -68,6 +68,7 @@ val GlassMaterialVersionKey = intPreferencesKey("appearance.glass.materialVersio
 val ThemeColorKey = stringPreferencesKey("themeColor")
 const val DefaultThemeColor = "#FF0061A4"
 val PlayerActionKey = stringPreferencesKey("playerBottomAction")
+val TabletPlayerActionKey = stringPreferencesKey("tabletPlayerBottomAction")
 val MoreActionOrderKey = stringPreferencesKey("moreActionOrder")
 
 val NormalLyricTextSizeKey = stringPreferencesKey("lyricTextSize")

@@ -100,6 +100,7 @@ dependencies {
     implementation(libs.androidx.compose.material3.window.size.class1)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.ui.test.junit4)
     testImplementation(libs.ktor.client.mock)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

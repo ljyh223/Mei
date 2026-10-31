@@ -50,6 +50,7 @@ fun MeiTopAppBar(
     centerAligned: Boolean = false,
     hazeState: HazeState? = null,
     colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+    backgroundMode: MeiTopBarBackground = MeiTopBarBackground.Auto,
 ) {
     Box(modifier.fillMaxWidth()) {
         val source = hazeState ?: LocalMeiHazeState.current
@@ -57,7 +58,11 @@ fun MeiTopAppBar(
         val barActions: @Composable RowScope.() -> Unit = {
             CompositionLocalProvider(LocalMeiHazeState provides source) { actions() }
         }
-        MeiTopBarBackdrop(state = source, modifier = Modifier.matchParentSize())
+        MeiTopBarBackdrop(
+            state = source,
+            modifier = Modifier.matchParentSize(),
+            backgroundMode = backgroundMode,
+            )
         // The shared backdrop owns the surface in both live and fallback modes.
         val barColors = colors.copy(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent)
         val icon: @Composable () -> Unit = {

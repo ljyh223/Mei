@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.screen.main.library
 
 import com.ljyh.mei.data.model.response.MiniPlaylistDetail
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.playback.queue.QueueSource
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -31,6 +32,19 @@ class LibraryPlaybackTest {
         assertEquals(30L, firstLikedTrackId(detail(listOf(30L, 10L))))
         assertNull(firstLikedTrackId(detail(emptyList())))
     }
+
+    @Test fun coverStageUsesThreeTracksInPlaylistOrderRatherThanMetadataOrder() {
+        val playlist = detail(listOf(30L, 10L, 20L, 40L)).copy(tracks = listOf(track(20), track(10)))
+        assertEquals(listOf(30L, 10L, 20L), likedArtworkTrackIds(playlist))
+    }
+
+    @Test fun coverStageFallsBackToAvailableTracksAndHandlesShortOrEmptyPlaylists() {
+        assertEquals(listOf(20L, 10L), likedArtworkTrackIds(detail(emptyList()).copy(tracks = listOf(track(20), track(10)))))
+        assertEquals(listOf(30L), likedArtworkTrackIds(detail(listOf(30L, 30L))))
+        assertEquals(emptyList<Long>(), likedArtworkTrackIds(detail(emptyList())))
+    }
+
+    private fun track(id: Long) = MediaMetadata(id, "Song $id", "", emptyList(), 0, MediaMetadata.Album(1, "Album"))
 
     private fun detail(ids: List<Long>) = MiniPlaylistDetail(
         cover = emptyList(), name = "喜欢的音乐", description = null, id = 42,

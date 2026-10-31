@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.LinearGradientShader
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
@@ -27,6 +28,13 @@ import dev.chrisbanes.haze.glass.hazeGlass
 private val TopBarTransitionExtension = 34.dp
 private const val TopBarTransitionStart = 0.42f
 
+/** Initial readable content starts below the painted fade, not only the measured toolbar. */
+@Composable
+internal fun meiTopBarContentClearance(mode: MeiTopBarBackground = MeiTopBarBackground.Auto): Dp =
+    if (mode == MeiTopBarBackground.Auto &&
+        LocalMeiGlassAppearance.current.usesOptics(LocalMeiGlassEnabled.current && Build.VERSION.SDK_INT >= 33))
+        TopBarTransitionExtension else 0.dp
+
 /**
  * The toolbar keeps its measured height. Glass extends its non-interactive background below
  * the bar for progressive sampling; solid backgrounds stop exactly at the toolbar boundary.
@@ -37,9 +45,16 @@ internal fun MeiTopBarBackdrop(
     state: HazeState?,
     modifier: Modifier = Modifier,
     progress: Float = 1f,
+    backgroundMode: MeiTopBarBackground = MeiTopBarBackground.Auto,
 ) {
     val appearance = LocalMeiGlassAppearance.current
-    val live = appearance.usesOptics(LocalMeiGlassEnabled.current && Build.VERSION.SDK_INT >= 33) && state != null
+    val background = resolveMeiTopBarBackground(
+        mode = backgroundMode,
+        glassAvailable = LocalMeiGlassEnabled.current && Build.VERSION.SDK_INT >= 33 && state != null,
+        reduceTransparency = appearance.reduceTransparency,
+        glassProgress = progress,
+    )
+    val live = background.usesGlass
     val solid = !live
     val transitionExtension = if (solid) 0.dp else TopBarTransitionExtension
     val surface = MaterialTheme.colorScheme.surface
@@ -54,7 +69,7 @@ internal fun MeiTopBarBackdrop(
     }
     Box(
         modifier.layout { measurable, constraints ->
-            // Report the original bar height, so the transition cannot add list padding or move controls.
+            // Keep toolbar measurement unchanged; pages explicitly reserve readable-content clearance.
             val extension = if (constraints.hasBoundedHeight) transitionExtension.roundToPx() else 0
             val placeable = measurable.measure(
                 if (extension > 0) constraints.copy(
@@ -66,11 +81,11 @@ internal fun MeiTopBarBackdrop(
                 placeable.place(0, 0)
             }
         }.graphicsLayer {
-            // Reading protection stays present even before the scrolling title appears.
-            alpha = if (solid) 1f else progress.coerceIn(0f, 1f)
+            // Page background opacity is independent of title opacity and button material.
+            alpha = background.opacity
         }.clipToBounds(),
     ) {
-        if (live) {
+        if (live && state != null) {
             Box(
                 Modifier.matchParentSize().hazeGlass(
                     input = HazeInput.Sources(state),

@@ -167,7 +167,7 @@ class NeteaseInterceptor : Interceptor {
             builder.addHeader("x-osver", config["osver"]!!)
             builder.addHeader("x-appver", config["appver"]!!)
             builder.addHeader("x-buildver", config["buildver"]!!)
-            builder.addHeader("cmpageid", "page_songlist")
+            builder.header("cmpageid", originalRequest.header("cmpageid") ?: "page_songlist")
             builder.addHeader("x-mam-custommark", "cronet")
             if (musicU.isNotEmpty()) builder.addHeader("x-music-u", musicU)
         }

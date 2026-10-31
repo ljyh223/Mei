@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -89,7 +90,7 @@ fun PlaylistContent(
     val queueRows = remember(playerConnection) { QueueRows(player.mediaItems.toList()) }
     val rows = queueRows.rows
     val currentIndex by playerConnection.currentMediaItemIndex.collectAsState()
-    var initiallyPositioned by remember(playerConnection) { mutableStateOf(false) }
+    var initiallyPositioned by rememberSaveable(playerConnection) { mutableStateOf(false) }
 
     DisposableEffect(playerConnection) {
         val listener = object : Player.Listener {

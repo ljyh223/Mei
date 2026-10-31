@@ -1,6 +1,8 @@
 package com.ljyh.mei.ui.screen.local
 
 import com.ljyh.mei.ui.component.glass.MeiTopAppBar
+import com.ljyh.mei.ui.component.glass.MeiTopBarBackground
+import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
 import com.ljyh.mei.playback.queue.QueueSource
 
 import androidx.compose.animation.AnimatedVisibility
@@ -138,6 +140,7 @@ fun LocalSongListScreen(
             contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 MeiTopAppBar(hazeState = pageHaze, centerAligned = true,
+                    backgroundMode = if (!coverUrl.isNullOrBlank()) meiArtworkTopBarBackground() else MeiTopBarBackground.Auto,
                     title = {
                         AnimatedVisibility(
                             visible = showTopBarTitle,
@@ -180,7 +183,7 @@ fun LocalSongListScreen(
                             modifier = Modifier.weight(0.6f),
                             pagingItems = null,
                             staticTracks = tracks,
-                            isTablet = true,
+                            tableRows = true,
                             onTrackClick = { track, index ->
                                 val isLost = songs.find { it.toMediaMetadata().id == track.id }
                                     ?.let { !isLocalFileAvailable(context, it) } ?: false

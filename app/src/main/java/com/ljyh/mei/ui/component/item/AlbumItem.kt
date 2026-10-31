@@ -13,12 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.AlbumThumbnailSize
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtwork
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.model.Album
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
@@ -32,13 +31,9 @@ fun AlbumItem(album: Album, onClick: (Long) -> Unit) {
             .padding(horizontal = meiPageGutter(), vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AsyncImage(
-            model = album.cover,
-            contentDescription = null,
-            modifier = Modifier
-                .size(AlbumThumbnailSize)
-                .clip(MaterialTheme.shapes.small),
-            contentScale = ContentScale.Crop
+        VinylAlbumArtwork(
+            coverUrl = album.cover,
+            modifier = Modifier.size(width = AlbumThumbnailSize * VinylAlbumArtworkRatio, height = AlbumThumbnailSize),
         )
 
         Column(

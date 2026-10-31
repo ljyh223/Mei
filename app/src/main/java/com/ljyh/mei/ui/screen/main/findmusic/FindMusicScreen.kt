@@ -28,6 +28,8 @@ import com.ljyh.mei.ui.screen.discoverPlaylistsRoute
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.card.VinylAlbumCard
+import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 
 /** Discovery owns the overview only; complete collections are navigation destinations. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,7 +126,7 @@ fun FindMusicScreen(
                         DiscoverResource(featured, viewModel::loadFeatured) { entries ->
                             LazyRow(
                                 contentPadding = rowInsets,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(if (tablet) 24.dp else 20.dp)
                             ) {
                                 items(entries.take(8), key = { it.id }) { playlist ->
                                     DiscoverPlaylistCard(
@@ -150,12 +152,14 @@ fun FindMusicScreen(
                     ) { entries ->
                         LazyRow(
                             contentPadding = rowInsets,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(if (tablet) 24.dp else 20.dp)
                         ) {
                             items(entries.take(8), key = { it.id }) { album ->
-                                DiscoverAlbumCard(
-                                    album,
-                                    Modifier.width(if (tablet) 168.dp else 136.dp)
+                                VinylAlbumCard(
+                                    title = album.name,
+                                    subtitle = album.artist,
+                                    coverUrl = album.cover,
+                                    modifier = Modifier.width((if (tablet) 168.dp else 136.dp) * VinylAlbumArtworkRatio),
                                 ) { openAlbum(album.id) }
                             }
                         }

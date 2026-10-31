@@ -47,7 +47,7 @@ import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.playlist.matchesPlaylistSearch
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
-import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionOverlay
+import com.ljyh.mei.ui.screen.playlist.PlaylistActionOverlay
 import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
@@ -66,10 +66,11 @@ import dev.chrisbanes.haze.rememberHazeState
 @RequiresApi(Build.VERSION_CODES.R)
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun AlbumDetailScreen(
+internal fun AlbumDetailScreen(
     id: Long,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
+    content: @Composable (AlbumDetailUiState, AlbumDetailActions) -> Unit = { state, actions -> AlbumDetailContent(state, actions) },
 ) {
     // 1. 请求初始数据
     LaunchedEffect(id) {
@@ -277,50 +278,54 @@ fun AlbumDetailScreen(
                     null
                 }
             }
-            AlbumDetailContent(
-                album = result.data.album,
-                coverColor = coverColor,
-                songs = result.data.songs,
-                displayedSongs = displayedSongs,
-                isSubscribed = (subscriptionState as? Resource.Success)?.data,
-                isSubscriptionLoading = subscriptionState is Resource.Loading,
-                canSubscribe = cookie.isNotBlank() && !subscriptionPending &&
-                    subscriptionState !is Resource.Loading,
-                canPlay = playerConnection != null,
-                searchQuery = albumSearchQuery,
-                isSearchActive = isAlbumSearchActive,
-                onSearchQueryChange = { albumSearchQuery = it },
-                onSearchActiveChange = { active ->
-                    isAlbumSearchActive = active
-                    if (!active) albumSearchQuery = ""
-                },
-                onBack = { navController.popBackStack() },
-                onArtistClick = { artistId ->
-                    Screen.Artist.navigate(navController) { addPath(artistId.toString()) }
-                },
-                onPlayAll = {
-                    buildListQueue(0)?.let { playerConnection?.playQueue(it) }
-                },
-                onSubscribe = {
-                    when ((subscriptionState as? Resource.Success)?.data) {
-                        false -> viewModel.subscribeAlbum(result.data.album)
-                        true -> viewModel.unSubscribeAlbum(id.toString())
-                        null -> viewModel.isSubscribe(id)
-                    }
-                },
-                onDownload = { handleDownload() },
-                onTrackClick = { song, index ->
-                    playerConnection?.onTrackClicked(
-                        trackId = song.id.toString(),
-                        fallbackSource = QueueSource(QueueSource.Type.ALBUM, id.toString(), result.data.album.name),
-                        buildQueue = {
-                            val originalIndex = result.data.songs.indexOfFirst { it.id == song.id }
-                                .takeIf { it >= 0 } ?: index
-                            buildListQueue(originalIndex)
+            content(
+                AlbumDetailUiState(
+                    album = result.data.album,
+                    coverColor = coverColor,
+                    songs = result.data.songs,
+                    displayedSongs = displayedSongs,
+                    isSubscribed = (subscriptionState as? Resource.Success)?.data,
+                    isSubscriptionLoading = subscriptionState is Resource.Loading,
+                    canSubscribe = cookie.isNotBlank() && !subscriptionPending &&
+                        subscriptionState !is Resource.Loading,
+                    canPlay = playerConnection != null,
+                    searchQuery = albumSearchQuery,
+                    isSearchActive = isAlbumSearchActive,
+                ),
+                AlbumDetailActions(
+                    onSearchQueryChange = { albumSearchQuery = it },
+                    onSearchActiveChange = { active ->
+                        isAlbumSearchActive = active
+                        if (!active) albumSearchQuery = ""
+                    },
+                    onBack = { navController.popBackStack() },
+                    onArtistClick = { artistId ->
+                        Screen.Artist.navigate(navController) { addPath(artistId.toString()) }
+                    },
+                    onPlayAll = {
+                        buildListQueue(0)?.let { playerConnection?.playQueue(it) }
+                    },
+                    onSubscribe = {
+                        when ((subscriptionState as? Resource.Success)?.data) {
+                            false -> viewModel.subscribeAlbum(result.data.album)
+                            true -> viewModel.unSubscribeAlbum(id.toString())
+                            null -> viewModel.isSubscribe(id)
                         }
-                    )
-                },
-                onTrackMore = { track, anchor -> currentOverlay = OverlayState.TrackActionMenu(track, anchor) },
+                    },
+                    onDownload = { handleDownload() },
+                    onTrackClick = { song, index ->
+                        playerConnection?.onTrackClicked(
+                            trackId = song.id.toString(),
+                            fallbackSource = QueueSource(QueueSource.Type.ALBUM, id.toString(), result.data.album.name),
+                            buildQueue = {
+                                val originalIndex = result.data.songs.indexOfFirst { it.id == song.id }
+                                    .takeIf { it >= 0 } ?: index
+                                buildListQueue(originalIndex)
+                            }
+                        )
+                    },
+                    onTrackMore = { track, anchor -> currentOverlay = OverlayState.TrackActionMenu(track, anchor) },
+                ),
             )
         }
     }

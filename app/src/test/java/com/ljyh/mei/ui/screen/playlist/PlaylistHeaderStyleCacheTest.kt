@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.playlist
 
+import com.ljyh.mei.ui.screen.playlist.component.PlaylistHeaderStyleCache
+
 import com.ljyh.mei.ui.model.PlaylistHeaderStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

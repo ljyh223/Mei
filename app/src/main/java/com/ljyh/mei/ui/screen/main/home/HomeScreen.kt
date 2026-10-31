@@ -97,7 +97,19 @@ import kotlinx.serialization.json.jsonPrimitive
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import timber.log.Timber
+import com.ljyh.mei.ui.component.layout.AppWindowLayout
+import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+
+@Composable
+internal fun isHomeWideLayout(): Boolean = when (LocalAppWindowLayout.current) {
+    AppWindowLayout.Wide -> true
+    AppWindowLayout.Compact -> false
+    null -> rememberDeviceInfo().isTablet
+}
+
+@Composable
+internal fun homeCardSpacing() = if (isHomeWideLayout()) 28.dp else 12.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -231,7 +243,7 @@ private fun HomeBlockItem(
     navController: NavController,
     viewModel: HomeViewModel,
     playerViewModel: PlayerViewModel,
-    device: com.ljyh.mei.ui.component.utils.DeviceInfo
+    device: com.ljyh.mei.ui.component.utils.DeviceInfo,
 ) {
     val json = remember { Json { ignoreUnknownKeys = true } }
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -267,7 +279,8 @@ private fun HomeBlockItem(
 
             BlockWithTitle(
                 title = null,
-                resources = resources
+                resources = resources,
+                itemSpacing = homeCardSpacing(),
             ) { resource ->
 
                 RecommendCard(
@@ -391,7 +404,7 @@ private fun HomeBlockItem(
                 }
             }
 
-            BlockWithTitle(title = title, resources = resources) { resource ->
+            BlockWithTitle(title = title, resources = resources, itemSpacing = homeCardSpacing()) { resource ->
                 PlaylistCard(
                     id = resource.resourceId,
                     title = resource.title,
@@ -463,6 +476,7 @@ private fun HomeBlockItem(
 private fun <T> BlockWithTitle(
     title: String?,
     resources: List<T>,
+    itemSpacing: androidx.compose.ui.unit.Dp = 12.dp,
     content: @Composable (T) -> Unit
 ) {
     Column {
@@ -470,7 +484,7 @@ private fun <T> BlockWithTitle(
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = meiPageGutter()), // 左右留白
-            horizontalArrangement = Arrangement.spacedBy(12.dp) // Item 间距
+            horizontalArrangement = Arrangement.spacedBy(itemSpacing) // Item 间距
         ) {
             items(resources) { resource ->
                 content(resource)

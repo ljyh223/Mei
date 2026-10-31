@@ -318,11 +318,12 @@ private fun LyricSourceBadge(
     onClick: (LyricSource) -> Unit,
     onLongClick: (LyricSource) -> Unit
 ) {
+    val foreground = LocalPlayerForegroundColor.current
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
-            .background(Color.White.copy(alpha = 0.2f))
-            .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+            .background(foreground.copy(alpha = 0.2f))
+            .border(0.5.dp, foreground.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
             .padding(horizontal = 2.dp, vertical = 2.dp)
             .combinedClickable(
                 onClick = { onClick(source) },
@@ -341,7 +342,7 @@ private fun LyricSourceBadge(
             ),
             modifier = Modifier.size(16.dp),
             contentDescription = "选择歌词版本",
-            tint = Color.White.copy(alpha = 0.6f)
+            tint = foreground.copy(alpha = 0.6f)
         )
     }
 }

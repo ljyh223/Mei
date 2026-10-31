@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.screen.setting
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -33,6 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,55 +58,64 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
                 .padding(paddingValues).padding(horizontal = meiPageGutter()),
         ) {
             MeiLargeTitle("设置", modifier = Modifier.padding(bottom = 16.dp), startPadding = 0.dp)
-            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                SettingsGroup("播放与界面") {
-                    SettingRow("播放体验", "音质、播放行为与歌曲过渡", Icons.Rounded.LibraryMusic, MeiCategory.Playback) {
-                        Screen.PlaySettings.navigate(navController)
-                    }
-                    SettingsDivider()
-                    SettingRow("音频输出与音效", "USB 独占、均衡器与混响", Icons.Rounded.GraphicEq, MeiCategory.Playback) {
-                        Screen.AudioOutputSettings.navigate(navController)
-                    }
-                    SettingsDivider()
-                    SettingRow("歌词", "显示、翻译与桌面歌词", Icons.Rounded.Lyrics, MeiCategory.Lyrics) {
-                        Screen.LyricsSettings.navigate(navController)
-                    }
-                    SettingsDivider()
-                    SettingRow("外观", "主题、封面与界面", Icons.Rounded.Palette, MeiCategory.Appearance) {
-                        Screen.AppearanceSettings.navigate(navController)
-                    }
-                }
-                SettingsGroup("账号与内容来源") {
-                    SettingRow("账号", "网易云与 QQ 音乐账号", Icons.Rounded.AccountCircle, MeiCategory.Content) {
-                        Screen.ContentSettings.navigate(navController)
-                    }
-                    SettingsDivider()
-                    SettingRow("音源与平台歌词", "音源脚本、接口与歌词服务", Icons.Rounded.Language, MeiCategory.Content) {
-                        Screen.SourceAndLyricsSettings.navigate(navController)
-                    }
-                }
-                SettingsGroup("存储与其他") {
-                    SettingRow("下载", "音质与保存位置", Icons.Rounded.Download, MeiCategory.Offline) {
-                        Screen.DownloadSettings.navigate(navController)
-                    }
-                    SettingsDivider()
-                    SettingRow("缓存", "占用空间与清理", Icons.Rounded.Storage, MeiCategory.Storage) {
-                        Screen.CacheSettings.navigate(navController)
-                    }
-                    SettingsDivider()
-                    SettingRow("Beta 功能", "试用中的效果与参数", Icons.Rounded.Science, MeiCategory.Experimental) {
-                        Screen.BetaSettings.navigate(navController)
-                    }
-                    SettingsDivider()
-                    SettingRow("关于 Mei", null, Icons.Rounded.Info, MeiCategory.About) {
-                        Screen.About.navigate(navController)
-                    }
-                }
-            }
+            SettingsCategories { it.navigate(navController) }
             Spacer(Modifier.height(8.dp))
         }
     }
 }
+
+@Composable
+internal fun SettingsCategories(selectedRoute: String? = null, onSelect: (Screen) -> Unit) {
+    CompositionLocalProvider(LocalSelectedSettingsRoute provides selectedRoute) {
+        Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            SettingsGroup("播放与界面") {
+                SettingRow(Screen.PlaySettings.route, "播放体验", "音质、播放行为与歌曲过渡", Icons.Rounded.LibraryMusic, MeiCategory.Playback) {
+                    onSelect(Screen.PlaySettings)
+                }
+                SettingsDivider()
+                SettingRow(Screen.AudioOutputSettings.route, "音频输出与音效", "USB 独占、均衡器与混响", Icons.Rounded.GraphicEq, MeiCategory.Playback) {
+                    onSelect(Screen.AudioOutputSettings)
+                }
+                SettingsDivider()
+                SettingRow(Screen.LyricsSettings.route, "歌词", "显示、翻译与桌面歌词", Icons.Rounded.Lyrics, MeiCategory.Lyrics) {
+                    onSelect(Screen.LyricsSettings)
+                }
+                SettingsDivider()
+                SettingRow(Screen.AppearanceSettings.route, "外观", "主题、封面与界面", Icons.Rounded.Palette, MeiCategory.Appearance) {
+                    onSelect(Screen.AppearanceSettings)
+                }
+            }
+            SettingsGroup("账号与内容来源") {
+                SettingRow(Screen.ContentSettings.route, "账号", "网易云与 QQ 音乐账号", Icons.Rounded.AccountCircle, MeiCategory.Content) {
+                    onSelect(Screen.ContentSettings)
+                }
+                SettingsDivider()
+                SettingRow(Screen.SourceAndLyricsSettings.route, "音源与平台歌词", "音源脚本、接口与歌词服务", Icons.Rounded.Language, MeiCategory.Content) {
+                    onSelect(Screen.SourceAndLyricsSettings)
+                }
+            }
+            SettingsGroup("存储与其他") {
+                SettingRow(Screen.DownloadSettings.route, "下载", "音质与保存位置", Icons.Rounded.Download, MeiCategory.Offline) {
+                    onSelect(Screen.DownloadSettings)
+                }
+                SettingsDivider()
+                SettingRow(Screen.CacheSettings.route, "缓存", "占用空间与清理", Icons.Rounded.Storage, MeiCategory.Storage) {
+                    onSelect(Screen.CacheSettings)
+                }
+                SettingsDivider()
+                SettingRow(Screen.BetaSettings.route, "Beta 功能", "试用中的效果与参数", Icons.Rounded.Science, MeiCategory.Experimental) {
+                    onSelect(Screen.BetaSettings)
+                }
+                SettingsDivider()
+                SettingRow(Screen.About.route, "关于 Mei", null, Icons.Rounded.Info, MeiCategory.About) {
+                    onSelect(Screen.About)
+                }
+            }
+        }
+    }
+}
+
+private val LocalSelectedSettingsRoute = androidx.compose.runtime.staticCompositionLocalOf<String?> { null }
 
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
@@ -131,14 +142,16 @@ private fun SettingsDivider() {
 
 @Composable
 private fun SettingRow(
+    route: String,
     title: String,
     description: String?,
     icon: ImageVector,
     category: MeiCategory,
     onClick: () -> Unit,
 ) {
+    val selected = LocalSelectedSettingsRoute.current == route
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth().background(if (selected) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent).selectable(selected = selected, onClick = onClick)
             .heightIn(min = 76.dp).padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,

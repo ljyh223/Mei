@@ -46,6 +46,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.constants.SearchHistoryKey
 import com.ljyh.mei.constants.SuggestionItemHeight
@@ -66,6 +67,7 @@ fun SearchScreen(
     onDismiss: () -> Unit,
     showTitle: Boolean = false,
     viewModel: SearchViewModel = hiltViewModel(),
+    contentTopPadding: Dp = 0.dp,
 ) {
     val searchSuggest by viewModel.searchSuggest.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -96,8 +98,8 @@ fun SearchScreen(
         state = lazyListState,
         modifier = modifier,
         verticalArrangement = Arrangement.Top,
-        // The host owns system/IME insets and reserves the input bar's measured height.
-        contentPadding = PaddingValues(bottom = 16.dp)
+        // Insets stay inside the scroll viewport so suggestions can pass behind the glass bar.
+        contentPadding = PaddingValues(top = contentTopPadding, bottom = 16.dp)
     ) {
         if (showTitle) item(key = "search_title") {
             MeiLargeTitle("搜索")
@@ -124,7 +126,7 @@ fun SearchScreen(
                         query = keyword,
                         type = SearchType.History,
                         onClick = {
-                            onSearch(keyword, SearchType.Song.type)
+                            onSearch(keyword, SearchType.All.type)
                             onDismiss()
                         },
                         onDelete = {
@@ -157,7 +159,7 @@ fun SearchScreen(
                     query = "搜索“${query.trim()}”",
                     type = SearchType.Song,
                     icon = Icons.Rounded.Search,
-                    onClick = { onSearch(query.trim(), SearchType.Song.type); onDismiss() },
+                    onClick = { onSearch(query.trim(), SearchType.All.type); onDismiss() },
                 )
             }
             when (val result = searchSuggest) {
@@ -336,6 +338,7 @@ fun SuggestionItem(
 //type: 搜索类型；默认为 1 即单曲 , 取值意义 : 1: 单曲, 10: 专辑, 100: 歌手, 1000: 歌单, 1002: 用户, 1004: MV, 1006: 歌词, 1009: 电台, 1014: 视频, 1018:综合, 2000:声音(搜索声音返回字段格式会不一样)
 
 enum class SearchType(val icon: ImageVector, val type: Int, val displayName: String) {
+    All(Icons.Rounded.Search, 1018, "综合"),
     Song(Icons.Rounded.MusicNote, 1, "单曲"),
     Artist(Icons.Rounded.Person, 100, "歌手"),
     Album(Icons.Rounded.Album, 10, "专辑"),

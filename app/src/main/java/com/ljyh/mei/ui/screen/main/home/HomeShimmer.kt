@@ -54,7 +54,7 @@ private fun RecommendRowShimmer(
 ) {
     Column {
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(homeCardSpacing()),
             contentPadding = PaddingValues(horizontal = meiPageGutter())
         ) {
             items(count) {
@@ -80,7 +80,7 @@ private fun PlaylistBlockShimmer(
     Column {
         Title(text = "", isLoading = true)
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(homeCardSpacing()),
             contentPadding = PaddingValues(horizontal = meiPageGutter())
         ) {
             items(count) {

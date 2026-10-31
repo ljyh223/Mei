@@ -34,6 +34,7 @@ fun PlayerCommentsContent(
     onViewAllComments: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CommentViewModel = hiltViewModel(),
+    foreground: Color = Color.White,
 ) {
     val expandedCommentId by viewModel.expandedCommentId.collectAsState()
     val floorComments by viewModel.floorComments.collectAsState()
@@ -56,14 +57,14 @@ fun PlayerCommentsContent(
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 IconButton(onClick = onViewAllComments) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "查看全部评论", tint = Color.White)
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "查看全部评论", tint = foreground)
                 }
             }
         }
 
         when (val refresh = pagingItems.loadState.refresh) {
             is LoadState.Loading -> item {
-                LoadingIndicator()
+                LoadingIndicator(foreground)
             }
 
             is LoadState.Error -> item {
@@ -71,7 +72,7 @@ fun PlayerCommentsContent(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("评论加载失败", color = Color(0xFFFFDAD6))
+                    Text("评论加载失败", color = if (foreground == Color.White) Color(0xFFFFDAD6) else foreground)
                 }
             }
 
@@ -82,7 +83,7 @@ fun PlayerCommentsContent(
                             modifier = Modifier.fillMaxWidth().padding(24.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("暂无评论", color = Color.White.copy(alpha = 0.82f))
+                            Text("暂无评论", color = foreground.copy(alpha = 0.82f))
                         }
                     }
                 }
@@ -102,11 +103,11 @@ fun PlayerCommentsContent(
                         floorLoadMoreError = floorLoadMoreError,
                         floorWaitingForReveal = floorWaitingForReveal,
                         horizontalPadding = 4.dp,
-                        lightText = true,
+                        lightText = foreground == Color.White,
                     )
                 }
                 if (pagingItems.loadState.append is LoadState.Loading) {
-                    item { LoadingIndicator() }
+                    item { LoadingIndicator(foreground) }
                 }
             }
         }
@@ -114,11 +115,11 @@ fun PlayerCommentsContent(
 }
 
 @Composable
-private fun LoadingIndicator() {
+private fun LoadingIndicator(foreground: Color) {
     Box(
         modifier = Modifier.fillMaxWidth().padding(24.dp),
         contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = foreground, strokeWidth = 2.dp)
     }
 }

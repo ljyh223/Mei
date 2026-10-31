@@ -45,7 +45,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +54,8 @@ import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
+import com.ljyh.mei.ui.component.glass.rememberMeiArtworkTopBarState
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -81,181 +82,158 @@ import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AlbumDetailContent(
-    album: AlbumOverview,
-    coverColor: Color?,
-    songs: List<MediaMetadata>,
-    displayedSongs: List<MediaMetadata>,
-    isSubscribed: Boolean?,
-    isSubscriptionLoading: Boolean,
-    canSubscribe: Boolean,
-    canPlay: Boolean,
-    searchQuery: String,
-    isSearchActive: Boolean,
-    onSearchQueryChange: (String) -> Unit,
-    onSearchActiveChange: (Boolean) -> Unit,
-    onBack: () -> Unit,
-    onArtistClick: (Long) -> Unit,
-    onPlayAll: () -> Unit,
-    onSubscribe: () -> Unit,
-    onDownload: () -> Unit,
-    onTrackClick: (MediaMetadata, Int) -> Unit,
-    onTrackMore: (MediaMetadata, IntRect) -> Unit,
-) {
-    val listState = rememberLazyListState()
-    val titleInBar by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
-    val surface = MaterialTheme.colorScheme.surface
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val tintStrength = when {
-        coverColor == null -> 0f
-        surface.luminance() > 0.5f && coverColor.luminance() < 0.18f -> 0.08f
-        surface.luminance() <= 0.5f && coverColor.luminance() > 0.65f -> 0.08f
-        surface.luminance() > 0.5f -> 0.14f
-        else -> 0.18f
-    }
-    val albumTint by animateColorAsState(
-        targetValue = coverColor?.let { lerp(surface, it, tintStrength) } ?: surface,
-        label = "AlbumCoverTint",
-    )
-    val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-    val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
-    val participatingArtists = remember(album.artistIds, songs) {
-        val albumArtistIds = album.artistIds.toSet()
-        songs.flatMap { it.artists }
-            .filter { it.name.isNotBlank() && it.id !in albumArtistIds }
-            .distinctBy { if (it.id > 0) it.id.toString() else it.name }
-    }
-    val allArtists = remember(album.artistIds, album.artistNames, participatingArtists) {
-        album.artistNames.mapIndexed { index, name ->
-            MediaMetadata.Artist(album.artistIds.getOrNull(index) ?: 0L, name)
-        }.filter { it.name.isNotBlank() } + participatingArtists
-    }
-    var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
-    var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
+internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailActions) {
+    with(state) {
+        with(actions) {
+            val listState = rememberLazyListState()
+            val artworkBar = rememberMeiArtworkTopBarState(listState, album.id)
+            val surface = MaterialTheme.colorScheme.surface
+            val textColor = MaterialTheme.colorScheme.onSurface
+            val tintStrength = when {
+                coverColor == null -> 0f
+                surface.luminance() > 0.5f && coverColor.luminance() < 0.18f -> 0.08f
+                surface.luminance() <= 0.5f && coverColor.luminance() > 0.65f -> 0.08f
+                surface.luminance() > 0.5f -> 0.14f
+                else -> 0.18f
+            }
+            val albumTint by animateColorAsState(
+                targetValue = coverColor?.let { lerp(surface, it, tintStrength) } ?: surface,
+                label = "AlbumCoverTint",
+            )
+            val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
+            val allArtists = remember(album.artistIds, album.artistNames, songs) { albumDisplayArtists(album, songs) }
+            var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
+            var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
-    val pageHaze = rememberHazeState()
-    Box(Modifier.fillMaxSize().background(surface)) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize().hazeSource(pageHaze),
-            contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
-        ) {
-            item(key = "album_header") {
-                AlbumHeader(
-                    album = album,
-                    trackCount = songs.size,
-                    artists = allArtists,
-                    tint = albumTint,
-                    onArtistClick = onArtistClick,
-                    onShowArtists = { showArtistsSheet = true },
-                )
-            }
-            item(key = "album_actions") {
-                AlbumActions(
-                    tint = albumTint,
-                    hasSongs = songs.isNotEmpty(),
-                    canPlay = canPlay,
-                    isSubscribed = isSubscribed,
-                    isSubscriptionLoading = isSubscriptionLoading,
-                    canSubscribe = canSubscribe,
-                    onPlayAll = onPlayAll,
-                    onSubscribe = onSubscribe,
-                    onDownload = onDownload,
-                )
-            }
-            if (album.description.isNotBlank()) {
-                item(key = "album_description") {
-                    AlbumDescription(album.id, album.description, onExpand = { showDescriptionSheet = true })
+            val pageHaze = rememberHazeState()
+            Box(Modifier.fillMaxSize().background(surface)) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize().hazeSource(pageHaze),
+                    contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
+                ) {
+                    item(key = "album_header") {
+                        AlbumHeader(
+                            album = album,
+                            trackCount = songs.size,
+                            artists = allArtists,
+                            tint = albumTint,
+                            onArtistClick = onArtistClick,
+                            onShowArtists = { showArtistsSheet = true },
+                            artworkModifier = artworkBar.artworkModifier,
+                        )
+                    }
+                    item(key = "album_actions") {
+                        AlbumActions(
+                            tint = albumTint,
+                            hasSongs = songs.isNotEmpty(),
+                            canPlay = canPlay,
+                            isSubscribed = isSubscribed,
+                            isSubscriptionLoading = isSubscriptionLoading,
+                            canSubscribe = canSubscribe,
+                            onPlayAll = onPlayAll,
+                            onSubscribe = onSubscribe,
+                            onDownload = onDownload,
+                        )
+                    }
+                    if (album.description.isNotBlank()) {
+                        item(key = "album_description") {
+                            AlbumDescription(album.id, album.description, onExpand = { showDescriptionSheet = true })
+                        }
+                    }
+                    if (searchQuery.isNotBlank()) {
+                        item(key = "album_search_results_title") {
+                            Text(
+                                text = "搜索结果 · ${displayedSongs.size}",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 8.dp),
+                            )
+                        }
+                    } else {
+                        item(key = "album_tracks_spacing") { Spacer(Modifier.height(16.dp)) }
+                    }
+                    itemsIndexed(displayedSongs, key = { _, song -> song.id }) { index, song ->
+                        AlbumTrackRow(
+                            song = song,
+                            index = songIndexById[song.id] ?: index,
+                            onClick = { onTrackClick(song, index) },
+                            onMore = { anchor -> onTrackMore(song, anchor) },
+                            canPlay = canPlay,
+                        )
+                    }
+                    if (displayedSongs.isEmpty()) {
+                        item(key = "album_empty") {
+                            Text(
+                                text = if (searchQuery.isNotBlank()) "没有找到匹配的歌曲" else "暂无歌曲",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
                 }
-            }
-            if (searchQuery.isNotBlank()) {
-                item(key = "album_search_results_title") {
-                    Text(
-                        text = "搜索结果 · ${displayedSongs.size}",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 8.dp),
-                    )
-                }
-            } else {
-                item(key = "album_tracks_spacing") { Spacer(Modifier.height(16.dp)) }
-            }
-            itemsIndexed(displayedSongs, key = { _, song -> song.id }) { index, song ->
-                AlbumTrackRow(
-                    song = song,
-                    index = songIndexById[song.id] ?: index,
-                    onClick = { onTrackClick(song, index) },
-                    onMore = { anchor -> onTrackMore(song, anchor) },
-                    canPlay = canPlay,
-                )
-            }
-            if (displayedSongs.isEmpty()) {
-                item(key = "album_empty") {
-                    Text(
-                        text = if (searchQuery.isNotBlank()) "没有找到匹配的歌曲" else "暂无歌曲",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
 
-        MeiHazeTopBar(
-            state = pageHaze,
-            title = "",
-            progress = if (titleInBar || isSearchActive) 1f else 0f,
-            onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
-            actions = {
-                MeiDetailMoreButton(
-                    shareContent = MediaShareLink.album(album),
-                    searchActive = isSearchActive,
-                    searchLabel = "搜索专辑歌曲",
-                    onSearchActiveChange = { active ->
-                        if (!active) onSearchQueryChange("")
-                        onSearchActiveChange(active)
+                MeiHazeTopBar(
+                    backgroundMode = meiArtworkTopBarBackground(artworkBar.artworkPassed),
+                    modifier = artworkBar.toolbarModifier,
+                    state = pageHaze,
+                    title = "",
+                    progress = if (artworkBar.artworkPassed || isSearchActive) 1f else 0f,
+                    onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
+                    actions = {
+                        MeiDetailMoreButton(
+                            shareContent = MediaShareLink.album(album),
+                            searchActive = isSearchActive,
+                            searchLabel = "搜索专辑歌曲",
+                            onSearchActiveChange = { active ->
+                                if (!active) onSearchQueryChange("")
+                                onSearchActiveChange(active)
+                            },
+                        )
+                    },
+                    titleContent = {
+                        if (isSearchActive) {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = onSearchQueryChange,
+                                placeholder = { Text("搜索专辑歌曲") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                            )
+                        } else {
+                            Text(album.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     },
                 )
-            },
-            titleContent = {
-                if (isSearchActive) {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = onSearchQueryChange,
-                        placeholder = { Text("搜索专辑歌曲") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                        ),
-                    )
-                } else {
-                    Text(album.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            },
-        )
-    }
+            }
 
-    if (showDescriptionSheet) {
-        DescriptionSheet(album.name, album.description) { showDescriptionSheet = false }
-    }
-    if (showArtistsSheet) {
-        AlbumArtistBottomSheet(
-            albumInfo = MediaMetadata.Album(album.id, album.name),
-            artistList = allArtists,
-            coverUrl = album.picUrl,
-            onAlbumClick = {},
-            onArtistClick = { id ->
-                showArtistsSheet = false
-                onArtistClick(id)
-            },
-            onDismissRequest = { showArtistsSheet = false },
-            showAlbumDestination = false,
-        )
+            if (showDescriptionSheet) {
+                DescriptionSheet(album.name, album.description) { showDescriptionSheet = false }
+            }
+            if (showArtistsSheet) {
+                AlbumArtistBottomSheet(
+                    albumInfo = MediaMetadata.Album(album.id, album.name),
+                    artistList = allArtists,
+                    coverUrl = album.picUrl,
+                    onAlbumClick = {},
+                    onArtistClick = { id ->
+                        showArtistsSheet = false
+                        onArtistClick(id)
+                    },
+                    onDismissRequest = { showArtistsSheet = false },
+                    showAlbumDestination = false,
+                )
+            }
+        }
     }
 }
 
@@ -267,10 +245,11 @@ private fun AlbumHeader(
     tint: Color,
     onArtistClick: (Long) -> Unit,
     onShowArtists: () -> Unit,
+    artworkModifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val heroHeight = (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
-        Box(Modifier.fillMaxWidth().height(heroHeight)) {
+        Box(Modifier.fillMaxWidth().height(heroHeight).then(artworkModifier)) {
             if (album.picUrl.isNotBlank()) {
                 AsyncImage(
                     model = album.picUrl,
@@ -338,7 +317,7 @@ private fun AlbumHeader(
 }
 
 @Composable
-private fun AlbumActions(
+internal fun AlbumActions(
     tint: Color,
     hasSongs: Boolean,
     canPlay: Boolean,
@@ -348,17 +327,37 @@ private fun AlbumActions(
     onPlayAll: () -> Unit,
     onSubscribe: () -> Unit,
     onDownload: () -> Unit,
+    playInCenter: Boolean = false,
 ) {
+    @Composable
+    fun SubscribeButton() {
+        FilledTonalIconButton(onClick = onSubscribe, enabled = canSubscribe, modifier = Modifier.size(48.dp)) {
+            if (isSubscribed == null && isSubscriptionLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(
+                    if (isSubscribed == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = when (isSubscribed) {
+                        true -> "取消收藏专辑"
+                        false -> "收藏专辑"
+                        null -> "重试获取收藏状态"
+                    },
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
     val surface = MaterialTheme.colorScheme.surface
     Box(
         modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface))),
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = if (playInCenter) Alignment.Center else Alignment.CenterStart,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (playInCenter) 16.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (playInCenter) SubscribeButton()
             Button(
                 onClick = onPlayAll,
                 enabled = hasSongs && canPlay,
@@ -369,21 +368,7 @@ private fun AlbumActions(
                 Spacer(Modifier.width(6.dp))
                 Text("播放全部")
             }
-            FilledTonalIconButton(onClick = onSubscribe, enabled = canSubscribe, modifier = Modifier.size(48.dp)) {
-                if (isSubscribed == null && isSubscriptionLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(
-                        if (isSubscribed == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = when (isSubscribed) {
-                            true -> "取消收藏专辑"
-                            false -> "收藏专辑"
-                            null -> "重试获取收藏状态"
-                        },
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
+            if (!playInCenter) SubscribeButton()
             FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Default.Download, contentDescription = "下载专辑", modifier = Modifier.size(20.dp))
             }
@@ -392,35 +377,50 @@ private fun AlbumActions(
 }
 
 @Composable
-private fun AlbumDescription(albumId: Long, description: String, onExpand: () -> Unit) {
-    var canExpand by remember(albumId, description) { mutableStateOf(false) }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+internal fun AlbumDescription(
+    albumId: Long,
+    description: String,
+    maxLines: Int = 1,
+    expandBelowDescription: Boolean = false,
+    onExpand: () -> Unit,
+) {
+    var canExpand by remember(albumId, description, maxLines, expandBelowDescription) { mutableStateOf(false) }
+    @Composable
+    fun DescriptionText(modifier: Modifier) {
         Text(
             text = description.trim(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
+            modifier = modifier,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { canExpand = it.hasVisualOverflow },
         )
-        if (canExpand) {
-            TextButton(
+    }
+    val modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 2.dp)
+    if (expandBelowDescription) {
+        Column(modifier) {
+            DescriptionText(Modifier.fillMaxWidth())
+            if (canExpand) TextButton(
+                onClick = onExpand,
+                modifier = Modifier.align(Alignment.Start),
+                contentPadding = PaddingValues(horizontal = 0.dp),
+            ) { Text("展开") }
+        }
+    } else {
+        Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+            DescriptionText(Modifier.weight(1f))
+            if (canExpand) TextButton(
                 onClick = onExpand,
                 modifier = Modifier.size(width = 48.dp, height = 48.dp),
                 contentPadding = PaddingValues(horizontal = 0.dp),
-            ) {
-                Text("展开")
-            }
+            ) { Text("展开") }
         }
     }
 }
 
 @Composable
-private fun AlbumTrackRow(
+internal fun AlbumTrackRow(
     song: MediaMetadata,
     index: Int,
     onClick: () -> Unit,

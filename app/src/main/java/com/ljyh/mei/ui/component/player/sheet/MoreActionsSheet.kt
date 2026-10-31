@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.MoreActionOrderKey
 import com.ljyh.mei.ui.component.player.controls.rememberSleepTimerStatus
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.model.PlayerActionProfile
 import com.ljyh.mei.ui.model.MoreAction
 import com.ljyh.mei.utils.preferences.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
@@ -68,6 +69,7 @@ fun MoreActionsSheet(
     onActionClick: (MoreAction) -> Unit,
     embedded: Boolean = false,
     editingState: MutableState<Boolean>? = null,
+    profile: PlayerActionProfile = PlayerActionProfile.Phone,
 ) {
     val playerConnection = LocalPlayerConnection.current
     val currentSong = playerConnection?.mediaMetadata?.collectAsState()?.value
@@ -77,6 +79,7 @@ fun MoreActionsSheet(
     }
     val (savedOrder, saveOrder) = rememberPreference(MoreActionOrderKey, defaultValue = "")
     var actions by remember(savedOrder) { mutableStateOf(MoreAction.orderedBy(savedOrder)) }
+    val visibleActions = actions.filter { it != MoreAction.LYRICS || profile == PlayerActionProfile.Tablet }
     val draft = remember { mutableStateListOf<MoreAction>() }
     val activeEditingState = editingState ?: remember { mutableStateOf(false) }
     var editing by activeEditingState
@@ -143,7 +146,7 @@ fun MoreActionsSheet(
                 } else {
                     IconButton(onClick = {
                         draft.clear()
-                        draft.addAll(actions)
+                        draft.addAll(visibleActions)
                         editing = true
                     }) {
                         Icon(Icons.Rounded.Edit, contentDescription = "调整操作顺序")
@@ -201,7 +204,7 @@ fun MoreActionsSheet(
                         }
                     }
                 } else {
-                    items(actions.filter { it != MoreAction.SHARE || canShare }, key = MoreAction::id) { action ->
+                    items(visibleActions.filter { it != MoreAction.SHARE || canShare }, key = MoreAction::id) { action ->
                         MoreActionRow(action) { onActionClick(action) }
                     }
                 }
@@ -211,7 +214,7 @@ fun MoreActionsSheet(
                 TextButton(
                     onClick = {
                         draft.clear()
-                        draft.addAll(MoreAction.entries)
+                        draft.addAll(MoreAction.entries.filter { it != MoreAction.LYRICS || profile == PlayerActionProfile.Tablet })
                     },
                     modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
                 ) { Text("恢复默认") }

@@ -63,7 +63,7 @@ class CollectionNavigationTest {
             assertSame(overview, nav.getBackStackEntry(Screen.Library.route))
             assertEquals(collection.name, list.arguments!!.getString("collection"))
             assertEquals(MainNavigationPresentation.Hidden,
-                resolveMainShellState(list.destination.route, false, false).navigation)
+                resolveMainShellState(list.destination.route, false).navigation)
             nav.navigate("${Screen.PlayList.route}/42")
             assertTrue(nav.popBackStack())
             assertSame(list, nav.currentBackStackEntry)
@@ -88,7 +88,7 @@ class CollectionNavigationTest {
         val nav = controller()
         for (route in listOf(Screen.DiscoverAlbums.route, Screen.DiscoverCharts.route, Screen.DiscoverPlaylists.route)) {
             nav.navigate(route)
-            val shell = resolveMainShellState(nav.currentDestination!!.route, false, false)
+            val shell = resolveMainShellState(nav.currentDestination!!.route, false)
             assertEquals(MainNavigationPresentation.Hidden, shell.navigation)
             assertFalse(shell.isMainDestination)
             assertTrue(nav.popBackStack())

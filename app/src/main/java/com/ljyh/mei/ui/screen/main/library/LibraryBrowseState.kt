@@ -40,6 +40,10 @@ internal fun recentCollectedIds(
 ): List<String> = playlists.asSequence().filter { it.creator.userId.toString() != userId }
     .map { it.id.toString() }.distinct().take(2).toList()
 
+/** Only the first three tracks are needed for the shared liked-playlist artwork composition. */
+internal fun likedArtworkTrackIds(detail: com.ljyh.mei.data.model.response.MiniPlaylistDetail): List<Long> =
+    detail.trackIds.ifEmpty { detail.tracks.map { it.id } }.distinct().take(3)
+
 /** Playlist track metadata may be partial or ordered differently from trackIds. */
 internal fun firstLikedTrackId(detail: com.ljyh.mei.data.model.response.MiniPlaylistDetail): Long? =
     detail.trackIds.firstOrNull() ?: detail.tracks.firstOrNull()?.id

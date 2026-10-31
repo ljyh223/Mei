@@ -78,6 +78,7 @@ import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.player.LocalPlayerForegroundColor
+import com.ljyh.mei.ui.component.player.playerForegroundForBackground
 import com.ljyh.mei.ui.component.player.LyricScreen
 import com.ljyh.mei.ui.component.player.MiniPlayerBarContent
 import com.ljyh.mei.ui.component.player.PlayerCommentsContent
@@ -275,9 +276,7 @@ fun AppleMusicPlayer(
     DisposableEffect(portraitBackdropState) {
         onDispose { portraitBackdropState.bind(null) }
     }
-    val edgeForeground = if (coverEdgeColor?.luminance()?.let { it > 0.179f } == true) {
-        Color.Black
-    } else Color.White
+    val edgeForeground = playerForegroundForBackground(coverEdgeColor)
     // Keep controls fully legible during the background handoff; black/white interpolation
     // passes through low-contrast gray and looks like a page-wide opacity animation.
     val playerForegroundColor = if (edgeExtensionAlpha > 0.5f) edgeForeground else Color.White
@@ -813,14 +812,7 @@ fun AppleMusicPlayer(
                                     playbackState = playbackState,
                                     playerConnection = stateContainer.playerConnection,
                                     onLyricClick = { toggleLyrics() },
-                                    onPlaylistClick = { overlayHandler.showPlaylist() },
-                                    onSleepTimerClick = { overlayHandler.showSleepTimer() },
-                                    onAddToPlaylistClick = {
-                                        mediaMetadata?.let {
-                                            overlayHandler.showAddToPlaylist(it.id)
-                                        }
-                                    },
-                                    onMoreClick = { overlayHandler.showMoreAction() },
+                                    onAction = { overlayHandler.handlePlayerAction(it) },
                                     onPositionPreview = stateContainer::previewSeek,
                                     onPositionChange = stateContainer::commitSeek,
                                     onMusicQualityClick = overlayHandler::showMusicQualitySelection,
