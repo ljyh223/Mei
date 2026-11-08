@@ -1,6 +1,7 @@
 package com.ljyh.mei.constants
 
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.MutablePreferences
 
 data class DynamicCoverSources(
     val appleMusic: Boolean,
@@ -41,3 +42,13 @@ fun Preferences.dynamicCoverSettings(): DynamicCoverSettings {
 }
 
 fun Preferences.dynamicCoverSources(): DynamicCoverSources = dynamicCoverSettings().activeSources
+
+/** Persist the resolved choices together before a first explicit source edit changes their defaults. */
+internal fun MutablePreferences.updateDynamicCoverSettings(
+    transform: (DynamicCoverSettings) -> DynamicCoverSettings,
+) {
+    val settings = transform(dynamicCoverSettings())
+    this[DynamicCoverEnabledKey] = settings.enabled
+    this[AppleDynamicCoverKey] = settings.selectedSources.appleMusic
+    this[NeteaseDynamicCoverKey] = settings.selectedSources.netease
+}

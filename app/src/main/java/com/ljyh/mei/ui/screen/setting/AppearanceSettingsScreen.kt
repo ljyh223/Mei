@@ -50,9 +50,7 @@ import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.ThemeColorKey
-import com.ljyh.mei.constants.AppleDynamicCoverKey
-import com.ljyh.mei.constants.DynamicCoverEnabledKey
-import com.ljyh.mei.constants.NeteaseDynamicCoverKey
+import com.ljyh.mei.constants.updateDynamicCoverSettings
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.constants.HidePlayerTitleBracketsKey
@@ -302,21 +300,25 @@ fun AppearanceSettingsScreen(
                     onEnabledChange = { enabled ->
                         scope.launch {
                             context.dataStore.edit {
-                                it[DynamicCoverEnabledKey] = enabled
+                                it.updateDynamicCoverSettings { settings -> settings.copy(enabled = enabled) }
                             }
                         }
                     },
                     onAppleMusicChange = { enabled ->
                         scope.launch {
                             context.dataStore.edit {
-                                it[AppleDynamicCoverKey] = enabled
+                                it.updateDynamicCoverSettings { settings ->
+                                    settings.copy(selectedSources = settings.selectedSources.copy(appleMusic = enabled))
+                                }
                             }
                         }
                     },
                     onNeteaseChange = { enabled ->
                         scope.launch {
                             context.dataStore.edit {
-                                it[NeteaseDynamicCoverKey] = enabled
+                                it.updateDynamicCoverSettings { settings ->
+                                    settings.copy(selectedSources = settings.selectedSources.copy(netease = enabled))
+                                }
                             }
                         }
                     },

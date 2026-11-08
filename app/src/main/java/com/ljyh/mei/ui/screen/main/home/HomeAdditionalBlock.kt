@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomeFeedPolicy
 import com.ljyh.mei.ui.component.card.PlaylistCard
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
@@ -43,8 +44,10 @@ internal fun HomeAdditionalBlock(block: HomePageResourceShow.Data.Block, nav: Na
         }
     }
     val data = block.dslData
-    if (block.nativeData?.get("banners") is JsonArray) {
-        val banners = (block.nativeData?.get("banners") as? JsonArray).orEmpty().filterIsInstance<JsonObject>()
+    val bannerPayload = block.nativeData?.get("banners") as? JsonArray
+    if (bannerPayload != null) {
+        val banners = remember(bannerPayload) { HomeFeedPolicy.visibleBanners(bannerPayload) }
+        if (banners.isEmpty()) return
         LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(homeCardSpacing())) {
             items(banners) { banner ->
                 AsyncImage(model = banner.text("pic"), contentDescription = banner.text("typeTitle"), contentScale = ContentScale.Crop,

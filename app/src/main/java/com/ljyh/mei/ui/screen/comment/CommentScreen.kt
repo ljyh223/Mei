@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -54,12 +55,7 @@ fun CommentScreen(
     val pageHaze = rememberHazeState()
     val sortType by viewModel.sortType.collectAsState()
     val total by viewModel.total.collectAsState()
-    val expandedCommentId by viewModel.expandedCommentId.collectAsState()
-    val floorComments by viewModel.floorComments.collectAsState()
-    val floorHasMore by viewModel.floorHasMore.collectAsState()
-    val floorLoadMoreError by viewModel.floorLoadMoreError.collectAsState()
-    val floorWaitingForReveal by viewModel.floorWaitingForReveal.collectAsState()
-    val expandedFloorCount by viewModel.expandedFloorCount.collectAsState()
+    val expandedReplies by viewModel.expandedReplies.collectAsState()
 
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
 
@@ -70,7 +66,7 @@ fun CommentScreen(
     val insets = LocalPlayerAwareWindowInsets.current
     val layoutDirection = LocalLayoutDirection.current
     val topBarClearance = meiTopBarContentClearance()
-    val showCollapseFab = expandedCommentId != null && expandedFloorCount > 10 && floorComments is com.ljyh.mei.data.network.Resource.Success
+    val showCollapseFab = expandedReplies.values.any { it.replyCount > 10 && it.comments is Resource.Success }
 
     Scaffold(
         topBar = {
@@ -89,9 +85,7 @@ fun CommentScreen(
                 exit = scaleOut()
             ) {
                 FloatingActionButton(
-                    onClick = {
-                        expandedCommentId?.let { viewModel.toggleFloorComments(it, expandedFloorCount) }
-                    },
+                    onClick = viewModel::collapseAllFloorComments,
                     modifier = Modifier.padding(bottom = insets.asPaddingValues().calculateBottomPadding()),
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -99,7 +93,7 @@ fun CommentScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.KeyboardArrowUp,
-                        contentDescription = "收起回复",
+                        contentDescription = "收起全部回复",
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -156,20 +150,12 @@ fun CommentScreen(
                         key = { index -> pagingItems.peek(index)?.id ?: index }
                     ) { index ->
                         val comment = pagingItems[index] ?: return@items
-                        val isExpanded = expandedCommentId == comment.id
-
                         CommentItem(
                             comment = comment,
-                            isExpanded = isExpanded,
-                            floorComments = if (isExpanded) floorComments
-                            else com.ljyh.mei.data.network.Resource.Loading,
-                            floorHasMore = isExpanded && floorHasMore,
-                            floorLoadMoreError = floorLoadMoreError,
-                            floorWaitingForReveal = floorWaitingForReveal,
+                            replies = expandedReplies[comment.id],
+                            onToggleFloor = viewModel::toggleFloorComments,
+                            onRetryFloor = viewModel::retryFloorComments,
                             onShowMoreFloor = viewModel::showMoreFloorComments,
-                            onToggleFloor = { commentId, count ->
-                                viewModel.toggleFloorComments(commentId, count)
-                            }
                         )
                     }
 

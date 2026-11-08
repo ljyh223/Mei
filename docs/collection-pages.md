@@ -10,7 +10,7 @@
 | 发现新碟 | `discover/albums` | `DiscoverAlbumsViewModel` | 手机两列，平板自适应 |
 | 全部榜单（保留实现，总览入口已暂停） | `discover/charts` | `DiscoverChartsViewModel` | 单列 |
 | 歌手全部歌曲 | `artist_songs/{id}` | `ArtistCatalogViewModel` | 单列 Track，Paging |
-| 歌手全部专辑 | `artist_albums/{id}` | `ArtistCatalogViewModel` | 自适应封面网格，Paging |
+| 歌手全部专辑 | `artist_albums/{id}` | `ArtistCatalogViewModel` | 手机两列，平板自适应，Paging |
 
 发现新碟仍使用已核对的最新专辑接口，展示该接口返回的完整集合，不代表网易云的全部专辑库。歌手歌曲、专辑继续使用原有数据接口与搜索流程。
 
@@ -52,3 +52,5 @@
 ## 首页分组布局
 
 首页每个推荐分组使用 Column 承载其输出。歌曲分组的 Title 与 TripleLaneSlider 是顺序内容，不能直接放入 Box，否则二者共享起点并发生重叠。
+
+每日推荐仅显示有音乐操作的资源类型，Banner 中的 `showAdTag=true` 项不展示。过滤在展示层进行，保留原始区块、游标和已加载区块记录用于分页。

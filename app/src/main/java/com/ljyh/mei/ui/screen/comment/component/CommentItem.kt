@@ -1,8 +1,5 @@
 package com.ljyh.mei.ui.screen.comment.component
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -32,24 +29,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.CommentEntry
-import com.ljyh.mei.data.model.domain.FloorCommentEntry
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.screen.comment.CommentReplyState
 import timber.log.Timber
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @Composable
-fun CommentItem(
+internal fun CommentItem(
     comment: CommentEntry,
-    isExpanded: Boolean,
-    floorComments: Resource<List<FloorCommentEntry>>,
+    replies: CommentReplyState?,
     onToggleFloor: (Long, Int) -> Unit,
+    onRetryFloor: (Long) -> Unit,
+    onShowMoreFloor: (Long) -> Unit,
     modifier: Modifier = Modifier,
     lightText: Boolean = false,
     horizontalPadding: Dp = meiPageGutter(),
-    floorHasMore: Boolean = false,
-    floorLoadMoreError: Boolean = false,
-    floorWaitingForReveal: Boolean = false,
-    onShowMoreFloor: () -> Unit = {},
 ) {
     val primaryText = if (lightText) Color.White else MaterialTheme.colorScheme.onSurface
     val secondaryText = if (lightText) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -124,7 +118,7 @@ fun CommentItem(
                 if (floorCount > 0) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = if (isExpanded) "收起回复" else "展开 $floorCount 条回复",
+                        text = if (replies != null) "收起回复" else "展开 $floorCount 条回复",
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = accentText,
                         modifier = Modifier
@@ -136,11 +130,7 @@ fun CommentItem(
             }
         }
 
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
+        if (replies != null) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -151,7 +141,7 @@ fun CommentItem(
                         RoundedCornerShape(8.dp)
                     )
             ) {
-                when (floorComments) {
+                when (val floorComments = replies.comments) {
                     is Resource.Loading -> {
                         CircularProgressIndicator(
                             modifier = Modifier
@@ -166,17 +156,17 @@ fun CommentItem(
                             floorComments.data.forEach { floor ->
                                 FloorCommentItem(comment = floor, lightText = lightText)
                             }
-                            if (floorHasMore) {
+                            if (replies.hasMore) {
                                 Text(
                                     text = when {
-                                        floorLoadMoreError -> "加载失败，点击重试"
-                                        floorWaitingForReveal -> "加载中…"
+                                        replies.loadMoreError -> "加载失败，点击重试"
+                                        replies.waitingForMore -> "加载中…"
                                         else -> "查看更多回复"
                                     },
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                     color = accentText,
                                     modifier = Modifier
-                                        .clickable { onShowMoreFloor() }
+                                        .clickable { onShowMoreFloor(comment.id) }
                                         .padding(horizontal = 12.dp, vertical = 12.dp)
                                 )
                             }
@@ -188,7 +178,7 @@ fun CommentItem(
                             text = "加载失败，点击重试",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (lightText) Color(0xFFFFDAD6) else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.clickable { onToggleFloor(comment.id, comment.replyCount); onToggleFloor(comment.id, comment.replyCount) }.padding(12.dp)
+                            modifier = Modifier.clickable { onRetryFloor(comment.id) }.padding(12.dp)
                         )
                     }
                 }

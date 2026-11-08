@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.screen.artist
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -35,6 +36,8 @@ import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.collection.MeiCollectionPage
 import com.ljyh.mei.ui.component.collection.MeiCollectionLoadMore
+import com.ljyh.mei.ui.component.layout.AppWindowLayout
+import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
 import com.ljyh.mei.ui.component.track.Track
 import com.ljyh.mei.ui.component.track.TrackPlaceholder
 import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
@@ -134,7 +137,11 @@ fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewM
         onNavigateBack = { if (isSearchActive) closeSearch() else navController.popBackStack() },
         onRetry = { if (searching) viewModel.searchAlbums(searchQuery) else albums.retry() },
         state = if (searching) searchScroll else normalScroll,
-        columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(148.dp * VinylAlbumArtworkRatio),
+        columns = if (LocalAppWindowLayout.current == AppWindowLayout.Wide) {
+            GridCells.Adaptive(148.dp * VinylAlbumArtworkRatio)
+        } else {
+            GridCells.Fixed(2)
+        },
         loading = if (searching) currentSearch.isSearching else albums.loadState.refresh is LoadState.Loading,
         failed = if (searching) currentSearch.error != null else albums.loadState.refresh is LoadState.Error,
         emptyText = if (searching) "没有找到匹配的专辑" else "暂无专辑", emptyActionLabel = null,

@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.model.api.CommentSortType
 import com.ljyh.mei.ui.screen.comment.CommentViewModel
 import com.ljyh.mei.ui.screen.comment.component.CommentItem
@@ -36,11 +35,7 @@ fun PlayerCommentsContent(
     viewModel: CommentViewModel = hiltViewModel(),
     foreground: Color = Color.White,
 ) {
-    val expandedCommentId by viewModel.expandedCommentId.collectAsState()
-    val floorComments by viewModel.floorComments.collectAsState()
-    val floorHasMore by viewModel.floorHasMore.collectAsState()
-    val floorLoadMoreError by viewModel.floorLoadMoreError.collectAsState()
-    val floorWaitingForReveal by viewModel.floorWaitingForReveal.collectAsState()
+    val expandedReplies by viewModel.expandedReplies.collectAsState()
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
 
     LaunchedEffect(songId) {
@@ -92,16 +87,12 @@ fun PlayerCommentsContent(
                     key = { index -> pagingItems.peek(index)?.id ?: index },
                 ) { index ->
                     val comment = pagingItems[index] ?: return@items
-                    val isExpanded = expandedCommentId == comment.id
                     CommentItem(
                         comment = comment,
-                        isExpanded = isExpanded,
-                        floorComments = if (isExpanded) floorComments else Resource.Loading,
+                        replies = expandedReplies[comment.id],
                         onToggleFloor = viewModel::toggleFloorComments,
+                        onRetryFloor = viewModel::retryFloorComments,
                         onShowMoreFloor = viewModel::showMoreFloorComments,
-                        floorHasMore = isExpanded && floorHasMore,
-                        floorLoadMoreError = floorLoadMoreError,
-                        floorWaitingForReveal = floorWaitingForReveal,
                         horizontalPadding = 4.dp,
                         lightText = foreground == Color.White,
                     )

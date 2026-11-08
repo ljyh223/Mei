@@ -71,6 +71,7 @@ import com.ljyh.mei.constants.RecommendCardWidthTablet
 import com.ljyh.mei.constants.UserIdKey
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
+import com.ljyh.mei.data.model.eapi.HomeFeedPolicy
 import com.ljyh.mei.data.model.eapi.homeResourcePositionComparator
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.extensions.togglePlayPause
@@ -91,6 +92,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.UUID
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
@@ -137,7 +139,7 @@ fun HomeScreen(
     }.collectAsState(initial = null)
     val sortedBlocks = remember(homePageResourceShowPage1) {
         val result = homePageResourceShowPage1
-        if (result is Resource.Success) com.ljyh.mei.data.model.eapi.HomeFeedPolicy.visibleBlocks(result.data)
+        if (result is Resource.Success) HomeFeedPolicy.visibleBlocks(result.data)
         else emptyList()
     }
     val isRefreshing by viewModel.refreshing.collectAsState()
@@ -303,7 +305,7 @@ private fun HomeBlockItem(
         // --- 每日推荐 ---
         "PAGE_RECOMMEND_DAILY_RECOMMEND" -> {
             val resources = remember(blockData) {
-                blockData["resources"]?.jsonArray.orEmpty().mapNotNull {
+                HomeFeedPolicy.dailyMusicCards(blockData["resources"] as? JsonArray).mapNotNull {
                     runCatching {
                         json.decodeFromJsonElement<HomePageResourceShow.Data.Block.DslData.BlockResource.Resource>(it)
                     }.onFailure { error ->
@@ -375,16 +377,6 @@ private fun HomeBlockItem(
                             // 私人FM
                             playerConnection.fmStart(resource.resourceId)
 
-                        }
-
-                        "similarSo  ng" -> {
-                            // 相似歌曲
-                            //val id = resource.resourceId // 需要解析 json
-//                            "resourceId": [
-//                            "2060083093",
-//                            "2060086839",
-//                            "2097485069"
-//                            ]
                         }
 
                         "similarArtist" -> {

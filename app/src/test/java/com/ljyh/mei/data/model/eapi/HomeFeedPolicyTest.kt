@@ -1,10 +1,41 @@
 package com.ljyh.mei.data.model.eapi
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.*
 import org.junit.Test
 
 class HomeFeedPolicyTest {
     private fun block(code: String) = HomePageResourceShow.Data.Block(positionCode = code)
+
+    @Test fun dailyRecommendationKeepsMusicCardsWhenPodcastAndUnsupportedCardsAreMixedIn() {
+        val cards = Json.parseToJsonElement("""[
+            {"resourceType":"dailySongs"}, {"resourceType":"playList"}, {"resourceType":"nonstandard"},
+            {"resourceType":"star"}, {"resourceType":"fm"}, {"resourceType":"podcast"}
+        ]""").jsonArray
+
+        assertEquals(listOf("dailySongs", "playList", "star", "fm"),
+            HomeFeedPolicy.dailyMusicCards(cards).map { it.getValue("resourceType").jsonPrimitive.content })
+    }
+
+    @Test fun firstPageFiltersAdBannersAndHidesAnAdOnlyModule() {
+        val banner = block("PAGE_RECOMMEND_BANNER_1").copy(nativeData = Json.parseToJsonElement("""
+            {"banners":[{"bannerType":"force_banner","showAdTag":true,"targetType":1006}]}
+        """).jsonObject)
+        val first = HomePageResourceShow.Data(blocks = listOf(banner, block("PAGE_RECOMMEND_RADAR")),
+            cursor = 10, hasMore = true, loadedPositionCodes = listOf(banner.positionCode))
+
+        assertEquals(listOf("PAGE_RECOMMEND_RADAR"), HomeFeedPolicy.visibleBlocks(first.blocks).map { it.positionCode })
+        val mixed = Json.parseToJsonElement("""[
+            {"showAdTag":true,"targetType":1006}, {"showAdTag":false,"targetType":10}, {"targetType":1000}
+        ]""").jsonArray
+        assertEquals(listOf("10", "1000"),
+            HomeFeedPolicy.visibleBanners(mixed).map { it.getValue("targetType").jsonPrimitive.content })
+        assertEquals(listOf(banner.positionCode), first.loadedPositionCodes)
+        assertEquals(10, first.cursor)
+    }
 
     @Test fun radarIsSecondEvenWhenServerReturnsItLater() {
         val blocks = listOf("PAGE_RECOMMEND_DAILY_RECOMMEND", "PAGE_RECOMMEND_SHORTCUT",

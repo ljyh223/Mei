@@ -1,5 +1,11 @@
 package com.ljyh.mei.data.model.eapi
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+
 /** The music home surface has its own module order, independent of server template names. */
 object HomeFeedPolicy {
     val moduleOrder = listOf(
@@ -32,11 +38,20 @@ object HomeFeedPolicy {
         "PAGE_RECOMMEND_PODCAST_RADIO_PROGRAM",
     )
     private val priority = moduleOrder.withIndex().associate { it.value to it.index }
+    private val dailyMusicTypes = setOf("dailySongs", "star", "fm", "similarArtist", "playList")
+
+    fun dailyMusicCards(cards: JsonArray?): List<JsonObject> = cards.orEmpty().filterIsInstance<JsonObject>()
+        .filter { (it["resourceType"] as? JsonPrimitive)?.contentOrNull in dailyMusicTypes }
+
+    fun visibleBanners(banners: JsonArray): List<JsonObject> = banners.filterIsInstance<JsonObject>()
+        .filterNot { (it["showAdTag"] as? JsonPrimitive)?.booleanOrNull == true }
 
     fun visibleBlocks(blocks: List<HomePageResourceShow.Data.Block>) = blocks
         .filterNot {
             val code = it.positionCode.uppercase()
-            code.contains("PODCAST") || code.contains("AUDIOBOOK") || code.contains("AUDIO_BOOK")
+            val banners = it.nativeData?.get("banners") as? JsonArray
+            code.contains("PODCAST") || code.contains("AUDIOBOOK") || code.contains("AUDIO_BOOK") ||
+                (banners != null && visibleBanners(banners).isEmpty())
         }
         .sortedBy { priority[it.positionCode] ?: Int.MAX_VALUE }
 }

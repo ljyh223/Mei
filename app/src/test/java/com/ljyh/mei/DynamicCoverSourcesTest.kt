@@ -1,10 +1,28 @@
 package com.ljyh.mei.constants
 
 import androidx.datastore.preferences.core.preferencesOf
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class DynamicCoverSourcesTest {
+    @Test
+    fun `first Netease toggle preserves Apple Music selection`() {
+        val fresh = mutablePreferencesOf().apply {
+            updateDynamicCoverSettings { it.copy(enabled = true) }
+        }
+        val previouslyEnabled = mutablePreferencesOf(DynamicCoverEnabledKey to true)
+        for (preferences in listOf(fresh, previouslyEnabled)) {
+            preferences.updateDynamicCoverSettings {
+                it.copy(selectedSources = it.selectedSources.copy(netease = false))
+            }
+            assertEquals(DynamicCoverSources(appleMusic = true, netease = false), preferences.dynamicCoverSources())
+            preferences.updateDynamicCoverSettings { it.copy(enabled = false) }
+            preferences.updateDynamicCoverSettings { it.copy(enabled = true) }
+            assertEquals(DynamicCoverSources(appleMusic = true, netease = false), preferences.dynamicCoverSources())
+        }
+    }
+
     @Test
     fun `existing enabled setting enables both sources`() {
         val preferences = preferencesOf(DynamicCoverKey to true)
