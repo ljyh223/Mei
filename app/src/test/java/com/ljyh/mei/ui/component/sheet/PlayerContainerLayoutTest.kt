@@ -113,9 +113,9 @@ class PlayerContainerLayoutTest {
                         morphSpec = BottomSheetMorphSpec(collapsedHeight = 48.dp, collapsedBottomMargin = 36.dp),
                         expansionBounds = source ?: Rect(20f * density, 700f * density, 380f * density, 724f * density),
                         keepExpandedContentComposed = true,
+                        transparentCollapsedContainer = true,
                         collapsedContent = {
                             MiniPlayerBarContent("Song", "Artist", null, false, false, {}, {}, {},
-                                drawSurface = false,
                                 onSurfaceBounds = {
                                     actualHeight = it.height
                                     source = it

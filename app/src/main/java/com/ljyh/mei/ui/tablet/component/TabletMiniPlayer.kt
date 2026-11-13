@@ -54,7 +54,6 @@ internal fun TabletMiniPlayer(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
-    drawSurface: Boolean = true,
     drawCover: Boolean = true,
     onBounds: ((Rect, Rect) -> Unit)? = null,
     onArtworkReady: (String, Painter) -> Unit = { _, _ -> },
@@ -70,7 +69,7 @@ internal fun TabletMiniPlayer(
             artworkBounds?.let { artwork -> onBounds(bounds, artwork) }
         }
     }
-    val body: @Composable () -> Unit = {
+    MeiGlassSurface(modifier = surfaceModifier, shape = RoundedCornerShape(24.dp)) {
         Row(
             Modifier.fillMaxWidth().fillMaxHeight()
                 .clickable(enabled = enabled && metadata != null, role = Role.Button, onClick = onOpen)
@@ -120,9 +119,4 @@ internal fun TabletMiniPlayer(
             }
         }
     }
-    if (drawSurface) MeiGlassSurface(
-        modifier = surfaceModifier, shape = RoundedCornerShape(24.dp), solidColor = colors.secondaryContainer,
-    ) { body() }
-    else Box(surfaceModifier) { body() }
-
 }

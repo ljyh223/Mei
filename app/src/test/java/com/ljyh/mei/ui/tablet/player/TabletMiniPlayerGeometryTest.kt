@@ -85,10 +85,11 @@ class TabletMiniPlayerGeometryTest {
                         expansionBounds = Rect(588f * density, 700f * density, 928f * density, 764f * density),
                         morphSpec = BottomSheetMorphSpec(collapsedHeight = 64.dp, collapsedBottomMargin = 28.dp),
                         keepExpandedContentComposed = true,
+                        transparentCollapsedContainer = true,
                         collapsedContent = {
                             TabletMiniPlayer(metadata, true, true, true, {}, { paused++ }, {},
                                 modifier = Modifier.offset(x = 588.dp).size(340.dp, 64.dp),
-                                drawSurface = false, drawCover = false)
+                                drawCover = false)
                         },
                     ) { Box(Modifier.fillMaxSize()) }
                 }

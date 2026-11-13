@@ -215,7 +215,13 @@ fun BottomSheet(
                 .clip(sheetShape)
                 .background(
                     if (expansionFrame != null) {
-                        backgroundColor
+                        // The mini player draws its own surface. Reveal the full player backdrop
+                        // as that surface fades out, using the same progress on the way back.
+                        if (transparentCollapsedContainer) {
+                            backgroundColor.copy(
+                                alpha = backgroundColor.alpha * PlayerMotionSpec.PlayerBackgroundExpansion.transform(progress),
+                            )
+                        } else backgroundColor
                     } else if (morphLayout != null) {
                         backgroundColor.copy(
                             alpha = backgroundColor.alpha * if (transparentCollapsedContainer) {

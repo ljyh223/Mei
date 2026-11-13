@@ -103,7 +103,6 @@ import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.playerContainerFrame
-import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.sheet.BottomSheetContainerMotion
 import com.ljyh.mei.ui.component.sheet.BottomSheetMorphSpec
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
@@ -442,8 +441,7 @@ fun AppleMusicPlayer(
         BottomSheet(
             state = state,
             modifier = Modifier.fillMaxSize(),
-            backgroundColor = if (useContainerExpansion)
-                lerp(MaterialTheme.colorScheme.secondaryContainer, Color(0xFF202024), sheetProgress) else Color.Transparent,
+            backgroundColor = if (useContainerExpansion) Color(0xFF202024) else Color.Transparent,
             expansionBounds = measuredMini.takeIf { useContainerExpansion },
             expansionRadius = MiniPlayerBarHeight / 2,
             morphSpec = BottomSheetMorphSpec(
@@ -458,8 +456,6 @@ fun AppleMusicPlayer(
             ),
             containerMotion = BottomSheetContainerMotion.Sheet,
             keepExpandedContentComposed = true,
-            // The bar is a full-width Material 3 surface; the player cover is drawn by the
-            // sheet-local overlay so it shares the sheet's coordinate space.
             transparentCollapsedContainer = true,
             onDismiss = {
                 stateContainer.playerConnection.player.stop()
@@ -474,40 +470,37 @@ fun AppleMusicPlayer(
                 }
             },
             collapsedContent = {
-                CompositionLocalProvider(LocalMeiGlassEnabled provides false) {
-                    MiniPlayerBarContent(
-                        title = mediaMetadata?.title,
-                        artist = mediaMetadata?.artists?.joinToString { it.name },
-                        coverUrl = mediaMetadata?.coverUrl,
-                        isPlaying = isPlaying,
-                        canSkipNext = stateContainer.canSkipNext.value,
-                        onClick = state::expandSoft,
-                        onPlayPause = {
-                            val player = stateContainer.playerConnection.player
-                            if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
-                                player.seekTo(0, 0)
-                                player.playWhenReady = true
-                            } else {
-                                if (isPlaying) player.pause() else player.play()
-                            }
-                        },
-                        onNext = stateContainer.playerConnection::seekToNext,
-                        drawCover = !sharedArtworkReady,
-                        onArtworkReady = { url, painter ->
-                            if (url == coverUrl) miniArtwork = url to painter
-                        },
-                        drawSurface = !useContainerExpansion,
-                        enabled = state.isCollapsed,
-                        onSurfaceBounds = { bounds ->
-                            if (state.isCollapsed) {
-                                miniBoundsInRoot = bounds
-                                miniWindowSize = windowSize
-                            }
-                        },
-                        bottomInset = miniPlayerBottomInset,
-                        compactProgress = if (useContainerExpansion && !state.isCollapsed) frozenMiniCompact else compactProgress,
-                    )
-                }
+                MiniPlayerBarContent(
+                    title = mediaMetadata?.title,
+                    artist = mediaMetadata?.artists?.joinToString { it.name },
+                    coverUrl = mediaMetadata?.coverUrl,
+                    isPlaying = isPlaying,
+                    canSkipNext = stateContainer.canSkipNext.value,
+                    onClick = state::expandSoft,
+                    onPlayPause = {
+                        val player = stateContainer.playerConnection.player
+                        if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
+                            player.seekTo(0, 0)
+                            player.playWhenReady = true
+                        } else {
+                            if (isPlaying) player.pause() else player.play()
+                        }
+                    },
+                    onNext = stateContainer.playerConnection::seekToNext,
+                    drawCover = !sharedArtworkReady,
+                    onArtworkReady = { url, painter ->
+                        if (url == coverUrl) miniArtwork = url to painter
+                    },
+                    enabled = state.isCollapsed,
+                    onSurfaceBounds = { bounds ->
+                        if (state.isCollapsed) {
+                            miniBoundsInRoot = bounds
+                            miniWindowSize = windowSize
+                        }
+                    },
+                    bottomInset = miniPlayerBottomInset,
+                    compactProgress = if (useContainerExpansion && !state.isCollapsed) frozenMiniCompact else compactProgress,
+                )
             },
             overlayContent = {
                 mediaMetadata?.let { currentMedia ->

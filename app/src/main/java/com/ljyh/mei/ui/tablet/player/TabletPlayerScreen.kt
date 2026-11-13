@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.toSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
-import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.tablet.component.TabletMiniPlayer
 import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
@@ -108,9 +107,7 @@ internal fun TabletPlayerScreen(
 
     BottomSheet(
         state = sheet, modifier = modifier,
-        backgroundColor = if (expansionOrigin != null)
-            androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.secondaryContainer, Color(0xFF202024), sheet.progress)
-            else Color(0xFF202024),
+        backgroundColor = Color(0xFF202024),
         expansionBounds = expansionOrigin?.surface,
         expansionRadius = 24.dp,
         morphSpec = expansionOrigin?.let { origin -> BottomSheetMorphSpec(
@@ -123,24 +120,21 @@ internal fun TabletPlayerScreen(
         onDismiss = { container.playerConnection.player.stop(); container.playerConnection.player.clearMediaItems() },
         collapsedContent = {
             expansionOrigin?.let { origin ->
-                CompositionLocalProvider(LocalMeiGlassEnabled provides false,
-                    LocalContentColor provides MaterialTheme.colorScheme.onSecondaryContainer) {
-                    TabletMiniPlayer(
-                        metadata = metadata, playing = playing, canSkipNext = container.canSkipNext.value,
-                        enabled = sheet.isCollapsed, onOpen = sheet::expandSoft,
-                        onPlayPause = {
-                            val player = container.playerConnection.player
-                            if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
-                                player.seekTo(0, 0); player.playWhenReady = true
-                            } else if (playing) player.pause() else player.play()
-                        },
-                        onNext = container.playerConnection::seekToNext,
-                        modifier = Modifier.align(AbsoluteAlignment.TopLeft)
-                            .absoluteOffset(x = with(density) { origin.surface.left.toDp() })
-                            .size(with(density) { origin.surface.width.toDp() }, with(density) { origin.surface.height.toDp() }),
-                        drawSurface = false, drawCover = false,
-                    )
-                }
+                TabletMiniPlayer(
+                    metadata = metadata, playing = playing, canSkipNext = container.canSkipNext.value,
+                    enabled = sheet.isCollapsed, onOpen = sheet::expandSoft,
+                    onPlayPause = {
+                        val player = container.playerConnection.player
+                        if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
+                            player.seekTo(0, 0); player.playWhenReady = true
+                        } else if (playing) player.pause() else player.play()
+                    },
+                    onNext = container.playerConnection::seekToNext,
+                    modifier = Modifier.align(AbsoluteAlignment.TopLeft)
+                        .absoluteOffset(x = with(density) { origin.surface.left.toDp() })
+                        .size(with(density) { origin.surface.width.toDp() }, with(density) { origin.surface.height.toDp() }),
+                    drawCover = false,
+                )
             }
         },
         overlayContent = {

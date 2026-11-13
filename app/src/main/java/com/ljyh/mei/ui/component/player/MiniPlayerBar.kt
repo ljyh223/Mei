@@ -64,7 +64,6 @@ fun MiniPlayerBarContent(
     drawCover: Boolean = true,
     bottomInset: Dp = 0.dp,
     compactProgress: Float = 0f,
-    drawSurface: Boolean = true,
     enabled: Boolean = true,
     onSurfaceBounds: (Rect) -> Unit = {},
     onArtworkReady: (String, Painter) -> Unit = { _, _ -> },
@@ -79,7 +78,10 @@ fun MiniPlayerBarContent(
                 // back into the next frame can permanently shrink the collapsed capsule.
                 onSurfaceBounds(Rect(it.positionInRoot(), it.size.toSize()))
             }
-        val miniContent: @Composable () -> Unit = {
+        MeiGlassSurface(
+            modifier = surfaceModifier,
+            shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
+        ) {
             // Insets stay outside the floating surface; cover coordinates remain sheet-local.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -135,12 +137,6 @@ fun MiniPlayerBarContent(
                 }
             }
         }
-        if (drawSurface) MeiGlassSurface(
-            modifier = surfaceModifier,
-            shape = RoundedCornerShape(MiniPlayerBarHeight / 2),
-            solidColor = MaterialTheme.colorScheme.secondaryContainer,
-        ) { miniContent() }
-        else Box(surfaceModifier) { miniContent() }
         Spacer(modifier = Modifier.height(bottomInset))
     }
 }
