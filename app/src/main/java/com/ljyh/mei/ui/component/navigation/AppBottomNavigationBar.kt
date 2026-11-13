@@ -2,7 +2,6 @@ package com.ljyh.mei.ui.component.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,9 +43,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -57,7 +56,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
-import com.ljyh.mei.ui.component.glass.meiChromeSelectionColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -164,7 +162,6 @@ private fun NavigationTabs(
     val selectedDestination = Index.entries.firstOrNull { it.route == selectedRoute } ?: Index.Home
     val appearance = LocalMeiGlassAppearance.current
     val strongContent = appearance.strongContent && appearance.usesOptics(LocalMeiGlassEnabled.current)
-    val selectionColor = meiChromeSelectionColor()
     val accent = meiGlassAccentColor()
     val fontScale = LocalDensity.current.fontScale
     val expandedHeight = bottomNavigationContentHeight(fontScale)
@@ -184,19 +181,15 @@ private fun NavigationTabs(
                     val start = 6.dp + (expandedItemWidth + 4.dp) * index
                     val itemX = lerp(start, 0.dp, compact)
                     val itemWidth = lerp(expandedItemWidth, 48.dp, compact)
-                    val fill by animateColorAsState(
-                        if (selected) selectionColor else Color.Transparent,
-                        label = "navigationSelection",
-                    )
                     val ink = meiGlassContentColor(secondary = !selected && !strongContent)
-                    val tabIconColor by animateColorAsState(
+                    val tabColor by animateColorAsState(
                         targetValue = if (selected) accent else ink,
                         animationSpec = tween(160),
-                        label = "navigationIconColor",
+                        label = "navigationTabColor",
                     )
                     // Follow the shell's existing progress directly: no delayed colour change
                     // when the selected tab becomes the compact navigation button.
-                    val iconInk = androidx.compose.ui.graphics.lerp(tabIconColor, ink, compact)
+                    val iconInk = lerp(tabColor, ink, compact)
                     val action = if (selected && compact >= 0.5f) {
                         Modifier.clickable(enabled = interactive, role = Role.Button, onClick = onExpand)
                     } else {
@@ -210,7 +203,7 @@ private fun NavigationTabs(
                     Column(
                         modifier = Modifier.offset(x = itemX).width(itemWidth).height(surfaceHeight)
                             .padding(vertical = 6.dp).alpha(itemAlpha)
-                            .clip(CircleShape).background(fill.copy(alpha = fill.alpha * (1f - compact)))
+                            .clip(CircleShape)
                             .then(action)
                             .semantics {
                                 contentDescription = if (selected && compact >= 0.5f)
@@ -231,7 +224,7 @@ private fun NavigationTabs(
                                     strongContent -> FontWeight.SemiBold
                                     else -> FontWeight.Medium
                                 },
-                                color = ink,
+                                color = tabColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.alpha(1f - compact).clearAndSetSemantics {},

@@ -59,9 +59,7 @@ class GlassAppearanceTest {
                 else lightColorScheme(primary = accent), dark)
             for (appearance in listOf(GlassAppearance.Clear, GlassAppearance.Readable,
                 GlassAppearance.Balanced.copy(strongContent = false))) {
-                // Covers the shared control surface, the playback strip and selected navigation.
-                val containers = listOf(scheme.surfaceContainer, scheme.secondaryContainer,
-                    appearance.selectionColor(scheme, liveGlass = false))
+                val containers = listOf(scheme.surfaceContainer, scheme.secondaryContainer)
                 for (container in containers) for (backdrop in backdrops) {
                     val surface = container.copy(alpha = appearance.tintOpacity(false)).compositeOver(backdrop)
                     assertEquals("Artwork must not change the solid colour", container, surface)
@@ -168,15 +166,11 @@ class GlassAppearanceTest {
                 else lightColorScheme(primary = accent), dark)
             val ink = GlassAppearance.Balanced.accentColor(scheme, liveGlass = live)
             val surface = (if (live) scheme.surfaceContainerLow else scheme.surfaceContainer).copy(alpha = 1f)
-            val backgrounds = listOf(surface,
-                GlassAppearance.Balanced.selectionColor(scheme, liveGlass = live).compositeOver(surface))
             assertEquals(1f, ink.alpha, 0f)
-            for (background in backgrounds) {
-                val a = ink.luminance()
-                val b = background.luminance()
-                val ratio = (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
-                assertTrue("Accent contrast $ratio below 4.5, dark=$dark, accent=$accent", ratio >= 4.5f)
-            }
+            val a = ink.luminance()
+            val b = surface.luminance()
+            val ratio = (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
+            assertTrue("Accent contrast $ratio below 4.5, dark=$dark, accent=$accent", ratio >= 4.5f)
         }
     }
 

@@ -37,10 +37,6 @@ fun meiGlassContentColor(secondary: Boolean = false): Color =
     )
 
 @Composable
-fun meiChromeSelectionColor(): Color =
-    LocalMeiGlassAppearance.current.selectionColor(MaterialTheme.colorScheme, LocalMeiGlassEnabled.current)
-
-@Composable
 fun meiGlassAccentColor(): Color {
     val appearance = LocalMeiGlassAppearance.current
     val colors = MaterialTheme.colorScheme

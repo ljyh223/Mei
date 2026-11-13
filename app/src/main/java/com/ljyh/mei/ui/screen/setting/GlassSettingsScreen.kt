@@ -46,7 +46,6 @@ import com.ljyh.mei.ui.component.glass.GlassAppearance
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
-import com.ljyh.mei.ui.component.glass.meiChromeSelectionColor
 import com.ljyh.mei.ui.component.glass.meiGlassAccentColor
 import com.ljyh.mei.ui.component.glass.meiGlassContentColor
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
@@ -195,7 +194,6 @@ private fun GlassMaterialPreview() {
     val source = rememberHazeState()
     val appearance = LocalMeiGlassAppearance.current
     val live = appearance.usesOptics(LocalMeiGlassEnabled.current)
-    val selectionColor = meiChromeSelectionColor()
     val strongContent = appearance.strongContent && live
     val ink = meiGlassContentColor()
     val secondaryInk = meiGlassContentColor(secondary = true)
@@ -240,14 +238,17 @@ private fun GlassMaterialPreview() {
                     Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                         listOf(Icons.Rounded.Recommend to "推荐", Icons.Rounded.MusicVideo to "发现",
                             Icons.Rounded.LibraryMusic to "音乐库").forEachIndexed { index, (icon, label) ->
-                            val labelInk = if (index == 0 || strongContent) ink else secondaryInk
-                            Column(Modifier.weight(1f).clip(RoundedCornerShape(50))
-                                .background(if (index == 0) selectionColor else Color.Transparent)
+                            val tabColor = when {
+                                index == 0 -> accent
+                                strongContent -> ink
+                                else -> secondaryInk
+                            }
+                            Column(Modifier.weight(1f)
                                 .padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(icon, contentDescription = null, tint = if (index == 0) accent else labelInk,
+                                Icon(icon, contentDescription = null, tint = tabColor,
                                     modifier = Modifier.size(24.dp))
-                                Text(label, color = labelInk, style = MaterialTheme.typography.labelMedium,
+                                Text(label, color = tabColor, style = MaterialTheme.typography.labelMedium,
                                     fontWeight = when {
                                         index == 0 -> FontWeight.Bold
                                         strongContent -> FontWeight.SemiBold

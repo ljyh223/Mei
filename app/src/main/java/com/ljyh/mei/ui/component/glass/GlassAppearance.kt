@@ -54,17 +54,12 @@ data class GlassAppearance(
         }
     }
 
-    fun selectionColor(colors: ColorScheme, liveGlass: Boolean = true): Color =
-        if (usesOptics(liveGlass)) colors.surfaceContainerHighest.copy(alpha = 0.18f)
-        else colors.secondaryContainer.copy(alpha = 1f)
-
     /** Retain the theme accent while correcting extremely pale/dark accents for navigation. */
     fun accentColor(colors: ColorScheme, liveGlass: Boolean = true): Color {
         val surface = (if (usesOptics(liveGlass)) colors.surfaceContainerLow
             else colors.surfaceContainer).copy(alpha = 1f)
-        val backgrounds = listOf(surface, selectionColor(colors, liveGlass).compositeOver(surface))
         val accent = colors.primary.compositeOver(surface)
-        fun readable(color: Color) = backgrounds.all { color.contrastAgainst(it) >= 4.5f }
+        fun readable(color: Color) = color.contrastAgainst(surface) >= 4.5f
         if (readable(accent)) return accent
         val ink = if (colors.surface.luminance() < 0.5f) Color.White else Color.Black
         var low = 0f
