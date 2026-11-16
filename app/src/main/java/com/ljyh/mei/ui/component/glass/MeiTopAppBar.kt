@@ -24,12 +24,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.draw.alpha
 import com.ljyh.mei.ui.component.layout.MeiPageLayout
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /**
@@ -54,7 +57,8 @@ fun MeiTopAppBar(
 ) {
     Box(modifier.fillMaxWidth()) {
         val source = hazeState ?: LocalMeiHazeState.current
-        val barModifier = Modifier.padding(horizontal = (meiPageGutter() - 8.dp).coerceAtLeast(0.dp))
+        val gutter = (meiPageGutter() - 8.dp).coerceAtLeast(0.dp)
+        val barModifier = Modifier.padding(start = LocalPageStartInset.current + gutter, end = gutter)
         val barActions: @Composable RowScope.() -> Unit = {
             CompositionLocalProvider(LocalMeiHazeState provides source) { actions() }
         }
@@ -62,7 +66,7 @@ fun MeiTopAppBar(
             state = source,
             modifier = Modifier.matchParentSize(),
             backgroundMode = backgroundMode,
-            )
+        )
         // The shared backdrop owns the surface in both live and fallback modes.
         val barColors = colors.copy(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent)
         val icon: @Composable () -> Unit = {
@@ -71,8 +75,10 @@ fun MeiTopAppBar(
             }
         }
 
+        val compact = LocalPhoneLandscape.current
+        val barHeight = if (compact) meiTopBarHeight() else Dp.Unspecified
         when {
-            large -> LargeTopAppBar(
+            large && !compact -> LargeTopAppBar(
                 modifier = barModifier,
                 title = title,
                 navigationIcon = icon,
@@ -82,6 +88,7 @@ fun MeiTopAppBar(
             )
             centerAligned -> CenterAlignedTopAppBar(
                 modifier = barModifier,
+                expandedHeight = barHeight,
                 title = title,
                 navigationIcon = icon,
                 actions = barActions,
@@ -90,6 +97,7 @@ fun MeiTopAppBar(
             )
             else -> TopAppBar(
                 modifier = barModifier,
+                expandedHeight = barHeight,
                 title = title,
                 navigationIcon = icon,
                 actions = barActions,

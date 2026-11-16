@@ -17,10 +17,11 @@ import com.ljyh.mei.ui.component.MeiStatePanel
 import com.ljyh.mei.ui.component.glass.LocalMeiPageProgress
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
-import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
+import com.ljyh.mei.ui.component.glass.meiTopBarBodyTopPadding
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /**
@@ -57,6 +58,9 @@ fun MeiCollectionPage(
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val titleGutter = meiPageGutter()
+    val sideInset = LocalPageStartInset.current
+    val hasLargeTitle = showLargeTitle && sideInset == 0.dp
+    val bodyTopPadding = meiTopBarBodyTopPadding(hasCustomTitle = titleContent != null)
     val gutter = horizontalContentPadding ?: titleGutter
     val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
     val progress by remember(state, collapseDistance) {
@@ -67,7 +71,7 @@ fun MeiCollectionPage(
     }
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Use this collection's actual width, including when hosted in a resized window.
-        val wideArtworkGrid = maxWidth >= 600.dp && columns != GridCells.Fixed(1)
+        val wideArtworkGrid = maxWidth - sideInset >= 600.dp && columns != GridCells.Fixed(1)
         val columnSpacing = horizontalItemSpacing ?: if (wideArtworkGrid) 24.dp else 12.dp
         val rowSpacing = verticalItemSpacing ?: if (wideArtworkGrid) 28.dp else 16.dp
         CompositionLocalProvider(LocalMeiPageProgress provides progress) {
@@ -76,15 +80,15 @@ fun MeiCollectionPage(
                 state = state,
                 modifier = Modifier.fillMaxSize().hazeSource(source).background(MaterialTheme.colorScheme.surface),
                 contentPadding = PaddingValues(
-                    start = gutter,
+                    start = gutter + sideInset,
                     end = gutter,
-                    top = top + 64.dp,
+                    top = top + bodyTopPadding,
                     bottom = insets.calculateBottomPadding() + 24.dp,
                 ),
                 horizontalArrangement = Arrangement.spacedBy(columnSpacing),
                 verticalArrangement = Arrangement.spacedBy(rowSpacing),
             ) {
-                if (showLargeTitle) item(key = "collection_title", span = { GridItemSpan(maxLineSpan) }) {
+                if (hasLargeTitle) item(key = "collection_title", span = { GridItemSpan(maxLineSpan) }) {
                     MeiLargeTitle(title, startPadding = (titleGutter - gutter).coerceAtLeast(0.dp))
                 }
                 if (controls != null) item(key = "collection_controls", span = { GridItemSpan(maxLineSpan) }) {
@@ -103,7 +107,7 @@ fun MeiCollectionPage(
             }
         }
         MeiHazeTopBar(
-            state = source, title = title, progress = if (showLargeTitle) progress else 1f,
+            state = source, title = title, progress = if (hasLargeTitle) progress else 1f,
             onNavigateBack = onNavigateBack, actions = actions, titleContent = titleContent,
         )
     }

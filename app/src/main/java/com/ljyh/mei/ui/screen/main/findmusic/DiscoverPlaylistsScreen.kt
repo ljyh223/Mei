@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.data.model.domain.DiscoverOrder
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.MeiFilterPill
 import com.ljyh.mei.ui.component.card.PlaylistCard
 import com.ljyh.mei.ui.component.collection.MeiCollectionLoadMore
@@ -44,7 +45,7 @@ fun DiscoverPlaylistsScreen(viewModel: DiscoverPlaylistsViewModel = hiltViewMode
         itemKey = { page.items[it].id },
         onNavigateBack = { nav.navigateUp() },
         onRetry = viewModel::retryPlaylists,
-        columns = if (rememberDeviceInfo().isTablet) GridCells.Adaptive(164.dp) else GridCells.Fixed(
+        columns = if (rememberDeviceInfo().isTablet || LocalPageStartInset.current > 0.dp) GridCells.Adaptive(164.dp) else GridCells.Fixed(
             2
         ),
         state = scroll,

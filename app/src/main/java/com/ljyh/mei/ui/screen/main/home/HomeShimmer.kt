@@ -3,7 +3,6 @@ package com.ljyh.mei.ui.screen.main.home
 import com.ljyh.mei.ui.component.card.PlaylistCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.Composable
@@ -17,7 +16,7 @@ import com.ljyh.mei.constants.RecommendCardWidth
 import com.ljyh.mei.constants.RecommendCardWidthTablet
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 
 @Composable
 fun HomeShimmer(viewModel: HomeViewModel) {
@@ -55,7 +54,7 @@ private fun RecommendRowShimmer(
     Column {
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(homeCardSpacing()),
-            contentPadding = PaddingValues(horizontal = meiPageGutter())
+            contentPadding = meiPageHorizontalPadding()
         ) {
             items(count) {
                 RecommendCard(
@@ -81,7 +80,7 @@ private fun PlaylistBlockShimmer(
         Title(text = "", isLoading = true)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(homeCardSpacing()),
-            contentPadding = PaddingValues(horizontal = meiPageGutter())
+            contentPadding = meiPageHorizontalPadding()
         ) {
             items(count) {
                 PlaylistCard(

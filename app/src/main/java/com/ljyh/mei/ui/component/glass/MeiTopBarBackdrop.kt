@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
@@ -25,7 +26,8 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 
-private val TopBarTransitionExtension = 34.dp
+@Composable
+private fun meiTopBarTransitionExtension(): Dp = if (LocalPhoneLandscape.current) 12.dp else 34.dp
 private const val TopBarTransitionStart = 0.42f
 
 /** Initial readable content starts below the painted fade, not only the measured toolbar. */
@@ -33,7 +35,7 @@ private const val TopBarTransitionStart = 0.42f
 internal fun meiTopBarContentClearance(mode: MeiTopBarBackground = MeiTopBarBackground.Auto): Dp =
     if (mode == MeiTopBarBackground.Auto &&
         LocalMeiGlassAppearance.current.usesOptics(LocalMeiGlassEnabled.current && Build.VERSION.SDK_INT >= 33))
-        TopBarTransitionExtension else 0.dp
+        meiTopBarTransitionExtension() else 0.dp
 
 /**
  * The toolbar keeps its measured height. Glass extends its non-interactive background below
@@ -56,7 +58,7 @@ internal fun MeiTopBarBackdrop(
     )
     val live = background.usesGlass
     val solid = !live
-    val transitionExtension = if (solid) 0.dp else TopBarTransitionExtension
+    val transitionExtension = if (solid) 0.dp else meiTopBarTransitionExtension()
     val surface = MaterialTheme.colorScheme.surface
     // Live sampling needs only a gentle tint. Solids are drawn separately, fully opaque.
     val tint = remember(surface) {

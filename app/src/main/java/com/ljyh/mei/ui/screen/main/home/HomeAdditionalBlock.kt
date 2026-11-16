@@ -22,7 +22,7 @@ import com.ljyh.mei.data.model.eapi.HomeFeedPolicy
 import com.ljyh.mei.ui.component.card.PlaylistCard
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.screen.Screen
 import kotlinx.serialization.json.*
 import kotlinx.coroutines.launch
@@ -48,7 +48,7 @@ internal fun HomeAdditionalBlock(block: HomePageResourceShow.Data.Block, nav: Na
     if (bannerPayload != null) {
         val banners = remember(bannerPayload) { HomeFeedPolicy.visibleBanners(bannerPayload) }
         if (banners.isEmpty()) return
-        LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(homeCardSpacing())) {
+        LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(homeCardSpacing())) {
             items(banners) { banner ->
                 AsyncImage(model = banner.text("pic"), contentDescription = banner.text("typeTitle"), contentScale = ContentScale.Crop,
                     modifier = Modifier.width(cardSize * 2).height(cardSize).clip(RoundedCornerShape(12.dp)).clickable {
@@ -88,7 +88,7 @@ internal fun HomeAdditionalBlock(block: HomePageResourceShow.Data.Block, nav: Na
     }
     if (cards.isEmpty()) return
     if (title.isNotBlank()) Title(title)
-    LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(homeCardSpacing())) {
+    LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(homeCardSpacing())) {
         items(cards) { card ->
             val type = card.text("resourceType")
             val id = card.text("resourceId")

@@ -5,14 +5,18 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -34,9 +38,13 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.compose.runtime.collectAsState
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.ljyh.mei.constants.AlwaysExpandMiniPlayerKey
 import com.ljyh.mei.constants.AppBarHeight
@@ -45,7 +53,6 @@ import com.ljyh.mei.ui.component.navigation.compactPlayerVerticalDrop
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
 import com.ljyh.mei.ui.component.player.state.SyncPlayerSheetVisibility
 import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
-import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.ui.motion.PageNavigationMotion
@@ -53,12 +60,15 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.search.SearchType
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.utils.preferences.rememberPreference
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
     val navController = appState.navController
@@ -73,13 +83,16 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
     ) {
         val focusManager = LocalFocusManager.current
         val density = LocalDensity.current
-        val device = rememberDeviceInfo()
+        // A keyboard can make a portrait viewport wider than it is tall.
+        val configuration = LocalConfiguration.current
+        val sideBar = usePhoneSideBar(configuration.screenWidthDp.toFloat(), configuration.screenHeightDp.toFloat())
         val systemBars = WindowInsets.systemBars
+        val windowInsets = if (sideBar) systemBars.union(WindowInsets.displayCutout) else systemBars
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val route = navBackStackEntry?.destination?.route
-        val bottomInset by remember {
+        val bottomInset by remember(density, windowInsets) {
             derivedStateOf {
-                with(density) { systemBars.getBottom(density).toDp() }
+                with(density) { windowInsets.getBottom(density).toDp() }
             }
         }
         val shellState = resolveMainShellState(
@@ -90,19 +103,19 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
             dismissedBound = 0.dp,
             collapsedBound = collapsedPlayerBound(
                 systemBottomInset = bottomInset,
-            ),
+            ).coerceAtMost(maxHeight / 2),
             expandedBound = maxHeight,
             allowDismissGesture = false,
             savedAnchor = appState.playerSheetAnchor,
         )
         var navigationExpanded by rememberSaveable { mutableStateOf(true) }
         val compactNavigationProgress by animateFloatAsState(
-            targetValue = if (alwaysExpandMiniPlayer || navigationExpanded) 0f else 1f,
+            targetValue = if (sideBar || alwaysExpandMiniPlayer || navigationExpanded) 0f else 1f,
             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             label = "compactNavigation",
         )
         val compactNavigationAllowed = rememberUpdatedState(
-            !alwaysExpandMiniPlayer && shellState.showBottomNavigation && !searchActive && !device.isLandscape &&
+            !alwaysExpandMiniPlayer && shellState.showBottomNavigation && !searchActive && !sideBar &&
                 (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed),
         )
         val navigationScrollConnection = remember {
@@ -120,14 +133,13 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
         LaunchedEffect(route) {
             navigationExpanded = true
         }
-        LaunchedEffect(device.isLandscape, alwaysExpandMiniPlayer) {
-            if (device.isLandscape || alwaysExpandMiniPlayer) navigationExpanded = true
+        LaunchedEffect(sideBar, alwaysExpandMiniPlayer) {
+            if (sideBar || alwaysExpandMiniPlayer) navigationExpanded = true
         }
         val routeBottomChromeAnimationSpec = remember {
             PlayerMotionSpec.tween<Float>()
         }
-        val showBottomBar = shellState.showBottomNavigation ||
-            searchActive
+        val showBottomBar = !sideBar && (shellState.showBottomNavigation || searchActive)
         val routeBottomNavigationProgress by animateFloatAsState(
             targetValue = if (showBottomBar) 1f else 0f,
             animationSpec = routeBottomChromeAnimationSpec,
@@ -136,7 +148,7 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
         val playerBottomNavigationProgress =
             PlayerMotionSpec.BottomNavigationExit.reverse(playerBottomSheetState.progress)
         val bottomNavigationProgress =
-            routeBottomNavigationProgress * playerBottomNavigationProgress
+            if (searchActive) 1f else routeBottomNavigationProgress * playerBottomNavigationProgress
         val canScrollAppBar = {
             route?.startsWith("search_result/") == false &&
                 (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
@@ -162,7 +174,7 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
             searchBarScrollBehavior.state.resetHeightOffset()
             topAppBarScrollBehavior.state.resetHeightOffset()
         }
-        LaunchedEffect(searchActive) {
+        LaunchedEffect(searchActive, sideBar) {
             if (searchActive) {
                 searchBarScrollBehavior.state.resetHeightOffset()
                 topAppBarScrollBehavior.state.resetHeightOffset()
@@ -180,20 +192,20 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
             Scaffold(
                 // One owner resizes the search viewport and consumes IME insets for its children.
                 modifier = Modifier.fillMaxSize()
-                    .windowInsetsPadding(if (searchActive) WindowInsets.ime else WindowInsets(0))
+                    .windowInsetsPadding(if (searchActive && !sideBar) WindowInsets.ime else WindowInsets(0))
                     .nestedScroll(navigationScrollConnection),
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
                     // Search chrome samples its own page, never the hidden browsing content.
-                    CompositionLocalProvider(
+                    if (!sideBar) CompositionLocalProvider(
                         LocalMeiHazeState provides if (searchActive) searchHazeState else pageHazeState,
                     ) {
                         AppBottomNavigationBar(
                             visibilityProgress = bottomNavigationProgress,
-                            alphaProgress = routeBottomNavigationProgress,
-                            interactive = showBottomBar && playerBottomNavigationProgress >= 1f,
+                            alphaProgress = if (searchActive) 1f else routeBottomNavigationProgress,
+                            interactive = showBottomBar && (searchActive || playerBottomNavigationProgress >= 1f),
                             selectedRoute = route,
                             onTabSelect = appState::selectMainDestination,
                             compactProgress = compactNavigationProgress,
@@ -209,58 +221,96 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                         )
                     }
                 },
-            ) {
-                val scaffoldBottomInset = it.calculateBottomPadding()
+            ) { scaffoldPadding ->
+                val scaffoldBottomInset = scaffoldPadding.calculateBottomPadding()
                 val playerNavigationOffset = playerBottomNavigationOffset(
                     systemBottomInset = bottomInset,
                     scaffoldBottomInset = scaffoldBottomInset,
                     visibilityProgress = routeBottomNavigationProgress,
                 )
                 val playerAwareWindowInsets = remember(
+                    sideBar,
+                    windowInsets,
                     bottomInset,
                     playerNavigationOffset,
                     playerBottomSheetState.isDismissed,
                 ) {
-                    val bottom = playerAwareBottomInset(
+                    val bottom = if (sideBar) bottomInset else playerAwareBottomInset(
                         systemBottomInset = bottomInset,
                         navigationOffset = playerNavigationOffset,
                         showMiniPlayer = !playerBottomSheetState.isDismissed,
                     )
-                    systemBars
+                    windowInsets
                         .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
                         .add(WindowInsets(top = AppBarHeight, bottom = bottom))
                 }
 
+                val hasPlayer = !playerBottomSheetState.isDismissed && playerConnection != null
+                val imeInsets = if (searchActive && sideBar) WindowInsets.ime else WindowInsets(0)
                 CompositionLocalProvider(
                     LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
                 ) {
-                    MeiAppPages(
-                        appState = appState,
-                        pageMotion = pageMotion,
-                        scrollBehavior = topAppBarScrollBehavior,
-                        pages = SharedMeiPageContent,
-                        modifier = Modifier.fillMaxSize()
-                            .then(if (useGlass) Modifier.hazeSource(pageHazeState) else Modifier)
-                            .background(MaterialTheme.colorScheme.background),
-                    )
-                    BottomSheetPlayer(
-                        state = playerBottomSheetState,
-                        collapsedBottomOffset = (playerNavigationOffset - compactPlayerVerticalDrop(density.fontScale) * compactNavigationProgress)
-                            .coerceAtLeast(0.dp),
-                        systemBottomInset = bottomInset,
-                        bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
-                        compactProgress = compactNavigationProgress,
-                    )
-                    BottomSearchOverlay(
-                        active = searchActive,
-                        hazeState = searchHazeState,
-                        librarySearch = librarySearch,
-                        bottomBarClearance = scaffoldBottomInset,
-                        query = query,
-                        onQueryChange = onQueryChange,
-                        onSubmit = submitBottomSearch,
-                        onDismiss = { onActiveChange(false) },
-                    )
+                    Box(Modifier.fillMaxSize()) {
+                        CompositionLocalProvider(
+                            LocalPageStartInset provides if (sideBar) PhoneSideBarWidth else 0.dp,
+                            LocalPhoneLandscape provides sideBar,
+                        ) {
+                            MeiAppPages(
+                                appState = appState,
+                                pageMotion = pageMotion,
+                                scrollBehavior = topAppBarScrollBehavior,
+                                pages = SharedMeiPageContent,
+                                modifier = Modifier.fillMaxSize()
+                                    .then(if (useGlass) Modifier.hazeSource(pageHazeState) else Modifier)
+                                    .background(MaterialTheme.colorScheme.background),
+                            )
+                            BottomSearchOverlay(
+                                active = searchActive,
+                                hazeState = searchHazeState,
+                                librarySearch = librarySearch,
+                                bottomBarClearance = if (sideBar) bottomInset else scaffoldBottomInset,
+                                query = query,
+                                onQueryChange = onQueryChange,
+                                onSubmit = submitBottomSearch,
+                                onDismiss = { onActiveChange(false) },
+                                topSearchFocus = bottomSearchFocusRequester.takeIf { sideBar },
+                                modifier = Modifier.windowInsetsPadding(imeInsets)
+                                    .zIndex(if (searchActive && !sideBar) 1f else 0f),
+                            )
+                        }
+                        if (sideBar) {
+                            val song = playerConnection?.mediaMetadata?.collectAsState()?.value
+                            Box(Modifier.windowInsetsPadding(windowInsets.only(
+                                WindowInsetsSides.Start + WindowInsetsSides.Vertical,
+                            ))) {
+                                CompositionLocalProvider(
+                                    LocalMeiHazeState provides if (searchActive) searchHazeState else pageHazeState,
+                                ) {
+                                    PhoneSideBar(
+                                        selectedRoute = appState.selectedMainRoute,
+                                        showPlayer = hasPlayer,
+                                        coverUrl = song?.coverUrl,
+                                        onSelect = appState::selectMainDestination,
+                                        onSearch = { onActiveChange(!searchActive) },
+                                        onOpenPlayer = {
+                                            if (searchActive) onActiveChange(false)
+                                            playerBottomSheetState.expandSoft()
+                                        },
+                                        visibility = playerBottomNavigationProgress,
+                                    )
+                                }
+                            }
+                        }
+                        BottomSheetPlayer(
+                            state = playerBottomSheetState,
+                            wideContent = sideBar,
+                            collapsedBottomOffset = (playerNavigationOffset - compactPlayerVerticalDrop(density.fontScale) * compactNavigationProgress)
+                                .coerceAtLeast(0.dp),
+                            systemBottomInset = bottomInset,
+                            bottomNavigationVisibilityProgress = routeBottomNavigationProgress,
+                            compactProgress = compactNavigationProgress,
+                        )
+                    }
                 }
             }
         }

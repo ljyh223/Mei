@@ -27,7 +27,7 @@ import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.discoverPlaylistsRoute
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 
@@ -49,8 +49,7 @@ fun FindMusicScreen(
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val tablet = rememberDeviceInfo().isTablet
-    val gutter = meiPageGutter()
-    val rowInsets = PaddingValues(horizontal = gutter)
+    val rowInsets = meiPageHorizontalPadding()
     val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
     val progress by remember(listState, collapseDistance) {
         derivedStateOf {

@@ -79,6 +79,7 @@ import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.glass.LocalMeiPageProgress
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiTopBarBackdrop
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
 import com.ljyh.mei.ui.component.MeiSectionTitle
 import com.ljyh.mei.ui.component.track.PlayingImageView
@@ -103,7 +104,8 @@ import dev.chrisbanes.haze.rememberHazeState
 import timber.log.Timber
 import com.ljyh.mei.ui.component.layout.AppWindowLayout
 import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 
 @Composable
 internal fun isHomeWideLayout(): Boolean = when (LocalAppWindowLayout.current) {
@@ -170,6 +172,7 @@ fun HomeScreen(
 
     val playerAwarePadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val landscape = LocalPhoneLandscape.current
     val pageHaze = rememberHazeState()
     val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
     val titleProgress by remember(listState, collapseDistance) {
@@ -190,7 +193,7 @@ fun HomeScreen(
                 isRefreshing = isRefreshing,
                 onRefresh = { viewModel.homePageResourceShow(true) },
             ) {
-                CompositionLocalProvider(LocalMeiPageProgress provides titleProgress) {
+                CompositionLocalProvider(LocalMeiPageProgress provides if (landscape) 0f else titleProgress) {
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
@@ -200,13 +203,13 @@ fun HomeScreen(
                         ),
                     ) {
                         item(key = "home_title") {
-                            MeiLargeTitle("推荐", modifier = Modifier.padding(bottom = 16.dp))
+                            MeiLargeTitle("推荐", modifier = Modifier.padding(meiPageHorizontalPadding()).padding(bottom = 16.dp), startPadding = 0.dp)
                         }
                         when (homePageResourceShowPage1) {
                             is Resource.Success -> {
                                 if (sortedBlocks.isEmpty()) {
                                     item(key = "home_empty") {
-                                        Box(Modifier.fillParentMaxHeight(0.65f), contentAlignment = Alignment.Center) {
+                                        Box(Modifier.fillParentMaxHeight(0.65f).padding(meiPageHorizontalPadding(0.dp)), contentAlignment = Alignment.Center) {
                                             HomeStatus(
                                                 title = "还没有推荐内容",
                                                 onRetry = { viewModel.homePageResourceShow(true) },
@@ -231,7 +234,7 @@ fun HomeScreen(
 
                             is Resource.Error -> {
                                 item(key = "home_error") {
-                                    Box(Modifier.fillParentMaxHeight(0.65f), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.fillParentMaxHeight(0.65f).padding(meiPageHorizontalPadding(0.dp)), contentAlignment = Alignment.Center) {
                                         HomeStatus(
                                             title = "暂时无法加载推荐",
                                             onRetry = { viewModel.homePageResourceShow(true) },
@@ -246,7 +249,7 @@ fun HomeScreen(
                         }
                         if (homePageResourceShowPage1 is Resource.Success) {
                             item(key = "home_pagination") {
-                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                Box(Modifier.fillMaxWidth().padding(meiPageHorizontalPadding(16.dp)).padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                                     when {
                                         refreshError -> TextButton(onClick = { viewModel.homePageResourceShow(true) }) { Text("刷新失败，点击重试") }
                                         loadingMore -> androidx.compose.material3.CircularProgressIndicator(Modifier.size(24.dp))
@@ -260,7 +263,13 @@ fun HomeScreen(
                 }
             }
         }
-        MeiHazeTopBar(state = pageHaze, title = "推荐", progress = titleProgress)
+        if (landscape) {
+            if (statusBarTop > 0.dp) {
+                MeiTopBarBackdrop(state = pageHaze, modifier = Modifier.fillMaxWidth().height(statusBarTop))
+            }
+        } else {
+            MeiHazeTopBar(state = pageHaze, title = "推荐", progress = titleProgress)
+        }
     }
 }
 
@@ -517,7 +526,7 @@ private fun <T> BlockWithTitle(
         if (!title.isNullOrBlank()) Title(title)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = meiPageGutter()), // 左右留白
+            contentPadding = meiPageHorizontalPadding(),
             horizontalArrangement = Arrangement.spacedBy(itemSpacing) // Item 间距
         ) {
             items(resources) { resource ->
@@ -531,7 +540,7 @@ private fun <T> BlockWithTitle(
 fun Title(text: String, isLoading: Boolean = false) {
     MeiSectionTitle(
         text = text,
-        modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 12.dp),
+        modifier = Modifier.padding(meiPageHorizontalPadding()).padding(vertical = 12.dp),
         isLoading = isLoading,
     )
 }
@@ -555,7 +564,7 @@ fun TripleLaneSlider(
 
     HorizontalPager(
         state = pagerState,
-        contentPadding = PaddingValues(horizontal = meiPageGutter()),
+        contentPadding = meiPageHorizontalPadding(),
         pageSpacing = 16.dp
     ) { page ->
         val firstLaneIndex = page * lanesPerPage

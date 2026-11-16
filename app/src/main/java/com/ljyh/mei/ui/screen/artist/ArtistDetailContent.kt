@@ -19,7 +19,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.ui.component.glass.*
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.component.track.Track
@@ -40,12 +41,13 @@ internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDeta
     val bar = rememberMeiArtworkTopBarState(list, state.id)
     val progress by animateFloatAsState(if (bar.artworkPassed) 1f else 0f, label = "artistBar")
     val source = rememberHazeState()
-    Scaffold(topBar = {
+    val compactHeader = LocalPageStartInset.current > 0.dp
+    Scaffold(containerColor = base, topBar = {
         MeiHazeTopBar(source, state.artist?.name.orEmpty(), progress,
             modifier = bar.toolbarModifier, onNavigateBack = actions.onBack,
             backgroundProgress = 1f)
     }) { padding ->
-        LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(source),
+        LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(source).background(base),
             contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() +
                 LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())) {
             item(key = "artist_header") {
@@ -53,9 +55,10 @@ internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDeta
                     state.artist != null -> ArtistHeader(
                         state.artist, headerSurface = tint, artworkModifier = bar.artworkModifier,
                         canPlayHotSongs = state.canPlay && state.songs.isNotEmpty(),
+                        compact = compactHeader,
                         onBrowseSongs = actions.onBrowseSongs, onPlayHotSongs = actions.onPlayHotSongs,
                     )
-                    state.detailLoading -> ArtistHeaderShimmer(tint, bar.artworkModifier)
+                    state.detailLoading -> ArtistHeaderShimmer(tint, bar.artworkModifier, compact = compactHeader)
                     else -> ErrorItem(state.detailError ?: "歌手信息暂不可用")
                 }
             }
@@ -78,13 +81,13 @@ internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDeta
             item { SectionTitle("专辑", actions.onBrowseAlbums) }
             when {
                 state.albumsLoading -> item { SkeletonShimmerHost(true) {
-                    LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(4) { AlbumCardShimmer() }
                     }
                 } }
                 state.albumsError != null -> item { ErrorItem(state.albumsError) }
                 state.albums.isEmpty() -> item { EmptyArtistSection("暂无专辑") }
-                else -> item { LazyRow(contentPadding = PaddingValues(horizontal = meiPageGutter()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                else -> item { LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.albums.take(10), key = { it.id }) { AlbumCard(it, onClick = actions.onAlbumClick) }
                 } }
             }

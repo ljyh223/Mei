@@ -32,6 +32,7 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.collection.MeiCollectionPage
@@ -137,7 +138,7 @@ fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewM
         onNavigateBack = { if (isSearchActive) closeSearch() else navController.popBackStack() },
         onRetry = { if (searching) viewModel.searchAlbums(searchQuery) else albums.retry() },
         state = if (searching) searchScroll else normalScroll,
-        columns = if (LocalAppWindowLayout.current == AppWindowLayout.Wide) {
+        columns = if (LocalAppWindowLayout.current == AppWindowLayout.Wide || LocalPageStartInset.current > 0.dp) {
             GridCells.Adaptive(148.dp * VinylAlbumArtworkRatio)
         } else {
             GridCells.Fixed(2)

@@ -112,7 +112,8 @@ fun MeiApp(
                     smallestWidthDp = LocalConfiguration.current.smallestScreenWidthDp,
                 )
                 val activity = context as? Activity
-                val freeOrientation = layout == AppWindowLayout.Wide || activity?.isInMultiWindowMode == true
+                val freeOrientation = com.ljyh.mei.BuildConfig.DEBUG || layout == AppWindowLayout.Wide ||
+                    activity?.isInMultiWindowMode == true
                 val orientation = if (freeOrientation) ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 SideEffect {
                     if (activity != null && activity.requestedOrientation != orientation) activity.requestedOrientation = orientation

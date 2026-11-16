@@ -5,22 +5,38 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.meiPageGutter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.ljyh.mei.ui.screen.search.SearchScreen
+import com.ljyh.mei.ui.screen.search.SearchType
 import com.ljyh.mei.ui.screen.main.library.LibrarySearchResults
 
 /**
@@ -37,27 +53,48 @@ fun BottomSearchOverlay(
     onSubmit: (String, Int) -> Unit,
     onDismiss: () -> Unit,
     hazeState: HazeState? = null,
+    topSearchFocus: FocusRequester? = null,
+    modifier: Modifier = Modifier,
 ) {
     BackHandler(enabled = active, onBack = onDismiss)
     AnimatedVisibility(
         visible = active,
+        modifier = modifier,
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
         // The parent already excludes the keyboard. Only reserve the measured bottom bar here.
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .then(if (LocalMeiGlassEnabled.current && hazeState != null) Modifier.hazeSource(hazeState) else Modifier)
                 .background(MaterialTheme.colorScheme.background)
+                .then(if (topSearchFocus != null) Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
+                ) else Modifier)
                 .padding(
-                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
+                    top = if (topSearchFocus != null) 8.dp
+                    else WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
                     bottom = bottomBarClearance,
+                    start = LocalPageStartInset.current,
                 ),
         ) {
+            if (topSearchFocus != null) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter())
+                        .focusRequester(topSearchFocus),
+                    placeholder = { Text(if (librarySearch) "搜索歌单、专辑" else "搜索歌曲、歌手、专辑") },
+                    singleLine = true,
+                    trailingIcon = { TextButton(onClick = onDismiss) { Text("取消") } },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSubmit(query.text, SearchType.All.type) }),
+                )
+            }
             if (librarySearch) LibrarySearchResults(query.text, onDismiss) else SearchScreen(
                 modifier = Modifier.fillMaxSize(),
-                showTitle = true,
+                showTitle = topSearchFocus == null,
                 query = query.text,
                 onQueryChange = onQueryChange,
                 onSearch = onSubmit,

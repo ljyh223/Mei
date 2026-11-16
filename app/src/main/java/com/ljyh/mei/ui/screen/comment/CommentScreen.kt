@@ -35,6 +35,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.comment.component.CommentItem
@@ -66,6 +67,7 @@ fun CommentScreen(
     val insets = LocalPlayerAwareWindowInsets.current
     val layoutDirection = LocalLayoutDirection.current
     val topBarClearance = meiTopBarContentClearance()
+    val sideInset = LocalPageStartInset.current
     val showCollapseFab = expandedReplies.values.any { it.replyCount > 10 && it.comments is Resource.Success }
 
     Scaffold(
@@ -107,7 +109,7 @@ fun CommentScreen(
                         .fillMaxSize()
                         .hazeSource(pageHaze)
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(paddingValues),
+                        .padding(paddingValues).padding(start = sideInset),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
@@ -120,7 +122,7 @@ fun CommentScreen(
                         .fillMaxSize()
                         .hazeSource(pageHaze)
                         .background(MaterialTheme.colorScheme.surface)
-                        .padding(paddingValues),
+                        .padding(paddingValues).padding(start = sideInset),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -138,7 +140,7 @@ fun CommentScreen(
                     contentPadding = PaddingValues(
                         // Keep the viewport behind the toolbar for sampling while the first
                         // comment initially clears both the toolbar and its progressive fade.
-                        start = paddingValues.calculateStartPadding(layoutDirection),
+                        start = paddingValues.calculateStartPadding(layoutDirection) + sideInset,
                         end = paddingValues.calculateEndPadding(layoutDirection),
                         top = paddingValues.calculateTopPadding() + topBarClearance,
                         bottom = paddingValues.calculateBottomPadding() +

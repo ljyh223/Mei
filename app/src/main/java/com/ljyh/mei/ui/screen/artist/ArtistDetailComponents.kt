@@ -51,7 +51,7 @@ import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import com.ljyh.mei.ui.model.Album
@@ -67,6 +67,7 @@ fun ArtistHeader(
     onPlayHotSongs: () -> Unit = {},
     onBrowseSongs: () -> Unit = {},
     artworkModifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val loading = isLoading || artist == null
     val colors = MaterialTheme.colorScheme
@@ -98,7 +99,7 @@ fun ArtistHeader(
             )
         )
         Column(Modifier.fillMaxWidth()) {
-            Box(Modifier.fillMaxWidth().height(460.dp).then(artworkModifier)) {
+            Box(Modifier.fillMaxWidth().height(if (compact) 224.dp else 460.dp).then(artworkModifier)) {
                 if (loading) {
                     Spacer(Modifier.fillMaxSize().skeleton(true, RoundedCornerShape(0.dp)))
                 } else if (imageUrl != null) {
@@ -124,7 +125,7 @@ fun ArtistHeader(
                 }
                 Column(
                     modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                        .padding(horizontal = meiPageGutter(), vertical = 24.dp),
+                        .padding(meiPageHorizontalPadding()).padding(vertical = if (compact) 12.dp else 24.dp),
                 ) {
                     if (identity.isNotBlank()) {
                         Text(
@@ -139,7 +140,8 @@ fun ArtistHeader(
                     Text(
                         text = artist?.name?.takeIf { it.isNotBlank() } ?: if (loading) "歌手名称" else "未知歌手",
                         modifier = Modifier.skeleton(loading),
-                        style = MaterialTheme.typography.headlineLarge.copy(fontSize = 38.sp, lineHeight = 44.sp),
+                        style = if (compact) MaterialTheme.typography.headlineSmall
+                        else MaterialTheme.typography.headlineLarge.copy(fontSize = 38.sp, lineHeight = 44.sp),
                         fontWeight = FontWeight.Bold,
                         color = colors.onBackground,
                         maxLines = 2,
@@ -168,7 +170,7 @@ fun ArtistHeader(
                 }
             }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()).padding(top = 8.dp, bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(meiPageHorizontalPadding()).padding(top = 8.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -210,7 +212,7 @@ internal fun ArtistAbout(
     Column(
         Modifier.fillMaxWidth()
             .background(Brush.verticalGradient(listOf(headerSurface, MaterialTheme.colorScheme.background)))
-            .padding(horizontal = meiPageGutter()).padding(top = 4.dp, bottom = 12.dp),
+            .padding(meiPageHorizontalPadding()).padding(top = 4.dp, bottom = 12.dp),
     ) {
         Text("关于歌手", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         if (expertIdentities.isNotEmpty()) {
@@ -279,7 +281,7 @@ internal fun ArtistAbout(
 internal fun EmptyArtistSection(message: String) {
     Text(
         text = message,
-        modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 16.dp),
+        modifier = Modifier.padding(meiPageHorizontalPadding()).padding(vertical = 16.dp),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.bodyMedium,
     )
@@ -311,6 +313,7 @@ fun AlbumCardShimmer() {
 fun ArtistHeaderShimmer(
     headerSurface: Color = MaterialTheme.colorScheme.background,
     artworkModifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     SkeletonShimmerHost(enabled = true) {
         ArtistHeader(
@@ -318,6 +321,7 @@ fun ArtistHeaderShimmer(
             isLoading = true,
             headerSurface = headerSurface,
             artworkModifier = artworkModifier,
+            compact = compact,
         )
     }
 }
@@ -328,7 +332,7 @@ fun ArtistHeaderShimmer(
 @Composable
 fun SectionTitle(title: String, onShowAll: (() -> Unit)? = null) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(meiPageHorizontalPadding()).padding(top = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,

@@ -20,6 +20,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import com.ljyh.mei.ui.component.MeiSectionTitle
 import com.ljyh.mei.ui.component.MeiShowAllButton
 import com.ljyh.mei.ui.component.MeiStatePanel
@@ -27,7 +28,9 @@ import com.ljyh.mei.ui.component.card.ArtworkCard
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.glass.*
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.main.library.*
@@ -57,7 +60,8 @@ fun LibraryBrowseLayout(
     val listState = rememberLazyListState()
     val tablet = rememberDeviceInfo().isTablet
     val gutter = meiPageGutter()
-    val rowPadding = PaddingValues(horizontal = gutter)
+    val rowPadding = meiPageHorizontalPadding()
+    val sideInset = LocalPageStartInset.current
     val bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val distance = with(LocalDensity.current) { 56.dp.toPx() }
@@ -83,6 +87,10 @@ fun LibraryBrowseLayout(
     BoxWithConstraints(Modifier
         .fillMaxSize()
         .nestedScroll(scrollBehavior.nestedScrollConnection)) {
+        val compactWide = !tablet && sideInset > 0.dp
+        val mobileColumns = if (compactWide) {
+            ((maxWidth - sideInset - gutter * 2 + 16.dp) / 148.dp).toInt().coerceIn(2, 4)
+        } else 2
         val columns =
             if (tablet) ((maxWidth - gutter * 2 + 16.dp) / 184.dp).toInt().coerceIn(2, 6) else 2
         val createdRows = remember(composition, remainingLimit, columns) {
@@ -142,6 +150,8 @@ fun LibraryBrowseLayout(
                                 data,
                                 likedArtwork,
                                 likedSongTitle,
+                                mobileColumns,
+                                if (compactWide) 128.dp else 190.dp,
                                 preparingPlayback,
                                 canPlay,
                                 rowPadding,
@@ -322,6 +332,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
     data: LibraryContentUiState,
     likedArtwork: String?,
     likedSongTitle: String?,
+    columns: Int,
+    likedHeight: Dp,
     preparingPlayback: Boolean,
     canPlay: Boolean,
     rowPadding: PaddingValues,
@@ -339,7 +351,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(rowPadding)
-                .height(190.dp),
+                .height(likedHeight),
             onOpen = { liked?.let { onOpenPlaylist(it.id) } },
             onPlay = { liked?.let { onPlayLiked(it.id) } },
             songTitle = likedSongTitle, playAtBottom = true
@@ -362,7 +374,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
             Modifier.padding(rowPadding)
         )
     }
-    items(created.take(4).chunked(2), key = { "mobile_created_${it.first().id}" }) { row ->
+    items(created.take(4).chunked(columns), key = { "mobile_created_${it.first().id}" }) { row ->
         Row(
             Modifier
                 .fillMaxWidth()
@@ -379,7 +391,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
                     onOpenPlaylist(playlist.id)
                 }
             }
-            if (row.size == 1) Spacer(Modifier.weight(1f))
+            repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
         }
     }
     item(key = "mobile_collected_heading") {
@@ -399,7 +411,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
             Modifier.padding(rowPadding)
         )
     }
-    items(collected.take(4).chunked(2), key = { "mobile_collected_${it.first().id}" }) { row ->
+    items(collected.take(4).chunked(columns), key = { "mobile_collected_${it.first().id}" }) { row ->
         Row(
             Modifier
                 .fillMaxWidth()
@@ -416,7 +428,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.mobileLibraryContent(
                     onOpenPlaylist(playlist.id)
                 }
             }
-            if (row.size == 1) Spacer(Modifier.weight(1f))
+            repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
         }
     }
     item(key = "mobile_albums_heading") {

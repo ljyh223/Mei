@@ -49,11 +49,15 @@ internal fun NavGraphBuilder.navigationBuilder(
     scrollBehavior: TopAppBarScrollBehavior,
     pages: MeiPageContent,
 ) {
-    pageDestination(Screen.Home.route) {
+    pageDestination(
+        Screen.Home.route,
+        drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
+    ) {
         pages.Home(scrollBehavior)
     }
 
-    pageDestination(Screen.Library.route) {
+    pageDestination(Screen.Library.route, drawsBehindSideBar = true) {
         pages.Library(scrollBehavior)
     }
 
@@ -64,6 +68,7 @@ internal fun NavGraphBuilder.navigationBuilder(
 
     pageDestination(
         "${Screen.LibraryCollection.route}/{collection}",
+        drawsBehindSideBar = true,
         arguments = listOf(navArgument("collection") { type = NavType.StringType }),
     ) { entry ->
         val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.Library.route) }
@@ -73,16 +78,17 @@ internal fun NavGraphBuilder.navigationBuilder(
         pages.Collection(collection = collection, viewModel = hiltViewModel(parentEntry))
     }
 
-    pageDestination(Screen.FindMusic.route) {
+    pageDestination(Screen.FindMusic.route, drawsBehindSideBar = true) {
         pages.Discovery(scrollBehavior)
     }
 
     pageDestination(
         route = "${Screen.DiscoverPlaylists.route}?category={category}",
+        drawsBehindSideBar = true,
         arguments = listOf(navArgument("category") { type = NavType.StringType; defaultValue = "全部" }),
     ) { DiscoverPlaylistsScreen() }
-    pageDestination(Screen.DiscoverAlbums.route) { DiscoverAlbumsScreen() }
-    pageDestination(Screen.DiscoverCharts.route) { DiscoverChartsScreen() }
+    pageDestination(Screen.DiscoverAlbums.route, drawsBehindSideBar = true) { DiscoverAlbumsScreen() }
+    pageDestination(Screen.DiscoverCharts.route, drawsBehindSideBar = true) { DiscoverChartsScreen() }
 
     pageDestination(Screen.AudioMatch.route) {
         AudioMatchScreen(scrollBehavior = scrollBehavior)
@@ -237,6 +243,7 @@ internal fun NavGraphBuilder.navigationBuilder(
 
     pageDestination(
         route = "${Screen.Album.route}/{id}",
+        drawsBehindSideBar = true,
         arguments = listOf(
             navArgument("id") {
                 type = NavType.LongType
@@ -248,6 +255,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     
     pageDestination(
         route = "${Screen.Artist.route}/{id}",
+        drawsBehindSideBar = true,
         arguments = listOf(
             navArgument("id") {
                 type = NavType.StringType
@@ -259,6 +267,7 @@ internal fun NavGraphBuilder.navigationBuilder(
 
     pageDestination(
         route = "${Screen.ArtistSongs.route}/{id}",
+        drawsBehindSideBar = true,
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
         pages.ArtistSongs(id = it.arguments!!.getString("id")!!)
@@ -266,6 +275,7 @@ internal fun NavGraphBuilder.navigationBuilder(
 
     pageDestination(
         route = "${Screen.ArtistAlbums.route}/{id}",
+        drawsBehindSideBar = true,
         arguments = listOf(navArgument("id") { type = NavType.StringType }),
     ) {
         pages.ArtistAlbums(id = it.arguments!!.getString("id")!!)
@@ -277,6 +287,7 @@ internal fun NavGraphBuilder.navigationBuilder(
 
     pageDestination(
         route = "${Screen.Comment.route}/{songId}",
+        drawsBehindSideBar = true,
         arguments = listOf(
             navArgument("songId") { type = NavType.StringType }
         )

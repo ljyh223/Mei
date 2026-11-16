@@ -77,7 +77,8 @@ import java.time.Instant
 import java.time.ZoneId
 import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
 import com.ljyh.mei.utils.share.MediaShareLink
-import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,10 +107,10 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
             var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
             val pageHaze = rememberHazeState()
-            Box(Modifier.fillMaxSize().background(surface)) {
+            Box(Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize().hazeSource(pageHaze),
+                    modifier = Modifier.fillMaxSize().hazeSource(pageHaze).background(surface),
                     contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
                 ) {
                     item(key = "album_header") {
@@ -148,7 +149,7 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 8.dp),
+                                modifier = Modifier.padding(meiPageHorizontalPadding()).padding(top = 16.dp, bottom = 8.dp),
                             )
                         }
                     } else {
@@ -178,7 +179,7 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                 MeiHazeTopBar(
                     modifier = artworkBar.toolbarModifier,
                     state = pageHaze,
-                    title = "",
+                    title = album.name,
                     progress = if (artworkBar.artworkPassed || isSearchActive) 1f else 0f,
                     backgroundProgress = 1f,
                     onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
@@ -193,8 +194,8 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                             },
                         )
                     },
-                    titleContent = {
-                        if (isSearchActive) {
+                    titleContent = if (isSearchActive) {
+                        {
                             TextField(
                                 value = searchQuery,
                                 onValueChange = onSearchQueryChange,
@@ -208,12 +209,8 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                                     unfocusedIndicatorColor = Color.Transparent,
                                 ),
                             )
-                        } else {
-                            Text(album.name, style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold, maxLines = 1,
-                                overflow = TextOverflow.Ellipsis)
                         }
-                    },
+                    } else null,
                 )
             }
 
@@ -248,8 +245,9 @@ private fun AlbumHeader(
     onShowArtists: () -> Unit,
     artworkModifier: Modifier = Modifier,
 ) {
+    val compact = LocalPageStartInset.current > 0.dp
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val heroHeight = (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
+        val heroHeight = if (compact) 224.dp else (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
         Box(Modifier.fillMaxWidth().height(heroHeight).then(artworkModifier)) {
             if (album.picUrl.isNotBlank()) {
                 AsyncImage(
@@ -271,11 +269,11 @@ private fun AlbumHeader(
             )
             Column(
                 modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                    .padding(start = meiPageGutter(), end = meiPageGutter(), bottom = 20.dp),
+                    .padding(meiPageHorizontalPadding()).padding(bottom = if (compact) 12.dp else 20.dp),
             ) {
                 Text(
                     text = album.name,
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
@@ -354,7 +352,7 @@ internal fun AlbumActions(
         contentAlignment = if (playInCenter) Alignment.Center else Alignment.CenterStart,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = meiPageGutter(), vertical = 4.dp),
+            modifier = Modifier.padding(meiPageHorizontalPadding()).padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(if (playInCenter) 16.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -398,7 +396,7 @@ internal fun AlbumDescription(
             onTextLayout = { canExpand = it.hasVisualOverflow },
         )
     }
-    val modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 2.dp)
+    val modifier = Modifier.fillMaxWidth().padding(meiPageHorizontalPadding()).padding(vertical = 2.dp)
     if (expandBelowDescription) {
         Column(modifier) {
             DescriptionText(Modifier.fillMaxWidth())
@@ -431,7 +429,7 @@ internal fun AlbumTrackRow(
     var moreBounds by remember(song.id) { mutableStateOf(IntRect.Zero) }
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(enabled = canPlay, onClick = onClick)
-            .padding(start = meiPageGutter(), end = meiPageGutter(), top = 8.dp, bottom = 8.dp),
+            .padding(meiPageHorizontalPadding()).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

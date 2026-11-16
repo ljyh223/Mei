@@ -39,7 +39,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.component.layout.MeiPageLayout
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -55,7 +58,15 @@ val LocalMeiPageProgress = staticCompositionLocalOf { 0f }
 val LocalMeiShowBackButton = staticCompositionLocalOf { true }
 
 private val CollapseDistance = 56.dp
-private val BarHeight = 54.dp
+
+@Composable
+internal fun meiTopBarHeight(hasCustomTitle: Boolean = false): Dp =
+    if (LocalPhoneLandscape.current && !hasCustomTitle) MeiPageLayout.ToolbarTouchSize else 54.dp
+
+@Composable
+internal fun meiTopBarBodyTopPadding(hasCustomTitle: Boolean = false): Dp =
+    meiTopBarHeight(hasCustomTitle) +
+        (if (LocalPhoneLandscape.current) 4.dp + meiTopBarContentClearance() else 10.dp)
 
 /**
  * Blur-only bar over a Haze source layer. The caller records the page with [hazeSource] and the
@@ -76,20 +87,21 @@ fun MeiHazeTopBar(
     backgroundMode: MeiTopBarBackground = MeiTopBarBackground.Auto,
 ) {
     val alpha = progress.coerceIn(0f, 1f)
+    val barHeight = meiTopBarHeight(hasCustomTitle = titleContent != null)
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Box(modifier.fillMaxWidth().height(statusTop + BarHeight)) {
+    Box(modifier.fillMaxWidth().height(statusTop + barHeight)) {
         MeiTopBarBackdrop(
             state = state,
             progress = backgroundProgress,
             backgroundMode = backgroundMode,
-                modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
         )
         Box(
             Modifier
                 .statusBarsPadding()
                 .fillMaxWidth()
-                .height(BarHeight)
-                .padding(horizontal = meiPageGutter() - 4.dp),
+                .height(barHeight)
+                .padding(meiPageHorizontalPadding(gutter = meiPageGutter() - 4.dp)),
         ) {
             val titleSlot: @Composable () -> Unit = {
                 Box(Modifier.graphicsLayer { this.alpha = alpha }) {
@@ -146,7 +158,7 @@ fun MeiPinnedPage(
     onNavigateBack: (() -> Unit)? = null,
     onBackLongClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
-    contentTopPadding: Dp = BarHeight + 10.dp,
+    contentTopPadding: Dp = meiTopBarBodyTopPadding(),
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val state = rememberHazeState()
@@ -217,6 +229,8 @@ fun MeiPinnedLazyPage(
     content: LazyListScope.() -> Unit,
 ) {
     val state = rememberHazeState()
+    val compact = LocalPhoneLandscape.current
+    val bodyTopPadding = meiTopBarBodyTopPadding()
     val listState = rememberLazyListState()
     val progress by rememberLazyProgress(listState)
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -231,12 +245,12 @@ fun MeiPinnedLazyPage(
                     contentPadding = PaddingValues(
                         start = horizontalContentPadding,
                         end = horizontalContentPadding,
-                        top = statusTop + BarHeight + 10.dp,
+                        top = statusTop + bodyTopPadding,
                         bottom = insetBottom + 24.dp,
                     ),
                     verticalArrangement = verticalArrangement,
                 ) {
-                    item(key = "mei-large-title") { MeiLargeTitle(title, startPadding = indent) }
+                    if (!compact) item(key = "mei-large-title") { MeiLargeTitle(title, startPadding = indent) }
                     content()
                 }
             }
@@ -244,7 +258,7 @@ fun MeiPinnedLazyPage(
         MeiHazeTopBar(
             state = state,
             title = title,
-            progress = progress,
+            progress = if (compact) 1f else progress,
             onNavigateBack = onNavigateBack,
             actions = actions,
         )
