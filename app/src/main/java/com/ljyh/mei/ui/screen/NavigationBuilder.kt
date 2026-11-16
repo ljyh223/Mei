@@ -218,6 +218,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
     pageDestination(
         route = "${Screen.SearchResult.route}/{query}/{type}",
+        drawsBehindSideBar = true,
         arguments = listOf(
             navArgument("query") {
                 type = NavType.StringType
