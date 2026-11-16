@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.MusicNote
 import com.ljyh.mei.ui.tablet.component.TabletMiniPlayer
 import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
+import com.ljyh.mei.constants.PhoneLandscapeImmersiveKey
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
@@ -61,7 +62,9 @@ internal fun TabletPlayerScreen(
     modifier: Modifier = Modifier,
     expansionOrigin: TabletMiniPlayerOrigin? = null,
     miniArtwork: Painter? = null,
+    shortWindowLayout: Boolean = false,
 ) {
+    val landscapeMode = if (shortWindowLayout) rememberPreference(PhoneLandscapeImmersiveKey, false) else null
     val metadata by container.mediaMetadata
     val playing by container.isPlaying
     val playbackState by container.playbackState
@@ -169,6 +172,14 @@ internal fun TabletPlayerScreen(
             )
             CompositionLocalProvider(LocalPlayerForegroundColor provides foreground, LocalContentColor provides foreground) {
                 TabletPlayerContent(
+                    shortWindowLayout = shortWindowLayout,
+                    immersive = landscapeMode?.value == true,
+                    onToggleImmersive = landscapeMode?.let { mode ->
+                        {
+                            overlays.showLyrics()
+                            mode.value = !mode.value
+                        }
+                    },
                     modifier = Modifier.graphicsLayer {
                         alpha = if (expansionOrigin != null) PlayerMotionSpec.ExpandedUiReveal.transform(sheet.progress) else 1f
                     },
@@ -202,18 +213,19 @@ internal fun TabletPlayerScreen(
                                 PlayerControlsSection(
                                     sliderPosition = container.sliderPosition, duration = container.duration,
                                     isPlaying = playing, playbackState = playbackState, playerConnection = container.playerConnection,
-                                    onLyricClick = {},
+                                onLyricClick = { overlays.selectPanel(PlayerPanel.Lyrics) },
                                     onAction = { overlays.handlePlayerAction(it) },
                                     actionProfile = overlays.actionProfile, selectedAction = selectedAction,
                                     onPositionPreview = container::previewSeek, onPositionChange = container::commitSeek,
                                     onMusicQualityClick = overlays::showMusicQualitySelection,
-                                    isCompact = compact, horizontalPadding = 0.dp, includeNavigationBarPadding = false,
+                                isCompact = compact, horizontalPadding = 0.dp, includeNavigationBarPadding = false,
+                                tightControls = compact,
                                 )
                             }
                         },
                         actions = { actionModifier ->
                             PlayerActionToolbar(
-                                onLyricClick = {}, onAction = { overlays.handlePlayerAction(it) },
+                                onLyricClick = { overlays.selectPanel(PlayerPanel.Lyrics) }, onAction = { overlays.handlePlayerAction(it) },
                                 profile = overlays.actionProfile, selectedAction = selectedAction, modifier = actionModifier,
                             )
                         },

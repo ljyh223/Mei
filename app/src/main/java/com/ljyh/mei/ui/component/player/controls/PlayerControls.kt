@@ -32,6 +32,7 @@ fun PlayerControls(
     canSkipNext: Boolean,
     isPlaying: Boolean,
     playbackState: Int,
+    tight: Boolean = false,
 ){
     val foreground = LocalPlayerForegroundColor.current
     Box(modifier = modifier){
@@ -49,7 +50,7 @@ fun PlayerControls(
                     onClick = playerConnection::seekToPrevious,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(64.dp)
+                        .size(if (tight) 48.dp else 64.dp)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_player_previous),
@@ -72,13 +73,13 @@ fun PlayerControls(
                     },
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(84.dp)
+                        .size(if (tight) 56.dp else 84.dp)
                 ) {
                     Icon(
                         imageVector = if (playbackState == STATE_ENDED) Icons.Rounded.Replay else if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                         contentDescription = if (isPlaying) "暂停" else "播放",
                         tint = foreground,
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(if (tight) 48.dp else 64.dp)
                     )
                 }
             }
@@ -91,7 +92,7 @@ fun PlayerControls(
                     onClick = playerConnection::seekToNext,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(64.dp)
+                        .size(if (tight) 48.dp else 64.dp)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_player_next),

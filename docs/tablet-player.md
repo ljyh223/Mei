@@ -15,7 +15,7 @@ MeiAppState / TabletApp
 ```
 
 - `ui/component/player/PlayerHost.kt` 持有现有 `PlayerStateContainer`，沿用原 `PlayerViewModel`、`PlaylistViewModel` 与 `LocalPlayerConnection`。动态封面设置、屏幕常亮、喜欢反馈和 `CommonOverlayHandler` 在这里统一绑定，每个活动外层只有一个播放器入口。
-- `BottomSheetPlayer` 是手机外层适配入口，统一使用 `AppleMusicPlayer`。手机普通单窗口中全屏播放保持竖屏，旧横屏沉浸布局及经典播放器组件已移除。平板仍从 `TabletPlayerHost` 直接注入自己的展示。
+- `BottomSheetPlayer` 是手机外层入口。竖屏使用 `AppleMusicPlayer`，横屏复用 `TabletPlayerScreen`。手机配置仍使用手机操作栏。歌词、队列、评论的展示意图由共享播放器持有，旋转后按当前窗口继续展示。平板从 `TabletPlayerHost` 接入。
 - `TabletPlayerScreen` 是带业务依赖的绑定层。它读取状态、组装回调，并提供封面、控制区、歌词、队列和评论槽位。导航、ViewModel 与播放连接停留在这一层，不传入平板纯布局函数。
 - `TabletPlayerContract.kt` 中的 `TabletPlayerUiState` 与 `TabletPlayerActions` 只描述展示所需的标题、喜欢状态、面板、颜色与用户操作。`TabletPlayerSlots` 承接已有复杂组件的渲染，不创建第二套音频引擎或数据源。
 - `TabletPlayerContent` 负责几何和交互排列；`TabletPlayerPanels` 只处理转场。旧 `ClassicTabletLayout.kt`、`PlayerTableControls.kt` 和 `PlayerLayoutMode.kt` 已移除。
@@ -24,7 +24,9 @@ MeiAppState / TabletApp
 
 尺寸规则接收扣除系统安全区、顶部收起按钮和公共左右边距后的实际内容宽高，以及字体比例。普通字体下，正文从 840dp 起允许两栏：扣除 40dp 间隔后左右各占一半，每栏至少 400dp；字体增大时提高两栏所需宽度。外层内容最大宽度为 1400dp，不以横竖屏或设备型号决定排列。
 
-两栏时，左边为封面、标题、喜欢／更多、进度和播放操作；右边为歌词／队列／评论。左右栏保持等宽，左栏内的封面、标题及操作区、进度条与播放控制共用一个居中的有效内容宽度。该宽度按视口高度和栏宽计算，普通字体时以 280–460dp 为目标范围，空间不足时受栏宽限制，字体增大时适度放宽；短窗口通过左栏整组滚动承载内容，不单独挤压或截断操作。
+平板两栏时，左侧显示封面、标题、进度和播放操作，右侧显示歌词、队列或评论。普通平板视口的左栏元素共用 280–460dp 的居中内容宽度。矮窗口缩小封面，控制区保持独立宽度，内容超高时左栏可滚动。
+
+手机横屏正文从 584dp 起允许两栏，字体放大时提高门槛。标准布局左侧显示封面，右侧显示播放控制，并可打开歌词、队列或评论。沉浸布局左侧保留同样大小的封面，右侧显示歌词。播放器顶栏提供模式切换，选择保存在 DataStore。较窄时复用单栏回退。
 
 单栏时，默认显示正在播放。队列或评论操作切入详情；详情顶部保留小封面与歌曲信息，底部保留同一组自定义 action，不设置另一组面板标签。歌词可从 more 的“显示歌词”打开，并可返回正在播放。歌词模式在正文高度至少为 460dp × 字体比例时保留紧凑播放控制，较短窗口通过“正在播放”返回完整控制，优先保证面板可读；评论和队列以内容浏览为主，不通过上滑重新浮出播放控制。
 

@@ -30,6 +30,47 @@ import org.robolectric.annotation.LooperMode
 class TabletPlayerContentTest {
     @get:Rule val compose = createEmptyComposeRule()
 
+    @Test fun phoneLandscapeKeepsTheLargeCoverWhenSwitchingBetweenControlsAndLyrics() {
+        val state = TabletPlayerUiState("Song", "Artist", false, PlayerPanel.Lyrics, false)
+        val actions = TabletPlayerActions({}, {}, {}, {}, {})
+        var immersive by mutableStateOf(false)
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                Box(Modifier.size(740.dp, 380.dp)) {
+                    TabletPlayerContent(state, actions, TabletPlayerSlots(
+                        artwork = { Box(it.testTag("short-cover")) },
+                        controls = { modifier, compact ->
+                            assertTrue(compact)
+                            Box(modifier.height(110.dp).testTag("short-controls"))
+                        },
+                        panel = { _, modifier -> Box(modifier.testTag("short-lyrics")) },
+                        actions = { modifier -> Button({}, modifier) { Text("播放队列") } },
+                    ), shortWindowLayout = true, immersive = immersive,
+                        onToggleImmersive = { immersive = !immersive })
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val cover = compose.onNodeWithTag("short-cover").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            val controls = compose.onNodeWithTag("short-controls").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue(cover.right < controls.left)
+            compose.onNodeWithTag("short-cover").assertWidthIsAtLeast(280.dp)
+            compose.onNodeWithTag("short-lyrics").assertDoesNotExist()
+            compose.onNodeWithText("播放队列").assertIsDisplayed().performClick()
+            compose.onNodeWithText("切换至沉浸").performClick()
+            val lyrics = compose.onNodeWithTag("short-lyrics").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue(cover.right < lyrics.left)
+            assertEquals(cover, compose.onNodeWithTag("short-cover").fetchSemanticsNode().boundsInRoot)
+            compose.onNodeWithTag("short-controls").assertDoesNotExist()
+            compose.onNodeWithText("切换至标准").performClick()
+            compose.onNodeWithTag("short-controls").assertIsDisplayed()
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun layoutsShareTheSameActionsAndKeepPanelIntentWhileTheWindowChanges() {
         var width by mutableStateOf(1280.dp)
         var height by mutableStateOf(800.dp)

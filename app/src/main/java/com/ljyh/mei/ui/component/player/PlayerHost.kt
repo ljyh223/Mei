@@ -27,6 +27,7 @@ import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.utils.rememberBatteryIntensiveFeaturesAllowed
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
+import com.ljyh.mei.ui.model.PlayerActionProfile
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
 import com.ljyh.mei.utils.preferences.rememberPreference
@@ -39,6 +40,7 @@ import com.ljyh.mei.utils.preferences.rememberDynamicCoverSettings
 internal fun PlayerHost(
     state: BottomSheetState,
     inlinePanels: Boolean,
+    actionProfile: PlayerActionProfile,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
     content: @Composable (PlayerStateContainer, PlayerOverlayHandler) -> Unit,
@@ -98,6 +100,7 @@ internal fun PlayerHost(
         playlistViewModel = playlistViewModel,
         navController = navController,
         useInlineQueue = inlinePanels,
+        actionProfile = actionProfile,
     )
 
     content(stateContainer, overlayHandler)

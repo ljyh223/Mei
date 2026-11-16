@@ -5,6 +5,7 @@ import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -13,6 +14,8 @@ import com.ljyh.mei.ui.component.player.applemusic.AppleMusicPlayer
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
+import com.ljyh.mei.ui.model.PlayerActionProfile
+import com.ljyh.mei.ui.tablet.player.TabletPlayerScreen
 
 /** Phone player presentation; tablet presentation is supplied separately by TabletPlayerHost. */
 @OptIn(UnstableApi::class)
@@ -24,13 +27,31 @@ fun BottomSheetPlayer(
     systemBottomInset: Dp = 0.dp,
     bottomNavigationVisibilityProgress: Float = 1f,
     compactProgress: Float = 0f,
+    wideContent: Boolean = false,
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val miniPlayerBottomInset = if (bottomNavigationVisibilityProgress < 1f) systemBottomInset else 0.dp
-    PlayerHost(state = state, inlinePanels = false, playerViewModel = playerViewModel, playlistViewModel = playlistViewModel) { container, overlays ->
-        AppleMusicPlayer(
+    PlayerHost(
+        state = state,
+        inlinePanels = wideContent,
+        actionProfile = PlayerActionProfile.Phone,
+        playerViewModel = playerViewModel,
+        playlistViewModel = playlistViewModel,
+    ) { container, overlays ->
+        if (wideContent) TabletPlayerScreen(
+            sheet = state,
+            container = container,
+            overlays = overlays,
+            shortWindowLayout = true,
+            modifier = modifier.layout { measurable, constraints ->
+                val player = measurable.measure(constraints)
+                layout(player.width, player.height) {
+                    if (state.progress > 0f) player.place(0, 0)
+                }
+            },
+        ) else AppleMusicPlayer(
             state = state,
             modifier = modifier,
             stateContainer = container,

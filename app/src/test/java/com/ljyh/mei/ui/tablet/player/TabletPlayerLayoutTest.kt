@@ -23,15 +23,24 @@ class TabletPlayerLayoutTest {
         }
     }
 
-    @Test fun shortWindowsKeepAnUsableCoverAndLetTheContentScroll() {
+    @Test fun shortWindowsPrioritizeControlsAndKeepAnArtworkFallback() {
         val tall = tabletPlayerLayout(1100f, 900f, 1f)
         val short = tabletPlayerLayout(1100f, 280f, 1f)
         assertEquals(tall.nowPlayingWidthDp, short.nowPlayingWidthDp)
-        assertEquals(280f, short.artworkSizeDp)
+        assertEquals(48f, short.artworkSizeDp)
         assertTrue(short.artworkSizeDp < tall.artworkSizeDp)
         assertFalse(short.showCompactControls)
         assertTrue(tall.showCompactControls)
         assertFalse(tabletPlayerLayout(700f, 700f, 2f).showCompactControls)
+    }
+
+    @Test fun phoneLandscapeFitsTwoPanesAtPhoneWidths() {
+        val landscape = tabletPlayerLayout(700f, 300f, 1f, shortWindowLayout = true)
+        assertTrue(landscape.twoPanes)
+        assertTrue(landscape.fitShortWindow)
+        assertEquals(60f, landscape.artworkSizeDp)
+        assertFalse(tabletPlayerLayout(700f, 300f, 1.5f, shortWindowLayout = true).twoPanes)
+        assertFalse(tabletPlayerLayout(550f, 240f, 1f, shortWindowLayout = true).twoPanes)
     }
 
     @Test fun invalidOrTinyConstraintsNeverProduceNegativeOrNonFiniteSizes() {

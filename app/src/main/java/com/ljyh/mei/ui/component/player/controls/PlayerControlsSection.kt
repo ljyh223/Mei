@@ -45,6 +45,7 @@ fun PlayerControlsSection(
     includeNavigationBarPadding: Boolean = true,
     actionProfile: PlayerActionProfile = PlayerActionProfile.Phone,
     selectedAction: PlayerAction? = null,
+    tightControls: Boolean = false,
 ) {
     // 紧凑模式下间距减半
     val spacerHeight = if (isCompact) 8.dp else 16.dp
@@ -108,6 +109,7 @@ fun PlayerControlsSection(
                 canSkipNext = playerConnection.player.hasNextMediaItem(),
                 isPlaying = isPlaying,
                 playbackState = playbackState,
+                tight = tightControls,
                 modifier = Modifier.align(Alignment.Center)
             )
         }
@@ -125,7 +127,7 @@ fun PlayerControlsSection(
             if (includeNavigationBarPadding) Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         } else {
             // 紧凑模式底部留白少一点
-            Spacer(Modifier.height(16.dp))
+            if (!tightControls) Spacer(Modifier.height(16.dp))
         }
     }
 }

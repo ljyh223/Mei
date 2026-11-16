@@ -6,6 +6,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.media3.common.util.UnstableApi
@@ -32,7 +33,8 @@ class PlayerOverlayHandler(
     private val playlistViewModel: PlaylistViewModel,
     private val navController: NavController,
     private val context: android.content.Context,
-    private val useInlineQueue: Boolean,
+    private val useInlineQueue: State<Boolean>,
+    val actionProfile: PlayerActionProfile,
     private val _panel: MutableState<PlayerPanel> = mutableStateOf(PlayerPanel.Lyrics),
     private val _detailsVisible: MutableState<Boolean> = mutableStateOf(false),
 ) {
@@ -44,15 +46,12 @@ class PlayerOverlayHandler(
     private fun show(next: OverlayState) = sheetNavigation.show(next)
     fun goBack() = sheetNavigation.goBack()
 
-    val actionProfile = if (useInlineQueue) PlayerActionProfile.Tablet else PlayerActionProfile.Phone
     private val _downloadRequest = mutableStateOf<MediaMetadata?>(null)
     val downloadRequest: State<MediaMetadata?> = _downloadRequest
     fun consumeDownloadRequest() { _downloadRequest.value = null }
 
     val detailsVisible: State<Boolean> = _detailsVisible
     val panel: State<PlayerPanel> = _panel
-    private val _phoneComments = mutableStateOf(false)
-    val phoneComments: State<Boolean> = _phoneComments
 
     val currentOverlayValue: OverlayState
         get() = sheetNavigation.current.value
@@ -77,12 +76,10 @@ class PlayerOverlayHandler(
     fun showLyrics() {
         _panel.value = PlayerPanel.Lyrics
         _detailsVisible.value = false
-        _phoneComments.value = false
     }
 
     fun showInlineComments() {
-        if (useInlineQueue) selectPanel(PlayerPanel.Comments)
-        else _phoneComments.value = true
+        selectPanel(PlayerPanel.Comments)
         dismiss()
     }
 
@@ -181,13 +178,13 @@ class PlayerOverlayHandler(
         when (action) {
             PlayerAction.PLAY_MODE -> stateContainer.playerConnection.switchPlayMode()
             PlayerAction.LYRICS -> { showLyrics(); _detailsVisible.value = true; dismiss() }
-            PlayerAction.QUEUE -> if (useInlineQueue) {
+            PlayerAction.QUEUE -> if (useInlineQueue.value) {
                 _panel.value = nextPlayerPanel(_panel.value, PlayerPanel.Queue, togglePanel)
                 _detailsVisible.value = _panel.value != PlayerPanel.Lyrics
                 dismiss()
             } else showPlaylist()
             PlayerAction.COMMENTS -> if (metadata != null) {
-                if (useInlineQueue) {
+                if (useInlineQueue.value) {
                     _panel.value = nextPlayerPanel(_panel.value, PlayerPanel.Comments, togglePanel)
                     _detailsVisible.value = _panel.value != PlayerPanel.Lyrics
                     dismiss()
@@ -244,18 +241,21 @@ fun rememberOverlayHandler(
     playlistViewModel: PlaylistViewModel,
     navController: NavController,
     useInlineQueue: Boolean,
+    actionProfile: PlayerActionProfile,
 ): PlayerOverlayHandler {
     val context = LocalContext.current
     val panel = rememberPlayerPanelState()
     val detailsVisible = rememberSaveable { mutableStateOf(false) }
+    val inlineQueue = rememberUpdatedState(useInlineQueue)
 
-    return remember(stateContainer, useInlineQueue, panel, detailsVisible, navController, context) {
+    return remember(stateContainer, actionProfile, panel, detailsVisible, navController, context) {
         PlayerOverlayHandler(
             stateContainer = stateContainer,
             playlistViewModel = playlistViewModel,
             navController = navController,
             context = context,
-            useInlineQueue = useInlineQueue,
+            useInlineQueue = inlineQueue,
+            actionProfile = actionProfile,
             _panel = panel,
             _detailsVisible = detailsVisible,
         )

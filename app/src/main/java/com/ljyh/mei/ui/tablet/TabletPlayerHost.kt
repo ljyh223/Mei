@@ -8,11 +8,12 @@ import androidx.compose.ui.layout.layout
 import com.ljyh.mei.ui.component.player.PlayerHost
 import com.ljyh.mei.ui.tablet.player.TabletPlayerScreen
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
+import com.ljyh.mei.ui.model.PlayerActionProfile
 
 /** Preserve player state between opens without placing an invisible mobile hit area over the dock. */
 @Composable
 internal fun TabletPlayerHost(state: BottomSheetState, origin: TabletMiniPlayerOrigin?, thumbnail: Painter?) {
-    PlayerHost(state = state, inlinePanels = true) { container, overlays ->
+    PlayerHost(state = state, inlinePanels = true, actionProfile = PlayerActionProfile.Tablet) { container, overlays ->
         TabletPlayerScreen(
             sheet = state, container = container, overlays = overlays,
             expansionOrigin = origin, miniArtwork = thumbnail,

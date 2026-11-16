@@ -100,6 +100,8 @@ import com.ljyh.mei.ui.component.player.cover.rememberCoverEdgeArtwork
 import com.ljyh.mei.ui.component.player.miniPlayerHorizontalMargin
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.component.player.overlay.PlayerOverlayHandler
+import com.ljyh.mei.ui.component.player.overlay.PlayerPanel
+import com.ljyh.mei.ui.component.player.sheet.PlaylistContent
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.BottomSheet
 import com.ljyh.mei.ui.component.sheet.playerContainerFrame
@@ -148,18 +150,18 @@ fun AppleMusicPlayer(
     val configuration = LocalConfiguration.current
 
     // --- Apple Music 特定状态 ---
-    var showLyrics by remember { mutableStateOf(false) }
-    val showComments by overlayHandler.phoneComments
-    val detailsVisible = showLyrics || showComments
-    val detailsControlsVisible = !showComments && stateContainer.controlsVisible
+    val panel by overlayHandler.panel
+    val showComments = panel == PlayerPanel.Comments
+    val showQueue = panel == PlayerPanel.Queue
+    val detailsVisible by overlayHandler.detailsVisible
+    val detailsControlsVisible = !showComments && !showQueue && stateContainer.controlsVisible
     var showFullImage by remember { mutableStateOf(false) }
 
     fun toggleLyrics() {
         if (detailsVisible) {
-            showLyrics = false
             overlayHandler.showLyrics()
         } else {
-            showLyrics = true
+            overlayHandler.selectPanel(PlayerPanel.Lyrics)
         }
     }
 
@@ -200,16 +202,11 @@ fun AppleMusicPlayer(
     // --- Apple Music 特定的 LaunchedEffect ---
     LaunchedEffect(state.isCollapsed) {
         if (state.isCollapsed) {
-            showLyrics = false
             overlayHandler.showLyrics()
             readyPortraitKey = null
         }
     }
-    LaunchedEffect(showComments) {
-        if (showComments) showLyrics = true
-    }
     BackHandler(enabled = state.isExpanded && detailsVisible) {
-        showLyrics = false
         overlayHandler.showLyrics()
     }
 
@@ -625,7 +622,7 @@ fun AppleMusicPlayer(
                 }
                 if (displayedPortrait != null && sheetProgress > 0f && mediaMetadata != null) {
                     val backgroundTap = if (portraitAlpha > 0.5f) {
-                        Modifier.clickable { showLyrics = true; overlayHandler.showLyrics() }
+                        Modifier.clickable { overlayHandler.selectPanel(PlayerPanel.Lyrics) }
                     } else Modifier
                     Box(
                         modifier = Modifier
@@ -709,6 +706,12 @@ fun AppleMusicPlayer(
                                 },
                                 modifier = Modifier.fillMaxWidth().weight(1f)
                                     .padding(horizontal = PlayerHorizontalPadding),
+                            )
+                        } else if (showQueue) {
+                            PlaylistContent(
+                                onDismiss = overlayHandler::showLyrics,
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                showTitleBar = true,
                             )
                         } else LyricScreen(
                             lyricData = lyricLine,
