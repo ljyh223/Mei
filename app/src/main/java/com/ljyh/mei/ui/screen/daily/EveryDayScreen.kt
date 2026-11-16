@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.screen.daily
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +23,7 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
@@ -32,6 +34,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistUiState
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.matchesPlaylistSearch
 import com.ljyh.mei.ui.screen.playlist.rememberPlaylistMenuActions
+import java.time.LocalDate
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +75,7 @@ fun EveryDay(
             )
         } else {
             UiPlaylist(
-                id = 0L, title = "", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
+                id = 0L, title = "每日推荐", cover = "", coverList = emptyList(), creatorName = "", tracks = emptyList(),
                 count = 0,
                 subscriberCount = 0,
                 isCreator = false,
@@ -104,7 +107,7 @@ fun EveryDay(
     }
 
     if (everyDaySongs is Resource.Error) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().padding(meiPageHorizontalPadding()), contentAlignment = Alignment.Center) {
             Text("Error: ${(everyDaySongs as Resource.Error).message}")
         }
     } else {
@@ -160,6 +163,10 @@ fun EveryDay(
                     if (!active) dailySearchQuery = ""
                 },
             ),
+            landscapeArtwork = { modifier ->
+                val covers = remember(uiData.tracks) { uiData.tracks.map { it.coverUrl } }
+                DailyCoverWall(covers, LocalDate.now(), modifier)
+            },
             customHeader = { titleModifier ->
                 DailyRecommendationHeader(
                     tracks = uiData.tracks,

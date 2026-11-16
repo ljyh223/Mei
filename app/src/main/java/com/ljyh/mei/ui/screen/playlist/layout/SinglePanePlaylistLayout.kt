@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
@@ -13,11 +14,11 @@ import com.ljyh.mei.ui.screen.playlist.component.PlaylistTracks
 
 /** A single scrolling column; the playlist header is the first item in the song list. */
 @Composable
-internal fun SinglePanePlaylistLayout(content: PlaylistLayoutScope) {
+internal fun SinglePanePlaylistLayout(content: PlaylistLayoutScope, compact: Boolean = false) {
     val direction = LocalLayoutDirection.current
     PlaylistTracks(
         content = content,
-        headerContent = { content.header(false, null) },
+        headerContent = { content.header(if (compact) 144.dp else null) },
         contentPadding = PaddingValues(
             start = content.padding.calculateStartPadding(direction),
             end = content.padding.calculateEndPadding(direction),

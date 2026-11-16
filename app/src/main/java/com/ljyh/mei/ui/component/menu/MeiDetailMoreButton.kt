@@ -35,6 +35,7 @@ fun MeiDetailMoreButton(
     searchLabel: String = "页内搜索",
     onSearchActiveChange: ((Boolean) -> Unit)? = null,
     playlistCoverUrl: String? = null,
+    additionalItems: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
@@ -45,7 +46,7 @@ fun MeiDetailMoreButton(
         }
         return
     }
-    if (shareContent == null && onSearchActiveChange == null) return
+    if (shareContent == null && onSearchActiveChange == null && additionalItems == null) return
     Box(modifier) {
         MeiGlassIconButton(onClick = { expanded = true }) {
             Icon(Icons.Rounded.MoreVert, contentDescription = "更多操作")
@@ -85,6 +86,10 @@ fun MeiDetailMoreButton(
                         }
                     }
                 }
+            }
+            if (additionalItems != null) {
+                if (shareContent != null || onSearchActiveChange != null) HorizontalDivider()
+                additionalItems { expanded = false }
             }
         }
     }

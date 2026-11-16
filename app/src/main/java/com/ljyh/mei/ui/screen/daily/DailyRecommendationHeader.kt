@@ -39,7 +39,10 @@ fun DailyRecommendationHeader(
     Column(Modifier.fillMaxWidth()) {
         DailyCoverWall(covers, today)
         Row(
-            Modifier.fillMaxWidth().padding(start = meiPageGutter(), end = meiPageGutter(), top = 16.dp, bottom = 16.dp),
+            Modifier.fillMaxWidth().padding(
+                horizontal = meiPageGutter(),
+                vertical = 16.dp,
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {

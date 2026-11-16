@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,15 +42,24 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 @Composable
-internal fun DailyCoverWall(covers: List<String>, today: LocalDate) {
+internal fun DailyCoverWall(
+    covers: List<String>,
+    today: LocalDate,
+    modifier: Modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 8.dp),
+) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val surface = MaterialTheme.colorScheme.surface
     val placeholder = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.55f)
 
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 8.dp)) {
+    BoxWithConstraints(modifier) {
+        val fillsArtwork = constraints.hasFixedHeight
         val stageWidth = maxWidth
-        val stageHeight = if (covers.isEmpty()) 220.dp else stageWidth * maxOf(0.86f, covers.size / 36f)
+        val stageHeight = when {
+            fillsArtwork -> maxHeight
+            covers.isEmpty() -> 220.dp
+            else -> stageWidth * maxOf(0.86f, covers.size / 36f)
+        }
         val widthPx = with(density) { stageWidth.toPx() }
         val heightPx = with(density) { stageHeight.toPx() }
         val seed = remember(covers, today) {
@@ -59,7 +69,8 @@ internal fun DailyCoverWall(covers: List<String>, today: LocalDate) {
             scatterPlacements(covers.size, widthPx, heightPx, seed)
         }
 
-        Box(Modifier.fillMaxWidth().height(stageHeight)) {
+        val stage = Modifier.fillMaxWidth().height(stageHeight)
+        Box(if (fillsArtwork) stage.clipToBounds() else stage) {
             placements.forEachIndexed { index, placement ->
                 val url = covers[index]
                 key(index, url) {
@@ -91,10 +102,12 @@ internal fun DailyCoverWall(covers: List<String>, today: LocalDate) {
                     }
                 }
             }
-            Box(
-                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(stageHeight * 0.36f)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, surface))),
-            )
+            if (!fillsArtwork) {
+                Box(
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(stageHeight * 0.36f)
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, surface))),
+                )
+            }
             DailyCoverDate(today, Modifier.align(Alignment.TopEnd))
         }
     }
@@ -130,7 +143,7 @@ private fun scatterPlacements(count: Int, width: Float, height: Float, seed: Int
     val random = Random(seed)
     val placements = mutableListOf<CoverPlacement>()
     val coveredAreas = mutableListOf<Float>()
-    val base = width / 7f
+    val base = minOf(width / 7f, height / 1.44f)
     val dateZone = RectF(width * 0.61f, 0f, width, height * 0.24f)
     val maxCoveredFraction = 2f / 3f
 

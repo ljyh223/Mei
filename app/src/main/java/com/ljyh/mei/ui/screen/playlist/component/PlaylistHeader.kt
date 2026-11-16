@@ -82,58 +82,19 @@ fun PlaylistHeader(
     updateTime: Long = 0,
     titleModifier: Modifier = Modifier,
 ) {
-    val coverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
-    var showCoverPreview by remember(cover) { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = meiPageGutter(), vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val artworkSize = playlistArtworkSize(maxWidth)
-            Box(
-                modifier = Modifier
-                    .size(artworkSize)
-                    .align(Alignment.Center)
-                    .shadow(8.dp, MaterialTheme.shapes.large)
-                    .clip(MaterialTheme.shapes.large)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .combinedClickable(
-                        enabled = !isLoading && cover.isNotBlank(),
-                        onClickLabel = "预览歌单封面",
-                        onLongClickLabel = "预览歌单封面",
-                        onClick = { showCoverPreview = true },
-                        onLongClick = { showCoverPreview = true },
-                    )
-                    .skeleton(isLoading, MaterialTheme.shapes.large),
-            ) {
-                if (!isLoading) when (
-                    if (headerStyle == PlaylistHeaderStyle.Radar) PlaylistCoverStyle.Combination else coverStyle
-                ) {
-                    PlaylistCoverStyle.Cover -> AsyncImage(
-                        model = cover,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    PlaylistCoverStyle.FirstSongImage -> AsyncImage(
-                        model = (coverList.firstOrNull() ?: cover),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    PlaylistCoverStyle.Combination -> {
-                        val validCovers = coverList.filter(String::isNotBlank)
-                        if (validCovers.size < 5) AsyncImage(
-                            model = cover,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        ) else FinalPerfectCollage(imageUrls = validCovers, modifier = Modifier.fillMaxSize())
-                    }
-                }
-            }
+            PlaylistCoverArtwork(
+                cover = cover,
+                coverList = coverList,
+                headerStyle = headerStyle,
+                isLoading = isLoading,
+                modifier = Modifier.size(artworkSize).align(Alignment.Center).shadow(8.dp, MaterialTheme.shapes.large),
+            )
         }
 
         Spacer(Modifier.height(20.dp))
@@ -197,6 +158,59 @@ fun PlaylistHeader(
             isLoading = isLoading,
         )
     }
+}
+
+@Composable
+internal fun PlaylistCoverArtwork(
+    cover: String,
+    coverList: List<String>,
+    headerStyle: PlaylistHeaderStyle,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val coverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
+    var showCoverPreview by remember(cover) { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .combinedClickable(
+                enabled = !isLoading && cover.isNotBlank(),
+                onClickLabel = "预览歌单封面",
+                onLongClickLabel = "预览歌单封面",
+                onClick = { showCoverPreview = true },
+                onLongClick = { showCoverPreview = true },
+            )
+            .skeleton(isLoading, MaterialTheme.shapes.large),
+    ) {
+        if (!isLoading) when (
+            if (headerStyle == PlaylistHeaderStyle.Radar) PlaylistCoverStyle.Combination else coverStyle
+        ) {
+            PlaylistCoverStyle.Cover -> AsyncImage(
+                model = cover,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            PlaylistCoverStyle.FirstSongImage -> AsyncImage(
+                model = (coverList.firstOrNull() ?: cover),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            PlaylistCoverStyle.Combination -> {
+                val validCovers = coverList.filter(String::isNotBlank)
+                if (validCovers.size < 5) AsyncImage(
+                    model = cover,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                ) else FinalPerfectCollage(imageUrls = validCovers, modifier = Modifier.fillMaxSize())
+            }
+        }
+    }
     if (showCoverPreview && cover.isNotBlank()) FullScreenImageViewer(cover) { showCoverPreview = false }
 }
 
@@ -235,7 +249,8 @@ internal fun PlaylistHeaderActions(
         Button(
             onClick = onPlayAll,
             enabled = !isLoading,
-            modifier = Modifier.widthIn(min = 148.dp).heightIn(min = 48.dp).skeleton(isLoading, RoundedCornerShape(50)),
+            modifier = Modifier.widthIn(min = 148.dp).heightIn(min = 48.dp)
+                .skeleton(isLoading, RoundedCornerShape(50)),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         ) {
             Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))

@@ -19,6 +19,17 @@ class PlaylistLayoutTest {
             assertTrue(width - 24f - metrics.detailWidthDp >= 480f)
         }
     }
+    @Test fun compactPanesUseOnlyTheWidthLeftAfterTheSideBar() {
+        val narrowBody = 655f - 72f
+        val wideBody = 740f - 72f
+        assertEquals(PlaylistLayout.SinglePane, playlistLayoutMetrics(narrowBody, compact = true).layout)
+        val wide = playlistLayoutMetrics(wideBody, compact = true)
+        assertEquals(PlaylistLayout.TwoPane, wide.layout)
+        assertTrue(wide.detailWidthDp >= 264f)
+        assertTrue(wideBody - 24f - wide.detailWidthDp >= 296f)
+        assertEquals(PlaylistLayout.SinglePane, playlistLayoutMetrics(wideBody, 1.4f, compact = true).layout)
+    }
+
     @Test fun largerTextRequiresMoreRoomBeforeEnablingTwoPanes() {
         assertEquals(PlaylistLayout.SinglePane, playlistLayoutMetrics(1024f, 1.5f).layout)
         for (scale in listOf(1f, 1.3f, 2f, 3f)) {

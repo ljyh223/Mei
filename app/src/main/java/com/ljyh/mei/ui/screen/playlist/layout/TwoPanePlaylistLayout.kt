@@ -39,7 +39,10 @@ import com.ljyh.mei.ui.screen.playlist.component.PlaylistTracks
 
 /** Two independent scrolling regions. This content has no device checks or business state. */
 @Composable
-internal fun TwoPanePlaylistLayout(content: PlaylistLayoutScope) {
+internal fun TwoPanePlaylistLayout(
+    content: PlaylistLayoutScope,
+    compact: Boolean = false,
+) {
     val state = content.state
     val direction = LocalLayoutDirection.current
     val topInset = content.padding.calculateTopPadding() + meiTopBarContentClearance()
@@ -54,20 +57,24 @@ internal fun TwoPanePlaylistLayout(content: PlaylistLayoutScope) {
         // The viewport reaches behind the bar; only initial content receives the top inset.
         BoxWithConstraints(Modifier.width(content.detailPaneWidth).fillMaxHeight()) {
             val viewportHeight = maxHeight
-            val artworkBudget = (viewportHeight - topInset - bottomInset -
-                220.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)).coerceAtLeast(144.dp)
+            val bodyHeight = viewportHeight - topInset - bottomInset
+            val artworkBudget = if (compact) {
+                (bodyHeight - 16.dp).coerceAtLeast(96.dp)
+            } else {
+                (bodyHeight - 220.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)).coerceAtLeast(144.dp)
+            }
             Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 Box(
                     Modifier.fillMaxWidth().heightIn(min = viewportHeight)
                         .padding(top = topInset, bottom = bottomInset),
-                    contentAlignment = Alignment.Center,
-                ) { content.header(true, artworkBudget) }
+                    contentAlignment = if (compact) Alignment.TopStart else Alignment.Center,
+                ) { content.header(artworkBudget) }
             }
         }
         PlaylistTracks(
             content = content,
             modifier = Modifier.weight(1f),
-            tableRows = true,
+            tableRows = !compact,
             contentPadding = PaddingValues(top = topInset, bottom = bottomInset),
             scrollingControls = {
                 if (!state.isLoading && state.isPlaylistSearchActive) {

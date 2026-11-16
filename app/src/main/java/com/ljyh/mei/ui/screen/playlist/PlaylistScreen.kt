@@ -3,6 +3,7 @@ package com.ljyh.mei.ui.screen.playlist
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -31,6 +32,7 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.local.LocalNavController
@@ -253,7 +255,7 @@ fun PlaylistScreen(
 
     // 8. UI 渲染
     if (playlistDetail is Resource.Error) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().padding(meiPageHorizontalPadding()), contentAlignment = Alignment.Center) {
             Text("Error: ${(playlistDetail as Resource.Error).message}")
         }
     } else {

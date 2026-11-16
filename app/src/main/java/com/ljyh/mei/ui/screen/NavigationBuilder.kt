@@ -203,7 +203,11 @@ internal fun NavGraphBuilder.navigationBuilder(
         )
     }
 
-    pageDestination(Screen.EveryDay.route){
+    pageDestination(
+        Screen.EveryDay.route,
+        drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
+    ) {
         EveryDay()
     }
     pageDestination(Screen.About.route) {
@@ -231,6 +235,8 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
     pageDestination(
         route = "${Screen.PlayList.route}/{id}",
+        drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
         arguments = listOf(
             navArgument("id") {
                 type = NavType.LongType

@@ -153,7 +153,7 @@ class PlaylistScrollStateTest {
                     padding = PaddingValues(top = 80.dp),
                     detailPaneWidth = 336.dp,
                     onTrackMore = { _, _ -> },
-                    header = { _, _ -> },
+                    header = {},
                 ))
             }
         }

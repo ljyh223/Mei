@@ -177,7 +177,8 @@ private fun UnknownPlaylistHeaderSkeleton() {
     Column(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()), contentAlignment = Alignment.Center) {
-            Spacer(Modifier.size(playlistArtworkSize(maxWidth)).skeleton(true, MaterialTheme.shapes.large))
+            val size = playlistArtworkSize(maxWidth)
+            Spacer(Modifier.size(size).skeleton(true, MaterialTheme.shapes.large))
         }
         Spacer(Modifier.height(20.dp))
         Spacer(Modifier.width(176.dp).height(28.dp).skeleton(true))
