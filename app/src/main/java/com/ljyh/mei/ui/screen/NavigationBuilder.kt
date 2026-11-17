@@ -83,7 +83,11 @@ internal fun NavGraphBuilder.navigationBuilder(
         pages.Collection(collection = collection, viewModel = hiltViewModel(parentEntry))
     }
 
-    pageDestination(Screen.FindMusic.route, drawsBehindSideBar = true) {
+    pageDestination(
+        Screen.FindMusic.route,
+        drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
+    ) {
         pages.Discovery(scrollBehavior)
     }
 

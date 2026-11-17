@@ -20,6 +20,8 @@ import com.ljyh.mei.ui.component.MeiFilterPill
 import com.ljyh.mei.ui.component.glass.LocalMeiPageProgress
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiStatusBarBackdrop
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -48,6 +50,7 @@ fun FindMusicScreen(
     val source = rememberHazeState()
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val landscape = LocalPhoneLandscape.current
     val tablet = rememberDeviceInfo().isTablet
     val rowInsets = meiPageHorizontalPadding()
     val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
@@ -65,7 +68,7 @@ fun FindMusicScreen(
     Box(Modifier
         .fillMaxSize()
         .nestedScroll(scrollBehavior.nestedScrollConnection)) {
-        CompositionLocalProvider(LocalMeiPageProgress provides progress) {
+        CompositionLocalProvider(LocalMeiPageProgress provides if (landscape) 0f else progress) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -166,7 +169,11 @@ fun FindMusicScreen(
                 }
             }
         }
-        MeiHazeTopBar(state = source, title = "发现", progress = progress)
+        if (landscape) {
+            MeiStatusBarBackdrop(source)
+        } else {
+            MeiHazeTopBar(state = source, title = "发现", progress = progress)
+        }
     }
     if (categorySheet) DiscoverCategorySheet(
         categories,
