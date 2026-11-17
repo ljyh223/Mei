@@ -302,6 +302,12 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                                         showPlayer = hasPlayer,
                                         coverUrl = song?.coverUrl,
                                         onSelect = appState::selectMainDestination,
+                                        onBack = if (appState.canNavigateBackFromDetail(route)) {
+                                            {
+                                                if (appState.searchActive) onActiveChange(false)
+                                                else appState.navigateBackFromDetail()
+                                            }
+                                        } else null,
                                         onSearch = { onActiveChange(!searchActive) },
                                         onOpenPlayer = {
                                             if (searchActive) onActiveChange(false)

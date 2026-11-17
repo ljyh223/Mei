@@ -64,6 +64,13 @@ internal class MeiAppState(
         navController.selectMainDestination(destination)
     }
 
+    fun canNavigateBackFromDetail(route: String? = navController.currentDestination?.route): Boolean =
+        route != null && !route.isMainDestination() && navController.previousBackStackEntry != null
+
+    fun navigateBackFromDetail() {
+        if (canNavigateBackFromDetail()) navController.popBackStack()
+    }
+
     fun submitSearch(text: String, type: Int = SearchType.All.type) {
         val keyword = text.trim()
         if (keyword.isBlank()) return

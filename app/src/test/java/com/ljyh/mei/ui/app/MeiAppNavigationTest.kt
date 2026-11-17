@@ -119,6 +119,43 @@ class MeiAppNavigationTest {
     }
 
     @Test
+    fun sidebarBackPopsOneEntryAndStopsAtTheOriginatingTab() {
+        val nav = controller(SharedMeiPageContent)
+        val state = state(nav)
+        val home = nav.currentBackStackEntry!!
+        assertFalse(state.canNavigateBackFromDetail())
+        nav.navigate("${Screen.PlayList.route}/42")
+        assertTrue(state.canNavigateBackFromDetail())
+        assertEquals(Index.Home.route, state.selectedMainRoute)
+        state.navigateBackFromDetail()
+        assertSame(home, nav.currentBackStackEntry)
+
+        state.selectMainDestination(Index.Library)
+        val library = nav.currentBackStackEntry!!
+        nav.navigate("${Screen.PlayList.route}/55")
+        val playlist = nav.currentBackStackEntry!!
+        playlist.savedStateHandle["scroll_marker"] = 24
+        nav.navigate("${Screen.Album.route}/66")
+        val album = nav.currentBackStackEntry!!
+
+        state.selectMainDestination(Index.Home)
+        state.selectMainDestination(Index.Library)
+        assertEquals(album.id, nav.currentBackStackEntry!!.id)
+        assertEquals(Index.Library.route, state.selectedMainRoute)
+        assertTrue(state.canNavigateBackFromDetail())
+        state.navigateBackFromDetail()
+        assertEquals(playlist.id, nav.currentBackStackEntry!!.id)
+        assertEquals(24, nav.currentBackStackEntry!!.savedStateHandle.get<Int>("scroll_marker"))
+        assertTrue(state.canNavigateBackFromDetail())
+        state.navigateBackFromDetail()
+        assertEquals(library.id, nav.currentBackStackEntry!!.id)
+        assertFalse(state.canNavigateBackFromDetail())
+
+        state.navigateBackFromDetail()
+        assertEquals(library.id, nav.currentBackStackEntry!!.id)
+    }
+
+    @Test
     fun detailNavigationPreservesQueryAndActiveSearchIsNotClearedByRootNavigation() {
         val state = state(controller(TabletPageContent))
         state.onDestinationChanged(Screen.Library.route)

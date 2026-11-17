@@ -153,6 +153,52 @@ class PhoneSideBarTest {
         }
     }
 
+    @Test fun backReplacesOnlyTheActiveTabInItsOriginalSlot() {
+        val selected = mutableStateOf(Index.Home)
+        val detail = mutableStateOf(false)
+        val returned = mutableListOf<Index>()
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                PhoneSideBar(
+                    selectedRoute = selected.value.route,
+                    showPlayer = false,
+                    coverUrl = null,
+                    onSelect = { selected.value = it },
+                    onSearch = {},
+                    onOpenPlayer = {},
+                    visibility = 1f,
+                    modifier = Modifier.height(300.dp),
+                    onBack = if (detail.value) {
+                        { returned += selected.value; detail.value = false }
+                    } else null,
+                )
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val back = compose.onNodeWithContentDescription("返回上一页")
+            for (tab in listOf(Index.Home, Index.Library)) {
+                val normalTab = compose.onNodeWithContentDescription(tab.label)
+                normalTab.performClick().assertIsSelected()
+                val rootBounds = normalTab.fetchSemanticsNode().boundsInRoot
+
+                compose.runOnIdle { detail.value = true }
+                normalTab.assertDoesNotExist()
+                assertEquals(rootBounds, back.assertIsDisplayed().fetchSemanticsNode().boundsInRoot)
+                for (other in Index.entries.filter { it != tab }) {
+                    compose.onNodeWithContentDescription(other.label).assertIsDisplayed()
+                }
+                back.performClick()
+                normalTab.assertIsSelected()
+                back.assertDoesNotExist()
+            }
+            compose.runOnIdle { assertEquals(listOf(Index.Home, Index.Library), returned) }
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun landscapeViewportReachesBothEdgesWhileControlsAvoidTheCutout() {
         val cutoutOnRight = mutableStateOf(true)
         val landscape = mutableStateOf(true)

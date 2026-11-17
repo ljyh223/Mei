@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.app
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,6 +15,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
@@ -48,6 +50,7 @@ internal fun PhoneSideBar(
     onOpenPlayer: () -> Unit,
     visibility: Float,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxHeight().width(PhoneSideBarWidth).padding(horizontal = 12.dp)) {
         if (visibility <= 0f) return@BoxWithConstraints
@@ -72,12 +75,19 @@ internal fun PhoneSideBar(
                 Column(Modifier.selectableGroup()) {
                     Index.entries.forEach { tab ->
                         val selected = tab.route == selectedRoute
+                        val back = onBack.takeIf { selected }
                         Box(
-                            slot.clip(CircleShape)
-                                .selectable(selected, enabled = enabled, role = Role.Tab, onClick = { onSelect(tab) }),
+                            slot.clip(CircleShape).then(
+                                if (back != null) Modifier.clickable(enabled = enabled, role = Role.Button, onClick = back)
+                                else Modifier.selectable(selected, enabled = enabled, role = Role.Tab, onClick = { onSelect(tab) }),
+                            ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(tab.icon, tab.label, tint = if (selected) meiGlassAccentColor() else meiGlassContentColor(true))
+                            Icon(
+                                if (back != null) Icons.AutoMirrored.Rounded.ArrowBack else tab.icon,
+                                if (back != null) "返回上一页" else tab.label,
+                                tint = if (selected) meiGlassAccentColor() else meiGlassContentColor(true),
+                            )
                         }
                     }
                     IconButton(onClick = onSearch, enabled = enabled, modifier = slot) {
