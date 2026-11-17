@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.ui.component.glass.*
@@ -29,10 +30,16 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-internal fun ProfileRefreshAction(state: PersonalCenterState, actions: PersonalCenterActions) {
-    if (state.signedIn) MeiGlassIconButton(onClick = actions.onRefresh, enabled = !state.refreshing && !state.loading) {
-        Icon(Icons.Rounded.Refresh, contentDescription = "刷新听歌档案")
-    }
+internal fun ProfileRefreshAction(
+    state: PersonalCenterState,
+    actions: PersonalCenterActions,
+    inToolbar: Boolean = true,
+) {
+    if (!state.signedIn) return
+    val enabled = !state.refreshing && !state.loading
+    val icon: @Composable () -> Unit = { Icon(Icons.Rounded.Refresh, contentDescription = "刷新听歌档案") }
+    if (inToolbar) MeiGlassIconButton(onClick = actions.onRefresh, enabled = enabled, content = icon)
+    else IconButton(onClick = actions.onRefresh, enabled = enabled, content = icon)
 }
 
 @Composable
@@ -54,7 +61,12 @@ internal fun PersonalCenterContent(state: PersonalCenterState, actions: Personal
 }
 
 @Composable
-internal fun ProfileIdentity(state: PersonalCenterState, actions: PersonalCenterActions, centered: Boolean = false) {
+internal fun ProfileIdentity(
+    state: PersonalCenterState,
+    actions: PersonalCenterActions,
+    centered: Boolean = false,
+    avatarSize: Dp = if (centered) 112.dp else 80.dp,
+) {
     val profile = state.profile
     val name = when {
         !state.signedIn -> "让音乐留下足迹"
@@ -63,7 +75,7 @@ internal fun ProfileIdentity(state: PersonalCenterState, actions: PersonalCenter
         else -> "暂时无法获取资料"
     }
     val avatar: @Composable () -> Unit = {
-        Box(Modifier.size(if (centered) 112.dp else 80.dp).clip(CircleShape)
+        Box(Modifier.size(avatarSize).clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
             Icon(Icons.Rounded.Person, null, Modifier.size(38.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!profile?.avatarUrl.isNullOrBlank()) AsyncImage(profile.avatarUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)

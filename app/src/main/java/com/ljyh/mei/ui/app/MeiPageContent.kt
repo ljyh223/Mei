@@ -5,6 +5,10 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.screen.profile.PersonalCenterContent
+import com.ljyh.mei.ui.screen.profile.PersonalCenterScreen
+import com.ljyh.mei.ui.tablet.profile.TabletPersonalCenterContent
 import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
 import com.ljyh.mei.ui.screen.artist.ArtistAlbumsScreen
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
@@ -30,7 +34,11 @@ internal interface MeiPageContent {
     @Composable fun Discovery(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun Library(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun PersonalCenter(viewModel: LibraryViewModel) {
-        com.ljyh.mei.ui.screen.profile.PersonalCenterScreen(viewModel)
+        val landscape = LocalPhoneLandscape.current
+        PersonalCenterScreen(viewModel, content = { state, actions ->
+            if (landscape) TabletPersonalCenterContent(state, actions)
+            else PersonalCenterContent(state, actions)
+        })
     }
     @Composable fun Settings(scrollBehavior: TopAppBarScrollBehavior)
     @Composable fun PageHost(navController: NavHostController, modifier: Modifier, content: @Composable (Modifier) -> Unit) { content(modifier) }

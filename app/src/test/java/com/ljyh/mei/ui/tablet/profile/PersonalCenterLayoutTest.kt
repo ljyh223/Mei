@@ -18,6 +18,12 @@ class PersonalCenterLayoutTest {
         assertNull(personalCenterSideWidth(Float.NaN, 1f))
     }
 
+    @Test fun phoneLandscapeSplitsOnlyWhenBothPanesFit() {
+        assertNull(personalCenterSideWidth(523f, 1f, landscape = true))
+        assertEquals(204f, personalCenterSideWidth(524f, 1f, landscape = true)!!, 0.01f)
+        assertNull(personalCenterSideWidth(660f, 1.4f, landscape = true))
+    }
+
     @Test fun wideWindowKeepsProfileColumnReadable() {
         assertEquals(360f, personalCenterSideWidth(1600f, 1f)!!, 0.01f)
         val side = requireNotNull(personalCenterSideWidth(1400f, 2f))
