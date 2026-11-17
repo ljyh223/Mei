@@ -30,10 +30,6 @@ tools/*
 !tools/duet-annotator/**
 tools/ci/*
 !tools/ci/prepare-apks.py
-research/singer-diarization/*
-!research/singer-diarization/tools/
-research/singer-diarization/tools/*
-!research/singer-diarization/tools/filter_ncm_duets.py
 video/
 
 # Rust USB core outputs are reproducible build artifacts.
