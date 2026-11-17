@@ -2,6 +2,8 @@ package com.ljyh.mei.ui.screen.main.library
 
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.screen.main.library.component.AdaptiveLibraryContent
 import com.ljyh.mei.ui.screen.main.library.component.LibraryBrowseLayout
 
 internal data class LibraryPageState(
@@ -27,6 +29,12 @@ internal data class LibraryPageActions(
 
 @Composable
 internal fun LibraryPageContent(state: LibraryPageState, actions: LibraryPageActions) {
+    if (LocalPhoneLandscape.current && state.signedIn) AdaptiveLibraryContent(state, actions)
+    else LibrarySinglePaneContent(state, actions)
+}
+
+@Composable
+internal fun LibrarySinglePaneContent(state: LibraryPageState, actions: LibraryPageActions) {
     LibraryBrowseLayout(
         state.state, state.likedArtwork, state.likedSongTitle, state.signedIn,
         state.scrollBehavior, state.preparingPlayback, state.canPlay,

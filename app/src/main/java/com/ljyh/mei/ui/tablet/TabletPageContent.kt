@@ -11,7 +11,7 @@ import com.ljyh.mei.ui.tablet.search.TabletSearchResultScreen
 import com.ljyh.mei.ui.screen.main.library.LibraryScreen
 import com.ljyh.mei.ui.screen.artist.ArtistScreen
 import com.ljyh.mei.ui.screen.album.AlbumDetailScreen
-import com.ljyh.mei.ui.tablet.library.TabletLibraryContent
+import com.ljyh.mei.ui.screen.main.library.component.AdaptiveLibraryContent
 import com.ljyh.mei.ui.tablet.artist.TabletArtistContent
 import com.ljyh.mei.ui.tablet.album.TabletAlbumContent
 
@@ -35,7 +35,7 @@ internal object TabletPageContent : MeiPageContent by SharedMeiPageContent {
         })
     }
     @Composable override fun Library(scrollBehavior: TopAppBarScrollBehavior) {
-        LibraryScreen(scrollBehavior = scrollBehavior, content = { state, actions -> TabletLibraryContent(state, actions) })
+        LibraryScreen(scrollBehavior = scrollBehavior, content = { state, actions -> AdaptiveLibraryContent(state, actions) })
     }
     @Composable override fun Artist(id: String) {
         ArtistScreen(id = id, content = { state, actions -> TabletArtistContent(state, actions) })

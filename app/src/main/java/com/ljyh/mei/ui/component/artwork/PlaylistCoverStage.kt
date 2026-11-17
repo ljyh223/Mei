@@ -22,57 +22,90 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.shimmer.skeleton
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
+
+internal const val ExpandedLikedCoverStageRatio = 1.12f
+private const val ExpandedFrontCoverStart = 0.27f
+private const val ExpandedFrontCoverTop = 0.40f
+private const val ExpandedFrontCoverSize = 0.62f
+
+internal val ExpandedLikedCoverActionAlignment = Alignment { size, space, layoutDirection ->
+    val artworkCenter = ExpandedFrontCoverStart + ExpandedFrontCoverSize / 2
+    val centerX = if (layoutDirection == LayoutDirection.Ltr) artworkCenter else 1f - artworkCenter
+    val centerY = (ExpandedFrontCoverTop + ExpandedFrontCoverSize * 0.72f) / ExpandedLikedCoverStageRatio
+    IntOffset(
+        x = (space.width * centerX - size.width / 2f).roundToInt()
+            .coerceIn(0, (space.width - size.width).coerceAtLeast(0)),
+        y = (space.height * centerY - size.height / 2f).roundToInt()
+            .coerceIn(0, (space.height - size.height).coerceAtLeast(0)),
+    )
+}
 
 /** Loading placeholders and artwork share every size, offset, rotation and clipping boundary. */
 @Composable
 internal fun PlaylistCoverStage(
     covers: List<String>,
     liked: Boolean,
-    onCoverClick: (String) -> Unit,
+    onCoverClick: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
     clickLabel: String = "预览封面",
     isLoading: Boolean = false,
     placeholderCoverCount: Int = 3,
     animateEntrance: Boolean = true,
+    expandedLikedArtwork: Boolean = false,
 ) {
     val count = (if (isLoading) maxOf(covers.size, placeholderCoverCount) else covers.size).coerceIn(0, 3)
     val animate = animateEntrance
+    val expanded = liked && expandedLikedArtwork
     BoxWithConstraints(modifier.clipToBounds()) {
         val width = maxWidth
-        val height = width * if (liked) 1.02f else 0.65f
+        val height = width * when {
+            expanded -> ExpandedLikedCoverStageRatio
+            liked -> 1.02f
+            else -> 0.65f
+        }
         Box(Modifier.fillMaxWidth().height(height)) {
             if (count == 0) {
                 CoverFrame(null, "歌曲封面", onCoverClick,
-                    Modifier.size(width * 0.54f).align(Alignment.Center), clickLabel, isLoading)
+                    Modifier.size(width * if (expanded) 0.73f else 0.54f).align(Alignment.Center), clickLabel, isLoading)
             } else if (liked && count == 1) {
                 LikedCoverEntrance(
                     url = covers.getOrNull(0), onCoverClick = onCoverClick, clickLabel = clickLabel,
                     rotation = -10f, dropDistance = width, isLoading = isLoading, animate = animate,
-                    modifier = Modifier.size(width * 0.65f).align(Alignment.Center),
+                    modifier = Modifier.size(width * if (expanded) 0.85f else 0.65f).align(Alignment.Center),
                 )
             } else if (liked) {
                 if (count > 2) LikedCoverEntrance(
                     url = covers.getOrNull(2), onCoverClick = onCoverClick, clickLabel = clickLabel,
                     rotation = 9f, opacity = 0.72f, dropDistance = width,
                     spreadDistance = width * -0.08f, isLoading = isLoading, animate = animate,
-                    modifier = Modifier.offset(x = width * 0.45f, y = width * 0.04f).size(width * 0.48f),
+                    modifier = Modifier.offset(x = width * if (expanded) 0.43f else 0.45f, y = width * 0.04f)
+                        .size(width * if (expanded) 0.52f else 0.48f),
                 )
                 if (count > 1) LikedCoverEntrance(
                     url = covers.getOrNull(1), onCoverClick = onCoverClick, clickLabel = clickLabel,
                     rotation = -15f, dropDistance = width, delayMillis = 80,
                     spreadDistance = width * 0.12f, isLoading = isLoading, animate = animate,
-                    modifier = Modifier.offset(x = width * 0.07f, y = width * 0.16f).size(width * 0.55f),
+                    modifier = Modifier.offset(
+                        x = width * if (expanded) 0.08f else 0.07f,
+                        y = width * if (expanded) 0.17f else 0.16f,
+                    ).size(width * if (expanded) 0.60f else 0.55f),
                 )
                 LikedCoverEntrance(
                     url = covers.getOrNull(0), onCoverClick = onCoverClick, clickLabel = clickLabel,
                     rotation = 17f, dropDistance = width * 1.15f, delayMillis = 150,
                     spreadDistance = width * -0.10f, isLoading = isLoading, animate = animate,
-                    modifier = Modifier.offset(x = width * 0.40f, y = width * 0.43f).size(width * 0.48f),
+                    modifier = Modifier.offset(
+                        x = width * if (expanded) ExpandedFrontCoverStart else 0.40f,
+                        y = width * if (expanded) ExpandedFrontCoverTop else 0.43f,
+                    ).size(width * if (expanded) ExpandedFrontCoverSize else 0.48f),
                 )
             } else {
                 if (count > 1) CoverFrame(covers.getOrNull(1), "第 2 名封面", onCoverClick,
@@ -92,7 +125,7 @@ internal fun PlaylistCoverStage(
 @Composable
 private fun LikedCoverEntrance(
     url: String?,
-    onCoverClick: (String) -> Unit,
+    onCoverClick: ((String) -> Unit)?,
     rotation: Float,
     dropDistance: Dp,
     modifier: Modifier,
@@ -142,7 +175,7 @@ internal fun rememberCoverEntranceState(
 private fun CoverFrame(
     url: String?,
     label: String,
-    onCoverClick: (String) -> Unit,
+    onCoverClick: ((String) -> Unit)?,
     modifier: Modifier,
     clickLabel: String,
     isLoading: Boolean,
@@ -169,7 +202,7 @@ private fun CoverFrame(
             }
         }
         if (image != null) {
-            val interaction = if (!isLoading && !imageFailed) Modifier.clickable(onClickLabel = clickLabel) {
+            val interaction = if (onCoverClick != null && !isLoading && !imageFailed) Modifier.clickable(onClickLabel = clickLabel) {
                 if (motion.progress.value > 0.5f) onCoverClick(image)
             } else Modifier
             AsyncImage(

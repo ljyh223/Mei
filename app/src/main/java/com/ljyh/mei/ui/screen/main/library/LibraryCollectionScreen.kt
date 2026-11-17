@@ -26,7 +26,7 @@ import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.collection.MeiCollectionPage
 import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
-import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.screen.Screen
@@ -56,7 +56,9 @@ fun LibraryCollectionScreen(collection: LibraryCollection, viewModel: LibraryVie
         }
     }
     val isAlbums = collection == LibraryCollection.Albums
-    val useAdaptiveColumns = rememberDeviceInfo().isTablet || LocalPageStartInset.current > 0.dp
+    val landscape = LocalPhoneLandscape.current
+    val useAdaptiveColumns = rememberDeviceInfo().isTablet || landscape
+    val artworkWidth = if (landscape) 132.dp else 168.dp
     val itemCount = if (isAlbums) albums.size else playlists.size
     val loading = signedIn && (state is LibraryUiState.Loading ||
             if (isAlbums) data?.albumsLoading == true else data?.playlistsLoading == true)
@@ -72,8 +74,10 @@ fun LibraryCollectionScreen(collection: LibraryCollection, viewModel: LibraryVie
             else Screen.ContentSettings.navigate(nav)
         },
         columns = if (useAdaptiveColumns) {
-            GridCells.Adaptive(168.dp * if (isAlbums) VinylAlbumArtworkRatio else 1f)
+            GridCells.Adaptive(artworkWidth * if (isAlbums) VinylAlbumArtworkRatio else 1f)
         } else GridCells.Fixed(2),
+        horizontalItemSpacing = if (landscape) 12.dp else null,
+        verticalItemSpacing = if (landscape) 16.dp else null,
         showLargeTitle = !searchActive,
         titleContent = if (searchActive) ({
             LibraryCollectionSearchField(query, { query = it },

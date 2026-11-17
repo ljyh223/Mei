@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
@@ -88,8 +89,10 @@ fun LibraryBrowseLayout(
         .fillMaxSize()
         .nestedScroll(scrollBehavior.nestedScrollConnection)) {
         val compactWide = !tablet && sideInset > 0.dp
+        val direction = LocalLayoutDirection.current
+        val cardWidth = maxWidth - rowPadding.calculateStartPadding(direction) - rowPadding.calculateEndPadding(direction)
         val mobileColumns = if (compactWide) {
-            ((maxWidth - sideInset - gutter * 2 + 16.dp) / 148.dp).toInt().coerceIn(2, 4)
+            ((cardWidth + 16.dp) / 148.dp).toInt().coerceIn(2, 4)
         } else 2
         val columns =
             if (tablet) ((maxWidth - gutter * 2 + 16.dp) / 184.dp).toInt().coerceIn(2, 6) else 2

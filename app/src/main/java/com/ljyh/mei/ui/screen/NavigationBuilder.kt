@@ -57,7 +57,11 @@ internal fun NavGraphBuilder.navigationBuilder(
         pages.Home(scrollBehavior)
     }
 
-    pageDestination(Screen.Library.route, drawsBehindSideBar = true) {
+    pageDestination(
+        Screen.Library.route,
+        drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
+    ) {
         pages.Library(scrollBehavior)
     }
 
@@ -69,6 +73,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     pageDestination(
         "${Screen.LibraryCollection.route}/{collection}",
         drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
         arguments = listOf(navArgument("collection") { type = NavType.StringType }),
     ) { entry ->
         val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.Library.route) }

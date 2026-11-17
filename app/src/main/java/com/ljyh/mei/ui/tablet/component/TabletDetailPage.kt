@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,6 +18,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.ui.component.glass.*
+import com.ljyh.mei.ui.component.layout.LocalPageHorizontalSafePadding
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -29,30 +34,44 @@ internal fun TabletDetailPage(
     onBack: (() -> Unit)? = null,
     backgroundMode: MeiTopBarBackground = MeiTopBarBackground.Auto,
     toolbarModifier: Modifier = Modifier,
+    showToolbar: Boolean = true,
     actions: @Composable RowScope.() -> Unit = {},
     sidePane: @Composable (PaddingValues) -> Unit,
     mainPane: @Composable (PaddingValues) -> Unit,
 ) {
     val source = rememberHazeState()
+    val compact = LocalPhoneLandscape.current
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            MeiHazeTopBar(
-                state = source, title = title, progress = 1f, centerTitle = false,
-                onNavigateBack = onBack, actions = actions, backgroundMode = backgroundMode,
-                modifier = toolbarModifier,
-            )
+            if (showToolbar) {
+                MeiHazeTopBar(
+                    state = source, title = title, progress = 1f, centerTitle = false,
+                    onNavigateBack = onBack, actions = actions, backgroundMode = backgroundMode,
+                    modifier = toolbarModifier,
+                )
+            } else {
+                MeiStatusBarBackdrop(source)
+            }
         },
     ) { padding ->
         val insets = PaddingValues(
             // Keep reading insets stable when the hero changes the toolbar from glass to solid.
-            top = padding.calculateTopPadding() + meiTopBarContentClearance() + 12.dp,
-            bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + 24.dp,
+            top = padding.calculateTopPadding() + meiTopBarContentClearance() + if (compact) 4.dp else 12.dp,
+            bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + if (compact) 8.dp else 24.dp,
         )
-        Row(Modifier.fillMaxSize().hazeSource(source).background(MaterialTheme.colorScheme.surface),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            Box(Modifier.width(sideWidth).fillMaxHeight()) { sidePane(insets) }
-            Box(Modifier.weight(1f).fillMaxHeight()) { mainPane(insets) }
+        Row(
+            Modifier.fillMaxSize().hazeSource(source).background(MaterialTheme.colorScheme.surface)
+                .padding(meiPageHorizontalPadding(gutter = 0.dp)),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            CompositionLocalProvider(
+                LocalPageStartInset provides 0.dp,
+                LocalPageHorizontalSafePadding provides PaddingValues(0.dp),
+            ) {
+                Box(Modifier.width(sideWidth).fillMaxHeight()) { sidePane(insets) }
+                Box(Modifier.weight(1f).fillMaxHeight()) { mainPane(insets) }
+            }
         }
     }
 }

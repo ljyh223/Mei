@@ -13,7 +13,7 @@ import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.tablet.TabletContentTestActivity
-import com.ljyh.mei.ui.tablet.library.TabletLibraryContent
+import com.ljyh.mei.ui.screen.main.library.component.AdaptiveLibraryContent
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -57,7 +57,7 @@ class LibraryRefreshInteractionTest {
                             val state = LibraryPageState(LibraryUiState.Content(data), null, null, true,
                                 TopAppBarDefaults.pinnedScrollBehavior(), false, false)
                             val actions = LibraryPageActions({}, {}, {}, {}, {}, {})
-                            if (wide) TabletLibraryContent(state, actions) else LibraryPageContent(state, actions)
+                            if (wide) AdaptiveLibraryContent(state, actions) else LibraryPageContent(state, actions)
                         }
                     }
                 }

@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.MeiStatePanel
@@ -23,6 +24,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 
 /**
  * Shared chrome and states for complete collections. One column supports track/row lists;
@@ -62,6 +64,10 @@ fun MeiCollectionPage(
     val hasLargeTitle = showLargeTitle && sideInset == 0.dp
     val bodyTopPadding = meiTopBarBodyTopPadding(hasCustomTitle = titleContent != null)
     val gutter = horizontalContentPadding ?: titleGutter
+    val direction = LocalLayoutDirection.current
+    val sidePadding = meiPageHorizontalPadding(gutter = 0.dp)
+    val start = sidePadding.calculateStartPadding(direction)
+    val end = sidePadding.calculateEndPadding(direction)
     val collapseDistance = with(LocalDensity.current) { 56.dp.toPx() }
     val progress by remember(state, collapseDistance) {
         derivedStateOf {
@@ -71,7 +77,7 @@ fun MeiCollectionPage(
     }
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Use this collection's actual width, including when hosted in a resized window.
-        val wideArtworkGrid = maxWidth - sideInset >= 600.dp && columns != GridCells.Fixed(1)
+        val wideArtworkGrid = maxWidth - start - end >= 600.dp && columns != GridCells.Fixed(1)
         val columnSpacing = horizontalItemSpacing ?: if (wideArtworkGrid) 24.dp else 12.dp
         val rowSpacing = verticalItemSpacing ?: if (wideArtworkGrid) 28.dp else 16.dp
         CompositionLocalProvider(LocalMeiPageProgress provides progress) {
@@ -80,8 +86,8 @@ fun MeiCollectionPage(
                 state = state,
                 modifier = Modifier.fillMaxSize().hazeSource(source).background(MaterialTheme.colorScheme.surface),
                 contentPadding = PaddingValues(
-                    start = gutter + sideInset,
-                    end = gutter,
+                    start = gutter + start,
+                    end = gutter + end,
                     top = top + bodyTopPadding,
                     bottom = insets.calculateBottomPadding() + 24.dp,
                 ),
