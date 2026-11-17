@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -78,6 +79,7 @@ fun PlaylistContent(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     showTitleBar: Boolean = true,
+    titleTopPadding: Dp = 8.dp,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
@@ -144,7 +146,7 @@ fun PlaylistContent(
     Column(modifier = modifier) {
         if (showTitleBar) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = titleTopPadding, bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

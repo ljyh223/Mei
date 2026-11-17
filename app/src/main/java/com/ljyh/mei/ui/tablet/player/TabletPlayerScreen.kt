@@ -25,7 +25,6 @@ import androidx.compose.material.icons.rounded.MusicNote
 import com.ljyh.mei.ui.tablet.component.TabletMiniPlayer
 import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
-import com.ljyh.mei.constants.PhoneLandscapeImmersiveKey
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
@@ -64,7 +63,6 @@ internal fun TabletPlayerScreen(
     miniArtwork: Painter? = null,
     shortWindowLayout: Boolean = false,
 ) {
-    val landscapeMode = if (shortWindowLayout) rememberPreference(PhoneLandscapeImmersiveKey, false) else null
     val metadata by container.mediaMetadata
     val playing by container.isPlaying
     val playbackState by container.playbackState
@@ -173,13 +171,6 @@ internal fun TabletPlayerScreen(
             CompositionLocalProvider(LocalPlayerForegroundColor provides foreground, LocalContentColor provides foreground) {
                 TabletPlayerContent(
                     shortWindowLayout = shortWindowLayout,
-                    immersive = landscapeMode?.value == true,
-                    onToggleImmersive = landscapeMode?.let { mode ->
-                        {
-                            overlays.showLyrics()
-                            mode.value = !mode.value
-                        }
-                    },
                     modifier = Modifier.graphicsLayer {
                         alpha = if (expansionOrigin != null) PlayerMotionSpec.ExpandedUiReveal.transform(sheet.progress) else 1f
                     },
@@ -247,10 +238,15 @@ internal fun TabletPlayerScreen(
                                                     Toast.makeText(context, "已删除QQ音乐歌词", Toast.LENGTH_SHORT).show()
                                                 } },
                                                 controlsVisible = false, onToggleControls = {},
-                                                anchor = LyricsAnchor.Fraction(.4f), bottomFade = LyricsFade.Fraction(.2f),
+                                                anchor = LyricsAnchor.Fraction(if (shortWindowLayout) .25f else .4f),
+                                                bottomFade = LyricsFade.Fraction(if (shortWindowLayout) .10f else .2f),
+                                                lyricsVerticalPadding = if (shortWindowLayout) 0.dp else 8.dp,
+                                                onBackToControls = if (shortWindowLayout) ::showNowPlaying else null,
                                             )
-                                            PlayerPanel.Queue -> PlaylistContent(onDismiss = ::showNowPlaying,
-                                                modifier = panelModifier, showTitleBar = true)
+                                            PlayerPanel.Queue -> PlaylistContent(
+                                                onDismiss = ::showNowPlaying, modifier = panelModifier,
+                                                titleTopPadding = if (shortWindowLayout) 0.dp else 8.dp,
+                                            )
                                             PlayerPanel.Comments -> PlayerCommentsContent(
                                                 songId = metadata?.id?.toString().orEmpty(), modifier = panelModifier,
                                                 foreground = foreground,

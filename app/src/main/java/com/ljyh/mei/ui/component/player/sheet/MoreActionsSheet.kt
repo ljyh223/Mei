@@ -54,7 +54,6 @@ import com.ljyh.mei.ui.component.sheet.meiSheetContentHeight
 import com.ljyh.mei.ui.component.sheet.rememberMeiAdaptiveSheetState
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.ui.model.MoreAction
-import com.ljyh.mei.ui.model.PlayerActionProfile
 import com.ljyh.mei.utils.preferences.rememberPreference
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -66,7 +65,7 @@ fun MoreActionsSheet(
     onActionClick: (MoreAction) -> Unit,
     embedded: Boolean = false,
     editingState: MutableState<Boolean>? = null,
-    profile: PlayerActionProfile = PlayerActionProfile.Phone,
+    showLyrics: Boolean = false,
 ) {
     val playerConnection = LocalPlayerConnection.current
     val currentSong = playerConnection?.mediaMetadata?.collectAsState()?.value
@@ -76,7 +75,8 @@ fun MoreActionsSheet(
     }
     val (savedOrder, saveOrder) = rememberPreference(MoreActionOrderKey, defaultValue = "")
     var actions by remember(savedOrder) { mutableStateOf(MoreAction.orderedBy(savedOrder)) }
-    val visibleActions = actions.filter { it != MoreAction.LYRICS || profile == PlayerActionProfile.Tablet }
+    val availableActions = MoreAction.entries.filter { it != MoreAction.LYRICS || showLyrics }
+    val visibleActions = actions.filter { it in availableActions }
     val draft = remember { mutableStateListOf<MoreAction>() }
     val activeEditingState = editingState ?: remember { mutableStateOf(false) }
     var editing by activeEditingState
@@ -207,7 +207,7 @@ fun MoreActionsSheet(
                 TextButton(
                     onClick = {
                         draft.clear()
-                        draft.addAll(MoreAction.entries.filter { it != MoreAction.LYRICS || profile == PlayerActionProfile.Tablet })
+                        draft.addAll(availableActions)
                     },
                     modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
                 ) { Text("恢复默认") }

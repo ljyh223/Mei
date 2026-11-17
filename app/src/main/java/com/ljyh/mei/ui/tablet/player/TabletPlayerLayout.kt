@@ -26,8 +26,11 @@ internal fun tabletPlayerLayout(
     // Artwork, metadata and controls share one centered width. Short windows scroll as a group.
     val minimumContentWidth = minOf(280f * scale, nowPlayingWidth)
     val fitShortWindow = shortWindowLayout || (twoPanes && height < 560f * scale)
-    val artwork = if (fitShortWindow) minOf(nowPlayingWidth, (height - 240f * scale).coerceIn(48f, 240f))
-    else minOf(nowPlayingWidth, 460f * scale, (height - 330f * scale).coerceAtLeast(minimumContentWidth))
+    val artwork = when {
+        shortWindowLayout && twoPanes -> minOf(nowPlayingWidth, height)
+        fitShortWindow -> minOf(nowPlayingWidth, (height - 240f * scale).coerceIn(48f, 240f))
+        else -> minOf(nowPlayingWidth, 460f * scale, (height - 330f * scale).coerceAtLeast(minimumContentWidth))
+    }
     return TabletPlayerLayout(twoPanes, nowPlayingWidth, artwork, gap,
         showCompactControls = height >= 460f * scale, fitShortWindow = fitShortWindow)
 }

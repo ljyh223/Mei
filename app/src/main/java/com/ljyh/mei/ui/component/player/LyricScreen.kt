@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
@@ -37,11 +40,14 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +100,8 @@ fun LyricScreen(
     anchor: LyricsAnchor = LyricsAnchor.Fixed(40.dp),
     bottomFade: LyricsFade = LyricsFade.Fraction(0.5f),
     lyricsEndPadding: Dp = 0.dp,
+    lyricsVerticalPadding: Dp = 8.dp,
+    onBackToControls: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val playbackPosition = remember(playerConnection.player) {
@@ -282,7 +290,7 @@ fun LyricScreen(
                             }
                         },
                         modifier = Modifier
-                            .padding(vertical = 8.dp)
+                            .padding(vertical = lyricsVerticalPadding)
                             .padding(end = lyricsEndPadding)
                             .graphicsLayer {
                                 blendMode = BlendMode.Plus
@@ -298,50 +306,77 @@ fun LyricScreen(
                     )
                 }
 
-                LyricSourceBadge(
-                    source = lyricData.source,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(start = 8.dp),
-                    onClick = onClick,
-                    onLongClick = onLongClick
-                )
             }
+            LyricPanelActions(
+                source = lyricData.source.takeIf { lyricData.lyricLine.lines.isNotEmpty() },
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onBackToControls = onBackToControls,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(start = 8.dp),
+            )
         }
     }
 }
 
 @Composable
-private fun LyricSourceBadge(
-    source: LyricSource,
-    modifier: Modifier = Modifier,
+internal fun LyricPanelActions(
+    source: LyricSource?,
     onClick: (LyricSource) -> Unit,
-    onLongClick: (LyricSource) -> Unit
+    onLongClick: (LyricSource) -> Unit,
+    onBackToControls: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    if (source == null && onBackToControls == null) return
+    Column(
+        modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (onBackToControls != null) {
+            LyricActionBadge(
+                painter = rememberVectorPainter(Icons.Rounded.SwapHoriz),
+                description = "切换到播放控制",
+                onClick = onBackToControls,
+            )
+        }
+        if (source != null) {
+            val icon = when (source) {
+                LyricSource.Empty, LyricSource.Loading -> R.drawable.empty
+                LyricSource.NetEaseCloudMusic -> R.drawable.netease
+                LyricSource.QQMusic -> R.drawable.qq
+                LyricSource.AM -> R.drawable.am
+            }
+            LyricActionBadge(
+                painter = painterResource(icon),
+                description = "选择歌词版本",
+                onClick = { onClick(source) },
+                onLongClick = { onLongClick(source) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun LyricActionBadge(
+    painter: Painter,
+    description: String,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val foreground = LocalPlayerForegroundColor.current
     Box(
-        modifier = modifier
+        modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
             .background(foreground.copy(alpha = 0.2f))
             .border(0.5.dp, foreground.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
             .padding(horizontal = 2.dp, vertical = 2.dp)
-            .combinedClickable(
-                onClick = { onClick(source) },
-                onLongClick = { onLongClick(source) }
-            )
+            .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick),
     ) {
 
         Icon(
-            painter = painterResource(
-                when (source) {
-                    LyricSource.Empty, LyricSource.Loading -> R.drawable.empty
-                    LyricSource.NetEaseCloudMusic -> R.drawable.netease
-                    LyricSource.QQMusic -> R.drawable.qq
-                    LyricSource.AM -> R.drawable.am
-                }
-            ),
+            painter = painter,
             modifier = Modifier.size(16.dp),
-            contentDescription = "选择歌词版本",
+            contentDescription = description,
             tint = foreground.copy(alpha = 0.6f)
         )
     }

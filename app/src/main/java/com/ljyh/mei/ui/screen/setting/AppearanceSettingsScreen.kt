@@ -332,7 +332,7 @@ fun AppearanceSettingsScreen(
                     valueText = { it.label }
                 )
                 EnumListPreference(
-                    title = { Text("平板切换动画") },
+                    title = { Text("播放器面板切换动画") },
                     icon = { Icon(Icons.Rounded.SwapHoriz, null) },
                     selectedValue = tabletAnimStyle,
                     onValueSelected = onTabletAnimStyleChange,

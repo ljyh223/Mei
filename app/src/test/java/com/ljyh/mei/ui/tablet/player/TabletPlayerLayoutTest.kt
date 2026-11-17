@@ -38,7 +38,7 @@ class TabletPlayerLayoutTest {
         val landscape = tabletPlayerLayout(700f, 300f, 1f, shortWindowLayout = true)
         assertTrue(landscape.twoPanes)
         assertTrue(landscape.fitShortWindow)
-        assertEquals(60f, landscape.artworkSizeDp)
+        assertEquals(300f, landscape.artworkSizeDp)
         assertFalse(tabletPlayerLayout(700f, 300f, 1.5f, shortWindowLayout = true).twoPanes)
         assertFalse(tabletPlayerLayout(550f, 240f, 1f, shortWindowLayout = true).twoPanes)
     }

@@ -4,7 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -13,6 +15,8 @@ import com.ljyh.mei.constants.TabletAnimationStyle
 import com.ljyh.mei.ui.component.layout.AppWindowLayout
 import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
 import com.ljyh.mei.ui.component.player.overlay.PlayerPanel
+import com.ljyh.mei.ui.component.player.LyricPanelActions
+import com.ljyh.mei.ui.model.LyricSource
 import com.ljyh.mei.ui.tablet.TabletContentTestActivity
 import org.junit.Assert.*
 import org.junit.Rule
@@ -31,22 +35,48 @@ class TabletPlayerContentTest {
     @get:Rule val compose = createEmptyComposeRule()
 
     @Test fun phoneLandscapeKeepsTheLargeCoverWhenSwitchingBetweenControlsAndLyrics() {
-        val state = TabletPlayerUiState("Song", "Artist", false, PlayerPanel.Lyrics, false)
-        val actions = TabletPlayerActions({}, {}, {}, {}, {})
-        var immersive by mutableStateOf(false)
+        var state by mutableStateOf(TabletPlayerUiState("Song", "Artist", false, PlayerPanel.Lyrics, false))
+        var collapsed = 0
+        var playerHeight by mutableStateOf(320.dp)
+        var coverScale by mutableFloatStateOf(1f)
+        val returnToControls: () -> Unit = { state = state.copy(panel = PlayerPanel.Lyrics, detailsVisible = false) }
+        val actions = TabletPlayerActions({}, {}, {}, {}, returnToControls)
         TabletContentTestActivity.content = {
             MaterialTheme {
-                Box(Modifier.size(740.dp, 380.dp)) {
+                BackHandler { collapsed++ }
+                Box(Modifier.size(740.dp, playerHeight).testTag("short-viewport").consumeWindowInsets(WindowInsets.safeDrawing)) {
                     TabletPlayerContent(state, actions, TabletPlayerSlots(
-                        artwork = { Box(it.testTag("short-cover")) },
+                        artwork = { modifier ->
+                            Box(modifier.testTag("short-cover")) {
+                                Box(Modifier.fillMaxSize().graphicsLayer {
+                                    scaleX = coverScale
+                                    scaleY = coverScale
+                                }.testTag("visible-cover"))
+                            }
+                        },
                         controls = { modifier, compact ->
                             assertTrue(compact)
                             Box(modifier.height(110.dp).testTag("short-controls"))
                         },
-                        panel = { _, modifier -> Box(modifier.testTag("short-lyrics")) },
-                        actions = { modifier -> Button({}, modifier) { Text("播放队列") } },
-                    ), shortWindowLayout = true, immersive = immersive,
-                        onToggleImmersive = { immersive = !immersive })
+                        panel = { panel, modifier ->
+                            Box(modifier.testTag("short-${panel.name}")) {
+                                if (panel == PlayerPanel.Lyrics) {
+                                    LyricPanelActions(
+                                        LyricSource.NetEaseCloudMusic, {}, {}, returnToControls,
+                                        Modifier.align(Alignment.BottomEnd),
+                                    )
+                                } else if (panel == PlayerPanel.Queue) {
+                                    Button(returnToControls) { Text("关闭队列") }
+                                }
+                            }
+                        },
+                        actions = { modifier ->
+                            Row(modifier) {
+                                Button({ state = state.copy(panel = PlayerPanel.Lyrics, detailsVisible = true) }) { Text("歌词显示") }
+                                Button({ state = state.copy(panel = PlayerPanel.Queue, detailsVisible = true) }) { Text("播放队列") }
+                            }
+                        },
+                    ), shortWindowLayout = true)
                 }
             }
         }
@@ -54,17 +84,48 @@ class TabletPlayerContentTest {
         try {
             val cover = compose.onNodeWithTag("short-cover").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             val controls = compose.onNodeWithTag("short-controls").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            val viewport = compose.onNodeWithTag("short-viewport").fetchSemanticsNode().boundsInRoot
             assertTrue(cover.right < controls.left)
-            compose.onNodeWithTag("short-cover").assertWidthIsAtLeast(280.dp)
-            compose.onNodeWithTag("short-lyrics").assertDoesNotExist()
-            compose.onNodeWithText("播放队列").assertIsDisplayed().performClick()
-            compose.onNodeWithText("切换至沉浸").performClick()
-            val lyrics = compose.onNodeWithTag("short-lyrics").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertEquals(viewport.top, cover.top, 1f)
+            assertEquals(viewport.bottom, cover.bottom, 1f)
+            compose.onNodeWithContentDescription("收起播放器").assertDoesNotExist()
+            compose.onNodeWithText("切换至沉浸").assertDoesNotExist()
+            compose.onNodeWithTag("short-Lyrics").assertDoesNotExist()
+            compose.onNodeWithText("歌词显示").assertIsDisplayed().performClick()
+            val lyrics = compose.onNodeWithTag("short-Lyrics").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             assertTrue(cover.right < lyrics.left)
+            assertEquals(cover.bottom, lyrics.bottom, 1f)
             assertEquals(cover, compose.onNodeWithTag("short-cover").fetchSemanticsNode().boundsInRoot)
             compose.onNodeWithTag("short-controls").assertDoesNotExist()
-            compose.onNodeWithText("切换至标准").performClick()
+            compose.onNodeWithText("正在播放").assertDoesNotExist()
+            val lyricBack = compose.onNodeWithContentDescription("切换到播放控制")
+            val backBounds = lyricBack.fetchSemanticsNode().boundsInRoot
+            val sourceBounds = compose.onNodeWithContentDescription("选择歌词版本").fetchSemanticsNode().boundsInRoot
+            assertEquals(sourceBounds.center.x, backBounds.center.x, 1f)
+            assertEquals(sourceBounds.size, backBounds.size)
+            assertTrue(backBounds.bottom <= sourceBounds.top)
+            lyricBack.performClick()
             compose.onNodeWithTag("short-controls").assertIsDisplayed()
+            compose.runOnIdle { playerHeight = 380.dp }
+            val largerCover = compose.onNodeWithTag("short-cover").fetchSemanticsNode().boundsInRoot
+            compose.onNodeWithText("播放队列").performClick()
+            val queueNode = compose.onNodeWithTag("short-Queue").assertIsDisplayed()
+            val queue = queueNode.fetchSemanticsNode().boundsInRoot
+            assertTrue(largerCover.top > viewport.top)
+            assertEquals(largerCover.top, queue.top, 1f)
+            assertEquals(largerCover.bottom, queue.bottom, 1f)
+            compose.onNodeWithText("正在播放").assertDoesNotExist()
+            assertEquals(largerCover, compose.onNodeWithTag("short-cover").fetchSemanticsNode().boundsInRoot)
+            compose.runOnIdle { coverScale = .9f }
+            val pausedCover = compose.onNodeWithTag("visible-cover").fetchSemanticsNode().boundsInRoot
+            assertTrue(pausedCover.height < largerCover.height)
+            assertEquals(queue, queueNode.fetchSemanticsNode().boundsInRoot)
+            compose.onNodeWithText("关闭队列").performClick()
+            compose.onNodeWithText("歌词显示").performClick()
+            compose.runOnIdle { activity.get().onBackPressedDispatcher.onBackPressed() }
+            compose.onNodeWithTag("short-controls").assertIsDisplayed()
+            compose.runOnIdle { activity.get().onBackPressedDispatcher.onBackPressed() }
+            compose.runOnIdle { assertEquals(1, collapsed) }
         } finally {
             activity.pause().stop().destroy()
             TabletContentTestActivity.content = {}

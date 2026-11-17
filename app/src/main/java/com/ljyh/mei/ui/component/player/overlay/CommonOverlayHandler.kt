@@ -203,7 +203,7 @@ fun CommonOverlayHandler(
                         onActionClick = overlayHandler::handleMoreAction,
                         embedded = true,
                         editingState = moreEditing,
-                        profile = overlayHandler.actionProfile,
+                        showLyrics = overlayHandler.showsInlinePanels,
                     )
 
                     else -> Unit

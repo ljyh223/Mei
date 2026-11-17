@@ -11,15 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import com.ljyh.mei.constants.TabletAnimationStyle
-import com.ljyh.mei.ui.component.player.overlay.PlayerPanel
 
 /** Presentation transitions are separate from panel intent and engine-backed content ownership. */
 @Composable
-internal fun TabletPlayerPanels(
-    panel: PlayerPanel,
+internal fun <T> TabletPlayerPanels(
+    panel: T,
     style: TabletAnimationStyle,
     modifier: Modifier,
-    content: @Composable (PlayerPanel, Modifier) -> Unit,
+    content: @Composable (T, Modifier) -> Unit,
 ) {
     if (style == TabletAnimationStyle.FLIP_3D) {
         var displayed by remember { mutableStateOf(panel) }
