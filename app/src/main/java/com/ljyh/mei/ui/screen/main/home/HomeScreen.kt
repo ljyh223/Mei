@@ -79,7 +79,7 @@ import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.ui.component.glass.LocalMeiPageProgress
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
-import com.ljyh.mei.ui.component.glass.MeiTopBarBackdrop
+import com.ljyh.mei.ui.component.glass.MeiStatusBarBackdrop
 import com.ljyh.mei.ui.component.player.state.PlayerViewModel
 import com.ljyh.mei.ui.component.MeiSectionTitle
 import com.ljyh.mei.ui.component.track.PlayingImageView
@@ -264,9 +264,7 @@ fun HomeScreen(
             }
         }
         if (landscape) {
-            if (statusBarTop > 0.dp) {
-                MeiTopBarBackdrop(state = pageHaze, modifier = Modifier.fillMaxWidth().height(statusBarTop))
-            }
+            MeiStatusBarBackdrop(pageHaze)
         } else {
             MeiHazeTopBar(state = pageHaze, title = "推荐", progress = titleProgress)
         }

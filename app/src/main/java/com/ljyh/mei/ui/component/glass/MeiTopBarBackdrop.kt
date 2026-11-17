@@ -3,6 +3,11 @@ package com.ljyh.mei.ui.component.glass
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -36,6 +41,12 @@ internal fun meiTopBarContentClearance(mode: MeiTopBarBackground = MeiTopBarBack
     if (mode == MeiTopBarBackground.Auto &&
         LocalMeiGlassAppearance.current.usesOptics(LocalMeiGlassEnabled.current && Build.VERSION.SDK_INT >= 33))
         meiTopBarTransitionExtension() else 0.dp
+
+@Composable
+internal fun MeiStatusBarBackdrop(state: HazeState) {
+    val height = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    if (height > 0.dp) MeiTopBarBackdrop(state = state, modifier = Modifier.fillMaxWidth().height(height))
+}
 
 /**
  * The toolbar keeps its measured height. Glass extends its non-interactive background below
