@@ -52,6 +52,7 @@ class PlayerOverlayHandler(
 
     val detailsVisible: State<Boolean> = _detailsVisible
     val panel: State<PlayerPanel> = _panel
+    internal val showsInlinePanels: Boolean get() = useInlineQueue.value
 
     val currentOverlayValue: OverlayState
         get() = sheetNavigation.current.value

@@ -48,8 +48,13 @@ fun rememberMeiAdaptiveSheetState(): MeiAdaptiveSheetState = remember { MeiAdapt
 
 internal enum class MeiSheetPresentation { Bottom, Side }
 
-internal fun meiSheetPresentation(widthDp: Float, fontScale: Float, allowSide: Boolean): MeiSheetPresentation =
-    if (allowSide && widthDp.isFinite() && widthDp >= 600f * fontScale.coerceIn(1f, 1.3f)) {
+internal fun meiSheetPresentation(
+    widthDp: Float,
+    fontScale: Float,
+    allowSide: Boolean,
+    minSideWidthDp: Float = 600f,
+): MeiSheetPresentation =
+    if (allowSide && widthDp.isFinite() && widthDp >= minSideWidthDp * fontScale.coerceIn(1f, 1.3f)) {
         MeiSheetPresentation.Side
     } else MeiSheetPresentation.Bottom
 
@@ -80,6 +85,7 @@ fun MeiAdaptiveSheet(
     dismissEnabled: Boolean = true,
     onDismissBlocked: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null,
+    allowSideInCompactLayout: Boolean = false,
     content: @Composable (close: () -> Unit) -> Unit,
 ) {
     val density = LocalDensity.current
@@ -90,12 +96,15 @@ fun MeiAdaptiveSheet(
         (window.width - insets.getLeft(this, LocalLayoutDirection.current) -
             insets.getRight(this, LocalLayoutDirection.current)).toDp().value
     }
-    val allowSide = when (LocalAppWindowLayout.current) {
+    val windowLayout = LocalAppWindowLayout.current
+    val compactSide = windowLayout == AppWindowLayout.Compact && allowSideInCompactLayout
+    val allowSide = when (windowLayout) {
         AppWindowLayout.Wide -> true
-        AppWindowLayout.Compact -> false
+        AppWindowLayout.Compact -> compactSide
         null -> config.smallestScreenWidthDp >= 600
     }
-    val presentation = meiSheetPresentation(width, density.fontScale, allowSide)
+    val presentation = meiSheetPresentation(width, density.fontScale, allowSide,
+        minSideWidthDp = if (compactSide) 480f else 600f)
     val closing = state.closing && dismissEnabled
     val isClosing = rememberUpdatedState(closing)
     var dismissed by remember(state) { mutableStateOf(false) }

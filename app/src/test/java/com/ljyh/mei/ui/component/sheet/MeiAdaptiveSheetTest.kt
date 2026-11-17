@@ -216,11 +216,41 @@ class MeiAdaptiveSheetTest {
         }
     }
 
+    @Test
+    @Config(qualifiers = "w560dp-h300dp")
+    fun optedInCompactSheetMovesToTheSideOnAShortWindow() {
+        var density = 1f
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                density = LocalDensity.current.density
+                CompositionLocalProvider(LocalAppWindowLayout provides AppWindowLayout.Compact) {
+                    MeiAdaptiveSheet(onDismissRequest = {}, allowSideInCompactLayout = true) {
+                        Box(Modifier.fillMaxSize().testTag("player-sheet"))
+                    }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val window = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
+            val panel = compose.onNodeWithTag("player-sheet").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertEquals(420f * density, panel.width, density)
+            assertTrue(panel.left > window.left + 48f * density)
+            assertTrue(panel.right < window.right)
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun phonesAndNarrowOrLargeTextWindowsRetainTheBottomPresentation() {
         assertEquals(MeiSheetPresentation.Bottom, meiSheetPresentation(1200f, 1f, false))
         assertEquals(MeiSheetPresentation.Bottom, meiSheetPresentation(599f, 1f, true))
         assertEquals(MeiSheetPresentation.Side, meiSheetPresentation(600f, 1f, true))
         assertEquals(MeiSheetPresentation.Bottom, meiSheetPresentation(650f, 1.5f, true))
         assertEquals(MeiSheetPresentation.Bottom, meiSheetPresentation(Float.NaN, 1f, true))
+        assertEquals(MeiSheetPresentation.Side, meiSheetPresentation(480f, 1f, true, minSideWidthDp = 480f))
+        assertEquals(MeiSheetPresentation.Bottom, meiSheetPresentation(479f, 1f, true, minSideWidthDp = 480f))
+        assertEquals(MeiSheetPresentation.Bottom, meiSheetPresentation(560f, 1.5f, true, minSideWidthDp = 480f))
     }
 }

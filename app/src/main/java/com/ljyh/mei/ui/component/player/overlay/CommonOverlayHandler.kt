@@ -99,6 +99,7 @@ fun CommonOverlayHandler(
             dismissEnabled = !(overlay == OverlayState.MoreAction && moreEditing.value),
             onDismissBlocked = { moreEditing.value = false },
             onNavigateBack = if (overlayHandler.canGoBack) overlayHandler::goBack else null,
+            allowSideInCompactLayout = overlayHandler.showsInlinePanels,
         ) { closeSheet ->
             LaunchedEffect(requestedDownload) {
                 if (requestedDownload != null) closeSheet()
