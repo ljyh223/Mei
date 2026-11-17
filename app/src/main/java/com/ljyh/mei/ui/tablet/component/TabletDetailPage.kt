@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.tablet.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
@@ -22,6 +23,8 @@ import com.ljyh.mei.ui.component.layout.LocalPageHorizontalSafePadding
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -41,8 +44,9 @@ internal fun TabletDetailPage(
 ) {
     val source = rememberHazeState()
     val compact = LocalPhoneLandscape.current
+    val surface = MaterialTheme.colorScheme.surface
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = surface,
         topBar = {
             if (showToolbar) {
                 MeiHazeTopBar(
@@ -51,7 +55,7 @@ internal fun TabletDetailPage(
                     modifier = toolbarModifier,
                 )
             } else {
-                MeiStatusBarBackdrop(source)
+                MeiStatusBarBackdrop(source, backgroundMode)
             }
         },
     ) { padding ->
@@ -61,7 +65,7 @@ internal fun TabletDetailPage(
             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding() + if (compact) 8.dp else 24.dp,
         )
         Row(
-            Modifier.fillMaxSize().hazeSource(source).background(MaterialTheme.colorScheme.surface)
+            Modifier.fillMaxSize().hazeSource(source).background(surface)
                 .padding(meiPageHorizontalPadding(gutter = 0.dp)),
             horizontalArrangement = Arrangement.spacedBy(24.dp),
         ) {
@@ -73,6 +77,26 @@ internal fun TabletDetailPage(
                 Box(Modifier.weight(1f).fillMaxHeight()) { mainPane(insets) }
             }
         }
+    }
+}
+
+@Composable
+internal fun LazyItemScope.DetailSideArtwork(
+    url: String?,
+    aspectRatio: Float = 1f,
+    placeholder: ImageVector = Icons.Rounded.MusicNote,
+    loading: Boolean = false,
+) {
+    val landscape = LocalPhoneLandscape.current
+    val frame = Modifier.padding(horizontal = meiPageGutter())
+    SkeletonShimmerHost(
+        enabled = loading,
+        modifier = if (landscape) frame.fillParentMaxHeight(0.64f).fillMaxWidth() else frame,
+    ) {
+        val artwork = if (landscape) {
+            Modifier.align(Alignment.Center).aspectRatio(1f, matchHeightConstraintsFirst = true)
+        } else Modifier
+        TabletArtwork(url, artwork, aspectRatio = if (landscape) 1f else aspectRatio, placeholder = placeholder)
     }
 }
 

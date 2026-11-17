@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.tablet.artist
+package com.ljyh.mei.ui.screen.artist
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,38 +21,56 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.ui.component.MeiStatePanel
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
-import com.ljyh.mei.ui.component.glass.*
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.component.track.Track
 import com.ljyh.mei.ui.component.track.TrackPlaceholder
-import com.ljyh.mei.ui.screen.artist.*
 import com.ljyh.mei.ui.tablet.*
 import com.ljyh.mei.ui.tablet.component.*
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDetailActions) {
-    AdaptiveTabletContent(compact = { ArtistDetailContent(state, actions) }) { metrics ->
+internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDetailActions) {
+    val landscape = LocalPhoneLandscape.current
+    AdaptiveTabletContent(
+        sideWidthFraction = if (landscape) 0.40f else 0.34f,
+        minSideWidthDp = if (landscape) 252f else 336f,
+        maxSideWidthDp = if (landscape) 300f else 420f,
+        minContentWidthDp = if (landscape) 280f else 480f,
+        compact = { ArtistDetailContent(state, actions) },
+    ) { metrics ->
         val side = rememberLazyListState()
         var description by rememberSaveable(state.id) { mutableStateOf(false) }
         val artist = state.artist
         val gutter = meiPageGutter()
+        val playButton: @Composable () -> Unit = {
+            Button(actions.onPlayHotSongs,
+                enabled = state.canPlay && state.songs.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = gutter).heightIn(min = 48.dp)) {
+                Icon(Icons.Rounded.PlayArrow, null, Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("播放热门歌曲")
+            }
+        }
         TabletDetailPage(
             title = artist?.name ?: "歌手", sideWidth = metrics.sideWidthDp.dp, onBack = actions.onBack,
+            showToolbar = !landscape,
             sidePane = { padding ->
                 LazyColumn(state = side, modifier = Modifier.fillMaxSize(), contentPadding = padding,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    verticalArrangement = Arrangement.spacedBy(if (landscape) 8.dp else 16.dp)) {
                     item(key = "artist_artwork") {
-                        SkeletonShimmerHost(state.detailLoading, Modifier.padding(horizontal = gutter)) {
-                            TabletArtwork(artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
-                                aspectRatio = 0.82f, placeholder = Icons.Rounded.Person)
-                        }
+                        DetailSideArtwork(
+                            artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
+                            aspectRatio = 0.82f, placeholder = Icons.Rounded.Person, loading = state.detailLoading,
+                        )
                     }
+                    if (landscape) item(key = "artist_play") { playButton() }
                     item(key = "artist_identity") {
                         Column(Modifier.padding(horizontal = gutter), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(artist?.name ?: if (state.detailLoading) "正在加载" else "歌手信息暂不可用",
+                            if (!landscape || artist == null) Text(
+                                artist?.name ?: if (state.detailLoading) "正在加载" else "歌手信息暂不可用",
                                 style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
                                 maxLines = 3, overflow = TextOverflow.Ellipsis)
                             if (artist != null) {
@@ -67,14 +85,7 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                             }
                         }
                     }
-                    item(key = "artist_play") {
-                        Button(actions.onPlayHotSongs,
-                            enabled = state.canPlay && state.songs.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = gutter).heightIn(min = 48.dp)) {
-                            Icon(Icons.Rounded.PlayArrow, null, Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp)); Text("播放热门歌曲")
-                        }
-                    }
+                    if (!landscape) item(key = "artist_play") { playButton() }
                     if (state.detailError != null) item { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
                         actionLabel = "重试", onAction = actions.onRetryDetail) }
                     if (artist != null && (artist.briefDesc.isNotBlank() || state.expertIdentities.any { it.expertIdentiyCount > 0 })) {
@@ -88,18 +99,25 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
             },
             mainPane = { padding ->
                 BoxWithConstraints(Modifier.fillMaxSize()) {
-                    val columns = tabletArtworkColumns(maxWidth.value, LocalDensity.current.fontScale, gutter.value, VinylAlbumArtworkRatio)
+                    val columns = tabletArtworkColumns(
+                        maxWidth.value, LocalDensity.current.fontScale, gutter.value, VinylAlbumArtworkRatio,
+                        minArtworkWidthDp = if (landscape) 104f else 156f,
+                    )
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding,
                         verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         item(key = "songs_heading") { TabletSectionHeading("热门单曲", actions.onBrowseSongs) }
                         when {
-                            state.songsLoading -> item { SkeletonShimmerHost(true) { Column { repeat(6) { TrackPlaceholder(it, true) } } } }
+                            state.songsLoading -> item {
+                                SkeletonShimmerHost(true) {
+                                    Column { repeat(6) { TrackPlaceholder(it, isTablet = !landscape) } }
+                                }
+                            }
                             state.songsError != null -> item { MeiStatePanel("热门歌曲暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetrySongs) }
                             state.songs.isEmpty() -> item { Text("暂无热门单曲", Modifier.padding(horizontal = gutter, vertical = 24.dp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             else -> itemsIndexed(state.songs.take(12), key = { _, song -> "song_${song.id}" }) { index, song ->
-                                Track(song, index = index, isTablet = true,
+                                Track(song, index = index, isTablet = !landscape,
                                     onClick = { actions.onTrackClick(song, index) }, onMoreClick = { actions.onTrackMore(song, it) })
                             }
                         }

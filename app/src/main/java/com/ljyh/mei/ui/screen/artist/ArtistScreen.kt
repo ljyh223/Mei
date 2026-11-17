@@ -24,7 +24,9 @@ import kotlinx.coroutines.CancellationException
 internal fun ArtistScreen(
     id: String,
     viewModel: ArtistViewModel = hiltViewModel(),
-    content: @Composable (ArtistDetailUiState, ArtistDetailActions) -> Unit = { state, actions -> ArtistDetailContent(state, actions) },
+    content: @Composable (ArtistDetailUiState, ArtistDetailActions) -> Unit = { state, actions ->
+        AdaptiveArtistContent(state, actions)
+    },
 ) {
     val nav = LocalNavController.current
     val player = LocalPlayerConnection.current

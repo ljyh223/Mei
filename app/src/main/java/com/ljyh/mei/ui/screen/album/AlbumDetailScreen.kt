@@ -59,6 +59,8 @@ import java.util.Timer
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.MeiStatusBarBackdrop
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -70,7 +72,9 @@ internal fun AlbumDetailScreen(
     id: Long,
     viewModel: AlbumDetailViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
-    content: @Composable (AlbumDetailUiState, AlbumDetailActions) -> Unit = { state, actions -> AlbumDetailContent(state, actions) },
+    content: @Composable (AlbumDetailUiState, AlbumDetailActions) -> Unit = { state, actions ->
+        AdaptiveAlbumContent(state, actions)
+    },
 ) {
     // 1. 请求初始数据
     LaunchedEffect(id) {
@@ -346,6 +350,18 @@ internal fun AlbumDetailScreen(
 
 @Composable
 private fun AlbumLoadState(onBack: () -> Unit, message: String?, onRetry: (() -> Unit)?) {
+    if (LocalPhoneLandscape.current) {
+        AdaptiveAlbumLayout(
+            compact = { AlbumLoadContent(onBack, message, onRetry, showToolbar = true) },
+            expanded = { AlbumLoadContent(onBack, message, onRetry, showToolbar = false) },
+        )
+    } else {
+        AlbumLoadContent(onBack, message, onRetry, showToolbar = true)
+    }
+}
+
+@Composable
+private fun AlbumLoadContent(onBack: () -> Unit, message: String?, onRetry: (() -> Unit)?, showToolbar: Boolean) {
     val source = rememberHazeState()
     Box(Modifier.fillMaxSize()) {
         Box(
@@ -361,6 +377,10 @@ private fun AlbumLoadState(onBack: () -> Unit, message: String?, onRetry: (() ->
                 }
             }
         }
-        MeiHazeTopBar(state = source, title = "专辑", progress = 1f, onNavigateBack = onBack)
+        if (showToolbar) {
+            MeiHazeTopBar(state = source, title = "专辑", progress = 1f, onNavigateBack = onBack)
+        } else {
+            MeiStatusBarBackdrop(source)
+        }
     }
 }
