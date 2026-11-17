@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
@@ -167,12 +168,13 @@ internal fun PlaylistCoverArtwork(
     headerStyle: PlaylistHeaderStyle,
     isLoading: Boolean,
     modifier: Modifier = Modifier,
+    shape: Shape = MaterialTheme.shapes.large,
 ) {
     val coverStyle by rememberEnumPreference(PlaylistCoverStyleKey, defaultValue = PlaylistCoverStyle.Cover)
     var showCoverPreview by remember(cover) { mutableStateOf(false) }
     Box(
         modifier = modifier
-            .clip(MaterialTheme.shapes.large)
+            .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .combinedClickable(
                 enabled = !isLoading && cover.isNotBlank(),
@@ -181,7 +183,7 @@ internal fun PlaylistCoverArtwork(
                 onClick = { showCoverPreview = true },
                 onLongClick = { showCoverPreview = true },
             )
-            .skeleton(isLoading, MaterialTheme.shapes.large),
+            .skeleton(isLoading, shape),
     ) {
         if (!isLoading) when (
             if (headerStyle == PlaylistHeaderStyle.Radar) PlaylistCoverStyle.Combination else coverStyle

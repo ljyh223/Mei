@@ -1,8 +1,6 @@
 package com.ljyh.mei.ui.screen.playlist.layout
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.asPaddingValues
@@ -11,12 +9,9 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -25,12 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.artwork.CenteredArtworkPane
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -45,7 +40,8 @@ internal fun TwoPanePlaylistLayout(
 ) {
     val state = content.state
     val direction = LocalLayoutDirection.current
-    val topInset = content.padding.calculateTopPadding() + meiTopBarContentClearance()
+    val topInset = content.padding.calculateTopPadding() + meiTopBarContentClearance() +
+        if (compact) 4.dp else 0.dp
     val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     Row(
         Modifier.fillMaxSize().padding(
@@ -54,22 +50,16 @@ internal fun TwoPanePlaylistLayout(
         ),
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        // The viewport reaches behind the bar; only initial content receives the top inset.
-        BoxWithConstraints(Modifier.width(content.detailPaneWidth).fillMaxHeight()) {
-            val viewportHeight = maxHeight
-            val bodyHeight = viewportHeight - topInset - bottomInset
+        CenteredArtworkPane(
+            padding = PaddingValues(top = topInset, bottom = bottomInset),
+            modifier = Modifier.width(content.detailPaneWidth).fillMaxHeight(),
+        ) { bodyHeight ->
             val artworkBudget = if (compact) {
-                (bodyHeight - 16.dp).coerceAtLeast(96.dp)
+                (bodyHeight - 8.dp).coerceAtLeast(96.dp)
             } else {
                 (bodyHeight - 220.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)).coerceAtLeast(144.dp)
             }
-            Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                Box(
-                    Modifier.fillMaxWidth().heightIn(min = viewportHeight)
-                        .padding(top = topInset, bottom = bottomInset),
-                    contentAlignment = if (compact) Alignment.TopStart else Alignment.Center,
-                ) { content.header(artworkBudget) }
-            }
+            content.header(artworkBudget)
         }
         PlaylistTracks(
             content = content,

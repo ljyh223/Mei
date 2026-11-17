@@ -10,10 +10,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -48,7 +49,7 @@ class DailyRecommendationLayoutTest {
     @get:Rule val compose = createEmptyComposeRule()
 
     @Test
-    fun landscapeDailyAndPlaylistUseTheSameToolbarAndCoverActions() {
+    fun landscapeDailyAndPlaylistShowArtworkAndCoverActionsWithoutAToolbar() {
         val tracks = (1L..33L).map {
             MediaMetadata(it, "Song $it", "", emptyList(), 1000, MediaMetadata.Album(0, ""))
         }
@@ -62,6 +63,7 @@ class DailyRecommendationLayoutTest {
             uiData = state.uiData.copy(
                 id = 42L,
                 title = "私人雷达",
+                cover = "android.resource://android/drawable/ic_menu_gallery",
                 creatorName = "创建者",
                 description = "旧头部的说明",
                 headerStyle = PlaylistHeaderStyle.Radar,
@@ -107,39 +109,47 @@ class DailyRecommendationLayoutTest {
         }
         val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
         try {
-            val title = compose.onNodeWithText("每日推荐")
             val song = compose.onNodeWithText("Song 1", useUnmergedTree = true)
             val more = compose.onNodeWithContentDescription("更多操作")
             val play = compose.onNodeWithText("播放全部")
-            compose.onAllNodesWithText("每日推荐").assertCountEquals(1)
+            compose.onNodeWithText("每日推荐").assertDoesNotExist()
+            compose.onNodeWithContentDescription("返回").assertDoesNotExist()
             val artwork = compose.onNodeWithTag("daily-artwork").fetchSemanticsNode().boundsInRoot
             val initialSong = song.fetchSemanticsNode().boundsInRoot
-            val initialTitle = title.fetchSemanticsNode().boundsInRoot
+            assertTrue("The collage should use the reclaimed height", artwork.height > artwork.width)
             val initialPlay = play.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             val initialMore = more.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-            assertTrue(initialTitle.bottom < artwork.top)
-            assertTrue(
-                "The first song title should sit near the top of the cover: song=$initialSong cover=$artwork",
-                initialSong.top >= artwork.top && initialSong.top < artwork.top + artwork.height / 3,
-            )
+            assertTrue("Collage and first song should start side by side", initialSong.top in artwork.top..(artwork.top + 48))
+            compose.onNodeWithText("01.01").assertIsDisplayed()
             assertTrue(initialPlay.left > artwork.left && initialPlay.center.x < artwork.center.x)
             assertTrue(initialPlay.center.y > artwork.center.y && initialPlay.bottom < artwork.bottom)
             assertTrue(initialMore.left >= initialPlay.right && initialMore.right < artwork.right)
             play.performClick()
 
             compose.runOnIdle { showDaily.value = false }
-            compose.onAllNodesWithText("私人雷达").assertCountEquals(1)
+            compose.onNodeWithText("私人雷达").assertDoesNotExist()
+            compose.onNodeWithContentDescription("返回").assertDoesNotExist()
             compose.onNodeWithText("旧头部的说明").assertDoesNotExist()
             compose.onNodeWithText("创建者").assertDoesNotExist()
-            assertEquals(initialTitle.top, compose.onNodeWithText("私人雷达").fetchSemanticsNode().boundsInRoot.top, 1f)
             assertEquals(initialSong.top, song.fetchSemanticsNode().boundsInRoot.top, 1f)
-            assertEquals(initialPlay, play.fetchSemanticsNode().boundsInRoot)
-            assertEquals(initialMore, more.fetchSemanticsNode().boundsInRoot)
+            val radarArtwork = compose.onNode(SemanticsMatcher("playlist cover preview") {
+                it.config.getOrNull(SemanticsActions.OnClick)?.label == "预览歌单封面"
+            }).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertEquals(artwork.center.x, radarArtwork.center.x, 1f)
+            assertEquals(artwork.center.y, radarArtwork.center.y, 1f)
+            val radarPlay = play.fetchSemanticsNode().boundsInRoot
+            val radarMore = more.fetchSemanticsNode().boundsInRoot
+            assertEquals(initialPlay.left, radarPlay.left, 1f)
+            assertEquals(initialMore.left, radarMore.left, 1f)
+            assertTrue("A square cover's actions stay inside the shorter artwork", radarPlay.bottom < initialPlay.bottom)
             play.performClick()
             more.performClick()
             compose.onNodeWithText("收藏").assertIsDisplayed()
             compose.onNodeWithText("下载歌单").assertIsDisplayed().performClick()
-            compose.runOnIdle { assertEquals(2, plays); assertEquals(1, downloads) }
+            compose.runOnIdle {
+                assertEquals(2, plays)
+                assertEquals(1, downloads)
+            }
         } finally {
             activity.pause().stop().destroy()
             TabletContentTestActivity.content = {}

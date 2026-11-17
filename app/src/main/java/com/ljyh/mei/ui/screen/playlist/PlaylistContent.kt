@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.MeiStatusBarBackdrop
 import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
 import com.ljyh.mei.ui.component.layout.LocalPageHorizontalSafePadding
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
@@ -48,7 +50,7 @@ import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionMenu
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistBackground
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistCoverArtwork
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistDetailHeader
-import com.ljyh.mei.ui.screen.playlist.component.PlaylistLandscapeHeader
+import com.ljyh.mei.ui.component.artwork.LandscapeArtworkHeader
 import com.ljyh.mei.ui.screen.playlist.layout.PlaylistLayout
 import com.ljyh.mei.ui.screen.playlist.layout.SinglePanePlaylistLayout
 import com.ljyh.mei.ui.screen.playlist.layout.TwoPanePlaylistLayout
@@ -74,6 +76,7 @@ internal fun PlaylistContent(
         val bodyWidth = maxWidth - bodyInsets.calculateStartPadding(direction) - bodyInsets.calculateEndPadding(direction)
         val metrics = playlistLayoutMetrics(bodyWidth.value, LocalDensity.current.fontScale, compact = compact)
         val splitPane = metrics.layout == PlaylistLayout.TwoPane
+        val showToolbar = !compact || !splitPane
         val showPinnedTitle = splitPane || compact
         val listState = rememberPlaylistScrollState(state, splitPane)
         val searchInTopBar = !splitPane
@@ -92,24 +95,29 @@ internal fun PlaylistContent(
             label = "playlistTopBarTitle",
         )
         val pageHaze = rememberHazeState()
+        val topBarBackground = meiArtworkTopBarBackground()
+        val surface = MaterialTheme.colorScheme.surface
+        val navigateBack: () -> Unit = {
+            if (state.isPlaylistSearchActive) actions.onPlaylistSearchActiveChange(false)
+            else actions.onBack()
+        }
         Scaffold(
-            containerColor = if (uiData.cover.isBlank()) MaterialTheme.colorScheme.surface else Color.Transparent,
+            containerColor = if (uiData.cover.isBlank()) surface else Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
-                MeiHazeTopBar(
+                if (!showToolbar) {
+                    MeiStatusBarBackdrop(pageHaze, topBarBackground)
+                } else MeiHazeTopBar(
                     state = pageHaze,
                     title = uiData.title,
                     progress = titleProgress,
                     backgroundProgress = 1f,
-                    backgroundMode = meiArtworkTopBarBackground(),
+                    backgroundMode = topBarBackground,
                     centerTitle = !showPinnedTitle,
                     modifier = Modifier.onGloballyPositioned { coordinates ->
                         toolbarBottom = coordinates.positionInRoot().y + coordinates.size.height
                     },
-                    onNavigateBack = {
-                        if (state.isPlaylistSearchActive) actions.onPlaylistSearchActiveChange(false)
-                        else actions.onBack()
-                    },
+                    onNavigateBack = navigateBack,
                     actions = {
                         if (!compact) PlaylistMoreButton(state, actions)
                     },
@@ -135,7 +143,7 @@ internal fun PlaylistContent(
         ) { padding ->
             SkeletonShimmerHost(
                 enabled = state.isLoading,
-                modifier = Modifier.fillMaxSize().hazeSource(pageHaze).background(MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxSize().hazeSource(pageHaze).background(surface),
             ) {
                 if (!state.isLoading && uiData.cover.isNotEmpty()) {
                     PlaylistBackground(
@@ -155,10 +163,11 @@ internal fun PlaylistContent(
                             titleBottom.value = coordinates.positionInRoot().y + coordinates.size.height
                         }
                         if (compact && maxArtworkHeight != null) {
-                            PlaylistLandscapeHeader(
+                            LandscapeArtworkHeader(
                                 maxArtworkHeight = maxArtworkHeight,
                                 canPlay = !state.isLoading && (uiData.count > 0 || state.trackIds.isNotEmpty()),
                                 onPlayAll = actions.onPlayAll,
+                                fillArtworkHeight = landscapeArtwork != null,
                                 artwork = landscapeArtwork ?: { modifier ->
                                     PlaylistCoverArtwork(
                                         cover = uiData.cover,
@@ -166,6 +175,7 @@ internal fun PlaylistContent(
                                         headerStyle = uiData.headerStyle,
                                         isLoading = state.isLoading,
                                         modifier = modifier,
+                                        shape = RoundedCornerShape(12.dp),
                                     )
                                 },
                                 more = { PlaylistMoreButton(state, actions, includeHeaderActions = true) },

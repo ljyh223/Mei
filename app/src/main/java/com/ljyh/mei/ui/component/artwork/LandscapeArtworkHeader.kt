@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.playlist.component
+package com.ljyh.mei.ui.component.artwork
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.height
@@ -8,23 +8,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ljyh.mei.ui.component.artwork.MeiArtworkGlassActions
-import com.ljyh.mei.ui.component.artwork.MeiArtworkPlayButton
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 /** Controls overlay a separate capture of the artwork, so both lenses sample the cover. */
 @Composable
-internal fun PlaylistLandscapeHeader(
+internal fun LandscapeArtworkHeader(
     maxArtworkHeight: Dp,
     canPlay: Boolean,
     onPlayAll: () -> Unit,
+    fillArtworkHeight: Boolean = false,
+    artworkAspectRatio: Float = 1f,
     artwork: @Composable (Modifier) -> Unit,
     more: @Composable () -> Unit,
 ) {
-    BoxWithConstraints(Modifier.padding(horizontal = meiPageGutter(), vertical = 8.dp)) {
-        val artworkHeight = minOf(maxArtworkHeight, maxWidth)
+    BoxWithConstraints(Modifier.padding(horizontal = meiPageGutter(), vertical = 4.dp)) {
+        val artworkHeight = if (fillArtworkHeight) maxArtworkHeight else minOf(maxArtworkHeight, maxWidth / artworkAspectRatio)
         // Very short windows can crop the cover while leaving room for both actions.
-        val artworkWidth = maxOf(artworkHeight, 192.dp).coerceAtMost(maxWidth)
+        val artworkWidth = maxOf(artworkHeight * artworkAspectRatio, 192.dp).coerceAtMost(maxWidth)
         MeiArtworkGlassActions(
             modifier = Modifier.width(artworkWidth).height(artworkHeight),
             artwork = { artwork(Modifier.matchParentSize()) },

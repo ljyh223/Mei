@@ -43,9 +43,18 @@ internal fun meiTopBarContentClearance(mode: MeiTopBarBackground = MeiTopBarBack
         meiTopBarTransitionExtension() else 0.dp
 
 @Composable
-internal fun MeiStatusBarBackdrop(state: HazeState) {
+internal fun MeiStatusBarBackdrop(
+    state: HazeState,
+    backgroundMode: MeiTopBarBackground = MeiTopBarBackground.Auto,
+) {
     val height = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    if (height > 0.dp) MeiTopBarBackdrop(state = state, modifier = Modifier.fillMaxWidth().height(height))
+    if (height > 0.dp) {
+        MeiTopBarBackdrop(
+            state = state,
+            modifier = Modifier.fillMaxWidth().height(height),
+            backgroundMode = backgroundMode,
+        )
+    }
 }
 
 /**
