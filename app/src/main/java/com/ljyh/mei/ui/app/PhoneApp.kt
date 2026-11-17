@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.app
 
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -76,6 +77,7 @@ import kotlin.math.abs
 @Composable
 internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
     val navController = appState.navController
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val playerConnection = appState.playerConnection
     val searchActive = appState.searchActive
     val useGlass = LocalMeiGlassEnabled.current
@@ -305,7 +307,7 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                                         onBack = if (appState.canNavigateBackFromDetail(route)) {
                                             {
                                                 if (appState.searchActive) onActiveChange(false)
-                                                else appState.navigateBackFromDetail()
+                                                else appState.navigateBackFromDetail(backDispatcher)
                                             }
                                         } else null,
                                         onSearch = { onActiveChange(!searchActive) },

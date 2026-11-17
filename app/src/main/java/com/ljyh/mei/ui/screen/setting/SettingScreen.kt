@@ -40,7 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.LocalMeiPageTitlePlacement
+import com.ljyh.mei.ui.component.glass.MeiPageTitlePlacement
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.glass.MeiPinnedPage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.local.LocalNavController
@@ -52,14 +55,18 @@ import com.ljyh.mei.ui.theme.MeiCategoryIcon
 @Composable
 fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val navController = LocalNavController.current
-    MeiPinnedPage(title = "设置", contentTopPadding = 12.dp) { paddingValues ->
-        Column(
-            Modifier.fillMaxSize().verticalScroll(LocalMeiPageScroll.current!!)
-                .padding(paddingValues).padding(horizontal = meiPageGutter()),
-        ) {
-            MeiLargeTitle("设置", modifier = Modifier.padding(bottom = 16.dp), startPadding = 0.dp)
-            SettingsCategories { it.navigate(navController) }
-            Spacer(Modifier.height(8.dp))
+    val landscape = LocalPhoneLandscape.current
+    val placement = if (landscape) MeiPageTitlePlacement.Inline else LocalMeiPageTitlePlacement.current
+    CompositionLocalProvider(LocalMeiPageTitlePlacement provides placement) {
+        MeiPinnedPage(title = "设置", contentTopPadding = 12.dp) { paddingValues ->
+            Column(
+                Modifier.fillMaxSize().verticalScroll(LocalMeiPageScroll.current!!)
+                    .padding(paddingValues).padding(horizontal = meiPageGutter()),
+            ) {
+                MeiLargeTitle("设置", modifier = Modifier.padding(bottom = if (landscape) 4.dp else 16.dp), startPadding = 0.dp)
+                SettingsCategories(compact = landscape) { it.navigate(navController) }
+                Spacer(Modifier.height(8.dp))
+            }
         }
     }
 }

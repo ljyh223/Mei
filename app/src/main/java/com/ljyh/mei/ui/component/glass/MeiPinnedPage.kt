@@ -168,7 +168,10 @@ fun MeiPinnedPage(
     val state = rememberHazeState()
     val scroll = rememberScrollState()
     val progress by rememberProgress(scroll)
-    val placement = LocalMeiPageTitlePlacement.current
+    val inheritedPlacement = LocalMeiPageTitlePlacement.current
+    val placement = if (LocalPhoneLandscape.current && inheritedPlacement == MeiPageTitlePlacement.Default) {
+        MeiPageTitlePlacement.Toolbar
+    } else inheritedPlacement
     val inline = placement == MeiPageTitlePlacement.Inline
     val topPadding = if (inline) 4.dp + meiTopBarContentClearance() else contentTopPadding
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -177,6 +180,7 @@ fun MeiPinnedPage(
         Box(Modifier.fillMaxSize().hazeSource(state)) {
             CompositionLocalProvider(
                 LocalMeiPageScroll provides scroll,
+                LocalMeiPageTitlePlacement provides placement,
                 LocalMeiPageProgress provides if (inline) 0f else progress,
             ) {
                 content(PaddingValues(top = statusTop + topPadding, bottom = bottomInset + 24.dp))

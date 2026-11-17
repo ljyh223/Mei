@@ -22,7 +22,7 @@ import com.ljyh.mei.ui.component.glass.meiTopBarBodyTopPadding
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 
@@ -60,8 +60,8 @@ fun MeiCollectionPage(
     val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val titleGutter = meiPageGutter()
-    val sideInset = LocalPageStartInset.current
-    val hasLargeTitle = showLargeTitle && sideInset == 0.dp
+    val landscape = LocalPhoneLandscape.current
+    val hasLargeTitle = showLargeTitle && !landscape
     val bodyTopPadding = meiTopBarBodyTopPadding(hasCustomTitle = titleContent != null)
     val gutter = horizontalContentPadding ?: titleGutter
     val direction = LocalLayoutDirection.current
@@ -114,7 +114,10 @@ fun MeiCollectionPage(
         }
         MeiHazeTopBar(
             state = source, title = title, progress = if (hasLargeTitle) progress else 1f,
-            onNavigateBack = onNavigateBack, actions = actions, titleContent = titleContent,
+            onNavigateBack = onNavigateBack.takeUnless { landscape },
+            actions = actions,
+            titleContent = titleContent,
+            centerTitle = !landscape,
         )
     }
 }

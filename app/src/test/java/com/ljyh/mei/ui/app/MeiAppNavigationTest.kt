@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.app
 
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.OnBackPressedDispatcher
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -153,6 +155,30 @@ class MeiAppNavigationTest {
 
         state.navigateBackFromDetail()
         assertEquals(library.id, nav.currentBackStackEntry!!.id)
+    }
+
+    @Test
+    fun sidebarBackLetsThePageCloseSearchBeforePoppingTheRoute() {
+        val nav = controller(SharedMeiPageContent)
+        val state = state(nav)
+        val home = nav.currentBackStackEntry
+        nav.navigate("${Screen.ArtistSongs.route}/42")
+        val catalog = nav.currentBackStackEntry
+        var searchActive = true
+        val dispatcher = OnBackPressedDispatcher()
+        dispatcher.addCallback(object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                searchActive = false
+                isEnabled = false
+            }
+        })
+
+        state.navigateBackFromDetail(dispatcher)
+        assertFalse(searchActive)
+        assertSame(catalog, nav.currentBackStackEntry)
+
+        state.navigateBackFromDetail(dispatcher)
+        assertSame(home, nav.currentBackStackEntry)
     }
 
     @Test

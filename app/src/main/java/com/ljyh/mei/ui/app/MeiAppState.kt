@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.app
 
+import androidx.activity.OnBackPressedDispatcher
+
 import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.Composable
@@ -67,8 +69,10 @@ internal class MeiAppState(
     fun canNavigateBackFromDetail(route: String? = navController.currentDestination?.route): Boolean =
         route != null && !route.isMainDestination() && navController.previousBackStackEntry != null
 
-    fun navigateBackFromDetail() {
-        if (canNavigateBackFromDetail()) navController.popBackStack()
+    fun navigateBackFromDetail(dispatcher: OnBackPressedDispatcher? = null) {
+        if (!canNavigateBackFromDetail()) return
+        if (dispatcher?.hasEnabledCallbacks() == true) dispatcher.onBackPressed()
+        else navController.popBackStack()
     }
 
     fun submitSearch(text: String, type: Int = SearchType.All.type) {
