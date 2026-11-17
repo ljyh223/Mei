@@ -1,18 +1,26 @@
 package com.ljyh.mei.ui.tablet.player
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.request.crossfade
 import com.ljyh.mei.constants.CoverStyle
 import com.ljyh.mei.constants.CoverStyleKey
 import com.ljyh.mei.constants.OriginalCoverKey
@@ -22,6 +30,7 @@ import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.player.cover.DynamicCoverView
 import com.ljyh.mei.ui.component.player.cover.CoverEdgeArtwork
 import com.ljyh.mei.ui.component.player.cover.coverEdgeFeather
+import com.ljyh.mei.ui.component.player.cover.fillArtworkEdges
 import com.ljyh.mei.ui.component.player.cover.PlayerArtworkImage
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.image.rememberPlayerArtworkRequest
@@ -38,6 +47,8 @@ internal fun TabletPlayerArtwork(
     onPrevious: () -> Unit = {}, onNext: () -> Unit = {},
     playbackScale: Float? = null,
     interactive: Boolean = true,
+    keepCoverVisible: Boolean = false,
+    poster: Painter? = null,
     onPainterReady: (String, Painter) -> Unit = { _, _ -> },
 ) {
     val original by rememberPreference(OriginalCoverKey, false)
@@ -68,9 +79,32 @@ internal fun TabletPlayerArtwork(
                     },
                 )
             }) {
-            PlayerArtworkImage(metadata.coverUrl, rememberPlayerArtworkRequest(metadata.coverUrl, original),
-                Modifier.fillMaxSize(),
-                onPainterReady = { onPainterReady(metadata.coverUrl, it) })
+            val request = rememberPlayerArtworkRequest(metadata.coverUrl, original)
+            val artworkRequest = remember(request, keepCoverVisible) {
+                if (keepCoverVisible) request?.newBuilder()?.crossfade(false)?.build() else request
+            }
+            var artworkLoaded by remember(artworkRequest) { mutableStateOf(false) }
+            if (keepCoverVisible && !artworkLoaded) {
+                if (poster != null) {
+                    Image(
+                        painter = poster,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().fillArtworkEdges(),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else Box(
+                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            PlayerArtworkImage(
+                metadata.coverUrl, artworkRequest, Modifier.fillMaxSize(),
+                onSuccess = { artworkLoaded = true },
+                onError = { artworkLoaded = false },
+                onPainterReady = { onPainterReady(metadata.coverUrl, it) },
+            )
             if (dynamicCover?.songId == metadata.id) DynamicCoverView(
                 imageUrl = metadata.coverUrl, cover = dynamicCover, playing = playing,
                 originalArtwork = original, playerArtwork = true,

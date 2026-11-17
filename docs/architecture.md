@@ -195,7 +195,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | 平板外层与页面接入 | [tablet-ui.md](tablet-ui.md) |
 | 平板全屏播放器、共享状态与面板 | [tablet-player.md](tablet-player.md) |
 | 底部／侧边功能弹层、关闭与返回 | [adaptive-sheets.md](adaptive-sheets.md) |
-| mini → 全屏容器展开 | [研究与原型](research/player-container-expansion.md)；手机竖屏、平板及纹理流体背景已接入，待设备验收 |
+| mini → 全屏容器展开 | [研究与原型](research/player-container-expansion.md)；手机竖屏、手机横屏、平板及纹理流体背景已接入，待设备验收 |
 | 音乐库、歌手与专辑的平板内容边界 | [tablet-content-pages.md](tablet-content-pages.md) |
 | 歌单展示、布局与状态恢复 | [playlist-detail-architecture.md](playlist-detail-architecture.md) |
 | 综合搜索、分类分页与结果状态 | [search-results.md](search-results.md) |

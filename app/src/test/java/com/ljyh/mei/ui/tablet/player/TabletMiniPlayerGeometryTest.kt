@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.tablet.player
 
+import com.ljyh.mei.ui.component.player.PlayerExpansionState
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
@@ -36,7 +38,7 @@ class TabletMiniPlayerGeometryTest {
     @get:Rule val compose = createEmptyComposeRule()
 
     @Test fun theRealMiniReportsIts64DpSurfaceAnd48DpArtworkWithoutRecentering() {
-        val state = TabletPlayerExpansionState()
+        val state = PlayerExpansionState()
         var density = 1f
         var paused = 0
         val metadata = MediaMetadata(1L, "Song", "", emptyList(), 1000L, MediaMetadata.Album(2L, "Album"))

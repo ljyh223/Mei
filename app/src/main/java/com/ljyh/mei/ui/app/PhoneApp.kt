@@ -36,7 +36,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -55,6 +58,7 @@ import com.ljyh.mei.constants.AppBarHeight
 import com.ljyh.mei.ui.component.navigation.AppBottomNavigationBar
 import com.ljyh.mei.ui.component.navigation.compactPlayerVerticalDrop
 import com.ljyh.mei.ui.component.player.BottomSheetPlayer
+import com.ljyh.mei.ui.component.player.PlayerExpansionState
 import com.ljyh.mei.ui.component.player.state.SyncPlayerSheetVisibility
 import com.ljyh.mei.ui.component.sheet.rememberBottomSheetState
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
@@ -92,6 +96,10 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
         // A keyboard can make a portrait viewport wider than it is tall.
         val configuration = LocalConfiguration.current
         val sideBar = usePhoneSideBar(configuration.screenWidthDp.toFloat(), configuration.screenHeightDp.toFloat())
+        val windowSize = Size(constraints.maxWidth.toFloat(), constraints.maxHeight.toFloat())
+        val sidePlayerExpansion = remember(sideBar) { PlayerExpansionState() }
+        var playerHostOrigin by remember { mutableStateOf(Offset.Zero) }
+        val song = if (sideBar) playerConnection?.mediaMetadata?.collectAsState()?.value else null
         val pages = if (sideBar) {
             val direction = LocalLayoutDirection.current
             val safe = WindowInsets.safeDrawing.asPaddingValues()
@@ -259,11 +267,17 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                 }
 
                 val hasPlayer = !playerBottomSheetState.isDismissed && playerConnection != null
+                val expansionOrigin = if (sideBar && hasPlayer && song != null) {
+                    sidePlayerExpansion.originInHost(playerHostOrigin, windowSize)
+                } else null
                 val imeInsets = if (searchActive && sideBar) WindowInsets.ime else WindowInsets(0)
                 CompositionLocalProvider(
                     LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
                 ) {
-                    Box(Modifier.fillMaxSize()) {
+                    val playerHostPosition = if (sideBar) Modifier.onGloballyPositioned {
+                        playerHostOrigin = it.positionInRoot()
+                    } else Modifier
+                    Box(Modifier.fillMaxSize().then(playerHostPosition)) {
                         CompositionLocalProvider(
                             LocalPageStartInset provides if (sideBar) PhoneSideBarWidth else 0.dp,
                             LocalPhoneLandscape provides sideBar,
@@ -292,7 +306,6 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                             )
                         }
                         if (sideBar) {
-                            val song = playerConnection?.mediaMetadata?.collectAsState()?.value
                             Box(Modifier.windowInsetsPadding(windowInsets.only(
                                 WindowInsetsSides.Start + WindowInsetsSides.Vertical,
                             ))) {
@@ -316,6 +329,14 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                                             playerBottomSheetState.expandSoft()
                                         },
                                         visibility = playerBottomNavigationProgress,
+                                        playerOwnedBySheet = expansionOrigin != null && playerBottomSheetState.progress > 0f,
+                                        onPlayerBounds = { surface, artwork ->
+                                            // The side bar only fades. Its hidden button still occupies the return position.
+                                            sidePlayerExpansion.recordOrigin(surface, artwork, windowSize, canRecord = true)
+                                        },
+                                        onArtworkReady = { url, painter ->
+                                            if (url == song?.coverUrl) sidePlayerExpansion.recordThumbnail(url, painter)
+                                        },
                                     )
                                 }
                             }
@@ -323,6 +344,8 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                         BottomSheetPlayer(
                             state = playerBottomSheetState,
                             wideContent = sideBar,
+                            expansionOrigin = expansionOrigin,
+                            miniArtwork = sidePlayerExpansion.thumbnailFor(song?.coverUrl),
                             collapsedBottomOffset = (playerNavigationOffset - compactPlayerVerticalDrop(density.fontScale) * compactNavigationProgress)
                                 .coerceAtLeast(0.dp),
                             systemBottomInset = bottomInset,

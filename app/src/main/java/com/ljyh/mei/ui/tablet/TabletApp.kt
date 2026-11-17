@@ -30,7 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import com.ljyh.mei.ui.tablet.player.TabletPlayerExpansionState
+import com.ljyh.mei.ui.component.player.PlayerExpansionState
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -84,7 +84,7 @@ internal fun TabletApp(appState: MeiAppState, pageMotion: PageNavigationMotion) 
     LaunchedEffect(searchActive) {
         if (searchActive) runCatching { searchFocus.requestFocus() }
     }
-    val expansionState = remember { TabletPlayerExpansionState() }
+    val expansionState = remember { PlayerExpansionState() }
     var hostOrigin by remember { mutableStateOf(Offset.Zero) }
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
         .onGloballyPositioned { hostOrigin = it.positionInRoot() }) {

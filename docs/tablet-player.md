@@ -43,11 +43,12 @@ MeiAppState / TabletApp
 
 容器展开实现来自 `test/player-container-expansion`，现已将平板接入共用的容器形变与纹理流体背景。业务状态、面板、单双栏排列和路由仍沿用前文结构。
 
-- `TabletApp` 持有 `TabletPlayerExpansionState`，只记录像素边界、窗口尺寸与缓存缩略图 Painter，不持有另一套播放连接，也不保存这些对象到 Bundle。
+- `TabletApp` 持有 `PlayerExpansionState`，只记录像素边界、窗口尺寸与缓存缩略图 Painter，不持有另一套播放连接，也不保存这些对象到 Bundle。
 - `TabletMiniPlayer` 上报底座与 48dp 封面的未裁剪布局边界。只有 sheet 收起、未搜索时更新；展开期间底栏的下移不会反写起点。尺寸过期或无效时回到既有 Sheet 路径。
 - `TabletPlayerHost` 在有有效起点时可把收起内容放置在实际 mini 区域，原底栏保留占位与图片加载，隐藏重复绘制和操作。实际点击区域由共用 `BottomSheet` 的当前边界限制，不覆盖旁边导航和搜索。
 - 全屏内容始终按完整窗口测量。原封面留在布局内完成加载；转场层仅绘制已加载的同一 Painter 或底栏缓存缩略图，不额外创建高清图片请求或视频播放器。
 - 暂停缩放先作用于封面目标可见边界；过渡结束后交回原封面节点，保留其滚动裁剪、圆形／方形、长按预览和横滑切歌。窄窗口中的小封面也直接连接 mini，不经过大封面尺寸。
+- 手机横屏由 `PhoneSideBar` 上报经过安全区和触控槽位排布后的圆形按钮与封面边界。展开与收起共用同一个进度，封面在独立层连续移动，右栏控件稍后显现。侧栏按钮保持测量与缩略图加载，展开时由转场层接管绘制。全屏封面加载时继续显示同一首歌的缩略图。
 - 平板背景改用 `FluidBackground(clipToContainer = true)`，沿用原 mesh 算法和设置；首帧就绪后渐显。纹理输出由手机实验阶段引入的 EGL 宿主提供。
 
 代码与研究细节见 [容器展开研究](research/player-container-expansion.md)。此路径尚待设备视觉与 GPU 性能验收。

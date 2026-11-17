@@ -21,14 +21,26 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import coil3.compose.AsyncImage
 import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.component.glass.meiGlassAccentColor
@@ -51,9 +63,11 @@ internal fun PhoneSideBar(
     visibility: Float,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    playerOwnedBySheet: Boolean = false,
+    onPlayerBounds: (surface: Rect, artwork: Rect) -> Unit = { _, _ -> },
+    onArtworkReady: (url: String, painter: Painter) -> Unit = { _, _ -> },
 ) {
     BoxWithConstraints(modifier.fillMaxHeight().width(PhoneSideBarWidth).padding(horizontal = 12.dp)) {
-        if (visibility <= 0f) return@BoxWithConstraints
         val touchSize = MeiPageLayout.ToolbarTouchSize
         val slotCount = Index.entries.size + 1 + if (showPlayer) 1 else 0
         val playerGap = if (showPlayer) 8.dp else 0.dp
@@ -67,7 +81,10 @@ internal fun PhoneSideBar(
         val slot = Modifier.size(width = touchSize, height = slotHeight)
         val enabled = visibility >= 1f
         Column(
-            Modifier.fillMaxHeight().graphicsLayer { alpha = visibility }.padding(vertical = verticalMargin),
+            Modifier.fillMaxHeight()
+                .graphicsLayer { alpha = visibility }
+                .then(if (enabled) Modifier else Modifier.clearAndSetSemantics {})
+                .padding(vertical = verticalMargin),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -96,18 +113,44 @@ internal fun PhoneSideBar(
                 }
             }
             if (showPlayer) {
-                IconButton(onClick = onOpenPlayer, enabled = enabled, modifier = slot) {
-                    MeiGlassSurface(modifier = Modifier.size(slotHeight), shape = CircleShape) {
-                        if (coverUrl.isNullOrBlank()) {
-                            Icon(
-                                Icons.Rounded.MusicNote, "打开播放器", Modifier.align(Alignment.Center),
-                                tint = meiGlassContentColor(),
-                            )
-                        } else {
-                            val coverSize = (slotHeight - 8.dp).coerceAtLeast(0.dp)
-                            Box(Modifier.align(Alignment.Center).size(coverSize).clip(CircleShape), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Rounded.MusicNote, null, tint = meiGlassContentColor())
-                                AsyncImage(coverUrl, "打开播放器", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                var surfaceBounds by remember { mutableStateOf<Rect?>(null) }
+                var artworkBounds by remember { mutableStateOf<Rect?>(null) }
+                val playerAvailable = enabled && !playerOwnedBySheet
+                IconButton(
+                    onClick = onOpenPlayer,
+                    enabled = playerAvailable,
+                    modifier = slot.graphicsLayer { alpha = if (playerOwnedBySheet) 0f else 1f }
+                        .then(if (playerAvailable) Modifier.semantics { contentDescription = "打开播放器" }
+                            else Modifier.clearAndSetSemantics {}),
+                ) {
+                    MeiGlassSurface(
+                        modifier = Modifier.size(slotHeight).onGloballyPositioned {
+                            val bounds = Rect(it.positionInRoot(), it.size.toSize())
+                            surfaceBounds = bounds
+                            artworkBounds?.let { artwork -> onPlayerBounds(bounds, artwork) }
+                        },
+                        shape = CircleShape,
+                    ) {
+                        val coverSize = (slotHeight - 8.dp).coerceAtLeast(0.dp)
+                        Box(
+                            Modifier.align(Alignment.Center).size(coverSize)
+                                .onGloballyPositioned {
+                                    val bounds = Rect(it.positionInRoot(), it.size.toSize())
+                                    artworkBounds = bounds
+                                    surfaceBounds?.let { surface -> onPlayerBounds(surface, bounds) }
+                                }
+                                .clip(CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(Icons.Rounded.MusicNote, null, tint = meiGlassContentColor())
+                            if (!coverUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = coverUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    onSuccess = { onArtworkReady(coverUrl, it.painter) },
+                                )
                             }
                         }
                     }

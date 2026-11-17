@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -57,12 +58,16 @@ class PhoneSideBarTest {
         val route = mutableStateOf(Index.Home.route)
         var opened = 0
         var searched = 0
+        val playerOwnedBySheet = mutableStateOf(false)
+        var playerBounds: Pair<Rect, Rect>? = null
         TabletContentTestActivity.content = {
             MaterialTheme {
                 PhoneSideBar(route.value, showPlayer = true, coverUrl = null,
                     onSelect = { route.value = it.route }, onSearch = { searched++ },
                     onOpenPlayer = { opened++ }, visibility = 1f,
-                    modifier = Modifier.height(height.value).testTag("side-bar"))
+                    modifier = Modifier.height(height.value).testTag("side-bar"),
+                    playerOwnedBySheet = playerOwnedBySheet.value,
+                    onPlayerBounds = { surface, cover -> playerBounds = surface to cover })
             }
         }
         val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
@@ -93,6 +98,17 @@ class PhoneSideBarTest {
             compose.onNodeWithContentDescription("发现").performClick().assertIsSelected().assertHeightIsEqualTo(48.dp)
             player.assertHeightIsEqualTo(48.dp)
             compose.onNodeWithContentDescription("播放").assertDoesNotExist()
+            val (surface, cover) = compose.runOnIdle { requireNotNull(playerBounds) }
+            assertTrue(cover.width > 0f && surface.width >= cover.width)
+            assertEquals(surface.center.x, cover.center.x, 1f)
+            assertEquals(surface.center.y, cover.center.y, 1f)
+
+            compose.runOnIdle { playerOwnedBySheet.value = true }
+            player.assertDoesNotExist()
+            search.assertIsDisplayed()
+            compose.runOnIdle { playerOwnedBySheet.value = false }
+            player.assertIsDisplayed()
+            assertEquals(surface to cover, compose.runOnIdle { playerBounds })
         } finally {
             activity.pause().stop().destroy()
             TabletContentTestActivity.content = {}

@@ -59,7 +59,7 @@ internal fun TabletPlayerScreen(
     container: PlayerStateContainer,
     overlays: PlayerOverlayHandler,
     modifier: Modifier = Modifier,
-    expansionOrigin: TabletMiniPlayerOrigin? = null,
+    expansionOrigin: PlayerExpansionOrigin? = null,
     miniArtwork: Painter? = null,
     shortWindowLayout: Boolean = false,
 ) {
@@ -79,7 +79,10 @@ internal fun TabletPlayerScreen(
     var readyFluidUrl by remember { mutableStateOf<String?>(null) }
     val fluidReveal by animateFloatAsState(if (readyFluidUrl != null) 1f else 0f,
         animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis), label = "TabletFluidReveal")
-    val sharedPainter = fullArtwork?.takeIf { it.first == coverUrl }?.second ?: miniArtwork
+    val fullPainter = fullArtwork?.takeIf { it.first == coverUrl }?.second
+    val sharedPainter = fullPainter ?: miniArtwork
+    val sideBarOrigin = expansionOrigin.takeIf { shortWindowLayout }
+    val dockOrigin = expansionOrigin.takeUnless { shortWindowLayout }
     val sharedArtworkVisible = expansionOrigin != null && !sheet.isExpanded
     val animation by rememberEnumPreference(TabletAnimationStyleKey, TabletAnimationStyle.FLIP_3D)
     val extensionEnabled by rememberPreference(CoverBackgroundEnabledKey, false)
@@ -100,9 +103,9 @@ internal fun TabletPlayerScreen(
     }
 
     val targetArtwork = artworkBounds.translate(-rootBounds.topLeft)
-    val visibleArtwork = if (expansionOrigin != null) tabletSharedArtworkBounds(
+    val visibleArtwork = if (expansionOrigin != null) sharedPlayerArtworkBounds(
         expansionOrigin.artwork, targetArtwork, playbackScale, sheet.progress,
-    ) else tabletSharedArtworkBounds(targetArtwork, targetArtwork, playbackScale, 1f)
+    ) else sharedPlayerArtworkBounds(targetArtwork, targetArtwork, playbackScale, 1f)
     val edgeVisible = edge != null && fullArtwork?.first == coverUrl && visibleArtwork.width > 0f
     val edgeReveal by key(coverUrl) {
         animateFloatAsState(if (edgeVisible) 1f else 0f,
@@ -115,17 +118,17 @@ internal fun TabletPlayerScreen(
         state = sheet, modifier = modifier,
         backgroundColor = Color(0xFF202024),
         expansionBounds = expansionOrigin?.surface,
-        expansionRadius = 24.dp,
-        morphSpec = expansionOrigin?.let { origin -> BottomSheetMorphSpec(
+        expansionRadius = sideBarOrigin?.let { with(density) { (it.surface.size.minDimension / 2f).toDp() } } ?: 24.dp,
+        morphSpec = dockOrigin?.let { origin -> BottomSheetMorphSpec(
             collapsedHeight = with(density) { origin.surface.height.toDp() },
             collapsedBottomMargin = sheet.expandedBound - sheet.collapsedBound - with(density) { origin.surface.top.toDp() },
         ) },
         containerMotion = BottomSheetContainerMotion.Sheet,
-        keepExpandedContentComposed = expansionOrigin != null,
-        transparentCollapsedContainer = true,
+        keepExpandedContentComposed = dockOrigin != null || (sideBarOrigin != null && sheet.progress > 0f),
+        transparentCollapsedContainer = sideBarOrigin == null,
         onDismiss = { container.playerConnection.player.stop(); container.playerConnection.player.clearMediaItems() },
         collapsedContent = {
-            expansionOrigin?.let { origin ->
+            dockOrigin?.let { origin ->
                 TabletMiniPlayer(
                     metadata = metadata, playing = playing, canSkipNext = container.canSkipNext.value,
                     enabled = sheet.isCollapsed, onOpen = sheet::expandSoft,
@@ -148,7 +151,8 @@ internal fun TabletPlayerScreen(
                 val radius = with(density) {
                     val targetRadius = (if (coverStyle == CoverStyle.Circle) targetArtwork.width / 2f else 12.dp.toPx()) *
                         playbackScale * (1f - edgeAlpha)
-                    (12.dp.toPx() + (targetRadius - 12.dp.toPx()) * sheet.progress).toDp()
+                    val sourceRadius = sideBarOrigin?.artwork?.size?.minDimension?.div(2f) ?: 12.dp.toPx()
+                    (sourceRadius + (targetRadius - sourceRadius) * sheet.progress).toDp()
                 }
                 Box(Modifier.align(AbsoluteAlignment.TopLeft).graphicsLayer {
                     translationX = visibleArtwork.left; translationY = visibleArtwork.top
@@ -199,6 +203,8 @@ internal fun TabletPlayerScreen(
                                 }.graphicsLayer { alpha = if (sharedArtworkVisible) 0f else 1f },
                                 onPainterReady = { url, painter -> if (url == coverUrl) fullArtwork = url to painter },
                                 playbackScale = playbackScale, interactive = sheet.isExpanded,
+                                keepCoverVisible = shortWindowLayout,
+                                poster = sharedPainter.takeIf { shortWindowLayout },
                                 onDynamicError = { metadata?.let(container.playerViewModel::fallbackDynamicCover) },
                                 edgeArtwork = edge, edgeAlpha = edgeAlpha,
                                 onPrevious = container.playerConnection::seekToPrevious,
