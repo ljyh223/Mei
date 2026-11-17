@@ -5,13 +5,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
@@ -30,12 +27,13 @@ import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import com.ljyh.mei.utils.image.rememberPlayerArtworkRequest
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
+import kotlin.math.roundToInt
 
 /** Uses the phone's shared image renderer and request policy, including its pixel-edge fix. */
 @Composable
 internal fun TabletPlayerArtwork(
     metadata: MediaMetadata?, playing: Boolean, dynamicCover: DynamicCover?, modifier: Modifier,
-    onReady: (String) -> Unit, onDynamicError: () -> Unit,
+    onDynamicError: () -> Unit,
     edgeArtwork: CoverEdgeArtwork? = null, edgeAlpha: Float = 0f,
     onPrevious: () -> Unit = {}, onNext: () -> Unit = {},
     playbackScale: Float? = null,
@@ -44,13 +42,20 @@ internal fun TabletPlayerArtwork(
 ) {
     val original by rememberPreference(OriginalCoverKey, false)
     val style by rememberEnumPreference(CoverStyleKey, CoverStyle.Square)
-    val shape = if (style == CoverStyle.Circle) CircleShape else RoundedCornerShape(12.dp)
+    val frame = 1f - edgeAlpha.coerceIn(0f, 1f)
+    val artworkShape = if (style == CoverStyle.Circle) RoundedCornerShape((50 * frame).roundToInt())
+    else RoundedCornerShape(12.dp * frame)
     val scale = playbackScale ?: animateFloatAsState(if (playing) 1f else .9f,
         animationSpec = PlayerMotionSpec.CoverPlayStateSpring, label = "TabletCoverScale").value
     var preview by remember { mutableStateOf(false) }
     Box(modifier, contentAlignment = Alignment.Center) {
-        if (metadata != null) Box(Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale }
-            .shadow(12.dp, shape).clip(shape).coverEdgeFeather(edgeArtwork, edgeAlpha).pointerInput(metadata.coverUrl, interactive) {
+        if (metadata != null) Box(Modifier.fillMaxSize().graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+            shape = artworkShape
+            clip = true
+            shadowElevation = (12.dp * frame).toPx()
+        }.coverEdgeFeather(edgeArtwork, edgeAlpha).pointerInput(metadata.coverUrl, interactive) {
                 if (interactive) detectTapGestures(onLongPress = { preview = true })
             }.pointerInput(onPrevious, onNext, interactive) {
                 var distance = 0f
@@ -64,7 +69,7 @@ internal fun TabletPlayerArtwork(
                 )
             }) {
             PlayerArtworkImage(metadata.coverUrl, rememberPlayerArtworkRequest(metadata.coverUrl, original),
-                Modifier.fillMaxSize(), onSuccess = { onReady(metadata.coverUrl) },
+                Modifier.fillMaxSize(),
                 onPainterReady = { onPainterReady(metadata.coverUrl, it) })
             if (dynamicCover?.songId == metadata.id) DynamicCoverView(
                 imageUrl = metadata.coverUrl, cover = dynamicCover, playing = playing,

@@ -68,6 +68,8 @@ internal fun TabletPlayerScreen(
     val playbackState by container.playbackState
     val liked by container.isLiked
     val dynamic by container.playerViewModel.dynamicCover.collectAsState()
+    val coverUrl = metadata?.coverUrl
+    val activeDynamicCover = dynamic?.takeIf { sheet.isExpanded && it.songId == metadata?.id }
     val panel by overlays.panel
     val density = LocalDensity.current
     val coverStyle by rememberEnumPreference(CoverStyleKey, CoverStyle.Square)
@@ -77,17 +79,13 @@ internal fun TabletPlayerScreen(
     var readyFluidUrl by remember { mutableStateOf<String?>(null) }
     val fluidReveal by animateFloatAsState(if (readyFluidUrl != null) 1f else 0f,
         animationSpec = PlayerMotionSpec.tween(PlayerMotionSpec.CoverSwapDurationMillis), label = "TabletFluidReveal")
-    val sharedPainter = fullArtwork?.takeIf { it.first == metadata?.coverUrl }?.second ?: miniArtwork
+    val sharedPainter = fullArtwork?.takeIf { it.first == coverUrl }?.second ?: miniArtwork
     val sharedArtworkVisible = expansionOrigin != null && !sheet.isExpanded
     val animation by rememberEnumPreference(TabletAnimationStyleKey, TabletAnimationStyle.FLIP_3D)
     val extensionEnabled by rememberPreference(CoverBackgroundEnabledKey, false)
-    val edge = if (extensionEnabled && sheet.progress > .05f && dynamic?.songId != metadata?.id)
-        rememberCoverEdgeArtwork(metadata?.coverUrl) else null
-    var readyArtwork by remember { mutableStateOf<String?>(null) }
-    val edgeVisible = edge != null && readyArtwork == metadata?.coverUrl
-    val edgeAlpha by animateFloatAsState(if (edgeVisible) 1f else 0f,
-        animationSpec = PlayerMotionSpec.tween(220), label = "TabletCoverExtension")
-    val foreground = if (edgeAlpha > .5f) playerForegroundForBackground(edge?.controlsColor) else Color.White
+    val edge = if (extensionEnabled && sheet.progress > .05f && activeDynamicCover == null) {
+        rememberCoverEdgeArtwork(coverUrl)
+    } else null
     var artworkBounds by remember { mutableStateOf(Rect.Zero) }
     var rootBounds by remember { mutableStateOf(Rect.Zero) }
     val detailsVisible by overlays.detailsVisible
@@ -105,6 +103,13 @@ internal fun TabletPlayerScreen(
     val visibleArtwork = if (expansionOrigin != null) tabletSharedArtworkBounds(
         expansionOrigin.artwork, targetArtwork, playbackScale, sheet.progress,
     ) else tabletSharedArtworkBounds(targetArtwork, targetArtwork, playbackScale, 1f)
+    val edgeVisible = edge != null && fullArtwork?.first == coverUrl && visibleArtwork.width > 0f
+    val edgeReveal by key(coverUrl) {
+        animateFloatAsState(if (edgeVisible) 1f else 0f,
+            animationSpec = PlayerMotionSpec.tween(220), label = "TabletCoverExtension")
+    }
+    val edgeAlpha = if (edge != null) edgeReveal else 0f
+    val foreground = if (edgeAlpha > .5f) playerForegroundForBackground(edge?.controlsColor) else Color.White
 
     BottomSheet(
         state = sheet, modifier = modifier,
@@ -141,13 +146,14 @@ internal fun TabletPlayerScreen(
         overlayContent = {
             if (sharedArtworkVisible) {
                 val radius = with(density) {
-                    val targetRadius = if (coverStyle == CoverStyle.Circle) targetArtwork.width * playbackScale / 2f else 12.dp.toPx() * playbackScale
+                    val targetRadius = (if (coverStyle == CoverStyle.Circle) targetArtwork.width / 2f else 12.dp.toPx()) *
+                        playbackScale * (1f - edgeAlpha)
                     (12.dp.toPx() + (targetRadius - 12.dp.toPx()) * sheet.progress).toDp()
                 }
                 Box(Modifier.align(AbsoluteAlignment.TopLeft).graphicsLayer {
                     translationX = visibleArtwork.left; translationY = visibleArtwork.top
                     shape = RoundedCornerShape(radius); clip = true
-                    shadowElevation = (12.dp * playbackScale * sheet.progress).toPx()
+                    shadowElevation = (12.dp * playbackScale * sheet.progress * (1f - edgeAlpha)).toPx()
                 }.size(with(density) { visibleArtwork.width.toDp() }, with(density) { visibleArtwork.height.toDp() })
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .coverEdgeFeather(edge, edgeAlpha * sheet.progress), contentAlignment = androidx.compose.ui.Alignment.Center) {
@@ -161,9 +167,9 @@ internal fun TabletPlayerScreen(
         Box(Modifier.fillMaxSize()
             .background(if (expansionOrigin != null) Color.Transparent else Color(0xFF202024))
             .onGloballyPositioned { rootBounds = Rect(it.positionInRoot(), it.size.toSize()) }) {
-            if (sheet.progress > 0f) FluidBackground(metadata?.coverUrl, playing,
-                renderAlpha = fluidReveal * if (expansionOrigin != null)
-                    PlayerMotionSpec.BackgroundReveal.transform(sheet.progress) else 1f,
+            if (sheet.progress > 0f) FluidBackground(coverUrl, playing,
+                renderAlpha = fluidReveal * (1f - edgeAlpha) * (if (expansionOrigin != null)
+                    PlayerMotionSpec.BackgroundReveal.transform(sheet.progress) else 1f),
                 onRenderedArtworkChange = { readyFluidUrl = it }, clipToContainer = true)
             if (edge != null && visibleArtwork.width > 0f) CoverEdgeExtensionBackdrop(
                 edge, edgeAlpha, visibleArtwork.left, visibleArtwork.top, visibleArtwork.width,
@@ -187,12 +193,11 @@ internal fun TabletPlayerScreen(
                     ),
                     slots = TabletPlayerSlots(
                         artwork = { artworkModifier ->
-                            TabletPlayerArtwork(metadata, playing, dynamic.takeIf { sheet.isExpanded },
+                            TabletPlayerArtwork(metadata, playing, activeDynamicCover,
                                 artworkModifier.onGloballyPositioned {
                                     artworkBounds = Rect(it.positionInRoot(), it.size.toSize())
                                 }.graphicsLayer { alpha = if (sharedArtworkVisible) 0f else 1f },
-                                onReady = { if (it == metadata?.coverUrl) readyArtwork = it },
-                                onPainterReady = { url, painter -> if (url == metadata?.coverUrl) fullArtwork = url to painter },
+                                onPainterReady = { url, painter -> if (url == coverUrl) fullArtwork = url to painter },
                                 playbackScale = playbackScale, interactive = sheet.isExpanded,
                                 onDynamicError = { metadata?.let(container.playerViewModel::fallbackDynamicCover) },
                                 edgeArtwork = edge, edgeAlpha = edgeAlpha,

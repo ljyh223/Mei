@@ -35,7 +35,7 @@ MeiAppState / TabletApp
 - 标题、喜欢和更多直接复用手机 `Title`／`PlayerControlButton`。进度条、上一首／播放／下一首和用户配置的操作栏复用 `PlayerControlsSection`。
 - `PlayerControlsSection` 提供内容内边距和导航栏预留参数，默认值保持手机行为；平板已经消费系统安全区，使用 0dp 内容内缩及单次安全区处理。
 - 封面使用共同的高清请求策略与 `PlayerArtworkImage`，沿用静态图片保留和像素边缘修复。方形／圆形设置、暂停缩放、长按预览、封面横滑切歌和动态封面失败回退继续可用。平板采用已有方形动态封面资源；手机的竖版动态视频背景几何仍归手机布局。
-- 背景复用 `FluidBackground` 的画面保留与切歌过渡。封面底色扩展沿用已有分析设置、缓存和 `CoverEdgeExtensionBackdrop`；黑白前景选择由手机和平板共同的 `playerForegroundForBackground` 决定。
+- 背景复用 `FluidBackground` 的画面保留与切歌过渡。封面底色扩展沿用已有分析设置、缓存和 `CoverEdgeExtensionBackdrop`。匹配的静态封面加载后，扩展淡入的同时收掉阴影、圆角和流动背景，黑白前景由手机和平板共同的 `playerForegroundForBackground` 决定。
 - 歌词、队列、评论复用原组件。队列与评论在平板背景上使用对应文字对比度；音质、更多、收藏歌单、睡眠定时、分享和下载等弹层继续统一交给 `CommonOverlayHandler`。
 - 平板面板和手机横屏双栏的播放控制、歌词、队列及评论，都沿用外观中的“播放器面板切换动画”，支持滑动、淡入淡出、缩放和翻转。手机横屏切换时封面保持在原位，系统动画时长缩放由 Compose 处理。
 
