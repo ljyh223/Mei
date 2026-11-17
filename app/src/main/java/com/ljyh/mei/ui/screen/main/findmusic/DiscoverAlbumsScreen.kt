@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ljyh.mei.data.network.Resource
-import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
 import com.ljyh.mei.ui.component.collection.MeiCollectionPage
 import com.ljyh.mei.ui.component.utils.rememberDeviceInfo
@@ -23,7 +22,9 @@ fun DiscoverAlbumsScreen(viewModel: DiscoverAlbumsViewModel = hiltViewModel()) {
         title = "新碟上架", itemCount = albums.size, itemKey = { albums[it].id },
         onNavigateBack = { nav.navigateUp() }, onRetry = viewModel::reload,
         loading = result is Resource.Loading, failed = result is Resource.Error,
-        columns = if (rememberDeviceInfo().isTablet || LocalPageStartInset.current > 0.dp) GridCells.Adaptive(164.dp * VinylAlbumArtworkRatio) else GridCells.Fixed(2),
+        artworkColumns = if (rememberDeviceInfo().isTablet) {
+            GridCells.Adaptive(164.dp * VinylAlbumArtworkRatio)
+        } else GridCells.Fixed(2),
     ) { index ->
         val album = albums[index]
         DiscoverAlbumCard(album, Modifier.fillMaxWidth()) {

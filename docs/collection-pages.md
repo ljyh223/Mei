@@ -6,11 +6,11 @@
 
 | 页面 | 路由 | 数据所有者 | 布局 |
 | --- | --- | --- | --- |
-| 分类／全部歌单 | `discover/playlists?category={category}` | `DiscoverPlaylistsViewModel` | 手机两列，平板自适应 |
-| 发现新碟 | `discover/albums` | `DiscoverAlbumsViewModel` | 手机两列，平板自适应 |
+| 分类／全部歌单 | `discover/playlists?category={category}` | `DiscoverPlaylistsViewModel` | 手机竖屏两列，横屏和平板自适应 |
+| 发现新碟 | `discover/albums` | `DiscoverAlbumsViewModel` | 手机竖屏两列，横屏和平板自适应 |
 | 全部榜单（保留实现，总览入口已暂停） | `discover/charts` | `DiscoverChartsViewModel` | 单列 |
 | 歌手全部歌曲 | `artist_songs/{id}` | `ArtistCatalogViewModel` | 单列 Track，Paging |
-| 歌手全部专辑 | `artist_albums/{id}` | `ArtistCatalogViewModel` | 手机两列，平板自适应，Paging |
+| 歌手全部专辑 | `artist_albums/{id}` | `ArtistCatalogViewModel` | 手机竖屏两列，横屏和平板自适应，Paging |
 
 发现新碟仍使用已核对的最新专辑接口，展示该接口返回的完整集合，不代表网易云的全部专辑库。歌手歌曲、专辑继续使用原有数据接口与搜索流程。
 
@@ -19,12 +19,13 @@
 `app/src/main/java/com/ljyh/mei/ui/component/collection/MeiCollectionPage.kt` 负责大标题、渐进顶栏、返回按钮、页面 Haze source、系统与播放器安全区、网格布局和加载／失败／空内容状态。
 
 - `itemCount`、`itemKey`、`itemContent(index)` 提供惰性内容。Paging 可在 itemContent 内访问索引，不能先把全部项目读取成列表。
-- `columns = GridCells.Fixed(1)` 支持歌曲或榜单行；多列支持封面网格。歌曲行可设置 horizontalContentPadding=0.dp、verticalItemSpacing=0.dp，保留 Track 自身布局。
+- 歌曲或榜单默认使用单列，封面网格通过 `artworkColumns` 指定竖屏和平板的列宽。歌曲行可设置 horizontalContentPadding=0.dp、verticalItemSpacing=0.dp，保留 Track 自身的行内边距。网格负责侧栏和左右系统安全区，列表项沿用扣除后的宽度。
 - `controls` 承接分类、排序等操作；`actions` 与 `titleContent` 承接顶栏搜索等操作。搜索时关闭大标题并保持顶栏可见。
 - `footer` 承接各数据源的分页状态。普通 offset 分页和 Paging 各自维护协议，通过 `MeiCollectionLoadMore` 统一加载与失败重试展示。
 - 搜索、普通列表分别保存滚动状态。空搜索结果可以关闭空状态重试按钮，不强迫所有页面使用同一种恢复动作。
 - 卡片网格按集合自身实际宽度设置默认间距：600dp 起横向 24dp／纵向 28dp，窄布局保持横向 12dp／纵向 16dp。发现全部歌单、新碟、歌手全部专辑及音乐库集合共同使用；标题、筛选和页尾继续跨列显示。调用方可通过 `horizontalItemSpacing`／`verticalItemSpacing` 覆盖，单列行列表保留原间距，歌曲显式设置的 0dp 不受影响。
-- 手机横屏集合页使用靠起始侧对齐的单行标题，搜索等操作保留在同一栏。侧栏负责返回并优先处理页内搜索。
+- 手机横屏所有封面合集共用 112dp 最小单元宽度，包括发现的全部歌单和新碟、音乐库的创建与收藏歌单和专辑、歌手的全部专辑。按扣除侧栏、安全区和边距后的宽度计算列数，专辑卡在相同列宽内保留黑胶构图。
+- 手机横屏集合页使用靠起始侧对齐的单行标题和 12dp／16dp 的默认网格间距，搜索等操作保留在同一栏。侧栏负责返回并优先处理页内搜索。
 - 框架不获取数据、不持有业务 ViewModel，不给每张内容卡添加 Surface。
 
 ## 导航与状态

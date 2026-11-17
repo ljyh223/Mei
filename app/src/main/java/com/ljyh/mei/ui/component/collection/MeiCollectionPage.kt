@@ -22,13 +22,15 @@ import com.ljyh.mei.ui.component.glass.meiTopBarBodyTopPadding
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.ljyh.mei.ui.component.layout.LocalPageHorizontalSafePadding
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 
 /**
- * Shared chrome and states for complete collections. One column supports track/row lists;
- * multiple columns support artwork grids. Data fetching and item rendering stay with the caller.
+ * Shared chrome and states for complete collections. Artwork collections share the same
+ * phone landscape grid. Data fetching and item rendering stay with the caller.
  * Indexed access also supports Paging without copying or eagerly reading its items.
  */
 @Composable
@@ -39,7 +41,7 @@ fun MeiCollectionPage(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
-    columns: GridCells = GridCells.Fixed(1),
+    artworkColumns: GridCells? = null,
     state: LazyGridState = rememberLazyGridState(),
     loading: Boolean = false,
     failed: Boolean = false,
@@ -61,6 +63,11 @@ fun MeiCollectionPage(
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val titleGutter = meiPageGutter()
     val landscape = LocalPhoneLandscape.current
+    val columns = when {
+        artworkColumns == null -> GridCells.Fixed(1)
+        landscape -> GridCells.Adaptive(112.dp)
+        else -> artworkColumns
+    }
     val hasLargeTitle = showLargeTitle && !landscape
     val bodyTopPadding = meiTopBarBodyTopPadding(hasCustomTitle = titleContent != null)
     val gutter = horizontalContentPadding ?: titleGutter
@@ -77,10 +84,15 @@ fun MeiCollectionPage(
     }
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Use this collection's actual width, including when hosted in a resized window.
-        val wideArtworkGrid = maxWidth - start - end >= 600.dp && columns != GridCells.Fixed(1)
+        val wideArtworkGrid = !landscape && maxWidth - start - end >= 600.dp && artworkColumns != null
         val columnSpacing = horizontalItemSpacing ?: if (wideArtworkGrid) 24.dp else 12.dp
         val rowSpacing = verticalItemSpacing ?: if (wideArtworkGrid) 28.dp else 16.dp
-        CompositionLocalProvider(LocalMeiPageProgress provides progress) {
+        // Grid content padding already reserves the safe area and sidebar for every item.
+        CompositionLocalProvider(
+            LocalMeiPageProgress provides progress,
+            LocalPageStartInset provides 0.dp,
+            LocalPageHorizontalSafePadding provides PaddingValues(0.dp),
+        ) {
             LazyVerticalGrid(
                 columns = columns,
                 state = state,
