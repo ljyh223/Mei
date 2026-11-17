@@ -10,11 +10,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,9 +60,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.MediaMetadata
@@ -84,7 +90,13 @@ import com.ljyh.mei.ui.screen.playlist.component.PlaylistTrackList
 import java.io.File
 import android.net.Uri
 import com.ljyh.mei.ui.screen.local.component.LocalMetadataSheet
+import com.ljyh.mei.ui.component.artwork.CenteredArtworkPane
 import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
+import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.screen.playlist.layout.PlaylistLayout
+import com.ljyh.mei.ui.screen.playlist.layout.playlistLayoutMetrics
+import com.ljyh.mei.ui.tablet.component.TabletDetailPage
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,6 +127,8 @@ fun LocalSongListScreen(
 
     val lazyListState = rememberLazyListState()
     val device = rememberDeviceInfo()
+    val landscape = LocalPhoneLandscape.current
+    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
     val showTopBarTitle by remember {
         derivedStateOf { lazyListState.firstVisibleItemIndex > 0 }
     }
@@ -130,7 +144,48 @@ fun LocalSongListScreen(
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
+    val source = QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)
+    val onTrackClick: (MediaMetadata, Int) -> Unit = { track, index ->
+        val song = songs.getOrNull(index)
+        if (song != null && isLocalFileAvailable(context, song)) {
+            playerConnection.onTrackClicked(
+                trackId = track.id.toString(),
+                buildQueue = { buildQueue(index) },
+                fallbackSource = source,
+            )
+        }
+    }
+    val onMoreClick: (MediaMetadata, IntRect) -> Unit = { track, anchor ->
+        menuTrack = TrackMenuTarget(track, anchor, source)
+    }
+    val onPlayAll: () -> Unit = { playerConnection.playQueue(buildQueue(0)) }
+
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val layout = if (landscape) playlistLayoutMetrics(maxWidth.value, fontScale, compact = true) else null
+        if (layout?.layout == PlaylistLayout.TwoPane) {
+            TabletDetailPage(
+                title = title,
+                sideWidth = layout.detailWidthDp.dp,
+                showToolbar = false,
+                sidePane = { insets ->
+                    CenteredArtworkPane(insets, Modifier.fillMaxHeight()) { height ->
+                        LocalSongListHeader(
+                            songs, title, filterType, onPlayAll,
+                            compactArtworkSize = (height - 120.dp * fontScale).coerceIn(56.dp, 260.dp),
+                        )
+                    }
+                },
+                mainPane = { insets ->
+                    PlaylistTrackList(
+                        pagingItems = null, staticTracks = tracks, lazyListState = lazyListState,
+                        onTrackClick = onTrackClick, onMoreClick = onMoreClick,
+                        contentPadding = insets,
+                    )
+                },
+            )
+            return@BoxWithConstraints
+        }
+
         if (coverUrl != null) {
             PlaylistBackground(coverUrl = coverUrl)
         }
@@ -143,7 +198,7 @@ fun LocalSongListScreen(
                     backgroundMode = if (!coverUrl.isNullOrBlank()) meiArtworkTopBarBackground() else MeiTopBarBackground.Auto,
                     title = {
                         AnimatedVisibility(
-                            visible = showTopBarTitle,
+                            visible = landscape || showTopBarTitle,
                             enter = fadeIn(),
                             exit = fadeOut()
                         ) {
@@ -155,7 +210,14 @@ fun LocalSongListScreen(
                             )
                         }
                     },
-                    navigationIcon = { MeiGlassBackButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) },
+                    navigationIcon = if (landscape) null else {
+                        { MeiGlassBackButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) }
+                    },
+                    actions = {
+                        if (landscape) MeiGlassIconButton(onPlayAll, enabled = tracks.isNotEmpty()) {
+                            Icon(Icons.Rounded.PlayArrow, contentDescription = "播放全部")
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                         scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
@@ -184,18 +246,8 @@ fun LocalSongListScreen(
                             pagingItems = null,
                             staticTracks = tracks,
                             tableRows = true,
-                            onTrackClick = { track, index ->
-                                val isLost = songs.find { it.toMediaMetadata().id == track.id }
-                                    ?.let { !isLocalFileAvailable(context, it) } ?: false
-                                if (!isLost) {
-                                    playerConnection.onTrackClicked(
-                                        trackId = track.id.toString(),
-                                        buildQueue = { buildQueue(index) },
-                                        fallbackSource = QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)
-                                    )
-                                }
-                            },
-                            onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)) }
+                            onTrackClick = onTrackClick,
+                            onMoreClick = onMoreClick,
                         )
                     }
                 } else {
@@ -203,26 +255,11 @@ fun LocalSongListScreen(
                         pagingItems = null,
                         staticTracks = tracks,
                         lazyListState = lazyListState,
-                        headerContent = {
-                            LocalSongListHeader(
-                                songs = songs,
-                                title = title,
-                                filterType = filterType,
-                                onPlayAll = { playerConnection.playQueue(buildQueue(0)) }
-                            )
+                        headerContent = if (landscape) null else {
+                            { LocalSongListHeader(songs, title, filterType, onPlayAll) }
                         },
-                        onTrackClick = { track, index ->
-                            val isLost = songs.find { it.toMediaMetadata().id == track.id }
-                                ?.let { !isLocalFileAvailable(context, it) } ?: false
-                            if (!isLost) {
-                                playerConnection.onTrackClicked(
-                                    trackId = track.id.toString(),
-                                    buildQueue = { buildQueue(index) },
-                                    fallbackSource = QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)
-                                )
-                            }
-                        },
-                        onMoreClick = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, QueueSource(QueueSource.Type.LOCAL, "$filterType+$filterValue", title)) },
+                        onTrackClick = onTrackClick,
+                        onMoreClick = onMoreClick,
                         contentPadding = PaddingValues(
                             bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues()
                                 .calculateBottomPadding()
@@ -259,12 +296,13 @@ private fun LocalSongListHeader(
     songs: List<Song>,
     title: String,
     filterType: String,
-    onPlayAll: () -> Unit
+    onPlayAll: () -> Unit,
+    compactArtworkSize: Dp? = null,
 ) {
     val cover = songs.firstOrNull { it.cover.isNotEmpty() }?.cover
     val coverList = songs.filter { it.cover.isNotEmpty() }.map { it.cover }.take(9)
-    val totalDuration = songs.sumOf { it.duration }
-    val durationText = formatDuration(totalDuration)
+    val compact = compactArtworkSize != null
+    val durationText = if (compact) "" else formatDuration(songs.sumOf { it.duration })
 
     val placeholderIcon: ImageVector = when (filterType) {
         "artist" -> Icons.Rounded.Person
@@ -279,12 +317,13 @@ private fun LocalSongListHeader(
             .padding(horizontal = meiPageGutter(), vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(24.dp))
+        if (!compact) Spacer(Modifier.height(24.dp))
 
         Card(
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-            modifier = Modifier.size(220.dp)
+            modifier = if (compactArtworkSize == null) Modifier.size(220.dp)
+                else Modifier.width(compactArtworkSize).aspectRatio(1f)
         ) {
             if (coverList.size >= 5) {
                 FinalPerfectCollage(imageUrls = coverList, modifier = Modifier.fillMaxSize())
@@ -312,58 +351,62 @@ private fun LocalSongListHeader(
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(if (compact) 8.dp else 24.dp))
 
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            style = (if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall)
+                .copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
+            maxLines = if (compact) 1 else 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
         )
 
-        Spacer(Modifier.height(8.dp))
+        if (!compact) {
+            Spacer(Modifier.height(8.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = CircleShape
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    shape = CircleShape
+                ) {
+                    Text(
+                        text = "${songs.size} 首",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "${songs.size} 首",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = durationText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (filterType == "album") {
-            val artists = songs.flatMap { it.artist }.distinct()
-            if (artists.isNotEmpty()) {
-                Text(
-                    text = if (artists.size <= 2) artists.joinToString(" / ")
-                    else "${artists.first()} 等 ${artists.size} 位艺术家",
+                    text = durationText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            if (filterType == "album") {
+                val artists = songs.flatMap { it.artist }.distinct()
+                if (artists.isNotEmpty()) {
+                    Text(
+                        text = if (artists.size <= 2) artists.joinToString(" / ")
+                        else "${artists.first()} 等 ${artists.size} 位艺术家",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(if (compact) 8.dp else 24.dp))
 
         Button(
             onClick = onPlayAll,
-            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
+            enabled = !compact || songs.isNotEmpty(),
+            contentPadding = PaddingValues(horizontal = if (compact) 20.dp else 32.dp, vertical = 12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(
@@ -375,7 +418,7 @@ private fun LocalSongListHeader(
             Text("播放全部")
         }
 
-        Spacer(Modifier.height(24.dp))
+        if (!compact) Spacer(Modifier.height(24.dp))
     }
 }
 
