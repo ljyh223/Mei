@@ -65,9 +65,12 @@ fun SettingScreen(scrollBehavior: TopAppBarScrollBehavior) {
 }
 
 @Composable
-internal fun SettingsCategories(selectedRoute: String? = null, onSelect: (Screen) -> Unit) {
-    CompositionLocalProvider(LocalSelectedSettingsRoute provides selectedRoute) {
-        Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+internal fun SettingsCategories(selectedRoute: String? = null, compact: Boolean = false, onSelect: (Screen) -> Unit) {
+    CompositionLocalProvider(
+        LocalSelectedSettingsRoute provides selectedRoute,
+        LocalCompactSettingsCategories provides compact,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 24.dp)) {
             SettingsGroup("播放与界面") {
                 SettingRow(Screen.PlaySettings.route, "播放体验", "音质、播放行为与歌曲过渡", Icons.Rounded.LibraryMusic, MeiCategory.Playback) {
                     onSelect(Screen.PlaySettings)
@@ -115,6 +118,7 @@ internal fun SettingsCategories(selectedRoute: String? = null, onSelect: (Screen
     }
 }
 
+private val LocalCompactSettingsCategories = androidx.compose.runtime.staticCompositionLocalOf { false }
 private val LocalSelectedSettingsRoute = androidx.compose.runtime.staticCompositionLocalOf<String?> { null }
 
 @Composable
@@ -134,7 +138,7 @@ private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> 
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 68.dp),
+        modifier = Modifier.padding(start = if (LocalCompactSettingsCategories.current) 46.dp else 68.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
         thickness = 0.5.dp,
     )
@@ -150,21 +154,23 @@ private fun SettingRow(
     onClick: () -> Unit,
 ) {
     val selected = LocalSelectedSettingsRoute.current == route
+    val compact = LocalCompactSettingsCategories.current
     Row(
         modifier = Modifier.fillMaxWidth().background(if (selected) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent).selectable(selected = selected, onClick = onClick)
-            .heightIn(min = 76.dp).padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+            .heightIn(min = if (compact) 48.dp else 76.dp)
+            .padding(horizontal = if (compact) 10.dp else 16.dp, vertical = if (compact) 6.dp else 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MeiCategoryIcon(icon, category)
+        MeiCategoryIcon(icon, category, size = if (compact) 28.dp else 36.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            if (!description.isNullOrBlank()) Text(
+            Text(title, style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium)
+            if (!compact && !description.isNullOrBlank()) Text(
                 description, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Icon(
+        if (!compact) Icon(
             Icons.Rounded.ChevronRight, contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp),
         )

@@ -57,6 +57,10 @@ val LocalMeiPageProgress = staticCompositionLocalOf { 0f }
 /** Allows a pane showing a top-level destination to omit its redundant back button. */
 val LocalMeiShowBackButton = staticCompositionLocalOf { true }
 
+/** Title placement used by the compact settings panes. */
+internal enum class MeiPageTitlePlacement { Default, Inline, Toolbar }
+internal val LocalMeiPageTitlePlacement = staticCompositionLocalOf { MeiPageTitlePlacement.Default }
+
 private val CollapseDistance = 56.dp
 
 @Composable
@@ -164,31 +168,40 @@ fun MeiPinnedPage(
     val state = rememberHazeState()
     val scroll = rememberScrollState()
     val progress by rememberProgress(scroll)
+    val placement = LocalMeiPageTitlePlacement.current
+    val inline = placement == MeiPageTitlePlacement.Inline
+    val topPadding = if (inline) 4.dp + meiTopBarContentClearance() else contentTopPadding
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottomInset = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
     Box(modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().hazeSource(state)) {
             CompositionLocalProvider(
                 LocalMeiPageScroll provides scroll,
-                LocalMeiPageProgress provides progress,
+                LocalMeiPageProgress provides if (inline) 0f else progress,
             ) {
-                content(PaddingValues(top = statusTop + contentTopPadding, bottom = bottomInset + 24.dp))
+                content(PaddingValues(top = statusTop + topPadding, bottom = bottomInset + 24.dp))
             }
         }
-        MeiHazeTopBar(
-            state = state,
-            title = title,
-            progress = progress,
-            onNavigateBack = onNavigateBack,
-            onBackLongClick = onBackLongClick,
-            actions = actions,
-        )
+        if (inline) {
+            MeiStatusBarBackdrop(state)
+        } else {
+            MeiHazeTopBar(
+                state = state,
+                title = title,
+                progress = if (placement == MeiPageTitlePlacement.Toolbar) 1f else progress,
+                onNavigateBack = onNavigateBack,
+                onBackLongClick = onBackLongClick,
+                actions = actions,
+            )
+        }
     }
 }
 
 /** Big in-content title that shrinks and blurs away as the page scrolls. */
 @Composable
 fun MeiLargeTitle(title: String, modifier: Modifier = Modifier, startPadding: androidx.compose.ui.unit.Dp = meiPageGutter()) {
+    val placement = LocalMeiPageTitlePlacement.current
+    if (placement == MeiPageTitlePlacement.Toolbar) return
     val progress = LocalMeiPageProgress.current
     Text(
         text = title,
@@ -202,7 +215,7 @@ fun MeiLargeTitle(title: String, modifier: Modifier = Modifier, startPadding: an
                 transformOrigin = TransformOrigin(0f, 0.5f)
             }
             .blur(6.dp * progress),
-        style = MaterialTheme.typography.headlineLarge,
+        style = if (placement == MeiPageTitlePlacement.Inline) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineLarge,
         fontWeight = FontWeight.Bold,
     )
 }
@@ -230,7 +243,9 @@ fun MeiPinnedLazyPage(
 ) {
     val state = rememberHazeState()
     val compact = LocalPhoneLandscape.current
-    val bodyTopPadding = meiTopBarBodyTopPadding()
+    val placement = LocalMeiPageTitlePlacement.current
+    val inline = placement == MeiPageTitlePlacement.Inline
+    val bodyTopPadding = if (inline) 4.dp + meiTopBarContentClearance() else meiTopBarBodyTopPadding()
     val listState = rememberLazyListState()
     val progress by rememberLazyProgress(listState)
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -238,7 +253,7 @@ fun MeiPinnedLazyPage(
     val indent = largeTitleHorizontalPadding ?: (meiPageGutter() - horizontalContentPadding).coerceAtLeast(0.dp)
     Box(modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().hazeSource(state)) {
-            CompositionLocalProvider(LocalMeiPageProgress provides progress) {
+            CompositionLocalProvider(LocalMeiPageProgress provides if (inline) 0f else progress) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -250,18 +265,24 @@ fun MeiPinnedLazyPage(
                     ),
                     verticalArrangement = verticalArrangement,
                 ) {
-                    if (!compact) item(key = "mei-large-title") { MeiLargeTitle(title, startPadding = indent) }
+                    if (inline || (!compact && placement != MeiPageTitlePlacement.Toolbar)) {
+                        item(key = "mei-large-title") { MeiLargeTitle(title, startPadding = indent) }
+                    }
                     content()
                 }
             }
         }
-        MeiHazeTopBar(
-            state = state,
-            title = title,
-            progress = if (compact) 1f else progress,
-            onNavigateBack = onNavigateBack,
-            actions = actions,
-        )
+        if (inline) {
+            MeiStatusBarBackdrop(state)
+        } else {
+            MeiHazeTopBar(
+                state = state,
+                title = title,
+                progress = if (compact || placement == MeiPageTitlePlacement.Toolbar) 1f else progress,
+                onNavigateBack = onNavigateBack,
+                actions = actions,
+            )
+        }
     }
 }
 

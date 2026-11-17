@@ -6,16 +6,22 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelStore
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.createGraph
 import com.ljyh.mei.ui.app.MeiPageContent
 import com.ljyh.mei.ui.app.SharedMeiPageContent
+import com.ljyh.mei.ui.app.SplitSettingsPageContent
 import com.ljyh.mei.ui.component.navigation.selectMainDestination
 import com.ljyh.mei.ui.screen.Index
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.navigationBuilder
+import com.ljyh.mei.ui.screen.setting.canShowPhoneSettingsSplit
+import com.ljyh.mei.ui.screen.setting.phoneSettingsSidebarWidth
+import com.ljyh.mei.ui.screen.setting.selectSettingsCategory
+import com.ljyh.mei.ui.screen.setting.settingsCategoryForRoute
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -104,11 +110,25 @@ class TabletSettingsNavigationTest {
         detail.savedStateHandle["marker"] = 42
         nav.installPages(SharedMeiPageContent)
         assertSame(detail, nav.currentBackStackEntry)
+        nav.installPages(SplitSettingsPageContent)
+        assertSame(detail, nav.currentBackStackEntry)
+        assertTrue(SplitSettingsPageContent.useImmediateTransition(nav, Screen.Setting.route, Screen.ContentSettings.route))
         nav.installPages(TabletPageContent)
         assertSame(detail, nav.currentBackStackEntry)
         assertEquals(42, nav.currentBackStackEntry!!.savedStateHandle.get<Int>("marker"))
         nav.selectSettingsCategory(Screen.PlaySettings.route)
         assertSame(root, nav.currentBackStackEntry)
         assertEquals(Screen.Setting.route, nav.currentDestination!!.route)
+    }
+
+    @Test
+    fun phoneSettingsSplitsOnlyWhenBothPanesFitAtTheCurrentFontScale() {
+        assertFalse(canShowPhoneSettingsSplit(499.dp, 1f))
+        assertTrue(canShowPhoneSettingsSplit(500.dp, 1f))
+        assertFalse(canShowPhoneSettingsSplit(600.dp, 1.3f))
+        assertTrue(canShowPhoneSettingsSplit(660.dp, 1.3f))
+        assertEquals(220f, phoneSettingsSidebarWidth(500.dp, 1f).value, 0.01f)
+        assertEquals(264f, phoneSettingsSidebarWidth(600.dp, 1f).value, 0.01f)
+        assertEquals(300.dp, phoneSettingsSidebarWidth(850.dp, 1f))
     }
 }

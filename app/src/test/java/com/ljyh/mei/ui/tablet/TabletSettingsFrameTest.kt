@@ -4,8 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -18,19 +22,40 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.createGraph
+import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
+import com.ljyh.mei.ui.component.glass.MeiLargeTitle
+import com.ljyh.mei.ui.component.glass.MeiPinnedPage
+import com.ljyh.mei.ui.component.layout.AppWindowLayout
+import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
+import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.screen.Screen
+import com.ljyh.mei.ui.screen.setting.SplitSettingsFrame
+import com.ljyh.mei.ui.screen.setting.SplitSettingsHost
+import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
+import com.ljyh.mei.ui.screen.setting.selectSettingsCategory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,7 +94,7 @@ class TabletSettingsFrameTest {
             SideEffect { nav = controller }
             MaterialTheme {
                 CompositionLocalProvider(LocalPlayerAwareWindowInsets provides WindowInsets(0)) {
-                    TabletSettingsHost(controller, Modifier.fillMaxWidth().height(300.dp)) { }
+                    SplitSettingsHost(controller, Modifier.fillMaxWidth().height(300.dp)) { }
                 }
             }
         }
@@ -92,6 +117,72 @@ class TabletSettingsFrameTest {
     }
 
     @Test
+    @Config(qualifiers = "w780dp-h420dp")
+    fun phoneLandscapeShowsCategoriesAndDetailSideBySide() {
+        lateinit var nav: NavHostController
+        HostActivity.content = {
+            val controller = rememberNavController()
+            val graph = remember(controller) {
+                controller.createGraph(startDestination = Screen.Setting.route) {
+                    composable(Screen.Setting.route) {}
+                    composable(Screen.AppearanceSettings.route) {}
+                    composable(Screen.GlassSettings.route) {}
+                }
+            }
+            LaunchedEffect(controller, graph) { controller.graph = graph }
+            SideEffect { nav = controller }
+            MaterialTheme {
+                CompositionLocalProvider(
+                    LocalAppWindowLayout provides AppWindowLayout.Compact,
+                    LocalPhoneLandscape provides true,
+                    LocalPageStartInset provides 72.dp,
+                    LocalPlayerAwareWindowInsets provides WindowInsets(0),
+                ) {
+                    SplitSettingsHost(controller, Modifier.width(740.dp).height(330.dp)) {
+                        val entry by controller.currentBackStackEntryAsState()
+                        val name = when (entry?.destination?.route) {
+                            Screen.GlassSettings.route -> "玻璃详情"
+                            Screen.AppearanceSettings.route -> "外观详情"
+                            else -> "播放详情"
+                        }
+                        MeiPinnedPage(title = name, onNavigateBack = controller::navigateUp) { insets ->
+                            Column(Modifier.verticalScroll(LocalMeiPageScroll.current!!).padding(insets)) {
+                                MeiLargeTitle(name)
+                                PreferenceSection("配置") { BasicText("设置项") }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(HostActivity::class.java).setup()
+        try {
+            val playingCategory = compose.onNodeWithText("播放体验").assertIsDisplayed().assertIsSelected()
+            val playingDetail = compose.onNodeWithText("播放详情").assertIsDisplayed()
+            val detail = playingDetail.fetchSemanticsNode().boundsInRoot
+            assertTrue(playingCategory.fetchSemanticsNode().boundsInRoot.right < detail.left)
+            val categoryTitle = compose.onNodeWithText("设置").fetchSemanticsNode().boundsInRoot
+            assertEquals(categoryTitle.top, detail.top, 1f)
+            val categoriesHeading = compose.onNodeWithText("播放与界面").fetchSemanticsNode().boundsInRoot
+            val detailHeading = compose.onNodeWithText("配置").fetchSemanticsNode().boundsInRoot
+            assertEquals(categoriesHeading.top, detailHeading.top, 1f)
+            val root = nav.currentBackStackEntry
+            compose.onNode(hasScrollAction() and hasAnyDescendant(hasText("播放体验"))).performScrollToNode(hasText("外观"))
+            compose.onNodeWithText("外观").performClick().assertIsSelected()
+            compose.onNodeWithText("外观详情").assertIsDisplayed()
+            compose.onNodeWithContentDescription("返回").assertDoesNotExist()
+            assertSame(root, nav.getBackStackEntry(Screen.Setting.route))
+            compose.runOnIdle { nav.navigate(Screen.GlassSettings.route) }
+            compose.onAllNodesWithText("玻璃详情").assertCountEquals(1)
+            compose.onNodeWithContentDescription("返回").assertIsDisplayed().performClick()
+            compose.onNodeWithText("外观详情").assertIsDisplayed()
+        } finally {
+            activity.pause().stop().destroy()
+            HostActivity.content = {}
+        }
+    }
+
+    @Test
     fun changingDetailKeepsSidebarCompositionAndState() {
         var detail by mutableStateOf("播放体验")
         var sidebarIdentity: Any? = null
@@ -99,7 +190,7 @@ class TabletSettingsFrameTest {
         var setSidebarState: (String) -> Unit = {}
         var displayedDetail = ""
         HostActivity.content = {
-            TabletSettingsFrame(showSidebar = true, sidebar = {
+            SplitSettingsFrame(showSidebar = true, sidebar = {
                 val identity = remember { Any() }
                 var state by remember { mutableStateOf("初始") }
                 BasicText(state)

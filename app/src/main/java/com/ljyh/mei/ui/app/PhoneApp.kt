@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +42,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -62,6 +65,7 @@ import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.screen.setting.canShowPhoneSettingsSplit
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.utils.preferences.rememberPreference
@@ -86,6 +90,13 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
         // A keyboard can make a portrait viewport wider than it is tall.
         val configuration = LocalConfiguration.current
         val sideBar = usePhoneSideBar(configuration.screenWidthDp.toFloat(), configuration.screenHeightDp.toFloat())
+        val pages = if (sideBar) {
+            val direction = LocalLayoutDirection.current
+            val safe = WindowInsets.safeDrawing.asPaddingValues()
+            val contentWidth = maxWidth - safe.calculateLeftPadding(direction) - safe.calculateRightPadding(direction) - PhoneSideBarWidth
+            if (canShowPhoneSettingsSplit(contentWidth, density.fontScale)) SplitSettingsPageContent
+            else SharedMeiPageContent
+        } else SharedMeiPageContent
         val systemBars = WindowInsets.systemBars
         val windowInsets = if (sideBar) systemBars.union(WindowInsets.displayCutout) else systemBars
         val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -259,7 +270,7 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                                 appState = appState,
                                 pageMotion = pageMotion,
                                 scrollBehavior = topAppBarScrollBehavior,
-                                pages = SharedMeiPageContent,
+                                pages = pages,
                                 modifier = Modifier.fillMaxSize()
                                     .then(if (useGlass) Modifier.hazeSource(pageHazeState) else Modifier)
                                     .background(MaterialTheme.colorScheme.background),

@@ -40,6 +40,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.dialog.ListDialog
 import com.ljyh.mei.ui.component.dialog.TextFieldDialog
+import com.ljyh.mei.ui.component.glass.LocalMeiPageTitlePlacement
+import com.ljyh.mei.ui.component.glass.MeiPageTitlePlacement
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
 private val LocalPreferenceSegmentColor = compositionLocalOf<Color?> { null }
@@ -50,17 +52,19 @@ fun PreferenceSection(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val compact = LocalMeiPageTitlePlacement.current == MeiPageTitlePlacement.Inline
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = meiPageGutter())
+            .padding(bottom = if (compact) 12.dp else 0.dp)
     ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             // fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 24.dp, bottom = 10.dp)
+            modifier = Modifier.padding(top = if (compact) 0.dp else 24.dp, bottom = 10.dp)
         )
         CompositionLocalProvider(
             LocalPreferenceSegmentColor provides MaterialTheme.colorScheme.surfaceContainerLow
