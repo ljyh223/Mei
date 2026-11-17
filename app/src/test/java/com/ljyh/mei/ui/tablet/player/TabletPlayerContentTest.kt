@@ -34,9 +34,10 @@ import org.robolectric.annotation.LooperMode
 class TabletPlayerContentTest {
     @get:Rule val compose = createEmptyComposeRule()
 
-    @Test fun phoneLandscapeKeepsTheLargeCoverWhenSwitchingBetweenControlsAndLyrics() {
+    @Test fun phoneLandscapeKeepsTheLargeCoverWhenSwitchingPanels() {
         var state by mutableStateOf(TabletPlayerUiState("Song", "Artist", false, PlayerPanel.Lyrics, false))
         var collapsed = 0
+        var playerWidth by mutableStateOf(740.dp)
         var playerHeight by mutableStateOf(320.dp)
         var coverScale by mutableFloatStateOf(1f)
         val returnToControls: () -> Unit = { state = state.copy(panel = PlayerPanel.Lyrics, detailsVisible = false) }
@@ -44,7 +45,7 @@ class TabletPlayerContentTest {
         TabletContentTestActivity.content = {
             MaterialTheme {
                 BackHandler { collapsed++ }
-                Box(Modifier.size(740.dp, playerHeight).testTag("short-viewport").consumeWindowInsets(WindowInsets.safeDrawing)) {
+                Box(Modifier.size(playerWidth, playerHeight).testTag("short-viewport").consumeWindowInsets(WindowInsets.safeDrawing)) {
                     TabletPlayerContent(state, actions, TabletPlayerSlots(
                         artwork = { modifier ->
                             Box(modifier.testTag("short-cover")) {
@@ -74,6 +75,7 @@ class TabletPlayerContentTest {
                             Row(modifier) {
                                 Button({ state = state.copy(panel = PlayerPanel.Lyrics, detailsVisible = true) }) { Text("歌词显示") }
                                 Button({ state = state.copy(panel = PlayerPanel.Queue, detailsVisible = true) }) { Text("播放队列") }
+                                Button({ state = state.copy(panel = PlayerPanel.Comments, detailsVisible = true) }) { Text("评论") }
                             }
                         },
                     ), shortWindowLayout = true)
@@ -121,6 +123,16 @@ class TabletPlayerContentTest {
             assertTrue(pausedCover.height < largerCover.height)
             assertEquals(queue, queueNode.fetchSemanticsNode().boundsInRoot)
             compose.onNodeWithText("关闭队列").performClick()
+            compose.onNodeWithText("评论").performClick()
+            val comments = compose.onNodeWithTag("short-Comments").assertIsDisplayed()
+            assertEquals(viewport.top, comments.fetchSemanticsNode().boundsInRoot.top, 1f)
+            compose.onNodeWithText("正在播放").assertDoesNotExist()
+            compose.runOnIdle { playerWidth = 560.dp }
+            comments.assertIsDisplayed()
+            compose.onNodeWithText("正在播放").assertDoesNotExist()
+            compose.runOnIdle { activity.get().onBackPressedDispatcher.onBackPressed() }
+            compose.onNodeWithTag("short-controls").assertIsDisplayed()
+            compose.runOnIdle { playerWidth = 740.dp }
             compose.onNodeWithText("歌词显示").performClick()
             compose.runOnIdle { activity.get().onBackPressedDispatcher.onBackPressed() }
             compose.onNodeWithTag("short-controls").assertIsDisplayed()

@@ -35,7 +35,12 @@ internal fun TabletPlayerContent(
                 PlayerControlButton(actions.onCollapse, foreground = state.foreground, size = 48.dp) {
                     Icon(Icons.Rounded.KeyboardArrowDown, "收起播放器", tint = state.foreground)
                 }
-                if (state.detailsVisible) ShowNowPlayingButton(state, actions)
+                if (state.detailsVisible) {
+                    TextButton(
+                        onClick = actions.onShowNowPlaying,
+                        colors = ButtonDefaults.textButtonColors(contentColor = state.foreground),
+                    ) { Text("正在播放") }
+                }
             }
         }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -69,7 +74,6 @@ internal fun TabletPlayerContent(
                             slots.controls(Modifier.widthIn(max = 460.dp).fillMaxWidth(), true)
                         }
                         slots.actions(Modifier.widthIn(max = 460.dp).fillMaxWidth())
-                        if (shortWindowLayout && state.panel == PlayerPanel.Comments) ShowNowPlayingButton(state, actions)
                     }
                 } else {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -104,12 +108,7 @@ private fun PhoneLandscapePlayerPanes(
                     slots.panel(panel, Modifier.fillMaxWidth().height(layout.artworkSizeDp.dp))
                 }
             } else if (panel != null) {
-                Column(modifier) {
-                    slots.panel(panel, Modifier.weight(1f).fillMaxWidth())
-                    if (panel == PlayerPanel.Comments) {
-                        ShowNowPlayingButton(state, actions, Modifier.align(Alignment.End))
-                    }
-                }
+                slots.panel(panel, modifier)
             } else {
                 Column(
                     modifier.verticalScroll(rememberScrollState()),
@@ -126,15 +125,6 @@ private fun PhoneLandscapePlayerPanes(
             }
         }
     }
-}
-
-@Composable
-private fun ShowNowPlayingButton(state: TabletPlayerUiState, actions: TabletPlayerActions, modifier: Modifier = Modifier) {
-    TextButton(
-        onClick = actions.onShowNowPlaying,
-        modifier = modifier,
-        colors = ButtonDefaults.textButtonColors(contentColor = state.foreground),
-    ) { Text("正在播放") }
 }
 
 @Composable
