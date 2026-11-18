@@ -79,6 +79,7 @@ flowchart TD
 - [AppContext](../app/src/main/java/com/ljyh/mei/AppContext.kt) 是 Hilt Application，建立共享图片加载器，并执行账号、喜欢歌曲及动态封面相关的启动工作。
 - [MainActivity](../app/src/main/java/com/ljyh/mei/MainActivity.kt) 配置系统边缘绘制、日志、设备初始化与启动参数，进入 `MeiApp`。
 - [MeiApp](../app/src/main/java/com/ljyh/mei/ui/app/MeiApp.kt) 建立主题、播放连接、共享 CompositionLocal，并决定应用外层布局。
+- 「外观 → 主题模式」通过 DataStore 保存，默认跟随系统。按偏好解析出的明暗模式由 `MeiApp` 应用到手机、平板及系统栏图标，与动态取色和自选主题色独立。播放器可按当前封面背景调整状态栏图标。
 - `MeiAppState` 是 Compose 状态持有者，包含导航控制器、搜索意图、主导航选中项和播放器展开锚点；它不是业务 ViewModel，也不拥有播放器引擎。
 
 ## 4. UI 的三个决策层

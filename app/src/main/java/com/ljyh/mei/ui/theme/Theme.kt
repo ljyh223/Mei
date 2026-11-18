@@ -10,6 +10,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
@@ -17,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.materialkolor.DynamicMaterialTheme
+
+internal val LocalMeiDarkTheme = compositionLocalOf { false }
 
 /** Stable reading surfaces; artwork and interactive roles retain the dynamic accent. */
 internal fun meiColorScheme(accent: ColorScheme, dark: Boolean): ColorScheme {
@@ -107,6 +110,7 @@ private fun MusicThemeContent(isDark: Boolean, content: @Composable () -> Unit) 
         typography = MeiTypography,
     ) {
         CompositionLocalProvider(
+            LocalMeiDarkTheme provides isDark,
             LocalContentColor provides MaterialTheme.colorScheme.onBackground,
             content = content,
         )

@@ -55,6 +55,7 @@ val MusicCacheLimitMbKey = intPreferencesKey("musicCacheLimitMb")
 
 
 val CoverStyleKey = stringPreferencesKey("coverStyle")
+val ThemeModeKey = stringPreferencesKey("appearance.themeMode")
 val DynamicThemeKey = booleanPreferencesKey("dynamicTheme")
 val LiquidGlassEnabledKey = booleanPreferencesKey("appearance.liquidGlass")
 val GlassOpacityKey = floatPreferencesKey("appearance.glass.opacity")
@@ -240,6 +241,18 @@ enum class LyricTextSize(val text: Int) {
     Size32(32),
     Size34(34),
     Size36(36),
+}
+
+enum class ThemeMode(val label: String) {
+    System("跟随系统"),
+    Light("浅色"),
+    Dark("深色");
+
+    fun isDark(systemIsDark: Boolean): Boolean = when (this) {
+        System -> systemIsDark
+        Light -> false
+        Dark -> true
+    }
 }
 
 enum class ProgressBarStyle(val label: String) {

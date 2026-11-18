@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.component.player.applemusic
 
-import android.app.Activity
 import android.content.res.Configuration
 import android.view.animation.DecelerateInterpolator
 import androidx.activity.compose.BackHandler
@@ -19,7 +18,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -73,7 +71,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.toColorInt
-import androidx.core.view.WindowCompat
 import androidx.media3.common.util.UnstableApi
 import coil3.request.crossfade
 import com.ljyh.mei.constants.CoverBackgroundEnabledKey
@@ -119,6 +116,8 @@ import com.ljyh.mei.utils.image.CoverExtensionMode
 import com.ljyh.mei.utils.image.rememberPlayerArtworkRequest
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.ui.theme.LocalMeiDarkTheme
+import com.ljyh.mei.ui.theme.LocalPlayerLightStatusBar
 import kotlin.math.min
 
 
@@ -146,7 +145,7 @@ fun AppleMusicPlayer(
     val density = LocalDensity.current
     val context = LocalContext.current
     val navController = LocalNavController.current
-    val isSystemInDarkTheme = isSystemInDarkTheme()
+    val darkTheme = LocalMeiDarkTheme.current
     val configuration = LocalConfiguration.current
 
     // --- Apple Music 特定状态 ---
@@ -264,12 +263,10 @@ fun AppleMusicPlayer(
         }
     }
     val colorScheme = MaterialTheme.colorScheme
-    val backgroundColor = remember(isSystemInDarkTheme, state.value, state.collapsedBound) {
-        if (isSystemInDarkTheme && state.value > state.collapsedBound) {
-            lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
-        } else {
-            colorScheme.surfaceContainer
-        }
+    val backgroundColor = if (darkTheme && state.value > state.collapsedBound) {
+        lerp(colorScheme.surfaceContainer, Color.Black, state.progress)
+    } else {
+        colorScheme.surfaceContainer
     }
     val portraitBackdropState = remember(displayedPortrait?.cover?.cacheKey, displayedPortrait?.cover?.url) {
         PortraitMotionBackdropState(displayedPortrait?.cover?.cacheKey)
@@ -290,22 +287,18 @@ fun AppleMusicPlayer(
         alpha = lerp(0.7f + 0.12f * portraitAlpha, 0.88f, edgeExtensionAlpha),
     )
 
-    val activity = context as? Activity
-    DisposableEffect(activity, isSystemInDarkTheme) {
-        onDispose {
-            activity?.let {
-                WindowCompat.getInsetsController(it.window, it.window.decorView)
-                    .isAppearanceLightStatusBars = !isSystemInDarkTheme
-            }
-        }
+    val setPlayerLightStatusBar = LocalPlayerLightStatusBar.current
+    DisposableEffect(setPlayerLightStatusBar) {
+        onDispose { setPlayerLightStatusBar(null) }
     }
     SideEffect {
-        activity?.let {
-            WindowCompat.getInsetsController(it.window, it.window.decorView)
-                .isAppearanceLightStatusBars = if (edgeExtensionAlpha > 0.5f && coverEdgeColor != null) {
-                    coverEdgeColor.luminance() > 0.179f
-                } else portraitAlpha <= 0.5f && !isSystemInDarkTheme
-        }
+        setPlayerLightStatusBar(
+            when {
+                edgeExtensionAlpha > 0.5f && coverEdgeColor != null -> coverEdgeColor.luminance() > 0.179f
+                portraitAlpha > 0.5f -> false
+                else -> null
+            },
+        )
     }
 
     var hostOrigin by remember { mutableStateOf(Offset.Zero) }

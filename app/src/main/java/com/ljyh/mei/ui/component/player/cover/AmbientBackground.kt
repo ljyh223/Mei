@@ -9,7 +9,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
@@ -29,6 +28,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.ljyh.mei.ui.theme.LocalMeiDarkTheme
 import com.ljyh.mei.utils.image.ArtworkSize
 import com.skydoves.cloudy.cloudy
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +41,7 @@ fun AmbientBackground(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = LocalMeiDarkTheme.current
     val density = LocalDensity.current
 
     // 定义初始种子颜色（避免纯灰）
@@ -53,10 +53,10 @@ fun AmbientBackground(
         }
     }
 
-    var fluidColors by remember { mutableStateOf(defaultColors) }
+    var fluidColors by remember(isDark) { mutableStateOf(defaultColors) }
 
     // 1. 异步取色
-    LaunchedEffect(imageUrl) {
+    LaunchedEffect(imageUrl, isDark) {
         if (imageUrl.isNullOrEmpty()) return@LaunchedEffect
 
         // 放在 IO 线程，不阻塞 UI

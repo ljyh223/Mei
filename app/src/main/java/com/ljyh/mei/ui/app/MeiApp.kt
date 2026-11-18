@@ -31,6 +31,8 @@ import com.ljyh.mei.constants.PageTransitionSpeedKey
 import com.ljyh.mei.constants.PageTransitionStyle
 import com.ljyh.mei.constants.PageTransitionStyleKey
 import com.ljyh.mei.constants.ThemeColorKey
+import com.ljyh.mei.constants.ThemeMode
+import com.ljyh.mei.constants.ThemeModeKey
 import com.ljyh.mei.data.model.domain.UserData
 import com.ljyh.mei.di.AppDatabase
 import com.ljyh.mei.di.repository.ColorRepository
@@ -49,6 +51,7 @@ import com.ljyh.mei.ui.motion.PageNavigationMotion
 import com.ljyh.mei.ui.screen.main.library.LocalLibrarySearchState
 import com.ljyh.mei.ui.tablet.TabletApp
 import com.ljyh.mei.ui.theme.MusicTheme
+import com.ljyh.mei.ui.theme.ProvideMeiSystemBars
 import com.ljyh.mei.ui.theme.rememberPlayerThemeColor
 import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberGlassAppearance
@@ -70,6 +73,8 @@ fun MeiApp(
     val pageMotion = remember(pageTransitionStyle, pageTransitionSpeed) {
         PageNavigationMotion(pageTransitionStyle, pageTransitionSpeed)
     }
+    val themeMode by rememberEnumPreference(ThemeModeKey, ThemeMode.System)
+    val darkTheme = themeMode.isDark(isSystemInDarkTheme())
     val dynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
     val themeColor by rememberPreference(ThemeColorKey, defaultValue = DefaultThemeColor)
     val staticThemeColor = remember(themeColor) {
@@ -86,7 +91,7 @@ fun MeiApp(
     )
     MusicTheme(
         seedColor = if (dynamicTheme) targetThemeColor else staticThemeColor,
-        isDark = isSystemInDarkTheme(),
+        isDark = darkTheme,
     ) {
         val appState = rememberMeiAppState(playerConnection, startInLibrary)
         val batteryAllowsGlass = rememberBatteryIntensiveFeaturesAllowed()
@@ -103,27 +108,34 @@ fun MeiApp(
             LocalMeiGlassEnabled provides useGlass,
             LocalMeiGlassAppearance provides glassAppearance,
         ) {
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                val direction = LocalLayoutDirection.current
-                val safe = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()
-                val availableWidth = maxWidth - safe.calculateLeftPadding(direction) - safe.calculateRightPadding(direction)
-                val layout = appWindowLayout(
-                    availableWidthDp = availableWidth.value,
-                    smallestWidthDp = LocalConfiguration.current.smallestScreenWidthDp,
-                )
-                val activity = context as? Activity
-                val freeOrientation = com.ljyh.mei.BuildConfig.DEBUG || layout == AppWindowLayout.Wide ||
-                    activity?.isInMultiWindowMode == true
-                val orientation = if (freeOrientation) ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                SideEffect {
-                    if (activity != null && activity.requestedOrientation != orientation) activity.requestedOrientation = orientation
-                }
-                CompositionLocalProvider(LocalAppWindowLayout provides layout) {
-                    when (layout) {
-                        AppWindowLayout.Wide -> TabletApp(appState, pageMotion)
-                        AppWindowLayout.Compact -> PhoneApp(appState, pageMotion)
-                    }
-                }
+            ProvideMeiSystemBars(darkTheme) {
+                MeiAppLayout(appState, pageMotion)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MeiAppLayout(appState: MeiAppState, pageMotion: PageNavigationMotion) {
+    val activity = LocalContext.current as? Activity
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val direction = LocalLayoutDirection.current
+        val safe = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()
+        val availableWidth = maxWidth - safe.calculateLeftPadding(direction) - safe.calculateRightPadding(direction)
+        val layout = appWindowLayout(
+            availableWidthDp = availableWidth.value,
+            smallestWidthDp = LocalConfiguration.current.smallestScreenWidthDp,
+        )
+        val freeOrientation = com.ljyh.mei.BuildConfig.DEBUG || layout == AppWindowLayout.Wide ||
+            activity?.isInMultiWindowMode == true
+        val orientation = if (freeOrientation) ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        SideEffect {
+            if (activity != null && activity.requestedOrientation != orientation) activity.requestedOrientation = orientation
+        }
+        CompositionLocalProvider(LocalAppWindowLayout provides layout) {
+            when (layout) {
+                AppWindowLayout.Wide -> TabletApp(appState, pageMotion)
+                AppWindowLayout.Compact -> PhoneApp(appState, pageMotion)
             }
         }
     }

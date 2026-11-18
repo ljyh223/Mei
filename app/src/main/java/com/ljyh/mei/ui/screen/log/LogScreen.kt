@@ -3,7 +3,6 @@ package com.ljyh.mei.ui.screen.log
 import com.ljyh.mei.ui.component.glass.MeiTopAppBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,6 +33,7 @@ import java.util.*
 import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
 import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.theme.LocalMeiDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +44,7 @@ fun LogScreen(
     val content by viewModel.currentFileContent.collectAsState()
     val navController = LocalNavController.current
     val pageHaze = rememberHazeState()
-    val darkTheme = isSystemInDarkTheme()
+    val darkTheme = LocalMeiDarkTheme.current
 
     val crashColor = if (darkTheme) Color(0xFFCF6679) else Color.Red
     val logColor = if (darkTheme) Color(0xFFBB86FC) else Color.Blue

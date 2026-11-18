@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.BlurOn
+import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Kitesurfing
@@ -50,6 +51,8 @@ import com.ljyh.mei.constants.MeshSubdivisionKey
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.constants.DynamicThemeKey
 import com.ljyh.mei.constants.ThemeColorKey
+import com.ljyh.mei.constants.ThemeMode
+import com.ljyh.mei.constants.ThemeModeKey
 import com.ljyh.mei.constants.updateDynamicCoverSettings
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.OriginalCoverKey
@@ -111,6 +114,7 @@ fun AppearanceSettingsScreen(
 
     val (glassEnabled, onGlassEnabledChange) = rememberPreference(LiquidGlassEnabledKey, defaultValue = true)
 
+    val (themeMode, onThemeModeChange) = rememberEnumPreference(ThemeModeKey, ThemeMode.System)
     val (dynamicTheme, onDynamicThemeChange) = rememberPreference(
         DynamicThemeKey,
         defaultValue = true
@@ -200,6 +204,13 @@ fun AppearanceSettingsScreen(
 
 
             PreferenceSection("主题") {
+                EnumListPreference(
+                    title = { Text("主题模式") },
+                    icon = { Icon(Icons.Rounded.Contrast, null) },
+                    selectedValue = themeMode,
+                    valueText = { it.label },
+                    onValueSelected = onThemeModeChange,
+                )
                 SwitchPreference(
                     title = { Text("液态玻璃") },
                     description = "导航、搜索与播放控件使用玻璃材质；关闭后使用实色外观",

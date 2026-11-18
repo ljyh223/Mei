@@ -4,11 +4,25 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import com.ljyh.mei.constants.ThemeMode
+import com.ljyh.mei.utils.preferences.toEnum
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MeiColorSchemeTest {
     private val accents = listOf(Color(0xFF0061A4), Color(0xFFD04B65), Color(0xFF7654C7), Color.Yellow, Color.Cyan)
+
+    @Test
+    fun absentOrUnknownThemeModeFollowsSystemAndExplicitModesOverrideIt() {
+        for (systemIsDark in listOf(false, true)) {
+            for (storedValue in listOf(null, "unknown", ThemeMode.System.name)) {
+                assertEquals(systemIsDark, storedValue.toEnum(ThemeMode.System).isDark(systemIsDark))
+            }
+            assertEquals(false, "Light".toEnum(ThemeMode.System).isDark(systemIsDark))
+            assertEquals(true, "Dark".toEnum(ThemeMode.System).isDark(systemIsDark))
+        }
+    }
 
     @Test
     fun readingTextRetainsContrastAcrossSurfacesAndAlbumAccents() {
