@@ -33,6 +33,7 @@ import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.CoverBackgroundEnabledKey
 import com.ljyh.mei.constants.TabletAnimationStyle
 import com.ljyh.mei.constants.TabletAnimationStyleKey
+import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.ui.component.player.*
 import com.ljyh.mei.ui.component.player.controls.PlayerControlsSection
 import com.ljyh.mei.ui.component.player.controls.PlayerActionToolbar
@@ -50,6 +51,8 @@ import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsAnchor
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.LyricsFade
+
+private val PlayerBackground = Color(0xFF202024)
 
 /** Binds the existing shared session to independent tablet presentation and engine-backed slots. */
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -69,7 +72,11 @@ internal fun TabletPlayerScreen(
     val liked by container.isLiked
     val dynamic by container.playerViewModel.dynamicCover.collectAsState()
     val coverUrl = metadata?.coverUrl
-    val activeDynamicCover = dynamic?.takeIf { sheet.isExpanded && it.songId == metadata?.id }
+    val currentDynamicCover = dynamic?.takeIf { it.songId == metadata?.id }
+    val activeDynamicCover = currentDynamicCover.takeIf { sheet.isExpanded }
+    val landscapeCover = currentDynamicCover?.takeIf {
+        shortWindowLayout && it.source == DynamicCover.Source.APPLE_MUSIC && it.isSquareAppleArtwork
+    }
     val panel by overlays.panel
     val density = LocalDensity.current
     val coverStyle by rememberEnumPreference(CoverStyleKey, CoverStyle.Square)
@@ -86,7 +93,9 @@ internal fun TabletPlayerScreen(
     val sharedArtworkVisible = expansionOrigin != null && !sheet.isExpanded
     val animation by rememberEnumPreference(TabletAnimationStyleKey, TabletAnimationStyle.FLIP_3D)
     val extensionEnabled by rememberPreference(CoverBackgroundEnabledKey, false)
-    val edge = if (extensionEnabled && sheet.progress > .05f && activeDynamicCover == null) {
+    var landscapeArtworkExpansion by remember { mutableFloatStateOf(0f) }
+    val fillsLandscapeHalf = landscapeArtworkExpansion > 0f
+    val edge = if (extensionEnabled && sheet.progress > .05f && activeDynamicCover == null && !fillsLandscapeHalf) {
         rememberCoverEdgeArtwork(coverUrl)
     } else null
     var artworkBounds by remember { mutableStateOf(Rect.Zero) }
@@ -103,9 +112,10 @@ internal fun TabletPlayerScreen(
     }
 
     val targetArtwork = artworkBounds.translate(-rootBounds.topLeft)
+    val targetArtworkScale = androidx.compose.ui.util.lerp(playbackScale, 1f, landscapeArtworkExpansion)
     val visibleArtwork = if (expansionOrigin != null) sharedPlayerArtworkBounds(
-        expansionOrigin.artwork, targetArtwork, playbackScale, sheet.progress,
-    ) else sharedPlayerArtworkBounds(targetArtwork, targetArtwork, playbackScale, 1f)
+        expansionOrigin.artwork, targetArtwork, targetArtworkScale, sheet.progress,
+    ) else sharedPlayerArtworkBounds(targetArtwork, targetArtwork, targetArtworkScale, 1f)
     val edgeVisible = edge != null && fullArtwork?.first == coverUrl && visibleArtwork.width > 0f
     val edgeReveal by key(coverUrl) {
         animateFloatAsState(if (edgeVisible) 1f else 0f,
@@ -113,10 +123,30 @@ internal fun TabletPlayerScreen(
     }
     val edgeAlpha = if (edge != null) edgeReveal else 0f
     val foreground = if (edgeAlpha > .5f) playerForegroundForBackground(edge?.controlsColor) else Color.White
+    val artwork: @Composable (Modifier, Float) -> Unit = { artworkModifier, expansion ->
+        TabletPlayerArtwork(
+            metadata, playing, activeDynamicCover,
+            artworkModifier.onGloballyPositioned {
+                artworkBounds = Rect(it.positionInRoot(), it.size.toSize())
+                landscapeArtworkExpansion = expansion
+            }.graphicsLayer { alpha = if (sharedArtworkVisible) 0f else 1f },
+            onPainterReady = { url, painter -> if (url == coverUrl) fullArtwork = url to painter },
+            playbackScale = androidx.compose.ui.util.lerp(playbackScale, 1f, expansion),
+            interactive = sheet.isExpanded,
+            keepCoverVisible = shortWindowLayout,
+            poster = sharedPainter.takeIf { shortWindowLayout },
+            onDynamicError = { metadata?.let(container.playerViewModel::fallbackDynamicCover) },
+            edgeArtwork = edge, edgeAlpha = edgeAlpha,
+            onPrevious = container.playerConnection::seekToPrevious,
+            onNext = container.playerConnection::seekToNext,
+            landscapeExpansion = expansion,
+            retainDynamicOnTrackChange = shortWindowLayout && sheet.isExpanded,
+        )
+    }
 
     BottomSheet(
         state = sheet, modifier = modifier,
-        backgroundColor = Color(0xFF202024),
+        backgroundColor = PlayerBackground,
         expansionBounds = expansionOrigin?.surface,
         expansionRadius = sideBarOrigin?.let { with(density) { (it.surface.size.minDimension / 2f).toDp() } } ?: 24.dp,
         morphSpec = dockOrigin?.let { origin -> BottomSheetMorphSpec(
@@ -150,17 +180,22 @@ internal fun TabletPlayerScreen(
             if (sharedArtworkVisible) {
                 val radius = with(density) {
                     val targetRadius = (if (coverStyle == CoverStyle.Circle) targetArtwork.width / 2f else 12.dp.toPx()) *
-                        playbackScale * (1f - edgeAlpha)
+                        targetArtworkScale * (1f - edgeAlpha) * (1f - landscapeArtworkExpansion)
                     val sourceRadius = sideBarOrigin?.artwork?.size?.minDimension?.div(2f) ?: 12.dp.toPx()
                     (sourceRadius + (targetRadius - sourceRadius) * sheet.progress).toDp()
                 }
+                val fade = if (fillsLandscapeHalf) Modifier.landscapeArtworkFade {
+                    landscapeArtworkExpansion * PlayerMotionSpec.ExpandedUiReveal.transform(sheet.progress)
+                } else Modifier
                 Box(Modifier.align(AbsoluteAlignment.TopLeft).graphicsLayer {
                     translationX = visibleArtwork.left; translationY = visibleArtwork.top
                     shape = RoundedCornerShape(radius); clip = true
-                    shadowElevation = (12.dp * playbackScale * sheet.progress * (1f - edgeAlpha)).toPx()
-                }.size(with(density) { visibleArtwork.width.toDp() }, with(density) { visibleArtwork.height.toDp() })
+                    shadowElevation = (12.dp * targetArtworkScale * sheet.progress *
+                        (1f - edgeAlpha) * (1f - landscapeArtworkExpansion)).toPx()
+                }.size(with(density) { visibleArtwork.width.toDp() }, with(density) { visibleArtwork.height.toDp() }).then(fade)
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .coverEdgeFeather(edge, edgeAlpha * sheet.progress), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    .coverEdgeFeather(edge, edgeAlpha * sheet.progress),
+                    contentAlignment = androidx.compose.ui.Alignment.Center) {
                     if (sharedPainter != null) Image(sharedPainter, null, contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize().fillArtworkEdges())
                     else Icon(Icons.Rounded.MusicNote, null)
@@ -169,7 +204,7 @@ internal fun TabletPlayerScreen(
         },
     ) {
         Box(Modifier.fillMaxSize()
-            .background(if (expansionOrigin != null) Color.Transparent else Color(0xFF202024))
+            .background(if (expansionOrigin != null) Color.Transparent else PlayerBackground)
             .onGloballyPositioned { rootBounds = Rect(it.positionInRoot(), it.size.toSize()) }) {
             if (sheet.progress > 0f) FluidBackground(coverUrl, playing,
                 renderAlpha = fluidReveal * (1f - edgeAlpha) * (if (expansionOrigin != null)
@@ -196,20 +231,10 @@ internal fun TabletPlayerScreen(
                         onShowNowPlaying = ::showNowPlaying,
                     ),
                     slots = TabletPlayerSlots(
-                        artwork = { artworkModifier ->
-                            TabletPlayerArtwork(metadata, playing, activeDynamicCover,
-                                artworkModifier.onGloballyPositioned {
-                                    artworkBounds = Rect(it.positionInRoot(), it.size.toSize())
-                                }.graphicsLayer { alpha = if (sharedArtworkVisible) 0f else 1f },
-                                onPainterReady = { url, painter -> if (url == coverUrl) fullArtwork = url to painter },
-                                playbackScale = playbackScale, interactive = sheet.isExpanded,
-                                keepCoverVisible = shortWindowLayout,
-                                poster = sharedPainter.takeIf { shortWindowLayout },
-                                onDynamicError = { metadata?.let(container.playerViewModel::fallbackDynamicCover) },
-                                edgeArtwork = edge, edgeAlpha = edgeAlpha,
-                                onPrevious = container.playerConnection::seekToPrevious,
-                                onNext = container.playerConnection::seekToNext)
-                        },
+                        artwork = { artwork(it, 0f) },
+                        landscapeArtwork = if (shortWindowLayout) {
+                            TabletPlayerLandscapeArtwork(expanded = landscapeCover != null, content = artwork)
+                        } else null,
                         controls = { controlsModifier, compact ->
                             Box(controlsModifier) {
                                 PlayerControlsSection(

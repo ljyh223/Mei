@@ -14,6 +14,8 @@ import android.view.TextureView
 import android.view.View
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -107,7 +109,8 @@ fun DynamicCoverView(
     fitVideoWidth: Boolean = false,
     originalArtwork: Boolean = false,
     playerArtwork: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fadeFromStaticArtwork: Boolean = false,
 ) {
     val context = LocalContext.current
     var firstFrame by remember(cover?.cacheKey, cover?.url) { mutableStateOf(false) }
@@ -124,6 +127,7 @@ fun DynamicCoverView(
     val currentFrameSample by rememberUpdatedState(onFrameSample)
     val currentPreviewSample by rememberUpdatedState(onPreviewSample)
     val currentArtworkReady by rememberUpdatedState(onArtworkReady)
+    val currentPlaybackError by rememberUpdatedState(onPlaybackError)
     val currentTextureView by rememberUpdatedState(textureView)
     val previewModel = remember(context, cover?.previewUrl, imageUrl, fitVideoWidth) {
         val url = cover?.previewUrl ?: imageUrl
@@ -170,7 +174,7 @@ fun DynamicCoverView(
             }
             override fun onPlayerError(error: PlaybackException) {
                 failed = true
-                onPlaybackError(error)
+                currentPlaybackError(error)
             }
         }
         player?.addListener(listener)
@@ -215,8 +219,15 @@ fun DynamicCoverView(
     }
     val showVideo = player != null && !failed && firstFrame &&
         videoDimensions.first > 0 && videoDimensions.second > 0
+    val videoAlpha = if (fadeFromStaticArtwork) key(cover?.cacheKey, cover?.url) {
+        animateFloatAsState(
+            if (showVideo) 1f else 0f,
+            animationSpec = tween(180),
+            label = "MotionArtworkReveal",
+        ).value
+    } else if (showVideo) 1f else 0f
     Box(modifier.background(bottomFadeColor ?: Color.Transparent)) {
-        AsyncImage(
+        if (!fadeFromStaticArtwork) AsyncImage(
             model = if (playerArtwork) {
                 rememberPlayerArtworkRequest(cover?.previewUrl ?: imageUrl, originalArtwork)
                     ?.newBuilder()?.allowHardware(!fitVideoWidth)?.crossfade(false)?.build()
@@ -270,7 +281,7 @@ fun DynamicCoverView(
                         (frame.getChildAt(1) as BottomFadeView).fadeColor =
                             bottomFadeColor?.toArgb()
                     },
-                    modifier = Modifier.fillMaxSize().alpha(if (showVideo) 1f else 0f)
+                    modifier = Modifier.fillMaxSize().alpha(videoAlpha)
                 )
             }
         }

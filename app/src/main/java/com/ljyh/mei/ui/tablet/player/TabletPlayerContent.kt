@@ -2,22 +2,33 @@ package com.ljyh.mei.ui.tablet.player
 
 import androidx.compose.foundation.layout.*
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import com.ljyh.mei.ui.component.player.applemusic.Title
 import com.ljyh.mei.ui.component.player.controls.PlayerControlButton
 import com.ljyh.mei.ui.component.player.overlay.PlayerPanel
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.theme.LocalPlayerLightStatusBar
+import com.ljyh.mei.ui.motion.PlayerMotionSpec
 
 /** Pure presentation: no ViewModel, navigation, playback connection or device classification. */
 @Composable
@@ -28,7 +39,68 @@ internal fun TabletPlayerContent(
     modifier: Modifier = Modifier,
     shortWindowLayout: Boolean = false,
 ) {
-    Column(modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+    var consumedInsets by remember { mutableStateOf(WindowInsets(0)) }
+    BoxWithConstraints(modifier.fillMaxSize().onConsumedWindowInsetsChanged { consumedInsets = it }) {
+        val safeDrawing = WindowInsets.safeDrawing
+        val gutter = meiPageGutter()
+        val fontScale = LocalDensity.current.fontScale
+        val safePadding = safeDrawing.exclude(consumedInsets).asPaddingValues()
+        val direction = LocalLayoutDirection.current
+        val startInset = safePadding.calculateStartPadding(direction)
+        val endInset = safePadding.calculateEndPadding(direction)
+        val bodyWidth = minOf(maxWidth - startInset - endInset, 1400.dp) - gutter * 2
+        // Reserve the same gap from the actual midpoint with either placement of the cutout.
+        val panelInset = ((endInset - startInset) / 2).coerceAtLeast(0.dp)
+        val eligibleWidth = bodyWidth - panelInset * 2
+        val landscapeArtwork = slots.landscapeArtwork?.takeIf {
+            shortWindowLayout && tabletPlayerLayout(eligibleWidth.value, maxHeight.value, fontScale, true).twoPanes
+        }
+        if (landscapeArtwork != null) {
+            val expansion by animateFloatAsState(
+                if (landscapeArtwork.expanded) 1f else 0f,
+                animationSpec = PlayerMotionSpec.tween(600),
+                label = "LandscapeMotionArtworkBounds",
+            )
+            val safeWidth = maxWidth - startInset - endInset
+            val top = safePadding.calculateTopPadding()
+            val safeHeight = maxHeight - top - safePadding.calculateBottomPadding()
+            val layout = tabletPlayerLayout(bodyWidth.value, safeHeight.value, fontScale, true)
+            val normalSize = layout.artworkSizeDp.dp
+            val normalStart = startInset + ((safeWidth - 1400.dp) / 2).coerceAtLeast(0.dp) +
+                gutter + (layout.nowPlayingWidthDp.dp - normalSize) / 2
+            val artworkWidth = lerp(normalSize, maxWidth / 2, expansion)
+            val artworkHeight = lerp(normalSize, maxHeight, expansion)
+            val artworkStart = lerp(normalStart, 0.dp, expansion)
+            val artworkLeft = if (direction == LayoutDirection.Ltr) artworkStart else maxWidth - artworkStart - artworkWidth
+            val artworkTop = lerp(top + (safeHeight - normalSize) / 2, 0.dp, expansion)
+            landscapeArtwork.content(
+                Modifier.absoluteOffset(x = artworkLeft, y = artworkTop).size(artworkWidth, artworkHeight),
+                expansion,
+            )
+            val setPlayerLightStatusBar = LocalPlayerLightStatusBar.current
+            if (state.expanded && expansion > 0f) DisposableEffect(setPlayerLightStatusBar) {
+                setPlayerLightStatusBar(false)
+                onDispose { setPlayerLightStatusBar(null) }
+            }
+        }
+        TabletPlayerBody(
+            state, actions, slots, shortWindowLayout, safeDrawing,
+            artworkPlacedSeparately = landscapeArtwork != null, panelInset = panelInset,
+        )
+    }
+}
+
+@Composable
+private fun TabletPlayerBody(
+    state: TabletPlayerUiState,
+    actions: TabletPlayerActions,
+    slots: TabletPlayerSlots,
+    shortWindowLayout: Boolean,
+    safeDrawing: WindowInsets,
+    artworkPlacedSeparately: Boolean,
+    panelInset: Dp,
+) {
+    Column(Modifier.fillMaxSize().windowInsetsPadding(safeDrawing)) {
         if (!shortWindowLayout) {
             Row(Modifier.fillMaxWidth().padding(horizontal = meiPageGutter()),
                 verticalAlignment = Alignment.CenterVertically) {
@@ -54,7 +126,7 @@ internal fun TabletPlayerContent(
                     actions.onShowNowPlaying()
                 }
                 if (shortWindowLayout && layout.twoPanes) {
-                    PhoneLandscapePlayerPanes(state, actions, slots, layout, viewportHeight)
+                    PhoneLandscapePlayerPanes(state, actions, slots, layout, viewportHeight, artworkPlacedSeparately, panelInset)
                 } else if (layout.twoPanes) {
                     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(layout.paneGapDp.dp)) {
                         TabletNowPlayingPane(state, actions, slots, layout,
@@ -93,15 +165,18 @@ private fun PhoneLandscapePlayerPanes(
     slots: TabletPlayerSlots,
     layout: TabletPlayerLayout,
     viewportHeight: Dp,
+    artworkPlacedSeparately: Boolean,
+    panelInset: Dp,
 ) {
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(layout.paneGapDp.dp)) {
         Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-            slots.artwork(Modifier.size(layout.artworkSizeDp.dp))
+            if (!artworkPlacedSeparately) slots.artwork(Modifier.size(layout.artworkSizeDp.dp))
         }
         TabletPlayerPanels(
             panel = state.panel.takeIf { state.detailsVisible },
             style = state.animation,
-            modifier = Modifier.weight(1f).fillMaxHeight().clipToBounds(),
+            modifier = Modifier.weight(1f).fillMaxHeight()
+                .padding(start = if (artworkPlacedSeparately) panelInset else 0.dp).clipToBounds(),
         ) { panel, modifier ->
             if (panel == PlayerPanel.Queue) {
                 Box(modifier, contentAlignment = Alignment.Center) {

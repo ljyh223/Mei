@@ -31,4 +31,10 @@ internal class TabletPlayerSlots(
     val controls: @Composable (Modifier, compact: Boolean) -> Unit,
     val panel: @Composable (PlayerPanel, Modifier) -> Unit,
     val actions: @Composable (Modifier) -> Unit,
+    val landscapeArtwork: TabletPlayerLandscapeArtwork? = null,
+)
+
+internal class TabletPlayerLandscapeArtwork(
+    val expanded: Boolean,
+    val content: @Composable (Modifier, expansion: Float) -> Unit,
 )

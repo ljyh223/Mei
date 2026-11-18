@@ -148,13 +148,14 @@ data class DynamicCover(
     val cacheKey: String,
     val palette: CoverPalette? = null,
     val previewUrl: String? = null,
-    val portraitClip: MotionArtworkClip? = null
+    val portraitClip: MotionArtworkClip? = null,
+    val isSquareAppleArtwork: Boolean = false,
 ) {
     enum class Source { APPLE_MUSIC, NETEASE }
 
     fun portraitVariant(): DynamicCover? = portraitClip?.let {
         copy(url = it.url, cacheKey = "$cacheKey:portrait", palette = it.palette,
-            previewUrl = it.previewUrl, portraitClip = null)
+            previewUrl = it.previewUrl, portraitClip = null, isSquareAppleArtwork = false)
     }
 }
 
@@ -337,7 +338,8 @@ class DynamicCoverRepository @Inject constructor(
         appleMatchLog { "motion albumId=$id square=${motion.square != null} portrait=${motion.portrait != null}" }
         val primary = motion.square ?: motion.portrait ?: return null
         return DynamicCover(song.id, primary.url, DynamicCover.Source.APPLE_MUSIC,
-            "dynamic:apple:$id", primary.palette, primary.previewUrl, motion.portrait)
+            "dynamic:apple:$id", primary.palette, primary.previewUrl, motion.portrait,
+            isSquareAppleArtwork = motion.square != null)
     }
 
     private suspend fun loadAlbumMatches(): Map<String, AlbumMatchEntry> {

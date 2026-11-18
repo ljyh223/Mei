@@ -34,6 +34,93 @@ import org.robolectric.annotation.LooperMode
 class TabletPlayerContentTest {
     @get:Rule val compose = createEmptyComposeRule()
 
+    @Test fun phoneLandscapeArtworkReachesTheWindowEdgesAndKeepsDetailsOnTheRight() {
+        var width by mutableStateOf(740.dp)
+        var phoneLandscape by mutableStateOf(true)
+        var expandedArtwork by mutableStateOf(true)
+        var artworkMounts = 0
+        var artworkDisposals = 0
+        var artworkExpansion = 1f
+        var state by mutableStateOf(TabletPlayerUiState("Song", "Artist", false, PlayerPanel.Lyrics, false))
+        val actions = TabletPlayerActions({}, {}, {}, {}, {})
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                Box(Modifier.size(width, 320.dp).testTag("viewport").consumeWindowInsets(WindowInsets.safeDrawing)) {
+                    TabletPlayerContent(
+                        state, actions, TabletPlayerSlots(
+                            artwork = { Box(it.testTag("framed-artwork")) },
+                            controls = { modifier, _ -> Box(modifier.height(64.dp).testTag("controls")) },
+                            panel = { panel, modifier -> Box(modifier.testTag(panel.name)) },
+                            actions = {},
+                            landscapeArtwork = TabletPlayerLandscapeArtwork(expandedArtwork) { modifier, expansion ->
+                                SideEffect { artworkExpansion = expansion }
+                                DisposableEffect(Unit) {
+                                    artworkMounts++
+                                    onDispose { artworkDisposals++ }
+                                }
+                                Box(modifier.testTag("edge-to-edge-artwork"))
+                            },
+                        ),
+                        shortWindowLayout = phoneLandscape,
+                    )
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val viewport = compose.onNodeWithTag("viewport").fetchSemanticsNode().boundsInRoot
+            val artwork = compose.onNodeWithTag("edge-to-edge-artwork").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertEquals(viewport.left, artwork.left, 1f)
+            assertEquals(viewport.center.x, artwork.right, 1f)
+            assertEquals(viewport.top, artwork.top, 1f)
+            assertEquals(viewport.bottom, artwork.bottom, 1f)
+            assertTrue(compose.onNodeWithTag("controls").fetchSemanticsNode().boundsInRoot.left > artwork.right)
+            compose.onNodeWithTag("framed-artwork").assertDoesNotExist()
+
+            for (panel in PlayerPanel.entries) {
+                compose.runOnIdle { state = state.copy(panel = panel, detailsVisible = true) }
+                assertEquals(artwork, compose.onNodeWithTag("edge-to-edge-artwork").fetchSemanticsNode().boundsInRoot)
+                assertTrue(compose.onNodeWithTag(panel.name).fetchSemanticsNode().boundsInRoot.left > artwork.right)
+            }
+
+            compose.mainClock.autoAdvance = false
+            compose.runOnIdle { expandedArtwork = false }
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+            compose.mainClock.advanceTimeBy(250)
+            compose.waitForIdle()
+            val shrinking = compose.onNodeWithTag("edge-to-edge-artwork").fetchSemanticsNode().boundsInRoot
+            assertTrue("Artwork should shrink from $artwork to $shrinking, expansion=$artworkExpansion", shrinking.width < artwork.width)
+            assertTrue(shrinking.left > artwork.left)
+            assertTrue(shrinking.top >= artwork.top)
+            compose.mainClock.advanceTimeBy(700)
+            compose.waitForIdle()
+            val normal = compose.onNodeWithTag("edge-to-edge-artwork").fetchSemanticsNode().boundsInRoot
+            assertEquals(normal.width, normal.height, 1f)
+            compose.runOnIdle { expandedArtwork = true }
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+            compose.mainClock.advanceTimeBy(700)
+            compose.waitForIdle()
+            assertEquals(artwork, compose.onNodeWithTag("edge-to-edge-artwork").fetchSemanticsNode().boundsInRoot)
+            compose.runOnIdle {
+                assertEquals(1, artworkMounts)
+                assertEquals(0, artworkDisposals)
+            }
+            compose.mainClock.autoAdvance = true
+
+            compose.runOnIdle { width = 600.dp }
+            compose.onNodeWithTag("edge-to-edge-artwork").assertDoesNotExist()
+            compose.onNodeWithTag("framed-artwork").assertIsDisplayed()
+            compose.runOnIdle { width = 1000.dp; phoneLandscape = false }
+            compose.onNodeWithTag("edge-to-edge-artwork").assertDoesNotExist()
+            compose.onNodeWithTag("framed-artwork").assertIsDisplayed()
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun phoneLandscapeKeepsTheLargeCoverWhenSwitchingPanels() {
         var state by mutableStateOf(TabletPlayerUiState("Song", "Artist", false, PlayerPanel.Lyrics, false))
         var collapsed = 0
