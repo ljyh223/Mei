@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,7 @@ internal fun LandscapeArtworkHeader(
     onPlayAll: () -> Unit,
     fillArtworkHeight: Boolean = false,
     artworkAspectRatio: Float = 1f,
+    actionAlignment: Alignment = Alignment.BottomStart,
     artwork: @Composable (Modifier) -> Unit,
     more: @Composable () -> Unit,
 ) {
@@ -27,6 +29,7 @@ internal fun LandscapeArtworkHeader(
         val artworkWidth = maxOf(artworkHeight * artworkAspectRatio, 192.dp).coerceAtMost(maxWidth)
         MeiArtworkGlassActions(
             modifier = Modifier.width(artworkWidth).height(artworkHeight),
+            actionAlignment = actionAlignment,
             artwork = { artwork(Modifier.matchParentSize()) },
         ) {
             MeiArtworkPlayButton(

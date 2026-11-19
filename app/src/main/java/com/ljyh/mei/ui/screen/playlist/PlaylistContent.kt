@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,10 +24,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -35,6 +38,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.playback.queue.QueueSource
+import com.ljyh.mei.ui.component.artwork.ExpandedLikedCoverActionAlignment
+import com.ljyh.mei.ui.component.artwork.ExpandedLikedCoverStageRatio
+import com.ljyh.mei.ui.component.artwork.LandscapeArtworkHeader
+import com.ljyh.mei.ui.component.artwork.PlaylistCoverStage
+import com.ljyh.mei.ui.component.dialog.FullScreenImageViewer
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
 import com.ljyh.mei.ui.component.glass.MeiStatusBarBackdrop
 import com.ljyh.mei.ui.component.glass.meiArtworkTopBarBackground
@@ -50,7 +58,6 @@ import com.ljyh.mei.ui.screen.playlist.component.PlaylistActionMenu
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistBackground
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistCoverArtwork
 import com.ljyh.mei.ui.screen.playlist.component.PlaylistDetailHeader
-import com.ljyh.mei.ui.component.artwork.LandscapeArtworkHeader
 import com.ljyh.mei.ui.screen.playlist.layout.PlaylistLayout
 import com.ljyh.mei.ui.screen.playlist.layout.SinglePanePlaylistLayout
 import com.ljyh.mei.ui.screen.playlist.layout.TwoPanePlaylistLayout
@@ -163,13 +170,18 @@ internal fun PlaylistContent(
                             titleBottom.value = coordinates.positionInRoot().y + coordinates.size.height
                         }
                         if (compact && maxArtworkHeight != null) {
+                            val headerStyle = if (state.isLoading) state.loadingHeaderStyle else uiData.headerStyle
+                            val liked = headerStyle == PlaylistHeaderStyle.Liked && landscapeArtwork == null
                             LandscapeArtworkHeader(
                                 maxArtworkHeight = maxArtworkHeight,
                                 canPlay = !state.isLoading && (uiData.count > 0 || state.trackIds.isNotEmpty()),
                                 onPlayAll = actions.onPlayAll,
                                 fillArtworkHeight = landscapeArtwork != null,
+                                artworkAspectRatio = if (liked) 1f / ExpandedLikedCoverStageRatio else 1f,
+                                actionAlignment = if (liked) ExpandedLikedCoverActionAlignment else Alignment.BottomStart,
                                 artwork = landscapeArtwork ?: { modifier ->
-                                    PlaylistCoverArtwork(
+                                    if (liked) LandscapeLikedPlaylistArtwork(state, modifier)
+                                    else PlaylistCoverArtwork(
                                         cover = uiData.cover,
                                         coverList = uiData.coverList,
                                         headerStyle = uiData.headerStyle,
@@ -223,6 +235,25 @@ internal fun PlaylistContent(
                 actions = actions.menu,
             )
         }
+    }
+}
+
+@Composable
+private fun LandscapeLikedPlaylistArtwork(state: PlaylistUiState, modifier: Modifier) {
+    val playlist = state.uiData
+    key(state.playlistId) {
+        var preview by remember { mutableStateOf<String?>(null) }
+        Box(modifier, contentAlignment = Alignment.Center) {
+            PlaylistCoverStage(
+                covers = playlist.coverList.take(3),
+                liked = true,
+                onCoverClick = { preview = it },
+                modifier = Modifier.aspectRatio(1f / ExpandedLikedCoverStageRatio),
+                isLoading = state.isLoading,
+                expandedLikedArtwork = true,
+            )
+        }
+        preview?.let { FullScreenImageViewer(it) { preview = null } }
     }
 }
 
