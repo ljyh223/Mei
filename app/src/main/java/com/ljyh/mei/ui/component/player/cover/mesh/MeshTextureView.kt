@@ -129,16 +129,18 @@ private class TextureMeshSession(
     private var ready = false
     private var running = true
     private var pendingKey: String? = null
+    private var frameScheduled = false
 
     private val drawFrame = object : Choreographer.FrameCallback {
         override fun doFrame(frameTimeNanos: Long) {
+            frameScheduled = false
             if (closing.get() || !running || !ready) return
             try {
                 renderer.onDrawFrame(null)
                 check(EGL14.eglSwapBuffers(display, window)) { "Mesh texture swap failed" }
                 // Readiness is published only after the first album frame has been submitted.
                 pendingKey?.let { pendingKey = null; onRendered(it) }
-                clock?.postFrameCallback(this)
+                if (renderer.needsAnotherFrame) requestFrame()
             } catch (error: Exception) {
                 running = false
                 Timber.tag("MeshTextureView").e(error, "Mesh rendering stopped")
@@ -161,7 +163,7 @@ private class TextureMeshSession(
                 renderer.setPlaying(initialSettings.playing)
                 ready = true
                 clock = Choreographer.getInstance()
-                clock?.postFrameCallback(drawFrame)
+                requestFrame()
             } catch (error: Exception) {
                 running = false
                 Timber.tag("MeshTextureView").e(error, "Unable to initialize mesh texture")
@@ -174,7 +176,10 @@ private class TextureMeshSession(
         if (closing.get() || bitmap.isRecycled) return
         val owned = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
         if (!handler.post {
-            if (ready && !closing.get()) renderer.setAlbum(owned, key) else owned.recycle()
+            if (ready && !closing.get()) {
+                renderer.setAlbum(owned, key)
+                requestFrame()
+            } else owned.recycle()
         }) owned.recycle()
     }
 
@@ -189,13 +194,17 @@ private class TextureMeshSession(
                 }
                 renderer.setStaticMode(settings.static)
                 renderer.setPlaying(settings.playing)
+                requestFrame()
             }
         }
     }
 
     fun resize(width: Int, height: Int) {
         if (!closing.get()) handler.post {
-            if (ready && !closing.get()) renderer.onSurfaceChanged(null, width.coerceAtLeast(1), height.coerceAtLeast(1))
+            if (ready && !closing.get()) {
+                renderer.onSurfaceChanged(null, width.coerceAtLeast(1), height.coerceAtLeast(1))
+                requestFrame()
+            }
         }
     }
 
@@ -204,10 +213,23 @@ private class TextureMeshSession(
             if (!closing.get()) {
                 val resume = visible && !running && ready
                 running = visible
-                if (!visible) clock?.removeFrameCallback(drawFrame)
-                else if (resume) clock?.postFrameCallback(drawFrame)
+                if (!visible) {
+                    clock?.removeFrameCallback(drawFrame)
+                    frameScheduled = false
+                } else if (resume) {
+                    renderer.resetFrameTime()
+                    requestFrame()
+                }
             }
         }
+    }
+
+    // Called only on the render Looper. Coalesce settings/album/resize wake-ups into one frame.
+    private fun requestFrame() {
+        if (closing.get() || !running || !ready || frameScheduled) return
+        val choreographer = clock ?: return
+        frameScheduled = true
+        choreographer.postFrameCallback(drawFrame)
     }
 
     fun stop() = setVisible(false)

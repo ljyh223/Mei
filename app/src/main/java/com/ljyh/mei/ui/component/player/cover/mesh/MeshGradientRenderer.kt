@@ -37,11 +37,15 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     private var viewWidth: Int = 0
     private var viewHeight: Int = 0
 
-    private var accumulatedPlayingNanos: Long = 0L
-    private var lastFrameNanos: Long = System.nanoTime()
+    private val frameClock = MeshFrameClock()
 
-    @Volatile
-    private var isPlaying: Boolean = true
+    internal val needsAnotherFrame: Boolean
+        get() = frameClock.needsAnotherFrame(
+            hasArtwork = meshStates.isNotEmpty() && fbo != 0,
+            transitioning = meshStates.size > 1 || meshStates.any { it.targetAlpha != 0f },
+        )
+
+    fun resetFrameTime() = frameClock.resetFrameTime()
 
     @Volatile
     var flowSpeed: Float = 0.25f
@@ -51,9 +55,6 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
     @Volatile
     var subdivision: Int = 50
-
-    private var staticMode: Boolean = false
-    private var isStatic: Boolean = false
 
     private var pendingAlbum: Bitmap? = null
     private var pendingAlbumKey: String? = null
@@ -81,6 +82,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
         // EGL textures and framebuffers do not survive a recreated GL context.
         // Rebuild from the retained artwork instead of drawing an empty black frame.
+        frameClock.resetFrameTime()
         synchronized(this) {
             meshStates.clear()
             fbo = 0
@@ -112,6 +114,7 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
     }
 
     fun rebuildFbo() {
+        frameClock.resetFrameTime()
         scaledWidth = maxOf(1, (viewWidth * renderScale).toInt())
         scaledHeight = maxOf(1, (viewHeight * renderScale).toInt())
         createFbo(scaledWidth, scaledHeight)
@@ -126,16 +129,9 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
             return
         }
 
-        if (staticMode && isStatic) return
-
-        val now = System.nanoTime()
-        val playing = isPlaying
-        val frameDelta = now - lastFrameNanos
-        lastFrameNanos = now
-        if (playing) {
-            accumulatedPlayingNanos += frameDelta
-        }
-        val time = accumulatedPlayingNanos / 1e9f * flowSpeed
+        // Every requested frame must fill the EGL back buffer, even when motion is frozen.
+        // Buffer contents are not guaranteed to survive a swap; hosts stop scheduling instead.
+        val time = frameClock.timeSeconds(System.nanoTime()) * flowSpeed
 
         updateMeshStates(1f / 60f)
 
@@ -195,7 +191,6 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
 
             processed.recycle()
 
-            isStatic = false
             val newState = MeshState(mesh, textureId, key, if (meshStates.isEmpty()) 1f else 0f, 1f)
             for (existing in meshStates) {
                 existing.targetAlpha = -1f
@@ -230,23 +225,11 @@ class MeshGradientRenderer : GLSurfaceView.Renderer {
                 iter.remove()
             }
         }
-
-        if (staticMode && meshStates.size == 1 && meshStates[0].alpha >= 1f) {
-            isStatic = true
-        }
     }
 
-    fun setStaticMode(enable: Boolean) {
-        staticMode = enable
-        if (!enable) isStatic = false
-    }
+    fun setStaticMode(enable: Boolean) = frameClock.setStaticMode(enable)
 
-    fun setPlaying(playing: Boolean) {
-        if (!isPlaying && playing) {
-            lastFrameNanos = System.nanoTime()
-        }
-        isPlaying = playing
-    }
+    fun setPlaying(playing: Boolean) = frameClock.setPlaying(playing)
 
     private fun easeInOutSine(t: Float): Float {
         val clamped = t.coerceIn(0f, 1f)
@@ -495,8 +478,19 @@ internal class MeshBackgroundView(context: Context) : GLSurfaceView(context), Me
         renderer.onAlbumRendered = { key -> post { onAlbumRendered?.invoke(key) } }
         setEGLContextClientVersion(3)
         setEGLConfigChooser(8, 8, 8, 8, 0, 0)
-        setRenderer(renderer)
-        renderMode = RENDERMODE_CONTINUOUSLY
+        setRenderer(object : Renderer {
+            override fun onSurfaceCreated(gl: GL10?, config: javax.microedition.khronos.egl.EGLConfig?) =
+                renderer.onSurfaceCreated(gl, config)
+
+            override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) =
+                renderer.onSurfaceChanged(gl, width, height)
+
+            override fun onDrawFrame(gl: GL10?) {
+                renderer.onDrawFrame(gl)
+                if (renderer.needsAnotherFrame) requestRender()
+            }
+        })
+        renderMode = RENDERMODE_WHEN_DIRTY
     }
 
     override fun setAlbum(bitmap: Bitmap, key: String) {
@@ -504,38 +498,47 @@ internal class MeshBackgroundView(context: Context) : GLSurfaceView(context), Me
         val owned = bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return
         submittedAlbum = bitmap
         submittedAlbumKey = key
-        queueEvent { renderer.setAlbum(owned, key) }
+        updateRenderer { renderer.setAlbum(owned, key) }
     }
 
     override fun setFlowSpeed(speed: Float) {
         if (appliedFlowSpeed == speed) return
         appliedFlowSpeed = speed
-        renderer.flowSpeed = speed
+        updateRenderer { renderer.flowSpeed = speed }
     }
 
     override fun setRenderScale(scale: Float) {
         if (appliedRenderScale == scale) return
         appliedRenderScale = scale
-        renderer.renderScale = scale
-        queueEvent { renderer.rebuildFbo() }
+        updateRenderer {
+            renderer.renderScale = scale
+            renderer.rebuildFbo()
+        }
     }
 
     override fun setSubdivision(level: Int) {
         if (appliedSubdivision == level) return
         appliedSubdivision = level
-        renderer.subdivision = level
+        updateRenderer { renderer.subdivision = level }
     }
 
     override fun setStaticMode(enable: Boolean) {
         if (appliedStaticMode == enable) return
         appliedStaticMode = enable
-        queueEvent { renderer.setStaticMode(enable) }
+        updateRenderer { renderer.setStaticMode(enable) }
     }
 
     override fun setPlaying(playing: Boolean) {
         if (appliedPlaying == playing) return
         appliedPlaying = playing
-        renderer.setPlaying(playing)
+        updateRenderer { renderer.setPlaying(playing) }
+    }
+
+    private fun updateRenderer(update: () -> Unit) {
+        queueEvent {
+            update()
+            requestRender()
+        }
     }
 
     override fun onDetachedFromWindow() {

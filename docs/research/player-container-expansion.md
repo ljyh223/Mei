@@ -114,7 +114,7 @@ A(p) = lerp(miniArtworkRect, expandedArtworkRect, p)
 
 ## 4. 背景如何推进
 
-第一阶段曾使用纯 Compose 静态底色验证几何；当前已恢复流体背景，采用下面第二条 TextureView／EGL 路线。`MeshStaticModeKey` 仍然使用 GLSurfaceView，不能将它误认为纯 Compose 背景。
+第一阶段曾使用纯 Compose 静态底色验证几何；当前已恢复流体背景，采用下面第二条 TextureView／EGL 路线。`MeshStaticModeKey` 由两种宿主共用的 `MeshGradientRenderer` 消费，不是纯 Compose 背景。静态模式冻结流动时间，切歌渐变仍完成；画面稳定后 SurfaceView 使用按需绘制，TextureView 停止提交帧回调。封面、参数、尺寸或可见性变化时重新请求绘制，每次提交都完整填充后缓冲区，不依赖 EGL 交换后的内容保留。恢复动态或重新显示时重置帧计时基准，避免把静止／隐藏时长计入动画。
 
 第二阶段比较两条路线：
 
