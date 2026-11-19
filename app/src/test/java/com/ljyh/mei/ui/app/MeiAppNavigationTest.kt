@@ -256,4 +256,21 @@ class MeiAppNavigationTest {
         }
     }
 
+    @Test fun standardSongSearchPreservesQueryAndSourceArguments() {
+        for (pages in listOf(SharedMeiPageContent, TabletPageContent)) {
+            val nav = controller(pages)
+            nav.navigate(Screen.MusicFreePlugins.route)
+            val query = "AC/DC & 你好 +?"
+            Screen.SearchResult.navigate(nav) {
+                addPath(android.net.Uri.encode(query))
+                addPath("1")
+                addQuery("source", "test-plugin")
+            }
+            assertEquals(query, nav.currentBackStackEntry!!.arguments!!.getString("query"))
+            assertEquals("test-plugin", nav.currentBackStackEntry!!.arguments!!.getString("source"))
+            assertTrue(nav.popBackStack())
+            assertEquals(Screen.MusicFreePlugins.route, nav.currentDestination!!.route)
+        }
+    }
+
 }

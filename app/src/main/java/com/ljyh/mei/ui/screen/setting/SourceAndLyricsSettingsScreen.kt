@@ -51,6 +51,12 @@ fun SourceAndLyricsSettingsScreen() {
                     icon = { Icon(Icons.Rounded.Lyrics, contentDescription = null) },
                     onClick = { Screen.LxSources.navigate(navController) },
                 )
+                PreferenceEntry(
+                    title = { Text("MusicFree 插件") },
+                    description = "导入插件、搜索与播放歌曲",
+                    icon = { Icon(Icons.Rounded.Lyrics, contentDescription = null) },
+                    onClick = { Screen.MusicFreePlugins.navigate(navController) },
+                )
                 val (qqLyricApi, onQqLyricApi) = rememberEnumPreference(QqLyricApiKey, QqLyricApi.Auto)
                 ListPreference(
                     title = { Text("QQ 搜索与歌词接口") },

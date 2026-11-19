@@ -447,7 +447,8 @@ class MusicService : MediaLibraryService(),
 
 
         // The manager must exist before restored items publish timeline events.
-        queueManager = PlaybackQueueManager(player, apiService, weApiService, scope)
+        queueManager = PlaybackQueueManager(player, apiService, weApiService, scope,
+            externalDetails = { ids -> mediaUriProvider.externalDetails(ids).map { it.toMediaItem() } })
         restorePlayerState()
         scope.launch {
             while (isActive) {
@@ -815,7 +816,8 @@ class MusicService : MediaLibraryService(),
                     return@runBlocking dataSpec.buildUpon().setKey(cacheKey).build()
                 }
                 val resolved = mediaUriProvider.resolveMedia(mediaId, quality)
-                dataSpec.buildUpon().setUri(resolved.uri).setKey(resolved.cacheKey).build()
+                dataSpec.buildUpon().setUri(resolved.uri).setKey(resolved.cacheKey)
+                    .setHttpRequestHeaders(dataSpec.httpRequestHeaders + resolved.headers).build()
             }
         }
     }

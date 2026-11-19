@@ -182,6 +182,10 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun like(id: String) {
+        if (id.toLongOrNull()?.let { it < 0 } == true) {
+            viewModelScope.launch { _likeFeedback.emit("此音源歌曲暂不支持网易云红心") }
+            return
+        }
         if (id.toLongOrNull() != likeSongId) return
         val current = (_like.value as? Resource.Success)?.data ?: return
         val desired = !current

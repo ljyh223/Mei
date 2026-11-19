@@ -81,7 +81,7 @@ private fun TabletSearchResults(state: SearchResultContentState) = with(state) {
                     item("category_heading", span = { GridItemSpan(maxLineSpan) }) {
                         Column {
                             SearchCategoryHeading(type, page.data?.totalCount,
-                                horizontalPadding = if (type == SearchType.Song) gutter else 0.dp)
+                                horizontalPadding = if (type == SearchType.Song) gutter else 0.dp, sourceName = actions.songSourceName)
                             if (type == SearchType.Song && metrics.songColumns) TabletSearchSongHeading()
                         }
                     }
@@ -96,7 +96,7 @@ private fun TabletSearchResults(state: SearchResultContentState) = with(state) {
                         }
                     }
                     page.error && page.data == null -> item("error", span = { GridItemSpan(maxLineSpan) }) {
-                        SearchStatusPanel("搜索暂时不可用", "检查网络连接后再试一次", "重新加载", onRetry)
+                        SearchStatusPanel("搜索暂时不可用", page.message ?: "检查网络连接后再试一次", "重新加载", onRetry)
                     }
                     page.data?.isEmpty == true -> item("empty", span = { GridItemSpan(maxLineSpan) }) {
                         SearchStatusPanel("未找到“$keyword”相关${if (type == SearchType.All) "结果" else type.displayName}",

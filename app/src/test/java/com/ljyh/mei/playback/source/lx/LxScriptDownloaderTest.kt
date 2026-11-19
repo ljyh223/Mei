@@ -49,6 +49,18 @@ class LxScriptDownloaderTest {
         assertEquals("actual.js", result.filename)
     }
 
+    @Test fun jsonIsAllowedOnlyForTheExplicitSubscriptionReader() = runBlocking {
+        val json = "{\"plugins\":[]}".toByteArray()
+        server.createContext("/manifest.json") { it.reply(200, json, "application/json") }
+        server.createContext("/manifest") { it.responseHeaders.add("Location", "/manifest.json"); it.sendResponseHeaders(302, -1); it.close() }
+        server.createContext("/page") { it.reply(200, "<html>not a subscription</html>".toByteArray(), "text/html") }
+        assertTrue(runCatching { downloader.download(url("/manifest.json")) }.exceptionOrNull() is LxScriptImportException)
+        val result = downloader.download(url("/manifest"), allowJson = true)
+        assertArrayEquals(json, result.bytes)
+        assertEquals(url("/manifest.json"), result.url)
+        assertTrue(runCatching { downloader.download(url("/page"), allowJson = true) }.exceptionOrNull() is LxScriptImportException)
+    }
+
     @Test fun acceptsDirectDownloadEndpointsWithoutJsSuffix() = runBlocking {
         server.createContext("/download") { it.reply(200, script, "application/octet-stream") }
         assertEquals("网络音源.js", downloader.download(url("/download")).filename)

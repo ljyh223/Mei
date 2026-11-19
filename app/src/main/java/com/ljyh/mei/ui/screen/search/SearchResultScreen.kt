@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
@@ -52,6 +54,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.domain.*
+import com.ljyh.mei.playback.source.musicfree.MusicFreePlugin
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.QueueSource
 import com.ljyh.mei.ui.component.glass.MeiGlassBackButton
@@ -89,6 +92,9 @@ internal fun SearchResultScreen(
     val page by viewModel.pageState.collectAsState()
     val selected by viewModel.currentTab.collectAsState()
     val keyword by viewModel.currentQuery.collectAsState()
+    val sourceId by viewModel.currentSource.collectAsState()
+    val sources by viewModel.sources.collectAsState()
+    val sourceName = sources.firstOrNull { it.id == sourceId }?.name ?: "网易云"
     LaunchedEffect(query, type) { viewModel.onSearchInit(query, type) }
 
     val navController = LocalNavController.current
@@ -96,6 +102,9 @@ internal fun SearchResultScreen(
     val metadata by player?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) }
     val playing by player?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
     val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
+    }
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
@@ -124,27 +133,33 @@ internal fun SearchResultScreen(
                 Screen.SearchResult.navigate(navController) {
                     addPath(Uri.encode(next))
                     addPath(searchType.toString())
+                    sourceId?.let { addQuery("source", Uri.encode(it)) }
                 }
             }
         }
     }
     BackHandler(enabled = editing) { leaveEditing() }
     val playSongs: (List<MediaMetadata>, Int, String) -> Unit = { songs, index, section ->
-        player?.playQueue(ListQueue(
-            id = "SearchQueue-$keyword-$section",
-            title = "搜索：$keyword",
-            items = songs.map { it.id.toString() to it.toMediaItem() },
-            startIndex = index, position = 0, source = source,
-        ))
+        viewModel.prepareSongs(songs) {
+            player?.playQueue(ListQueue(
+                id = "SearchQueue-$keyword-$section-${sourceId ?: "netease"}",
+                title = "搜索：$keyword",
+                items = songs.map { it.id.toString() to it.toMediaItem() },
+                startIndex = index, position = 0, source = source,
+            ))
+        }
     }
     val actions = SearchActions(
         onSong = playSongs,
-        onMore = { track, anchor -> menuTrack = TrackMenuTarget(track, anchor, source) },
+        onMore = { track, anchor ->
+            viewModel.prepareSongs(listOf(track)) { menuTrack = TrackMenuTarget(track, anchor, source) }
+        },
         onArtist = { Screen.Artist.navigate(navController) { addPath(it.id.toString()) } },
         onAlbum = { Screen.Album.navigate(navController) { addPath(it.id.toString()) } },
         onPlaylist = { Screen.PlayList.navigate(navController) { addPath(it.id.toString()) } },
         onType = viewModel::onTabChange,
         playingId = metadata?.id?.takeIf { playing },
+        songSourceName = sourceName,
     )
     val stateHolder = rememberSaveableStateHolder()
     SearchResultChrome(
@@ -187,7 +202,7 @@ internal fun SearchResultScreen(
                                 unfocusedIndicatorColor = Color.Transparent,
                             ),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = { submit(input.text, SearchType.All.type) }),
+                            keyboardActions = KeyboardActions(onSearch = { submit(input.text, selected.type) }),
                             trailingIcon = {
                                 if (input.text.isNotEmpty()) IconButton(onClick = {
                                     input = TextFieldValue()
@@ -202,7 +217,9 @@ internal fun SearchResultScreen(
                     }
                 },
                 filters = if (editing) null else { filterModifier ->
-                    SearchTypeFilterRow(selected, viewModel::onTabChange, filterModifier)
+                    SearchTypeFilterRow(selected, viewModel::onTabChange, filterModifier,
+                        sources = sources, sourceId = sourceId, onSourceSelect = viewModel::onSourceChange,
+                        onManageSources = { Screen.MusicFreePlugins.navigate(navController) })
                 },
             )
         },
@@ -220,7 +237,7 @@ internal fun SearchResultScreen(
             )
         } else {
             key(keyword) {
-                stateHolder.SaveableStateProvider("$keyword-${selected.name}") {
+                stateHolder.SaveableStateProvider("$keyword-${selected.name}-${sourceId.takeIf { selected == SearchType.Song } ?: "netease"}") {
                     resultsContent(SearchResultContentState(page, selected, keyword, actions, viewModel::retry,
                         viewModel::loadMore, contentTopPadding))
                 }
@@ -236,6 +253,10 @@ internal fun SearchTypeFilterRow(
     selected: SearchType,
     onSelect: (SearchType) -> Unit,
     modifier: Modifier = Modifier.padding(meiPageHorizontalPadding()).padding(top = 4.dp, bottom = 8.dp),
+    sources: List<MusicFreePlugin> = emptyList(),
+    sourceId: String? = null,
+    onSourceSelect: ((String?) -> Unit)? = null,
+    onManageSources: () -> Unit = {},
 ) {
     val types = remember { SearchType.entries.filter { it != SearchType.History } }
     val ink = meiGlassContentColor()
@@ -244,7 +265,10 @@ internal fun SearchTypeFilterRow(
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val labelStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-    val minTabWidth = maxOf(48.dp, with(density) {
+    val songTabWidth = if (onSourceSelect != null) with(density) {
+        measurer.measure(SearchType.Song.displayName, labelStyle, maxLines = 1).size.width.toDp()
+    } + 64.dp else 48.dp
+    val minTabWidth = maxOf(songTabWidth, with(density) {
         types.maxOf { measurer.measure(it.displayName, labelStyle, maxLines = 1).size.width }.toDp()
     } + 32.dp)
     MeiGlassSurface(
@@ -255,17 +279,29 @@ internal fun SearchTypeFilterRow(
             val selectedIndex = types.indexOf(selected).coerceAtLeast(0)
             val tabs: @Composable () -> Unit = {
                 types.forEach { type ->
-                    Tab(
-                        selected = selected == type,
-                        onClick = { onSelect(type) },
-                        selectedContentColor = ink,
-                        unselectedContentColor = secondaryInk,
-                        text = {
-                            Text(type.displayName, style = MaterialTheme.typography.titleSmall,
-                                fontWeight = if (selected == type) FontWeight.SemiBold else FontWeight.Normal,
-                                maxLines = 1, softWrap = false)
-                        },
-                    )
+                    if (type == SearchType.Song && onSourceSelect != null) {
+                        Tab(selected = selected == type, onClick = { onSelect(type) },
+                            selectedContentColor = ink, unselectedContentColor = secondaryInk) {
+                            Row(Modifier.heightIn(min = 48.dp).padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(type.displayName, style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (selected == type) FontWeight.SemiBold else FontWeight.Normal,
+                                    maxLines = 1, softWrap = false)
+                                SongSourceMenu(sources, sourceId, onSourceSelect, onManageSources)
+                            }
+                        }
+                    } else {
+                        Tab(
+                            selected = selected == type,
+                            onClick = { onSelect(type) },
+                            selectedContentColor = ink,
+                            unselectedContentColor = secondaryInk,
+                            text = {
+                                Text(type.displayName, style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (selected == type) FontWeight.SemiBold else FontWeight.Normal,
+                                    maxLines = 1, softWrap = false)
+                            },
+                        )
+                    }
                 }
             }
             val indicator: @Composable TabIndicatorScope.() -> Unit = {
@@ -287,6 +323,32 @@ internal fun SearchTypeFilterRow(
     }
 }
 
+/** Only this menu selects a song provider; other search categories keep their existing catalogue. */
+@Composable
+private fun SongSourceMenu(
+    sources: List<MusicFreePlugin>, sourceId: String?, onSelect: (String?) -> Unit, onManage: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val sourceName = sources.firstOrNull { it.id == sourceId }?.name ?: "网易云"
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Rounded.ArrowDropDown, "选择单曲音源，当前：$sourceName")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            val choices = listOf(null to "网易云") + sources.map { it.id to it.name }
+            choices.forEach { (id, name) ->
+                DropdownMenuItem(
+                    text = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    leadingIcon = { if (sourceId == id) Icon(Icons.Rounded.Check, "已选择") else Spacer(Modifier.size(24.dp)) },
+                    onClick = { expanded = false; onSelect(id) },
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(text = { Text("管理 MusicFree 插件") }, onClick = { expanded = false; onManage() })
+        }
+    }
+}
+
 internal data class SearchActions(
     val onSong: (List<MediaMetadata>, Int, String) -> Unit,
     val onMore: (MediaMetadata, IntRect) -> Unit,
@@ -295,6 +357,7 @@ internal data class SearchActions(
     val onPlaylist: (SearchPlaylist) -> Unit,
     val onType: (SearchType) -> Unit,
     val playingId: Long?,
+    val songSourceName: String? = null,
 )
 
 internal data class SearchResultContentState(
@@ -356,7 +419,7 @@ private fun SearchResultPage(
                     if (type == SearchType.All) {
                         item("overview_loading") { SearchOverviewLoading() }
                     } else {
-                        item("loading_title") { SearchCategoryHeading(type) }
+                        item("loading_title") { SearchCategoryHeading(type, sourceName = actions.songSourceName) }
                         items(7, key = { "placeholder-$it" }) { index ->
                             if (type == SearchType.Song) TrackPlaceholder(index = index)
                             else SearchEntityRow(
@@ -375,7 +438,7 @@ private fun SearchResultPage(
                 }
             }
             page.error && page.data == null -> item("error") {
-                SearchStatusPanel("搜索暂时不可用", "检查网络连接后再试一次", "重新加载", onRetry)
+                SearchStatusPanel("搜索暂时不可用", page.message ?: "检查网络连接后再试一次", "重新加载", onRetry)
             }
             page.data?.isEmpty == true -> item("empty") {
                 SearchStatusPanel("未找到“$keyword”相关${if (type == SearchType.All) "结果" else type.displayName}",
@@ -388,7 +451,7 @@ private fun SearchResultPage(
                 val words = data.highlightWords.ifEmpty { listOf(keyword) }
                 if (type == SearchType.All) overview(data, words, actions) else {
                     item("result_count") {
-                        SearchCategoryHeading(type, data.totalCount)
+                        SearchCategoryHeading(type, data.totalCount, sourceName = actions.songSourceName)
                     }
                     when (type) {
                         SearchType.Song -> songs(data.songs, "songs", words, actions)
@@ -424,8 +487,11 @@ internal fun SearchOverviewLoading() {
 }
 
 @Composable
-internal fun SearchCategoryHeading(type: SearchType, totalCount: Int? = null, horizontalPadding: Dp = meiPageGutter()) {
-    Text(totalCount?.let { "${type.displayName} · $it" } ?: type.displayName,
+internal fun SearchCategoryHeading(
+    type: SearchType, totalCount: Int? = null, horizontalPadding: Dp = meiPageGutter(), sourceName: String? = null,
+) {
+    val label = listOfNotNull(type.displayName, sourceName?.takeIf { type == SearchType.Song }, totalCount?.toString()).joinToString(" · ")
+    Text(label,
         modifier = Modifier.padding(start = horizontalPadding + LocalPageStartInset.current, end = horizontalPadding, top = 12.dp, bottom = 12.dp).semantics { heading() },
         style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

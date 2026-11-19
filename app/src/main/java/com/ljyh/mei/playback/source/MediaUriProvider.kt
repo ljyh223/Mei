@@ -8,6 +8,8 @@ import com.ljyh.mei.data.model.api.GetSongDetails
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.di.repository.SongRepository
 import com.ljyh.mei.playback.source.lx.*
+import com.ljyh.mei.playback.source.musicfree.MusicFreeStore
+import com.ljyh.mei.playback.source.musicfree.musicFreePlaybackQuality
 import com.ljyh.mei.utils.preferences.AudioSourceMode
 import com.ljyh.mei.utils.preferences.audioSourceMode
 import com.ljyh.mei.utils.preferences.dataStore
@@ -30,7 +32,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 class SourceNotFoundException(message: String) : IOException(message)
-data class ResolvedMediaUri(val uri: Uri, val cacheKey: String)
+data class ResolvedMediaUri(val uri: Uri, val cacheKey: String, val headers: Map<String, String> = emptyMap())
 data class PlaybackSourceInfo(val name: String, val quality: String?)
 
 @Singleton
@@ -42,10 +44,12 @@ class MediaUriProvider @Inject constructor(
     private val scriptStore: LxScriptStore,
     private val probe: AudioUrlProbe,
     private val unblockResolver: UnblockResolver,
+    private val musicFree: MusicFreeStore,
 ) {
     private data class CachedUrl(
         val url: String, val expiresAtMs: Long, val playbackCacheKey: String,
         val identity: String, val source: PlaybackSourceInfo, val recoveryKey: String,
+        val headers: Map<String, String> = emptyMap(),
     )
     private val urlCache = ConcurrentHashMap<String, CachedUrl>()
     private val lastResolved = ConcurrentHashMap<String, CachedUrl>()
@@ -63,6 +67,16 @@ class MediaUriProvider @Inject constructor(
         if (localPath != null && (localPath.startsWith("content://") || File(localPath).exists())) {
             if (recordPlayback) _sourceInfo.update { it + (mediaId to PlaybackSourceInfo("本地", null)) }
             return ResolvedMediaUri(if (localPath.startsWith("content://")) Uri.parse(localPath) else Uri.fromFile(File(localPath)), baseKey)
+        }
+        if (mediaId.toLongOrNull()?.let { it < 0 } == true) {
+            val audio = musicFree.resolve(mediaId, quality)
+            val track = musicFree.trackFor(mediaId) ?: throw SourceNotFoundException("MusicFree 歌曲信息已失效")
+            val plugin = musicFree.snapshot().firstOrNull { it.id == track.pluginId }
+            return selected(mediaId, CachedUrl(
+                audio.url, System.currentTimeMillis() + 60_000, baseKey, "musicfree",
+                PlaybackSourceInfo("MusicFree · ${plugin?.name.orEmpty()}", musicFreePlaybackQuality(audio.quality)),
+                "musicfree|$mediaId", audio.headers,
+            ), recordPlayback)
         }
         val mode = context.dataStore.data.first().audioSourceMode()
         // Only LX reads script state; changing mode cannot reuse another resolver's URL.
@@ -134,7 +148,7 @@ class MediaUriProvider @Inject constructor(
     }
 
     private fun selected(mediaId: String, cached: CachedUrl, recordPlayback: Boolean): ResolvedMediaUri {
-        if (!recordPlayback) return ResolvedMediaUri(cached.url.toUri(), cached.playbackCacheKey)
+        if (!recordPlayback) return ResolvedMediaUri(cached.url.toUri(), cached.playbackCacheKey, cached.headers)
         lastResolved[mediaId] = cached
         _sourceInfo.update { it + (mediaId to cached.source) }
         if (lastResolved.size > 128) {
@@ -144,7 +158,7 @@ class MediaUriProvider @Inject constructor(
             }
         }
         if (urlCache.size > 256) urlCache.keys.firstOrNull()?.let { urlCache.remove(it) }
-        return ResolvedMediaUri(cached.url.toUri(), cached.playbackCacheKey)
+        return ResolvedMediaUri(cached.url.toUri(), cached.playbackCacheKey, cached.headers)
     }
 
     /** First refresh the official URL once; then exclude failing candidates and try other sources. */
@@ -154,7 +168,13 @@ class MediaUriProvider @Inject constructor(
         return recovery.failed(previous.recoveryKey, previous.identity)
     }
 
-    fun invalidateRemoteUrl(mediaId: String) { urlCache.keys.removeIf { it.startsWith("$mediaId|") } }
+    fun invalidateRemoteUrl(mediaId: String) {
+        urlCache.keys.removeIf { it.startsWith("$mediaId|") }
+        musicFree.invalidate(mediaId)
+    }
+
+    suspend fun externalDetails(ids: List<String>): List<com.ljyh.mei.data.model.domain.MediaMetadata> =
+        ids.mapNotNull { musicFree.trackFor(it)?.metadata() }
 
     private suspend fun target(mediaId: String): MusicTrack? {
         val song = apiService.getSongDetail(GetSongDetails(mediaId)).songs.firstOrNull { it.id.toString() == mediaId } ?: return null

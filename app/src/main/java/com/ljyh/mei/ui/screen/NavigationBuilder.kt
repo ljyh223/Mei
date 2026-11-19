@@ -38,6 +38,7 @@ import com.ljyh.mei.ui.screen.setting.PlaySettingScreen
 import com.ljyh.mei.ui.screen.setting.EqualizerSettingScreen
 import com.ljyh.mei.ui.screen.setting.ReverbSettingScreen
 import com.ljyh.mei.ui.screen.setting.LxSourcesScreen
+import com.ljyh.mei.ui.screen.setting.MusicFreePluginsScreen
 import com.ljyh.mei.ui.screen.setting.DeveloperSettingsScreen
 import com.ljyh.mei.ui.screen.log.LogScreen
 import com.ljyh.mei.ui.screen.comment.CommentScreen
@@ -127,6 +128,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
 
     pageDestination(Screen.LxSources.route) { LxSourcesScreen(scrollBehavior) }
+    pageDestination(Screen.MusicFreePlugins.route) { MusicFreePluginsScreen() }
 
     pageDestination(Screen.ContentSettings.route) {
         ContentsSettingScreen(scrollBehavior)
@@ -226,16 +228,12 @@ internal fun NavGraphBuilder.navigationBuilder(
         LogScreen()
     }
     pageDestination(
-        route = "${Screen.SearchResult.route}/{query}/{type}",
+        route = "${Screen.SearchResult.route}/{query}/{type}?source={source}",
         drawsBehindSideBar = true,
         arguments = listOf(
-            navArgument("query") {
-                type = NavType.StringType
-            }
-            ,
-            navArgument("type") {
-                type = NavType.IntType
-            }
+            navArgument("query") { type = NavType.StringType },
+            navArgument("type") { type = NavType.IntType },
+            navArgument("source") { type = NavType.StringType; nullable = true; defaultValue = null },
         ),
     ) {
         pages.Search(

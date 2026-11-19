@@ -16,6 +16,7 @@ import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.playback.transition.TransitionDeckPlayer
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -38,7 +39,8 @@ class PlaybackQueueManager(
     private val player: Player,
     private val apiService: ApiService,
     private val weApiService: WeApiService,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val externalDetails: suspend (List<String>) -> List<MediaItem> = { emptyList() },
 ) : Player.Listener {
 
     private val TAG = "QueueManager"
@@ -402,10 +404,22 @@ class PlaybackQueueManager(
     private suspend fun loadSongDetails(ids: List<String>): List<MediaItem> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getSongDetail(
-                    com.ljyh.mei.data.model.api.GetSongDetails(c = ids.joinToString(","))
-                )
-                response.songs.map { it.toMediaItem() }
+                val (externalIds, catalogueIds) = ids.partition { it.toLongOrNull()?.let { id -> id < 0 } == true }
+                val externalItems = externalDetails(externalIds)
+                val catalogueItems = if (catalogueIds.isEmpty()) emptyList() else try {
+                    apiService.getSongDetail(
+                        com.ljyh.mei.data.model.api.GetSongDetails(c = catalogueIds.joinToString(","))
+                    ).songs.map { it.toMediaItem() }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Log.e(TAG, "Failed to load catalogue song details", error)
+                    emptyList()
+                }
+                val byId = (externalItems + catalogueItems).associateBy { it.mediaId }
+                ids.mapNotNull { byId[it] }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load song details", e)
                 emptyList()

@@ -15,7 +15,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 class LxScriptImportException(message: String) : IOException(message)
-internal data class DownloadedLxScript(val bytes: ByteArray, val filename: String)
+internal data class DownloadedLxScript(val bytes: ByteArray, val filename: String, val url: String)
 
 /** Imports a snapshot. No account cookies, URL persistence, or automatic script updates. */
 @Singleton
@@ -23,7 +23,7 @@ class LxScriptDownloader @Inject constructor() {
     private val client = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(8, TimeUnit.SECONDS).callTimeout(12, TimeUnit.SECONDS).build()
 
-    internal suspend fun download(input: String): DownloadedLxScript {
+    internal suspend fun download(input: String, allowJson: Boolean = false): DownloadedLxScript {
         val text = input.trim()
         val url = text.takeIf { it.length <= 8192 }?.toHttpUrlOrNull()
             ?: throw LxScriptImportException("请输入有效的 http:// 或 https:// 链接")
@@ -31,7 +31,7 @@ class LxScriptDownloader @Inject constructor() {
             throw LxScriptImportException("请使用不含用户名和密码的脚本链接")
         }
         val call = client.newCall(Request.Builder().url(url)
-            .header("Accept", "application/javascript, text/javascript, text/plain, */*").build())
+            .header("Accept", (if (allowJson) "application/json, " else "") + "application/javascript, text/javascript, text/plain, */*").build())
         return suspendCancellableCoroutine { continuation ->
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback {
@@ -51,13 +51,13 @@ class LxScriptDownloader @Inject constructor() {
                             if (bytes.isEmpty()) throw LxScriptImportException("链接返回了空文件")
                             val type = it.body.contentType()?.toString().orEmpty()
                             val prefix = bytes.take(512).toByteArray().toString(Charsets.UTF_8).removePrefix("\uFEFF").trimStart()
-                            if (type.contains("html", true) || type.contains("json", true) ||
+                            if (type.contains("html", true) || (!allowJson && type.contains("json", true)) ||
                                 Regex("^<(?:!doctype\\s+html|html\\b|head\\b|body\\b)", RegexOption.IGNORE_CASE).containsMatchIn(prefix)) {
-                                throw LxScriptImportException("链接返回了网页或接口数据，请使用 JS 文件的直链")
+                                throw LxScriptImportException(if (allowJson) "链接返回了网页，请使用插件或订阅的直链" else "链接返回了网页或接口数据，请使用 JS 文件的直链")
                             }
                             val filename = it.request.url.pathSegments.lastOrNull()?.takeIf { name -> name.endsWith(".js", true) }
                                 ?: "网络音源.js"
-                            DownloadedLxScript(bytes, filename)
+                            DownloadedLxScript(bytes, filename, it.request.url.toString())
                         }
                         if (continuation.isActive) continuation.resume(downloaded)
                     } catch (e: Exception) {

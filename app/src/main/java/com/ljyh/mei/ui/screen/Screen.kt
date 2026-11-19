@@ -22,6 +22,7 @@ sealed class Screen(val route:String) {
     data object PlayList:Screen("playlist")
     data object Setting:Screen("setting")
     data object LxSources:Screen("setting/sources")
+    data object MusicFreePlugins:Screen("setting/musicfree")
     data object ContentSettings:Screen(("setting/content"))
     data object SourceAndLyricsSettings:Screen("setting/source-lyrics")
     data object AudioOutputSettings:Screen("setting/audio-output")

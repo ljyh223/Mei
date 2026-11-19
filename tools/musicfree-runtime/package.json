@@ -1,0 +1,19 @@
+{
+  "name": "mei-musicfree-runtime",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.cjs"
+  },
+  "dependencies": {
+    "crypto-js": "4.2.0",
+    "cheerio": "1.0.0-rc.12",
+    "he": "1.2.0",
+    "qs": "6.14.0",
+    "big-integer": "1.6.52",
+    "dayjs": "1.11.13"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

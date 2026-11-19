@@ -106,4 +106,128 @@ class SearchResultsControllerTest {
             assertEquals(3, calls)
         } finally { scope.cancel() }
     }
+    @Test
+    fun songSourcesKeepIndependentPagesAndOtherCategoriesUseTheCatalogue() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val calls = mutableListOf<String>()
+        try {
+            val controller = SearchResultsController(scope, sourceSearch = { _, source, offset ->
+                calls += "$source:$offset"
+                Resource.Success(page(if (source == "a") 10 + offset.toLong() else 20, offset = offset + 1, more = true))
+            }) { _, type, offset ->
+                calls += "catalogue:$type:$offset"
+                Resource.Success(page(1, offset = 30, more = true))
+            }
+            controller.initialize("song", SearchType.Song.type)
+            controller.selectSource("a")
+            controller.loadMore()
+            assertEquals(listOf(10L, 11L), controller.page.value.data!!.artists.map { it.id })
+            controller.selectSource("b")
+            assertEquals(20L, controller.page.value.data!!.artists.single().id)
+            controller.select(SearchType.Artist)
+            assertEquals(1L, controller.page.value.data!!.artists.single().id)
+            controller.select(SearchType.Song)
+            assertEquals("b", controller.songSource.value)
+            assertEquals(20L, controller.page.value.data!!.artists.single().id)
+            controller.selectSource("a")
+            assertEquals(listOf(10L, 11L), controller.page.value.data!!.artists.map { it.id })
+            controller.selectSource(null)
+            assertEquals(1L, controller.page.value.data!!.artists.single().id)
+            assertEquals(listOf("catalogue:Song:0", "a:0", "a:1", "b:0", "catalogue:Artist:0"), calls)
+        } finally { scope.cancel() }
+    }
+
+    @Test
+    fun lateSourceResponsesDoNotReplaceTheSelectionAndInvalidatedRequestsCannotRefillTheCache() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val requests = mutableListOf<Continuation<Resource<SearchResults>>>()
+        try {
+            val controller = SearchResultsController(scope, sourceSearch = { _, _, _ ->
+                suspendCoroutine { requests += it }
+            }) { _, _, _ -> Resource.Success(page(1)) }
+            controller.initialize("song", SearchType.Song.type)
+            controller.selectSource("a")
+            controller.selectSource("b")
+            requests[0].resume(Resource.Success(page(10)))
+            assertTrue(controller.page.value.loading)
+            requests[1].resume(Resource.Success(page(20)))
+            assertEquals(20L, controller.page.value.data!!.artists.single().id)
+            controller.selectSource("a")
+            assertEquals(10L, controller.page.value.data!!.artists.single().id)
+            controller.invalidateSource("a")
+            controller.invalidateSource("a")
+            requests[3].resume(Resource.Success(page(30)))
+            requests[2].resume(Resource.Success(page(99)))
+            assertEquals(30L, controller.page.value.data!!.artists.single().id)
+            controller.selectSource("b")
+            controller.selectSource("a")
+            assertEquals(30L, controller.page.value.data!!.artists.single().id)
+        } finally { scope.cancel() }
+    }
+
+    @Test
+    fun changedKeywordsClearEverySourceCacheAndPreserveTheSelectedProvider() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val calls = mutableListOf<Pair<String, String>>()
+        try {
+            val controller = SearchResultsController(scope, initialSongSource = "a", sourceSearch = { query, source, _ ->
+                calls += query to source
+                Resource.Success(page(calls.size.toLong()))
+            }) { _, _, _ -> error("Unexpected catalogue search") }
+            controller.initialize("first", SearchType.Song.type)
+            controller.selectSource("b")
+            controller.initialize("second", SearchType.Song.type)
+            assertEquals("b", controller.songSource.value)
+            assertEquals(3L, controller.page.value.data!!.artists.single().id)
+            controller.selectSource("a")
+            assertEquals(4L, controller.page.value.data!!.artists.single().id)
+            assertEquals(listOf("first" to "a", "first" to "b", "second" to "b", "second" to "a"), calls)
+        } finally { scope.cancel() }
+    }
+
+    @Test
+    fun removingAProviderWhileViewingAnotherCategoryKeepsThatCategoryVisible() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        try {
+            val controller = SearchResultsController(scope, initialSongSource = "a", sourceSearch = { _, _, _ ->
+                Resource.Success(page(10))
+            }) { _, _, _ -> Resource.Success(page(1)) }
+            controller.initialize("song", SearchType.Song.type)
+            controller.select(SearchType.Album)
+            controller.selectSource(null, selectSong = false)
+            controller.invalidateSource("a")
+            assertEquals(SearchType.Album, controller.tab.value)
+            assertNull(controller.songSource.value)
+            assertEquals(1L, controller.page.value.data!!.artists.single().id)
+            controller.select(SearchType.Song)
+            assertEquals(1L, controller.page.value.data!!.artists.single().id)
+        } finally { scope.cancel() }
+    }
+
+    @Test
+    fun sourcePaginationFailureRetriesTheSamePageAndStopsOnRepeatedResults() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val offsets = mutableListOf<Int>()
+        try {
+            val controller = SearchResultsController(scope, sourceSearch = { _, _, offset ->
+                offsets += offset
+                when (offsets.size) {
+                    1 -> Resource.Success(page(10, offset = 1, more = true))
+                    2 -> Resource.Error("plugin offline")
+                    else -> Resource.Success(page(10, 11, offset = offset + 1, more = true))
+                }
+            }) { _, _, _ -> Resource.Success(page(1)) }
+            controller.initialize("song", SearchType.All.type)
+            controller.selectSource("a")
+            controller.loadMore()
+            assertTrue(controller.page.value.appendError)
+            assertEquals("plugin offline", controller.page.value.message)
+            controller.loadMore()
+            assertEquals(listOf(10L, 11L), controller.page.value.data!!.artists.map { it.id })
+            controller.loadMore()
+            assertFalse(controller.page.value.data!!.hasMore)
+            assertEquals(listOf(0, 1, 1, 2), offsets)
+        } finally { scope.cancel() }
+    }
+
 }

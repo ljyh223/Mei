@@ -206,6 +206,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | 图片请求与缓存 | [image-loading.md](image-loading.md) |
 | 封面底色匹配 | [cover-background-matching.md](cover-background-matching.md) |
 | LX 备用音源 | [lx-sources.md](lx-sources.md) |
+| MusicFree 插件搜索与播放 | [musicfree-sources.md](musicfree-sources.md) |
 | 链接分享 | [media-sharing.md](media-sharing.md) |
 | 测试包与正式发布 | [beta-build.md](beta-build.md)、[release-build.md](release-build.md) |
 
