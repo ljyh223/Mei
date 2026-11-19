@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".demo.album.Album3dDemoActivity"
+            android:exported="true"
+            android:label="@string/album_3d_demo_name"
+            android:theme="@style/Theme.Music">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".demo.album.Cassette3dDemoActivity"
+            android:exported="true"
+            android:label="@string/cassette_3d_demo_name"
+            android:theme="@style/Theme.Music">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".demo.album.Vinyl3dDemoActivity"
+            android:exported="true"
+            android:label="@string/vinyl_3d_demo_name"
+            android:theme="@style/Theme.Music">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
