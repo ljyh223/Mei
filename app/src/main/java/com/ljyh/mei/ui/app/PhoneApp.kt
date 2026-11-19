@@ -273,6 +273,7 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                 val imeInsets = if (searchActive && sideBar) WindowInsets.ime else WindowInsets(0)
                 CompositionLocalProvider(
                     LocalPlayerAwareWindowInsets provides playerAwareWindowInsets,
+                    LocalPhoneLandscape provides sideBar,
                 ) {
                     val playerHostPosition = if (sideBar) Modifier.onGloballyPositioned {
                         playerHostOrigin = it.positionInRoot()
@@ -280,7 +281,6 @@ internal fun PhoneApp(appState: MeiAppState, pageMotion: PageNavigationMotion) {
                     Box(Modifier.fillMaxSize().then(playerHostPosition)) {
                         CompositionLocalProvider(
                             LocalPageStartInset provides if (sideBar) PhoneSideBarWidth else 0.dp,
-                            LocalPhoneLandscape provides sideBar,
                         ) {
                             MeiAppPages(
                                 appState = appState,

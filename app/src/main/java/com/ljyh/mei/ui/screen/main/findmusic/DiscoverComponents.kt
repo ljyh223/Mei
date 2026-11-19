@@ -7,6 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,8 +28,9 @@ import com.ljyh.mei.ui.component.card.PlaylistCard
 import com.ljyh.mei.ui.component.card.VinylAlbumCard
 import java.util.Locale
 import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
+import com.ljyh.mei.ui.component.sheet.meiSheetContentHeight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DiscoverCategorySheet(
     categories: Resource<List<DiscoverCategory>>,
@@ -35,17 +40,24 @@ internal fun DiscoverCategorySheet(
     onRetry: () -> Unit,
 ) {
     val gutter = meiPageGutter()
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    var pickedCategory by remember { mutableStateOf<String?>(null) }
+    MeiAdaptiveSheet(onDismissRequest = {
+        onDismiss()
+        pickedCategory?.let(onCategorySelected)
+    }) { close ->
+        fun choose(name: String) {
+            if (pickedCategory != null) return
+            pickedCategory = name
+            close()
+        }
         LazyColumn(
+            modifier = Modifier.fillMaxWidth().heightIn(max = meiSheetContentHeight(.85f)),
             contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             item { Text("歌单分类", style = MaterialTheme.typography.headlineSmall) }
             item {
-                MeiFilterPill("全部", selectedCategory == "全部", {
-                    onDismiss()
-                    onCategorySelected("全部")
-                }, compact = true)
+                MeiFilterPill("全部", selectedCategory == "全部", { choose("全部") }, compact = true)
             }
             when (val state = categories) {
                 is Resource.Success -> {
@@ -62,10 +74,7 @@ internal fun DiscoverCategorySheet(
                                         MeiFilterPill(
                                             category.name,
                                             selectedCategory == category.name,
-                                            {
-                                                onDismiss()
-                                                onCategorySelected(category.name)
-                                            },
+                                            { choose(category.name) },
                                             compact = true
                                         )
                                     }
@@ -79,7 +88,6 @@ internal fun DiscoverCategorySheet(
             }
         }
     }
-
 }
 
 @Composable

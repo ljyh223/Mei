@@ -8,15 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.response.AlbumPhoto
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.ui.component.sheet.MeiAdaptiveSheet
+import com.ljyh.mei.ui.component.sheet.meiSheetContentHeight
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoPickerSheet(
     photoAlbum: Resource<AlbumPhoto>,
@@ -34,7 +32,6 @@ fun PhotoPickerSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val devicePhotoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
@@ -48,11 +45,9 @@ fun PhotoPickerSheet(
             onSelect(uri.toString())
         }
     }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState
-    ) {
-        Column(Modifier.fillMaxWidth()) {
+    MeiAdaptiveSheet(onDismissRequest = onDismiss) { close ->
+        val panelHeight = meiSheetContentHeight(fraction = .82f, maxHeight = 480.dp)
+        Column(Modifier.fillMaxWidth().heightIn(max = panelHeight)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -74,18 +69,16 @@ fun PhotoPickerSheet(
                 ) {
                     Text("从设备选择")
                 }
-                TextButton(onClick = onDismiss) {
-                    Text("取消")
-                }
             }
 
             when (photoAlbum) {
                 is Resource.Success -> {
                     SingleImagePickerSheet(
                         images = photoAlbum.data.data.records.map { it.imageUrl },
+                        maxHeight = panelHeight,
                         showHeader = false,
                         onSelect = onSelect,
-                        onDismiss = onDismiss,
+                        onDismiss = close,
                     )
                 }
 
@@ -93,7 +86,7 @@ fun PhotoPickerSheet(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
+                            .heightIn(min = 100.dp, max = 200.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (photoAlbum is Resource.Loading) CircularProgressIndicator()

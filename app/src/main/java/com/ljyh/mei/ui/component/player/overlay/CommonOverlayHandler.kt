@@ -40,6 +40,7 @@ import com.ljyh.mei.ui.component.player.sheet.SleepTimerSheet
 import com.ljyh.mei.ui.component.player.sheet.SongInfoSheet
 import com.ljyh.mei.ui.component.player.state.PlayerStateContainer
 import com.ljyh.mei.ui.component.sheet.AddToPlaylistSheet
+import com.ljyh.mei.ui.component.sheet.AddToPlaylistTitle
 import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.sheet.BottomSheetState
 import com.ljyh.mei.ui.component.sheet.CreatePlaylistSheet
@@ -100,9 +101,12 @@ fun CommonOverlayHandler(
             dismissEnabled = !(overlay == OverlayState.MoreAction && moreEditing.value),
             onDismissBlocked = { moreEditing.value = false },
             onNavigateBack = if (overlayHandler.canGoBack) overlayHandler::goBack else null,
-            allowSideInCompactLayout = overlayHandler.showsInlinePanels,
             compactContent = overlay == OverlayState.LyricStyle,
-            compactTitle = "歌词样式".takeIf { overlay == OverlayState.LyricStyle },
+            compactTitle = when (overlay) {
+                is OverlayState.AddToPlaylist -> AddToPlaylistTitle
+                OverlayState.LyricStyle -> "歌词样式"
+                else -> null
+            },
         ) { closeSheet ->
             LaunchedEffect(requestedDownload) {
                 if (requestedDownload != null) closeSheet()

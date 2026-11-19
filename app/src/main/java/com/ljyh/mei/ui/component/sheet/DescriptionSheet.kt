@@ -18,15 +18,21 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DescriptionSheet(title: String, description: String, onDismiss: () -> Unit) {
-    MeiAdaptiveSheet(onDismissRequest = onDismiss) {
+    MeiAdaptiveSheet(onDismissRequest = onDismiss, compactTitle = title) {
+        val compact = isCompactSideSheet()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = meiSheetContentHeight(.7f))
                 .verticalScroll(rememberScrollState())
-                .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+                .padding(
+                    start = if (compact) 16.dp else 24.dp,
+                    end = if (compact) 16.dp else 24.dp,
+                    top = if (compact) 4.dp else 0.dp,
+                    bottom = if (compact) 12.dp else 32.dp,
+                ),
         ) {
-            Text(
+            if (!compact) Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,

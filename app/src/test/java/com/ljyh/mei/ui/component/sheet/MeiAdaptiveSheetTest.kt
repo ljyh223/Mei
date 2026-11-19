@@ -13,8 +13,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.data.model.domain.DiscoverCategory
+import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.ui.component.layout.AppWindowLayout
 import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.screen.main.findmusic.DiscoverCategorySheet
 import com.ljyh.mei.ui.tablet.TabletContentTestActivity
 import org.junit.Assert.*
 import org.junit.Rule
@@ -252,14 +257,17 @@ class MeiAdaptiveSheetTest {
 
     @Test
     @Config(qualifiers = "w560dp-h300dp")
-    fun optedInCompactSheetMovesToTheSideOnAShortWindow() {
+    fun ordinaryPhoneLandscapeSheetMovesToTheSideOnAShortWindow() {
         var density = 1f
         TabletContentTestActivity.content = {
             MaterialTheme {
                 density = LocalDensity.current.density
-                CompositionLocalProvider(LocalAppWindowLayout provides AppWindowLayout.Compact) {
-                    MeiAdaptiveSheet(onDismissRequest = {}, allowSideInCompactLayout = true) {
-                        Box(Modifier.fillMaxSize().testTag("player-sheet"))
+                CompositionLocalProvider(
+                    LocalAppWindowLayout provides AppWindowLayout.Compact,
+                    LocalPhoneLandscape provides true,
+                ) {
+                    MeiAdaptiveSheet(onDismissRequest = {}) {
+                        Box(Modifier.fillMaxSize().testTag("page-sheet"))
                     }
                 }
             }
@@ -267,11 +275,117 @@ class MeiAdaptiveSheetTest {
         val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
         try {
             val window = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
-            val panel = compose.onNodeWithTag("player-sheet").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-            assertEquals(420f * density, panel.width, density)
+            val panel = compose.onNodeWithTag("page-sheet").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertEquals(352f * density, panel.width, density)
             assertTrue(panel.left > window.left + 48f * density)
             assertTrue(panel.right < window.right)
         } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h360dp")
+    fun addToPlaylistScrollsTheSearchAwayAndShowsFourFullRowsOnPhoneLandscape() {
+        val playlists = (1..12).map { index ->
+            val id = index.toString().padStart(2, '0')
+            Playlist(id, "测试歌单 $id", "", "", "", "", 12)
+        }
+        var density = 1f
+        var selected: Playlist? = null
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                density = LocalDensity.current.density
+                CompositionLocalProvider(
+                    LocalAppWindowLayout provides AppWindowLayout.Compact,
+                    LocalPhoneLandscape provides true,
+                ) {
+                    MeiAdaptiveSheet(
+                        onDismissRequest = {},
+                        onNavigateBack = {},
+                        compactTitle = AddToPlaylistTitle,
+                    ) { close ->
+                        AddToPlaylistSheet(
+                            playlists = playlists,
+                            onDismiss = close,
+                            onSelectPlaylist = { selected = it },
+                            onCreateNewPlaylist = {},
+                            embedded = true,
+                        )
+                    }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val title = compose.onNodeWithText(AddToPlaylistTitle).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            val close = compose.onNodeWithContentDescription("关闭弹层").fetchSemanticsNode().boundsInRoot
+            assertEquals(close.center.y, title.center.y, 1f)
+            val list = compose.onNode(hasScrollToIndexAction())
+            list.performScrollToIndex(2)
+            compose.onNode(hasSetTextAction()).assertIsNotDisplayed()
+            val viewport = list.fetchSemanticsNode().boundsInRoot
+            val visibleRows = playlists.take(4).map { playlist ->
+                compose.onNode(hasClickAction() and hasText(playlist.title))
+                    .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            }
+            assertTrue("rows=$visibleRows, viewport=$viewport, density=$density", visibleRows.all { row ->
+                row.height >= 48f * density - 1f &&
+                    row.top >= viewport.top - 1f && row.bottom <= viewport.bottom + 1f
+            })
+            compose.onNodeWithText(playlists[3].title).performClick()
+            compose.runOnIdle { assertEquals(playlists[3], selected) }
+
+            list.performScrollToIndex(0)
+            compose.onNode(hasSetTextAction()).assertIsDisplayed().performTextInput("测试歌单 07")
+            compose.onNode(hasText("测试歌单 07") and hasClickAction() and !hasSetTextAction()).assertIsDisplayed()
+            compose.onNodeWithText("测试歌单 01").assertDoesNotExist()
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w560dp-h300dp")
+    fun selectingDiscoveryCategoryClosesTheSidePanelBeforeApplyingTheSelection() {
+        var open by mutableStateOf(true)
+        val events = mutableListOf<String>()
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                CompositionLocalProvider(
+                    LocalAppWindowLayout provides AppWindowLayout.Compact,
+                    LocalPhoneLandscape provides true,
+                ) {
+                    if (open) DiscoverCategorySheet(
+                        categories = Resource.Success(listOf(DiscoverCategory("摇滚", "风格"))),
+                        selectedCategory = "全部",
+                        onDismiss = {
+                            events += "dismissed"
+                            open = false
+                        },
+                        onCategorySelected = { events += it },
+                        onRetry = {},
+                    )
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val window = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
+            val title = compose.onNodeWithText("歌单分类").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue(title.left > window.left + 80f)
+            compose.mainClock.autoAdvance = false
+            compose.onNodeWithText("摇滚").assertIsDisplayed().performClick()
+            compose.runOnIdle { assertTrue(events.isEmpty()) }
+            compose.mainClock.advanceTimeBy(1000)
+            compose.mainClock.autoAdvance = true
+            compose.waitForIdle()
+            compose.runOnIdle { assertEquals(listOf("dismissed", "摇滚"), events) }
+            compose.onNodeWithText("歌单分类").assertDoesNotExist()
+        } finally {
+            compose.mainClock.autoAdvance = true
             activity.pause().stop().destroy()
             TabletContentTestActivity.content = {}
         }

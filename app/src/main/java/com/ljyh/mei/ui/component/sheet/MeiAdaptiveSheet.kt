@@ -33,6 +33,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import com.ljyh.mei.ui.component.layout.AppWindowLayout
 import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.motion.PlayerMotionSpec
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -63,6 +64,10 @@ internal fun meiSheetPresentation(
 private data class MeiSheetMetrics(val height: Dp, val presentation: MeiSheetPresentation)
 private val LocalMeiSheetMetrics = staticCompositionLocalOf<MeiSheetMetrics?> { null }
 
+@Composable
+internal fun isCompactSideSheet(): Boolean =
+    LocalPhoneLandscape.current && LocalMeiSheetMetrics.current?.presentation == MeiSheetPresentation.Side
+
 /** Content consumes its host's constraints; only bottom sheets retain their compact height. */
 @Composable
 internal fun meiSheetContentHeight(fraction: Float = 1f, maxHeight: Dp = Dp.Infinity): Dp {
@@ -87,7 +92,6 @@ fun MeiAdaptiveSheet(
     dismissEnabled: Boolean = true,
     onDismissBlocked: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null,
-    allowSideInCompactLayout: Boolean = false,
     compactTitle: String? = null,
     compactContent: Boolean = false,
     content: @Composable (close: () -> Unit) -> Unit,
@@ -101,7 +105,7 @@ fun MeiAdaptiveSheet(
             insets.getRight(this, LocalLayoutDirection.current)).toDp().value
     }
     val windowLayout = LocalAppWindowLayout.current
-    val compactSide = windowLayout == AppWindowLayout.Compact && allowSideInCompactLayout
+    val compactSide = windowLayout == AppWindowLayout.Compact && LocalPhoneLandscape.current
     val allowSide = when (windowLayout) {
         AppWindowLayout.Wide -> true
         AppWindowLayout.Compact -> compactSide
@@ -207,17 +211,26 @@ fun MeiAdaptiveSheet(
                 } else {
                     val scope = rememberCoroutineScope()
                     var dragged by remember { mutableFloatStateOf(0f) }
-                    val panelWidth = minOf(420.dp * density.fontScale.coerceIn(1f, 1.25f), (maxWidth - 80.dp).coerceAtLeast(0.dp))
+                    val preferredWidth = if (compactSide) 352.dp else 420.dp
+                    val horizontalMargin = if (compactSide) 12.dp else 16.dp
+                    val verticalMargin = if (compactSide) 8.dp else 16.dp
+                    val panelWidth = minOf(
+                        preferredWidth * density.fontScale.coerceIn(1f, 1.25f),
+                        (maxWidth - 80.dp).coerceAtLeast(0.dp),
+                    )
                     val panelPx = with(density) { panelWidth.toPx() }
                     val compactPanelMaxHeight = maxHeight * 0.7f
                     val direction = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1f else -1f
-                    Box(Modifier.fillMaxSize().navigationBarsPadding().padding(16.dp)) {
+                    Box(
+                        Modifier.fillMaxSize().navigationBarsPadding()
+                            .padding(horizontal = horizontalMargin, vertical = verticalMargin),
+                    ) {
                         Surface(
                             modifier = modifier.align(if (compactContent) Alignment.BottomEnd else Alignment.CenterEnd)
                                 .width(panelWidth)
                                 .then(if (compactContent) Modifier.heightIn(max = compactPanelMaxHeight) else Modifier.fillMaxHeight())
                                 .graphicsLayer {
-                                    translationX = direction * (dragged + (panelPx - dragged + with(density) { 16.dp.toPx() }) * (1f - reveal.value))
+                                    translationX = direction * (dragged + (panelPx - dragged + with(density) { horizontalMargin.toPx() }) * (1f - reveal.value))
                                 }
                                 .draggable(
                                     state = rememberDraggableState { delta -> dragged = (dragged + delta * direction).coerceIn(0f, panelPx) },
@@ -235,8 +248,12 @@ fun MeiAdaptiveSheet(
                             shadowElevation = 8.dp,
                         ) {
                             Column {
-                                MeiSheetHeader(true, if (dismissEnabled) navigateBack.value else null, requestClose,
-                                    title = compactTitle.takeIf { compactContent })
+                                MeiSheetHeader(
+                                    side = true,
+                                    onBack = if (dismissEnabled) navigateBack.value else null,
+                                    onClose = requestClose,
+                                    title = compactTitle.takeIf { compactSide || compactContent },
+                                )
                                 BoxWithConstraints(Modifier.fillMaxWidth().weight(1f, fill = !compactContent)) {
                                     CompositionLocalProvider(LocalMeiSheetMetrics provides MeiSheetMetrics(maxHeight, presentation)) {
                                         sharedContent(requestClose)
