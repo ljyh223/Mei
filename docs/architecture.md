@@ -122,6 +122,8 @@ flowchart TD
 
 歌单是状态拆分的参考案例：搜索和排序草稿由 ViewModel 管理；列表保存歌曲 ID、序号和偏移，避免单双栏头部索引不同造成错位；下载确认保存选曲意图，恢复到待确认阶段，不自动重复提交。见 [歌单架构](playlist-detail-architecture.md)。
 
+歌单摘要由单例 `LocalPlaylistRepository` 管理，音乐库及相关集合页统一观察 Room。远端增删歌曲成功后由 `PlaylistRepository` 同步摘要；列表合并与摘要回读使用请求修订号保护新数据，具体字段和失败策略见歌单专题。
+
 ## 6. 数据、协议与持久化
 
 业务接口主要由 `data/repository/` 下的仓库调用 `data/network/api/` 的服务。`NetworkModule` 装配 Ktor／OkHttp 与 kotlinx.serialization 的 Json；网易云传输、加密和响应处理由 `NeteaseHttp`、`XeApiClient` 等已有入口负责。`RepositoryModule` 及构造注入共同完成仓库装配。

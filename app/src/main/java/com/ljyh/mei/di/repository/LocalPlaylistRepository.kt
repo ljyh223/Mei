@@ -8,28 +8,39 @@ import com.ljyh.mei.di.dao.PlaylistDao
 import com.ljyh.mei.di.dao.PlaylistSongCrossRefDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 class LocalPlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
+    private val writes = Mutex()
+    private var revision = 0L
+    private val contentRevisions = mutableMapOf<String, Long>()
+
     suspend fun getPlaylist(id: String): Playlist? = playlistDao.getPlaylist(id)
     suspend fun getPlaylistByAuthor(author: String): List<Playlist> = playlistDao.getPlaylistByAuthor(author)
     fun getAllPlaylist(): Flow<List<Playlist>> = playlistDao.getAllPlaylist()
-    suspend fun insertPlaylist(playlist: Playlist) = playlistDao.insertPlaylist(playlist)
-    suspend fun insertPlaylists(playlists: List<Playlist>) = playlistDao.insertPlaylists(playlists)
+    suspend fun insertPlaylist(playlist: Playlist) = writes.withLock { playlistDao.insertPlaylist(playlist) }
+    suspend fun insertPlaylists(playlists: List<Playlist>) = writes.withLock { playlistDao.insertPlaylists(playlists) }
 
-    suspend fun mergeUserPlaylists(remote: List<UserPlaylistItem>) {
+    /** Capture before the remote read so an older response cannot undo a confirmed edit. */
+    suspend fun playlistSyncRevision(): Long = writes.withLock { revision }
+
+    suspend fun mergeUserPlaylists(remote: List<UserPlaylistItem>, requestedAtRevision: Long) = writes.withLock {
         val existing = playlistDao.getAllPlaylist().first().associateBy(Playlist::id)
         val now = System.currentTimeMillis()
         playlistDao.insertPlaylists(remote.map { item ->
-            val cached = existing[item.id.toString()]
+            val id = item.id.toString()
+            val cached = existing[id]
+            val keepContent = cached != null && (contentRevisions[id] ?: 0L) > requestedAtRevision
             Playlist(
-                id = item.id.toString(),
+                id = id,
                 title = item.name,
-                cover = item.coverImgUrl,
+                cover = if (keepContent) cached!!.cover else item.coverImgUrl,
                 author = item.creator.userId.toString(),
                 authorName = item.creator.nickname,
                 authorAvatar = item.creator.avatarUrl,
-                count = item.trackCount,
+                count = if (keepContent) cached!!.count else item.trackCount,
                 type = cached?.type ?: PlaylistType.NETEAST,
                 description = cached?.description,
                 createdAt = cached?.createdAt ?: now,
@@ -40,8 +51,31 @@ class LocalPlaylistRepository @Inject constructor(private val playlistDao: Playl
             )
         })
     }
-    suspend fun deletePlaylistById(id: String) = playlistDao.deletePlaylistById(id)
-    suspend fun touchPlaylist(id: String, timestamp: Long) = playlistDao.touchPlaylist(id, timestamp)
+
+    /** Publish an authoritative mutation count immediately, without guessing a cover or delta. */
+    suspend fun recordTrackMutation(id: String, count: Int?): Long = writes.withLock {
+        val next = ++revision
+        contentRevisions[id] = next
+        playlistDao.updatePlaylistContent(id, count?.takeIf { it >= 0 }, null)
+        next
+    }
+
+    suspend fun updatePlaylistSummary(
+        id: String,
+        count: Int,
+        cover: String,
+        requestedAtRevision: Long,
+    ): Boolean = writes.withLock {
+        if (count < 0 || (contentRevisions[id] ?: 0L) > requestedAtRevision) return@withLock false
+        if (playlistDao.getPlaylist(id) == null) return@withLock false
+        playlistDao.updatePlaylistContent(id, count, cover)
+        contentRevisions[id] = ++revision
+        true
+    }
+
+    suspend fun deletePlaylistById(id: String) = writes.withLock { playlistDao.deletePlaylistById(id) }
+    suspend fun touchPlaylist(id: String, timestamp: Long) =
+        writes.withLock { playlistDao.touchPlaylist(id, timestamp) }
 }
 
 class PlaylistSongCrossRefRepository @Inject constructor(private val dao: PlaylistSongCrossRefDao) {

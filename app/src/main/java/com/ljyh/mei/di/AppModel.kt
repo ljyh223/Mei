@@ -46,7 +46,7 @@ object AppModule {
     fun provideQQSongDao(db: AppDatabase): QQSongRepository =
         QQSongRepository(db.qqSongDao())
 
-    @Provides
+    @Provides @Singleton
     fun providePlaylistDao(db: AppDatabase): LocalPlaylistRepository =
         LocalPlaylistRepository(db.playlistDao())
 

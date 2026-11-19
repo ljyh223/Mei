@@ -1,5 +1,8 @@
 package com.ljyh.mei.data.network
 
+import androidx.room.Room
+import com.ljyh.mei.di.AppDatabase
+import com.ljyh.mei.di.repository.LocalPlaylistRepository
 import com.ljyh.mei.data.model.api.ManipulateTrackResult
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.EApiService
@@ -96,10 +99,13 @@ class PlaylistTrackMutationTest {
             isLenient = true
         }
         val http = NeteaseHttp(client, json)
+        val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), AppDatabase::class.java)
+            .allowMainThreadQueries().build()
         val repo = PlaylistRepository(
             ApiService(http, XeApiClient(RuntimeEnvironment.getApplication(), http, json)),
             WeApiService(http),
             EApiService(http),
+            LocalPlaylistRepository(db.playlistDao()),
         )
         return try {
             repo.manipulateTrack(op, "123", "456,789").also {
@@ -107,6 +113,7 @@ class PlaylistTrackMutationTest {
             }
         } finally {
             client.close()
+            db.close()
         }
     }
 }

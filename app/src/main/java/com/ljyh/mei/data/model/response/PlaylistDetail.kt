@@ -108,6 +108,13 @@ internal fun PlaylistDetail.toDomain(): MiniPlaylistDetail {
     )
 }
 
+/** Small readback after a track mutation; never loads tracks to refresh a library card. */
+@Serializable
+data class PlaylistSummaryResponse(val code: Int, val playlist: PlaylistSummary? = null)
+
+@Serializable
+data class PlaylistSummary(val id: Long, val coverImgUrl: String, val trackCount: Int)
+
 /** Header-only lookup for home cards; does not depend on track arrays in the response. */
 @Serializable
 data class PlaylistNameResponse(val code: Int, val playlist: PlaylistName? = null)

@@ -20,7 +20,8 @@ class LocalPlaylistRepositoryTest {
         ))
         val remote = listOf(remotePlaylist(1L, 1L, 10L), remotePlaylist(2L, 2L, 20L))
 
-        LocalPlaylistRepository(dao).mergeUserPlaylists(remote)
+        val repository = LocalPlaylistRepository(dao)
+        repository.mergeUserPlaylists(remote, repository.playlistSyncRevision())
 
         assertEquals(8, dao.rows.getValue("1").localPlayCount)
         assertEquals(100L, dao.rows.getValue("1").lastPlayTime)
@@ -51,6 +52,9 @@ class LocalPlaylistRepositoryTest {
         override suspend fun insertPlaylist(playlist: Playlist) { rows[playlist.id] = playlist }
         override suspend fun insertPlaylists(playlists: List<Playlist>) {
             playlists.forEach { rows[it.id] = it }
+        }
+        override suspend fun updatePlaylistContent(id: String, count: Int?, cover: String?) {
+            rows[id]?.let { rows[id] = it.copy(count = count ?: it.count, cover = cover ?: it.cover) }
         }
         override suspend fun deletePlaylistById(id: String) { rows.remove(id) }
         override suspend fun touchPlaylist(id: String, timestamp: Long) {

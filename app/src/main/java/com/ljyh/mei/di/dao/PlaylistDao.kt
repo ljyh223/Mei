@@ -24,6 +24,9 @@ interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylists(playlists: List<Playlist>)
 
+    @Query("UPDATE playlist SET count = COALESCE(:count, count), cover = COALESCE(:cover, cover) WHERE id = :id")
+    suspend fun updatePlaylistContent(id: String, count: Int?, cover: String?)
+
     @Query("DELETE FROM playlist where id=:id")
     suspend fun deletePlaylistById(id: String)
 

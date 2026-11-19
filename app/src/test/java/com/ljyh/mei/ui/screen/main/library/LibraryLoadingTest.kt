@@ -201,6 +201,9 @@ class LibraryLoadingTest {
         override suspend fun insertPlaylists(playlists: List<Playlist>) {
             rows.value = (rows.value + playlists).associateBy { it.id }.values.toList()
         }
+        override suspend fun updatePlaylistContent(id: String, count: Int?, cover: String?) {
+            rows.value = rows.value.map { if (it.id == id) it.copy(count = count ?: it.count, cover = cover ?: it.cover) else it }
+        }
         override suspend fun deletePlaylistById(id: String) { rows.value = rows.value.filterNot { it.id == id } }
         override suspend fun touchPlaylist(id: String, timestamp: Long) = Unit
     }

@@ -252,9 +252,10 @@ class PlayerViewModel @Inject constructor(
     fun syncUserPlaylists(uid: String, limit: Int = 100) {
         viewModelScope.launch {
             _networkPlaylistsState.value = Resource.Loading
+            val revision = localPlaylistRepository.playlistSyncRevision()
             when (val networkResult = userRepository.getUserPlaylist(uid, limit)) {
                 is Resource.Success -> {
-                    localPlaylistRepository.mergeUserPlaylists(networkResult.data.playlists)
+                    localPlaylistRepository.mergeUserPlaylists(networkResult.data.playlists, revision)
                     _networkPlaylistsState.value = networkResult
                 }
 

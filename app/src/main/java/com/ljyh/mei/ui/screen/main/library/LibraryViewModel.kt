@@ -419,9 +419,10 @@ class LibraryViewModel internal constructor(
         val cached = cachedOrder.split(',')
             .mapNotNull { it.toLongOrNull()?.takeIf { id -> id > 0 }?.toString() }.distinct().take(2)
         if (recentCollectedOrder.value.isEmpty()) recentCollectedOrder.value = cached
+        val revision = localPlaylistRepository.playlistSyncRevision()
         when (val networkResult = source.getUserPlaylist(uid, limit)) {
             is Resource.Success -> {
-                localPlaylistRepository.mergeUserPlaylists(networkResult.data.playlists)
+                localPlaylistRepository.mergeUserPlaylists(networkResult.data.playlists, revision)
                 val recentIds = recentCollectedIds(networkResult.data.playlists, uid)
                 recentCollectedOrder.value = recentIds
                 playlistSync.value = Resource.Success(Unit)

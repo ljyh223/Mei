@@ -343,9 +343,10 @@ class PlaylistViewModel @Inject constructor(
     fun getAllMePlaylist(){
         viewModelScope.launch {
             if (userId.isNotEmpty()) {
+                val revision = localPlaylistRepository.playlistSyncRevision()
                 when (val result = userRepository.getUserPlaylist(userId, 100)) {
                     is Resource.Success -> {
-                        localPlaylistRepository.mergeUserPlaylists(result.data.playlists)
+                        localPlaylistRepository.mergeUserPlaylists(result.data.playlists, revision)
                     }
                     is Resource.Error -> {}
                     Resource.Loading -> {}

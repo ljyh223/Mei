@@ -30,13 +30,17 @@ import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.api.WeApiService
 import com.ljyh.mei.data.network.safeApiCall
+import com.ljyh.mei.di.repository.LocalPlaylistRepository
+import kotlinx.coroutines.CancellationException
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class PlaylistRepository(
     private val apiService: ApiService,
     private val weApiService: WeApiService,
-    private val eApiService: EApiService
+    private val eApiService: EApiService,
+    private val localPlaylists: LocalPlaylistRepository,
 ) {
     suspend fun getAlbumDynamic(id: Long): Resource<AlbumDynamic> = withContext(Dispatchers.IO) {
         safeApiCall {
@@ -59,13 +63,16 @@ class PlaylistRepository(
 
     suspend fun getPlaylistDetail(id: String): Resource<MiniPlaylistDetail> {
         return withContext(Dispatchers.IO) {
-            safeApiCall {
-                apiService.getPlaylistDetail(
-                    GetPlaylistDetail(
-                        id = id
-                    )
-                ).toDomain()
+            val revision = localPlaylists.playlistSyncRevision()
+            val result = safeApiCall {
+                val response = apiService.getPlaylistDetail(GetPlaylistDetail(id = id))
+                check(response.code == 200 && response.playlist.Id.toString() == id)
+                response.toDomain()
             }
+            if (result is Resource.Success) updateCachedPlaylistSummary {
+                localPlaylists.updatePlaylistSummary(id, result.data.count, result.data.coverUrl, revision)
+            }
+            result
         }
     }
 
@@ -107,16 +114,33 @@ class PlaylistRepository(
         imme: Boolean = true
     ): Resource<ManipulateTrackResult> {
         return withContext(Dispatchers.IO) {
-            safeApiCall {
-                apiService.manipulateTracks(
-                    ManipulateTrack(
-                        op = op,
-                        pid = pid,
-                        trackIds = trackIds,
-                        imme = imme
-                    )
-                )
+            val result = safeApiCall {
+                apiService.manipulateTracks(ManipulateTrack(op, pid, trackIds, imme))
             }
+            if (result is Resource.Success && result.data.code == 200) updateCachedPlaylistSummary {
+                val revision = localPlaylists.recordTrackMutation(pid, result.data.count)
+                // An absent row will be populated by the normal library sync.
+                if (localPlaylists.getPlaylist(pid) != null) {
+                    val response = apiService.getPlaylistSummary(pid)
+                    val summary = response.playlist
+                    if (response.code == 200 && summary?.id?.toString() == pid &&
+                        (result.data.count == null || summary.trackCount == result.data.count)) {
+                        localPlaylists.updatePlaylistSummary(pid, summary.trackCount, summary.coverImgUrl, revision)
+                    }
+                }
+            }
+            result
+        }
+    }
+
+    private suspend fun updateCachedPlaylistSummary(update: suspend () -> Unit) {
+        try {
+            update()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            // A readback or cache failure must not turn a completed server mutation into a failure.
+            Timber.tag("PlaylistSync").w(error, "Could not refresh cached playlist summary")
         }
     }
 
