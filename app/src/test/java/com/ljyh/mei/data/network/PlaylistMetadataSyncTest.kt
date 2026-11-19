@@ -164,7 +164,7 @@ class PlaylistMetadataSyncTest {
             4, description = "description", lastPlayTime = 800L, localPlayCount = 7)
         val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), AppDatabase::class.java)
             .allowMainThreadQueries().build()
-        val local = LocalPlaylistRepository(db.playlistDao())
+        val local = LocalPlaylistRepository(db.playlistDao(), db.playlistSongCrossRefDao())
         var count = 5
         var mutationCode = 200
         var includeMutationCount = true

@@ -8,11 +8,15 @@ import com.ljyh.mei.di.dao.PlaylistDao
 import com.ljyh.mei.di.dao.PlaylistSongCrossRefDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
-class LocalPlaylistRepository @Inject constructor(private val playlistDao: PlaylistDao) {
+class LocalPlaylistRepository @Inject constructor(
+    private val playlistDao: PlaylistDao,
+    private val trackDao: PlaylistSongCrossRefDao,
+) {
     private val writes = Mutex()
     private var revision = 0L
     private val contentRevisions = mutableMapOf<String, Long>()
@@ -20,6 +24,8 @@ class LocalPlaylistRepository @Inject constructor(private val playlistDao: Playl
     suspend fun getPlaylist(id: String): Playlist? = playlistDao.getPlaylist(id)
     suspend fun getPlaylistByAuthor(author: String): List<Playlist> = playlistDao.getPlaylistByAuthor(author)
     fun getAllPlaylist(): Flow<List<Playlist>> = playlistDao.getAllPlaylist()
+    fun playlistsContaining(songId: Long): Flow<Set<String>> =
+        trackDao.getPlaylistIdsWithSong(songId.toString()).map { it.toSet() }
     suspend fun insertPlaylist(playlist: Playlist) = writes.withLock { playlistDao.insertPlaylist(playlist) }
     suspend fun insertPlaylists(playlists: List<Playlist>) = writes.withLock { playlistDao.insertPlaylists(playlists) }
 
@@ -53,10 +59,17 @@ class LocalPlaylistRepository @Inject constructor(private val playlistDao: Playl
     }
 
     /** Publish an authoritative mutation count immediately, without guessing a cover or delta. */
-    suspend fun recordTrackMutation(id: String, count: Int?): Long = writes.withLock {
+    suspend fun recordTrackMutation(
+        id: String,
+        count: Int?,
+        addedTrackIds: List<Long> = emptyList(),
+        removedTrackIds: List<Long> = emptyList(),
+    ): Long = writes.withLock {
         val next = ++revision
         contentRevisions[id] = next
         playlistDao.updatePlaylistContent(id, count?.takeIf { it >= 0 }, null)
+        if (addedTrackIds.isNotEmpty()) mergeKnownTracks(id, addedTrackIds)
+        if (removedTrackIds.isNotEmpty()) trackDao.deleteTracks(id, removedTrackIds.map(Long::toString))
         next
     }
 
@@ -65,15 +78,50 @@ class LocalPlaylistRepository @Inject constructor(private val playlistDao: Playl
         count: Int,
         cover: String,
         requestedAtRevision: Long,
+        trackIds: List<Long>? = null,
     ): Boolean = writes.withLock {
         if (count < 0 || (contentRevisions[id] ?: 0L) > requestedAtRevision) return@withLock false
-        if (playlistDao.getPlaylist(id) == null) return@withLock false
-        playlistDao.updatePlaylistContent(id, count, cover)
+        val hasSummary = playlistDao.getPlaylist(id) != null
+        if (!hasSummary && trackIds == null) return@withLock false
+        if (hasSummary) playlistDao.updatePlaylistContent(id, count, cover)
+        if (trackIds != null) storeTracks(id, trackIds, complete = trackIds.distinct().size == count)
         contentRevisions[id] = ++revision
         true
     }
 
-    suspend fun deletePlaylistById(id: String) = writes.withLock { playlistDao.deletePlaylistById(id) }
+    suspend fun updatePlaylistMembership(
+        id: String,
+        trackIds: List<Long>,
+        complete: Boolean,
+        requestedAtRevision: Long,
+    ): Boolean = writes.withLock {
+        if ((contentRevisions[id] ?: 0L) > requestedAtRevision) return@withLock false
+        storeTracks(id, trackIds, complete)
+        contentRevisions[id] = ++revision
+        true
+    }
+
+    private suspend fun storeTracks(id: String, trackIds: List<Long>, complete: Boolean) {
+        if (complete && trackIds.all { it > 0 }) {
+            trackDao.replaceTracks(id, trackIds.distinct().mapIndexed { index, songId ->
+                PlaylistSongCrossRef(id, songId.toString(), sortOrder = index)
+            })
+        } else {
+            // Partial reads can confirm presence, but cannot prove an old song was removed.
+            mergeKnownTracks(id, trackIds)
+        }
+    }
+
+    private suspend fun mergeKnownTracks(id: String, trackIds: List<Long>) {
+        val existing = trackDao.getSongIdsByPlaylist(id).first().toSet()
+        trackDao.insertAll(trackIds.distinct().filter { it > 0 && it.toString() !in existing }
+            .mapIndexed { index, songId -> PlaylistSongCrossRef(id, songId.toString(), existing.size + index) })
+    }
+
+    suspend fun deletePlaylistById(id: String) = writes.withLock {
+        trackDao.deleteByPlaylist(id)
+        playlistDao.deletePlaylistById(id)
+    }
     suspend fun touchPlaylist(id: String, timestamp: Long) =
         writes.withLock { playlistDao.touchPlaylist(id, timestamp) }
 }

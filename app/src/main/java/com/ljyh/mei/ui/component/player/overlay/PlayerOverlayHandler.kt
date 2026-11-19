@@ -209,11 +209,14 @@ class PlayerOverlayHandler(
     /**
      * 添加歌曲到播放列表
      */
+    fun playlistsContaining(trackId: Long) = playlistViewModel.playlistsContaining(trackId)
+
+    suspend fun refreshPlaylistMembership(id: String) = playlistViewModel.refreshPlaylistMembership(id)
+
     fun addSongToPlaylist(selectedPlaylist: Playlist, mediaId: Long) {
         playlistViewModel.addSongToPlaylist(
             pid = selectedPlaylist.id,
-            trackIds = mediaId.toString(),
-            previousTrackCount = selectedPlaylist.count
+            trackIds = mediaId.toString()
         ) { outcome ->
             val message = when (outcome) {
                 PlaylistTrackAddOutcome.Added -> "已添加到 ${selectedPlaylist.title}"

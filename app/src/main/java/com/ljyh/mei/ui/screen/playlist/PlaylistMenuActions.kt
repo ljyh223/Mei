@@ -3,6 +3,8 @@ package com.ljyh.mei.ui.screen.playlist
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.flowOf
 import androidx.compose.ui.platform.LocalContext
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
@@ -16,6 +18,7 @@ import com.ljyh.mei.utils.system.setClipboard
 /** Menu intents form part of the presentation boundary, with no ViewModel in their signatures. */
 data class PlaylistMenuActions(
     val refreshPlaylists: () -> Unit = {},
+    val refreshPlaylistMembership: suspend (String) -> Unit = {},
     val addSong: (Playlist, Long) -> Unit = { _, _ -> },
     val deleteSong: (Long) -> Unit = {},
     val playNext: (MediaMetadata, QueueSource) -> Unit = { _, _ -> },
@@ -33,8 +36,9 @@ internal fun rememberPlaylistMenuActions(viewModel: PlaylistViewModel, playlistI
         fun message(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
         PlaylistMenuActions(
             refreshPlaylists = viewModel::getAllMePlaylist,
+            refreshPlaylistMembership = viewModel::refreshPlaylistMembership,
             addSong = { playlist, trackId ->
-                viewModel.addSongToPlaylist(playlist.id, trackId.toString(), playlist.count) { outcome ->
+                viewModel.addSongToPlaylist(playlist.id, trackId.toString()) { outcome ->
                     message(when (outcome) {
                         PlaylistTrackAddOutcome.Added -> "已添加到 ${playlist.title}"
                         PlaylistTrackAddOutcome.AlreadyExists -> "歌曲已在 ${playlist.title} 中"
@@ -65,6 +69,14 @@ internal fun rememberPlaylistMenuActions(viewModel: PlaylistViewModel, playlistI
     }
 }
 
+@Composable
+internal fun rememberPlaylistMembership(viewModel: PlaylistViewModel, trackId: Long?): Set<String> {
+    val membership = remember(viewModel, trackId) {
+        if (trackId == null) flowOf(emptySet()) else viewModel.playlistsContaining(trackId)
+    }
+    return membership.collectAsState(initial = emptySet()).value
+}
+
 /** Compatibility binding for existing album callers; new playlist content receives menu intents. */
 @Composable
 fun PlaylistActionOverlay(
@@ -79,5 +91,6 @@ fun PlaylistActionOverlay(
     viewModel: PlaylistViewModel,
 ) {
     PlaylistActionMenu(overlay, isCreator, queueSource, allMePlaylist, onDismiss,
-        onUpdateOverlay, onDownloadTrack, rememberPlaylistMenuActions(viewModel, playlistId))
+        onUpdateOverlay, onDownloadTrack, rememberPlaylistMenuActions(viewModel, playlistId),
+        containingPlaylistIds = rememberPlaylistMembership(viewModel, (overlay as? OverlayState.AddToPlaylist)?.mediaId))
 }

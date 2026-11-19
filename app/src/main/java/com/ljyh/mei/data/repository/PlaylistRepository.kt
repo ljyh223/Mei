@@ -35,6 +35,12 @@ import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
+import android.os.SystemClock
+import java.util.concurrent.ConcurrentHashMap
 
 class PlaylistRepository(
     private val apiService: ApiService,
@@ -42,6 +48,10 @@ class PlaylistRepository(
     private val eApiService: EApiService,
     private val localPlaylists: LocalPlaylistRepository,
 ) {
+    private val membershipReadPermits = Semaphore(3)
+    private val membershipReadLocks = ConcurrentHashMap<String, Mutex>()
+    private val membershipReadTimes = ConcurrentHashMap<String, Long>()
+
     suspend fun getAlbumDynamic(id: Long): Resource<AlbumDynamic> = withContext(Dispatchers.IO) {
         safeApiCall {
             val response = weApiService.getAlbumDynamic(id)
@@ -70,7 +80,7 @@ class PlaylistRepository(
                 response.toDomain()
             }
             if (result is Resource.Success) updateCachedPlaylistSummary {
-                localPlaylists.updatePlaylistSummary(id, result.data.count, result.data.coverUrl, revision)
+                localPlaylists.updatePlaylistSummary(id, result.data.count, result.data.coverUrl, revision, result.data.trackIds)
             }
             result
         }
@@ -117,19 +127,54 @@ class PlaylistRepository(
             val result = safeApiCall {
                 apiService.manipulateTracks(ManipulateTrack(op, pid, trackIds, imme))
             }
-            if (result is Resource.Success && result.data.code == 200) updateCachedPlaylistSummary {
-                val revision = localPlaylists.recordTrackMutation(pid, result.data.count)
+            val duplicate = result is Resource.Success && op == "add" &&
+                result.data.code == 502 && result.data.message == "歌单内歌曲重复"
+            if (result is Resource.Success && (result.data.code == 200 || duplicate)) updateCachedPlaylistSummary {
+                membershipReadTimes.remove(pid)
+                val ids = trackIds.split(",").mapNotNull { it.trim().toLongOrNull()?.takeIf { id -> id > 0 } }
+                val revision = localPlaylists.recordTrackMutation(
+                    pid, result.data.count,
+                    addedTrackIds = ids.takeIf { op == "add" }.orEmpty(),
+                    removedTrackIds = ids.takeIf { op == "del" }.orEmpty(),
+                )
                 // An absent row will be populated by the normal library sync.
                 if (localPlaylists.getPlaylist(pid) != null) {
                     val response = apiService.getPlaylistSummary(pid)
                     val summary = response.playlist
                     if (response.code == 200 && summary?.id?.toString() == pid &&
                         (result.data.count == null || summary.trackCount == result.data.count)) {
-                        localPlaylists.updatePlaylistSummary(pid, summary.trackCount, summary.coverImgUrl, revision)
+                        localPlaylists.updatePlaylistSummary(
+                            pid, summary.trackCount, summary.coverImgUrl, revision, summary.trackIds?.map { it.id },
+                        )
                     }
                 }
             }
             result
+        }
+    }
+
+    /** Only visible choices request membership; cached hints never decide whether an add is allowed. */
+    suspend fun refreshPlaylistMembership(id: String): Resource<Unit> = withContext(Dispatchers.IO) {
+        membershipReadLocks.getOrPut(id) { Mutex() }.withLock {
+            val now = SystemClock.elapsedRealtime()
+            val previous = membershipReadTimes[id]
+            if (previous != null && now - previous in 0L..30_000L) return@withLock Resource.Success(Unit)
+            membershipReadPermits.withPermit {
+                val revision = localPlaylists.playlistSyncRevision()
+                val result = safeApiCall {
+                    val response = apiService.getPlaylistSummary(id)
+                    val summary = response.playlist
+                    check(response.code == 200 && summary?.id?.toString() == id) { "歌单状态暂时无法同步" }
+                    val tracks = requireNotNull(summary).trackIds
+                    check(tracks != null) { "歌单歌曲列表不完整" }
+                    val ids = tracks.map { it.id }
+                    val complete = ids.all { it > 0 } && ids.distinct().size == summary.trackCount
+                    localPlaylists.updatePlaylistMembership(id, ids, complete, revision)
+                    Unit
+                }
+                if (result is Resource.Success) membershipReadTimes[id] = SystemClock.elapsedRealtime()
+                result
+            }
         }
     }
 

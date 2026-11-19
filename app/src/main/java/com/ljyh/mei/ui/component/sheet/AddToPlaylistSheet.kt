@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +58,9 @@ fun AddToPlaylistSheet(
     onSelectPlaylist: (Playlist) -> Unit,
     onCreateNewPlaylist: () -> Unit,
     embedded: Boolean = false,
+    trackId: Long? = null,
+    containingPlaylistIds: Set<String> = emptySet(),
+    onRefreshPlaylist: suspend (String) -> Unit = {},
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val sortedPlaylists = remember(playlists) { playlists.sortedBySmartScore(System.currentTimeMillis()) }
@@ -117,10 +122,15 @@ fun AddToPlaylistSheet(
                     }
                 }
                 items(matchingPlaylists, key = Playlist::id) { playlist ->
+                    LaunchedEffect(playlist.id, trackId) {
+                        if (trackId != null && trackId > 0) onRefreshPlaylist(playlist.id)
+                    }
+                    val alreadyContains = playlist.id in containingPlaylistIds
                     PlaylistChoiceRow(
                         title = playlist.title,
-                        subtitle = "${playlist.count}首歌曲",
+                        subtitle = if (alreadyContains) "${playlist.count}首歌曲 · 已在歌单中" else "${playlist.count}首歌曲",
                         compact = compact,
+                        muted = alreadyContains,
                         onClick = { onSelectPlaylist(playlist) },
                         leading = {
                             AsyncImage(
@@ -179,10 +189,12 @@ private fun PlaylistChoiceRow(
     onClick: () -> Unit,
     leading: @Composable () -> Unit,
     subtitle: String? = null,
+    muted: Boolean = false,
 ) {
     if (compact) {
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick)
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).alpha(if (muted) 0.5f else 1f)
+                .clickable(onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -203,7 +215,7 @@ private fun PlaylistChoiceRow(
         }
     } else {
         ListItem(
-            modifier = Modifier.clickable(onClick = onClick),
+            modifier = Modifier.alpha(if (muted) 0.5f else 1f).clickable(onClick = onClick),
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             leadingContent = leading,
             headlineContent = {

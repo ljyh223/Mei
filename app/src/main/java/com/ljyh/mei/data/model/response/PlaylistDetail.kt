@@ -113,7 +113,12 @@ internal fun PlaylistDetail.toDomain(): MiniPlaylistDetail {
 data class PlaylistSummaryResponse(val code: Int, val playlist: PlaylistSummary? = null)
 
 @Serializable
-data class PlaylistSummary(val id: Long, val coverImgUrl: String, val trackCount: Int)
+data class PlaylistSummary(
+    val id: Long,
+    val coverImgUrl: String,
+    val trackCount: Int,
+    val trackIds: List<PlaylistDetail.Playlist.TrackId>? = null,
+)
 
 /** Header-only lookup for home cards; does not depend on track arrays in the response. */
 @Serializable

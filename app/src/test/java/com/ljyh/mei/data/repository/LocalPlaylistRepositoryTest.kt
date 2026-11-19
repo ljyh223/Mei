@@ -20,7 +20,7 @@ class LocalPlaylistRepositoryTest {
         ))
         val remote = listOf(remotePlaylist(1L, 1L, 10L), remotePlaylist(2L, 2L, 20L))
 
-        val repository = LocalPlaylistRepository(dao)
+        val repository = LocalPlaylistRepository(dao, FakePlaylistSongCrossRefDao())
         repository.mergeUserPlaylists(remote, repository.playlistSyncRevision())
 
         assertEquals(8, dao.rows.getValue("1").localPlayCount)

@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.ljyh.mei.data.model.domain.*
 import com.ljyh.mei.data.model.response.*
 import com.ljyh.mei.data.model.room.Playlist
+import com.ljyh.mei.data.repository.FakePlaylistSongCrossRefDao
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.di.dao.PlaylistDao
 import com.ljyh.mei.di.repository.LocalPlaylistRepository
@@ -143,7 +144,7 @@ class LibraryLoadingTest {
         val source = Source()
         val vm = LibraryViewModel(
             ApplicationProvider.getApplicationContext<Application>(), source,
-            LocalPlaylistRepository(Playlists()), scope,
+            LocalPlaylistRepository(Playlists(), FakePlaylistSongCrossRefDao()), scope,
         )
         try { withTimeout(15_000) { block(vm, source) } } finally { scope.cancel() }
     }

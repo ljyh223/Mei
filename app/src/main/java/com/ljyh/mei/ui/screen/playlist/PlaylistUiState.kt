@@ -20,6 +20,7 @@ internal data class PlaylistUiState(
     val playlistId: Long = uiData.id,
     val trackIds: List<Long> = uiData.tracks.map { it.id },
     val playlists: List<Playlist> = emptyList(),
+    val containingPlaylistIds: Set<String> = emptySet(),
     val overlay: OverlayState = OverlayState.None,
     val pagingItems: LazyPagingItems<MediaMetadata>? = null,
     val isLoading: Boolean,

@@ -229,6 +229,7 @@ internal fun PlaylistContent(
                 queueSource = if (uiData.id == -1L) QueueSource(QueueSource.Type.DAILY, "dailySongs", uiData.title)
                     else QueueSource(QueueSource.Type.PLAYLIST, uiData.id.toString(), uiData.title),
                 allMePlaylist = state.playlists,
+                containingPlaylistIds = state.containingPlaylistIds,
                 onDismiss = { actions.onOverlayChange(OverlayState.None) },
                 onUpdateOverlay = actions.onOverlayChange,
                 onDownloadTrack = actions.onTrackDownload,

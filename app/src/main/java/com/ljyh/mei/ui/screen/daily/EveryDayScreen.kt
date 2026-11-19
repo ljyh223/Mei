@@ -33,6 +33,7 @@ import com.ljyh.mei.ui.screen.playlist.PlaylistContent
 import com.ljyh.mei.ui.screen.playlist.PlaylistUiState
 import com.ljyh.mei.ui.screen.playlist.PlaylistViewModel
 import com.ljyh.mei.ui.screen.playlist.matchesPlaylistSearch
+import com.ljyh.mei.ui.screen.playlist.rememberPlaylistMembership
 import com.ljyh.mei.ui.screen.playlist.rememberPlaylistMenuActions
 import java.time.LocalDate
 
@@ -51,6 +52,7 @@ fun EveryDay(
     val playlists by viewModel.playlist.collectAsState()
     var overlay by remember { mutableStateOf<OverlayState>(OverlayState.None) }
     val menu = rememberPlaylistMenuActions(viewModel, -1L)
+    val containingPlaylistIds = rememberPlaylistMembership(viewModel, (overlay as? OverlayState.AddToPlaylist)?.mediaId)
 
     val isLoading = everyDaySongs is Resource.Loading
     LaunchedEffect(true) {
@@ -115,6 +117,7 @@ fun EveryDay(
             state = PlaylistUiState(
                 playlistId = -1L,
                 playlists = playlists,
+                containingPlaylistIds = containingPlaylistIds,
                 overlay = overlay,
                 uiData = displayedUiData,
                 pagingItems = null,

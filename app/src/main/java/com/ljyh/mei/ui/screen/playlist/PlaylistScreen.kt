@@ -87,6 +87,7 @@ fun PlaylistScreen(
     val allMePlaylist by viewModel.playlist.collectAsState()
     var overlay by remember(id) { mutableStateOf<OverlayState>(OverlayState.None) }
     val menu = rememberPlaylistMenuActions(viewModel, id)
+    val containingPlaylistIds = rememberPlaylistMembership(viewModel, (overlay as? OverlayState.AddToPlaylist)?.mediaId)
     LaunchedEffect(viewModel) {
         viewModel.orderEditor.feedback.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
     }
@@ -265,6 +266,7 @@ fun PlaylistScreen(
                 playlistId = id,
                 trackIds = currentDetail?.trackIds.orEmpty().filterNot { it in removedTrackIds },
                 playlists = allMePlaylist,
+                containingPlaylistIds = containingPlaylistIds,
                 overlay = overlay,
                 pagingItems = lazyPagingItems,
                 isLoading = playlistDetail is Resource.Loading,

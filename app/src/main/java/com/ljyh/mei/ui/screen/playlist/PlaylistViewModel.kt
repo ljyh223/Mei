@@ -300,22 +300,24 @@ class PlaylistViewModel @Inject constructor(
     }
 
 
+    fun playlistsContaining(trackId: Long): Flow<Set<String>> = localPlaylistRepository.playlistsContaining(trackId)
+
+    suspend fun refreshPlaylistMembership(id: String) { repository.refreshPlaylistMembership(id) }
+
     fun addSongToPlaylist(
         pid: String,
         trackIds: String,
-        previousTrackCount: Int,
         onComplete: (PlaylistTrackAddOutcome) -> Unit = {}
     ) {
         viewModelScope.launch {
             _manipulateTracks.value = Resource.Loading
             val result = repository.manipulateTrack("add", pid, trackIds)
             _manipulateTracks.value = result
-            val outcome = result.toPlaylistTrackAddOutcome(previousTrackCount)
+            val outcome = result.toPlaylistTrackAddOutcome()
             Timber.tag("PlaylistAdd").d(
-                "pid=%s trackIds=%s previousCount=%d result=%s outcome=%s",
+                "pid=%s trackIds=%s result=%s outcome=%s",
                 pid,
                 trackIds,
-                previousTrackCount,
                 result,
                 outcome
             )
@@ -424,17 +426,11 @@ enum class PlaylistTrackAddOutcome {
     Failed
 }
 
-internal fun Resource<ManipulateTrackResult>.toPlaylistTrackAddOutcome(
-    previousTrackCount: Int
-): PlaylistTrackAddOutcome =
+internal fun Resource<ManipulateTrackResult>.toPlaylistTrackAddOutcome(): PlaylistTrackAddOutcome =
     when (this) {
         is Resource.Success -> when {
-            data.code == 502 && data.message == "歌单内歌曲重复" ->
-                PlaylistTrackAddOutcome.AlreadyExists
-            data.code != 200 -> PlaylistTrackAddOutcome.Failed
-            data.count == null -> PlaylistTrackAddOutcome.Added
-            data.count > previousTrackCount -> PlaylistTrackAddOutcome.Added
-            data.count == previousTrackCount -> PlaylistTrackAddOutcome.AlreadyExists
+            data.code == 502 && data.message == "歌单内歌曲重复" -> PlaylistTrackAddOutcome.AlreadyExists
+            data.code == 200 -> PlaylistTrackAddOutcome.Added
             else -> PlaylistTrackAddOutcome.Failed
         }
         else -> PlaylistTrackAddOutcome.Failed

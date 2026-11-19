@@ -48,7 +48,7 @@ object AppModule {
 
     @Provides @Singleton
     fun providePlaylistDao(db: AppDatabase): LocalPlaylistRepository =
-        LocalPlaylistRepository(db.playlistDao())
+        LocalPlaylistRepository(db.playlistDao(), db.playlistSongCrossRefDao())
 
     @Provides @Singleton
     fun provideHistoryDao(database: AppDatabase): HistoryRepository =

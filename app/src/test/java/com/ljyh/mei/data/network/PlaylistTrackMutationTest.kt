@@ -58,23 +58,23 @@ class PlaylistTrackMutationTest {
         assertTrue(mutate("del", "invalid json") is Resource.Error)
     }
 
-    @Test fun addingKeepsDuplicateDetectionWhenCountsArePresent() = runBlocking {
+    @Test fun onlyAnExplicitServerDuplicateResponseIsReportedAsAlreadyPresent() = runBlocking {
         val added = mutate("add", """{"code":200,"cloudCount":0,"count":11,"trackIds":"[1]"}""")
-        assertEquals(PlaylistTrackAddOutcome.Added, added.toPlaylistTrackAddOutcome(10))
+        assertEquals(PlaylistTrackAddOutcome.Added, added.toPlaylistTrackAddOutcome())
         val unchanged = mutate("add", """{"code":200,"cloudCount":0,"count":10,"trackIds":"[1]"}""")
-        assertEquals(PlaylistTrackAddOutcome.AlreadyExists, unchanged.toPlaylistTrackAddOutcome(10))
+        assertEquals(PlaylistTrackAddOutcome.Added, unchanged.toPlaylistTrackAddOutcome())
         val duplicate = mutate("add", """{"code":502,"message":"歌单内歌曲重复"}""")
-        assertEquals(PlaylistTrackAddOutcome.AlreadyExists, duplicate.toPlaylistTrackAddOutcome(10))
+        assertEquals(PlaylistTrackAddOutcome.AlreadyExists, duplicate.toPlaylistTrackAddOutcome())
     }
 
     @Test fun codeOnlyAddSuccessDoesNotInventAnUnchangedCount() = runBlocking {
         assertEquals(
             PlaylistTrackAddOutcome.Added,
-            mutate("add", """{"code":200}""").toPlaylistTrackAddOutcome(10),
+            mutate("add", """{"code":200}""").toPlaylistTrackAddOutcome(),
         )
         assertEquals(
             PlaylistTrackAddOutcome.Failed,
-            mutate("add", """{"code":403}""").toPlaylistTrackAddOutcome(10),
+            mutate("add", """{"code":403}""").toPlaylistTrackAddOutcome(),
         )
     }
 
@@ -105,7 +105,7 @@ class PlaylistTrackMutationTest {
             ApiService(http, XeApiClient(RuntimeEnvironment.getApplication(), http, json)),
             WeApiService(http),
             EApiService(http),
-            LocalPlaylistRepository(db.playlistDao()),
+            LocalPlaylistRepository(db.playlistDao(), db.playlistSongCrossRefDao()),
         )
         return try {
             repo.manipulateTrack(op, "123", "456,789").also {

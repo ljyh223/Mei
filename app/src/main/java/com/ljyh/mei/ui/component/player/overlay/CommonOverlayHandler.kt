@@ -185,6 +185,11 @@ fun CommonOverlayHandler(
 
                     is OverlayState.AddToPlaylist -> AddToPlaylistSheet(
                         playlists = stateContainer.myPlaylist.value,
+                        trackId = visible.mediaId,
+                        containingPlaylistIds = remember(overlayHandler, visible.mediaId) {
+                            overlayHandler.playlistsContaining(visible.mediaId)
+                        }.collectAsState(initial = emptySet()).value,
+                        onRefreshPlaylist = overlayHandler::refreshPlaylistMembership,
                         onDismiss = closeSheet,
                         onSelectPlaylist = { selectedPlaylist ->
                             overlayHandler.addSongToPlaylist(selectedPlaylist, visible.mediaId)

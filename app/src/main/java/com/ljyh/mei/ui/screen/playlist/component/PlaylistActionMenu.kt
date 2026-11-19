@@ -21,11 +21,15 @@ internal fun PlaylistActionMenu(
     onUpdateOverlay: (OverlayState) -> Unit,
     onDownloadTrack: ((MediaMetadata) -> Unit)?,
     actions: PlaylistMenuActions,
+    containingPlaylistIds: Set<String> = emptySet(),
 ) {
     when (overlay) {
         is OverlayState.AddToPlaylist -> {
             AddToPlaylistSheet(
                 playlists = allMePlaylist,
+                trackId = overlay.mediaId,
+                containingPlaylistIds = containingPlaylistIds,
+                onRefreshPlaylist = actions.refreshPlaylistMembership,
                 onDismiss = onDismiss,
                 onCreateNewPlaylist = {
                     // 这里可以跳转到创建歌单的 Overlay 或页面

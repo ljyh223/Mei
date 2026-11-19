@@ -36,6 +36,38 @@ import org.robolectric.annotation.LooperMode
 class MeiAdaptiveSheetTest {
     @get:Rule val compose = createEmptyComposeRule()
 
+    @Test
+    @Config(qualifiers = "w800dp-h360dp")
+    fun cachedMembershipIsAnInformationalHintAndDoesNotDisableSelectingThePlaylist() {
+        val playlist = Playlist("123", "已缓存的歌单", "", "9", "", "", 2)
+        var selected = false
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                CompositionLocalProvider(
+                    LocalAppWindowLayout provides AppWindowLayout.Compact,
+                    LocalPhoneLandscape provides true,
+                ) {
+                    AddToPlaylistSheet(
+                        playlists = listOf(playlist),
+                        containingPlaylistIds = setOf(playlist.id),
+                        onDismiss = {},
+                        onSelectPlaylist = { selected = true },
+                        onCreateNewPlaylist = {},
+                    )
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            compose.onNodeWithText("2首歌曲 · 已在歌单中").assertIsDisplayed()
+            compose.onNode(hasText(playlist.title) and hasClickAction()).assertIsEnabled().performClick()
+            compose.runOnIdle { assertTrue(selected) }
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun compactSideContentWrapsItsControlsAtTheBottom() {
         var compact by mutableStateOf(true)
         var density = 1f
