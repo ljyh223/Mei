@@ -20,7 +20,8 @@ data class ManipulateTrack(
 data class ManipulateTrackResult(
     val code:Int,
     val message: String? = null,
-    val cloudCount:Int,
-    val count:Int,
-    val trackIds:String
+    // Delete and rejected operations may only return a status code.
+    val cloudCount: Int? = null,
+    val count: Int? = null,
+    val trackIds: String? = null
 )

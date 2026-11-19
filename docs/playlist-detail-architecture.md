@@ -85,6 +85,8 @@ data/paging/
 
 `PlaylistActions` 包含主要页面操作、弹层切换回调和 `PlaylistMenuActions`。菜单的添加到歌单、删除、下一首、队列和复制等操作都通过回调执行。
 
+增删歌曲共用 `/api/playlist/manipulate/tracks`，请求仍使用 `op`、`pid`、JSON 字符串形式的 `trackIds` 和 `imme`。返回码必须存在；`cloudCount`、`count`、`trackIds` 是可缺省的附加信息，不能因为缺少它们将 `code=200` 的删除响应判为失败。删除成功后才移除页面中的歌曲。添加响应有数量时保留前后数量的重复判断，无数量时按成功码处理；非成功码仍失败，已明确的重复歌曲返回码保留单独提示。解析失败不自动重试写请求。
+
 ```text
 PlaylistScreen
   ├── 收集 ViewModel 数据

@@ -431,6 +431,7 @@ internal fun Resource<ManipulateTrackResult>.toPlaylistTrackAddOutcome(
             data.code == 502 && data.message == "歌单内歌曲重复" ->
                 PlaylistTrackAddOutcome.AlreadyExists
             data.code != 200 -> PlaylistTrackAddOutcome.Failed
+            data.count == null -> PlaylistTrackAddOutcome.Added
             data.count > previousTrackCount -> PlaylistTrackAddOutcome.Added
             data.count == previousTrackCount -> PlaylistTrackAddOutcome.AlreadyExists
             else -> PlaylistTrackAddOutcome.Failed
