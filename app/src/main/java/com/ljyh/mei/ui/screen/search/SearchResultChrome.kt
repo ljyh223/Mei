@@ -84,7 +84,7 @@ internal fun SearchResultHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                back()
+                if (!compact) back()
                 field(Modifier.weight(if (inlineFilters) 0.65f else 1f, fill = false))
                 if (inlineFilters) filters(Modifier.weight(1f))
             }

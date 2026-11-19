@@ -62,6 +62,7 @@ import com.ljyh.mei.ui.component.glass.MeiGlassSurface
 import com.ljyh.mei.ui.component.glass.meiGlassContentColor
 import com.ljyh.mei.ui.component.glass.meiGlassAccentColor
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.artwork.VinylAlbumArtwork
@@ -71,6 +72,7 @@ import com.ljyh.mei.ui.component.track.*
 import com.ljyh.mei.ui.local.*
 import com.ljyh.mei.ui.screen.Screen
 import com.ljyh.mei.ui.screen.backToMain
+import com.ljyh.mei.ui.tablet.search.AdaptiveSearchResults
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -371,8 +373,12 @@ internal data class SearchResultContentState(
 )
 
 @Composable
-private fun SearchResultPage(state: SearchResultContentState) = with(state) {
-    SearchResultPage(page, type, keyword, actions, onRetry, onLoadMore, Modifier.fillMaxSize(), topPadding)
+internal fun SearchResultPage(state: SearchResultContentState) = with(state) {
+    if (LocalPhoneLandscape.current && type != SearchType.All && type != SearchType.History) {
+        AdaptiveSearchResults(state)
+    } else {
+        SearchResultPage(page, type, keyword, actions, onRetry, onLoadMore, Modifier.fillMaxSize(), topPadding)
+    }
 }
 
 @Composable
@@ -575,17 +581,14 @@ internal fun SearchArtistRow(artist: SearchArtist, words: List<String>, onClick:
 
 @Composable
 internal fun SearchAlbumRow(album: SearchAlbum, words: List<String>, onClick: (SearchAlbum) -> Unit, bestMatch: Boolean = false) {
-    SearchEntityRow(album.title, listOf(albumSubtitle(album), if (bestMatch) "专辑" else "${album.size} 首")
-        .filter(String::isNotBlank).joinToString(" · "), album.coverUrl, words,
+    SearchEntityRow(album.title, albumSubtitle(album, if (bestMatch) "专辑" else "${album.size} 首"), album.coverUrl, words,
         bestMatch = bestMatch, albumArtwork = true, onClick = { onClick(album) })
 }
 
 @Composable
 internal fun SearchPlaylistRow(playlist: SearchPlaylist, words: List<String>, onClick: (SearchPlaylist) -> Unit) {
-    val subtitle = listOf("${playlist.trackCount} 首", playlist.creatorName,
-        playlist.playCount?.takeIf { it > 0 }?.let { "${formatSearchPlayCount(it)}次播放" }.orEmpty())
-        .filter(String::isNotBlank).joinToString(" · ")
-    SearchEntityRow(playlist.title, subtitle, playlist.coverUrl, words, titleLines = 2, onClick = { onClick(playlist) })
+    SearchEntityRow(playlist.title, searchPlaylistSubtitle(playlist), playlist.coverUrl, words,
+        titleLines = 2, onClick = { onClick(playlist) })
 }
 
 @Composable
@@ -664,9 +667,16 @@ internal fun highlight(text: String, words: List<String>): AnnotatedString {
     }
 }
 
-internal fun albumSubtitle(album: SearchAlbum): String = listOf(
+internal fun albumSubtitle(album: SearchAlbum, detail: String = ""): String = listOf(
     album.artists.joinToString(" / ") { it.name },
     album.publishTime?.let { SimpleDateFormat("yyyy", Locale.getDefault()).format(Date(it)) }.orEmpty(),
+    detail,
+).filter(String::isNotBlank).joinToString(" · ")
+
+internal fun searchPlaylistSubtitle(playlist: SearchPlaylist): String = listOf(
+    "${playlist.trackCount} 首",
+    playlist.creatorName,
+    playlist.playCount?.takeIf { it > 0 }?.let { "${formatSearchPlayCount(it)}次播放" }.orEmpty(),
 ).filter(String::isNotBlank).joinToString(" · ")
 
 private fun formatSearchPlayCount(count: Long): String = when {

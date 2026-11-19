@@ -12,7 +12,12 @@ internal data class TabletSearchLayout(
 )
 
 /** Uses the search viewport, including its gutters, rather than a physical-device flag. */
-internal fun tabletSearchLayout(widthDp: Float, fontScale: Float, gutterDp: Float): TabletSearchLayout {
+internal fun tabletSearchLayout(
+    widthDp: Float,
+    fontScale: Float,
+    gutterDp: Float,
+    phoneLandscape: Boolean = false,
+): TabletSearchLayout {
     val width = widthDp.takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 0f
     val scale = fontScale.takeIf { it.isFinite() && it > 0f }?.coerceAtLeast(1f) ?: 1f
     val gutter = gutterDp.takeIf { it.isFinite() }?.coerceAtLeast(0f) ?: 28f
@@ -25,7 +30,7 @@ internal fun tabletSearchLayout(widthDp: Float, fontScale: Float, gutterDp: Floa
     return TabletSearchLayout(
         twoPanes = twoPanes,
         primaryWidthDp = paneWidth,
-        songColumns = body >= 760f * scale,
+        songColumns = body >= (if (phoneLandscape) 560f else 760f) * scale,
         artworkColumns = ((body + 24f) / (156f * scale + 24f)).toInt().coerceIn(1, 6),
         artistColumns = ((body + 24f) / (176f * scale + 24f)).toInt().coerceIn(1, 5),
         albumColumns = ((body + 24f) / (156f * scale * VinylAlbumArtworkRatio + 24f)).toInt().coerceIn(1, 6),

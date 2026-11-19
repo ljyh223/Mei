@@ -28,6 +28,10 @@ import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 
+internal val PhoneLandscapeArtworkColumns = GridCells.Adaptive(112.dp)
+internal val CompactCollectionColumnSpacing = 12.dp
+internal val CompactCollectionRowSpacing = 16.dp
+
 /**
  * Shared chrome and states for complete collections. Artwork collections share the same
  * phone landscape grid. Data fetching and item rendering stay with the caller.
@@ -65,7 +69,7 @@ fun MeiCollectionPage(
     val landscape = LocalPhoneLandscape.current
     val columns = when {
         artworkColumns == null -> GridCells.Fixed(1)
-        landscape -> GridCells.Adaptive(112.dp)
+        landscape -> PhoneLandscapeArtworkColumns
         else -> artworkColumns
     }
     val hasLargeTitle = showLargeTitle && !landscape
@@ -85,8 +89,8 @@ fun MeiCollectionPage(
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Use this collection's actual width, including when hosted in a resized window.
         val wideArtworkGrid = !landscape && maxWidth - start - end >= 600.dp && artworkColumns != null
-        val columnSpacing = horizontalItemSpacing ?: if (wideArtworkGrid) 24.dp else 12.dp
-        val rowSpacing = verticalItemSpacing ?: if (wideArtworkGrid) 28.dp else 16.dp
+        val columnSpacing = horizontalItemSpacing ?: if (wideArtworkGrid) 24.dp else CompactCollectionColumnSpacing
+        val rowSpacing = verticalItemSpacing ?: if (wideArtworkGrid) 28.dp else CompactCollectionRowSpacing
         // Grid content padding already reserves the safe area and sidebar for every item.
         CompositionLocalProvider(
             LocalMeiPageProgress provides progress,

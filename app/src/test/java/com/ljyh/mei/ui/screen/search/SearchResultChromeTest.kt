@@ -73,7 +73,7 @@ class SearchResultChromeTest {
     }
 
     @Test
-    fun phoneLandscapePlacesFiltersNextToTheFieldWhenTheyFit() {
+    fun phoneLandscapeUsesSidebarBackAndPlacesFiltersNextToTheFieldWhenTheyFit() {
         var width by mutableStateOf(720.dp)
         var landscape by mutableStateOf(true)
         TabletContentTestActivity.content = {
@@ -84,7 +84,7 @@ class SearchResultChromeTest {
                 ) {
                     Box(Modifier.width(width)) {
                         SearchResultHeader(
-                            back = { Box(Modifier.size(48.dp)) },
+                            back = { Box(Modifier.size(48.dp).testTag("back")) },
                             field = { modifier -> Box(modifier.fillMaxWidth().height(56.dp).testTag("field")) },
                             filters = { modifier -> Box(modifier.fillMaxWidth().height(48.dp).testTag("filters")) },
                         )
@@ -96,12 +96,19 @@ class SearchResultChromeTest {
         try {
             fun fieldBounds() = compose.onNodeWithTag("field").fetchSemanticsNode().boundsInRoot
             fun filterBounds() = compose.onNodeWithTag("filters").fetchSemanticsNode().boundsInRoot
+            compose.onNodeWithTag("back").assertDoesNotExist()
             assertTrue(filterBounds().left >= fieldBounds().right)
             assertEquals(fieldBounds().center.y, filterBounds().center.y, 1f)
 
             compose.runOnIdle { width = 480.dp }
+            compose.onNodeWithTag("back").assertDoesNotExist()
+            assertEquals(fieldBounds().left, filterBounds().left, 1f)
             assertTrue(filterBounds().top >= fieldBounds().bottom)
-            compose.runOnIdle { width = 720.dp; landscape = false }
+            compose.runOnIdle {
+                width = 720.dp
+                landscape = false
+            }
+            compose.onNodeWithTag("back").assertIsDisplayed()
             assertTrue(filterBounds().top >= fieldBounds().bottom)
         } finally {
             activity.pause().stop().destroy()
