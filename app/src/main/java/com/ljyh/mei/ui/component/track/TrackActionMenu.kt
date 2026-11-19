@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -15,12 +17,14 @@ import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -84,6 +88,8 @@ fun TrackActionMenu(
     onCopyName: () -> Unit,
 ) {
     val track = target?.track ?: return
+    var copyMenu by remember(target) { mutableStateOf(false) }
+    val shareLink = MediaShareLink.song(track)
     val context = LocalContext.current
     val density = LocalDensity.current
     val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
@@ -102,48 +108,65 @@ fun TrackActionMenu(
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
         ) {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                MeiMenuItem("下一首播放", Icons.Rounded.SkipNext) { onDismiss(); onPlayNext() }
-                MeiMenuItem("队尾播放", Icons.Rounded.Add) { onDismiss(); onAddToQueue() }
-                onAddToPlaylist?.let { action ->
-                    MeiMenuItem("添加到歌单", Icons.Rounded.Add) { onDismiss(); action() }
-                }
-                onDownloadTrack?.let { action ->
-                    MeiMenuItem("下载", Icons.Filled.Download) { onDismiss(); action() }
-                }
-                onCompleteMetadata?.let { action ->
-                    MeiMenuItem("补全歌曲信息", Icons.Rounded.Add) { onDismiss(); action() }
-                }
-                if (isCreator) {
-                    MeiMenuItem("从歌单删除", Icons.Rounded.DeleteSweep) { onDismiss(); onDelete() }
-                }
-                MediaShareLink.song(track)?.let { content ->
+            Column {
+                if (copyMenu) {
+                    MeiMenuItem("返回", Icons.AutoMirrored.Rounded.ArrowBack) { copyMenu = false }
                     HorizontalDivider()
-                    MeiMenuItem("分享链接", Icons.Rounded.Share) {
-                        onDismiss()
-                        context.shareMediaLink(content)
-                    }
-                    MeiMenuItem("复制链接", Icons.Rounded.ContentCopy) {
-                        onDismiss()
-                        setClipboard(context, content.url, "歌曲链接")
-                    }
                 }
-                HorizontalDivider()
-                MeiMenuItem("复制歌名", Icons.Rounded.ContentCopy) { onDismiss(); onCopyName() }
-                MeiMenuItem("复制歌曲 ID", Icons.Rounded.ContentCopy) { onDismiss(); onCopyId() }
-                if (debugEnabled) {
-                    HorizontalDivider()
-                    val debugFields = listOf(
-                        "歌手" to track.artists.joinToString(" / ") { it.name },
-                        "歌手 ID" to track.artists.joinToString(", ") { it.id.toString() },
-                        "专辑" to track.album.title,
-                        "专辑 ID" to track.album.id.toString(),
-                        "封面地址" to track.coverUrl,
-                    )
-                    debugFields.forEach { (label, value) ->
-                        MeiMenuItem("复制$label", Icons.Rounded.ContentCopy) {
-                            onDismiss()
-                            setClipboard(context, value, label)
+                key(copyMenu) {
+                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                        if (copyMenu) {
+                            shareLink?.let { content ->
+                                MeiMenuItem("复制链接", Icons.Rounded.ContentCopy) {
+                                    onDismiss()
+                                    setClipboard(context, content.url, "歌曲链接")
+                                }
+                            }
+                            MeiMenuItem("复制歌名", Icons.Rounded.ContentCopy) { onDismiss(); onCopyName() }
+                            MeiMenuItem("复制歌曲 ID", Icons.Rounded.ContentCopy) { onDismiss(); onCopyId() }
+                            if (debugEnabled) {
+                                HorizontalDivider()
+                                val debugFields = listOf(
+                                    "歌手" to track.artists.joinToString(" / ") { it.name },
+                                    "歌手 ID" to track.artists.joinToString(", ") { it.id.toString() },
+                                    "专辑" to track.album.title,
+                                    "专辑 ID" to track.album.id.toString(),
+                                    "封面地址" to track.coverUrl,
+                                )
+                                debugFields.forEach { (label, value) ->
+                                    MeiMenuItem("复制$label", Icons.Rounded.ContentCopy) {
+                                        onDismiss()
+                                        setClipboard(context, value, label)
+                                    }
+                                }
+                            }
+                        } else {
+                            MeiMenuItem("下一首播放", Icons.Rounded.SkipNext) { onDismiss(); onPlayNext() }
+                            MeiMenuItem("队尾播放", Icons.Rounded.Add) { onDismiss(); onAddToQueue() }
+                            onAddToPlaylist?.let { action ->
+                                MeiMenuItem("添加到歌单", Icons.Rounded.Add) { onDismiss(); action() }
+                            }
+                            onDownloadTrack?.let { action ->
+                                MeiMenuItem("下载", Icons.Filled.Download) { onDismiss(); action() }
+                            }
+                            onCompleteMetadata?.let { action ->
+                                MeiMenuItem("补全歌曲信息", Icons.Rounded.Add) { onDismiss(); action() }
+                            }
+                            if (isCreator) {
+                                MeiMenuItem("从歌单删除", Icons.Rounded.DeleteSweep) { onDismiss(); onDelete() }
+                            }
+                            shareLink?.let { content ->
+                                HorizontalDivider()
+                                MeiMenuItem("分享链接", Icons.Rounded.Share) {
+                                    onDismiss()
+                                    context.shareMediaLink(content)
+                                }
+                            }
+                            HorizontalDivider()
+                            MeiMenuItem("复制", Icons.Rounded.ContentCopy,
+                                trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight) {
+                                copyMenu = true
+                            }
                         }
                     }
                 }

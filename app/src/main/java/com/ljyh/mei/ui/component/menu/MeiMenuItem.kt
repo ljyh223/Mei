@@ -20,7 +20,13 @@ import androidx.compose.ui.unit.dp
 
 /** Compact menus share spacing and grow with large text rather than clipping it. */
 @Composable
-fun MeiMenuItem(label: String, icon: ImageVector, enabled: Boolean = true, onClick: () -> Unit) {
+fun MeiMenuItem(
+    label: String,
+    icon: ImageVector,
+    enabled: Boolean = true,
+    trailingIcon: ImageVector? = null,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
@@ -34,5 +40,9 @@ fun MeiMenuItem(label: String, icon: ImageVector, enabled: Boolean = true, onCli
             tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(label, style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+        trailingIcon?.let {
+            Icon(it, contentDescription = null, modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
