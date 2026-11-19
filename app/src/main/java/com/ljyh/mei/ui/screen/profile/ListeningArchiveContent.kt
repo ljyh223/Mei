@@ -201,7 +201,7 @@ private fun RecentListening(archive: ListeningArchiveState, actions: PersonalCen
                 if (tracks.isEmpty()) EmptyMusicText("云端还没有最近收听记录")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     itemsIndexed(tracks.take(if (expanded) 100 else 6), key = { _, track -> track.song.id }) { index, track ->
-                        Column(Modifier.width(116.dp).clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button,
+                        Column(Modifier.width(116.dp).clickable(role = Role.Button,
                             onClickLabel = "播放${track.song.title}", onClick = { actions.onPlay(tracks, index, "最近收听") }),
                             verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             SongArtwork(track.song, Modifier.fillMaxWidth().aspectRatio(1f))
