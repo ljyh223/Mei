@@ -115,10 +115,15 @@ internal fun TabletArtwork(
 }
 
 @Composable
-internal fun TabletSectionHeading(title: String, onShowAll: (() -> Unit)? = null) {
+internal fun TabletSectionHeading(
+    title: String,
+    onShowAll: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
     Row(Modifier.fillMaxWidth().padding(horizontal = com.ljyh.mei.ui.component.layout.meiPageGutter()).heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically) {
         com.ljyh.mei.ui.component.MeiSectionTitle(title, Modifier.weight(1f))
+        actions()
         if (onShowAll != null) com.ljyh.mei.ui.component.MeiShowAllButton(onShowAll)
     }
 }
