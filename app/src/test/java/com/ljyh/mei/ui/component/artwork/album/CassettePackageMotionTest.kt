@@ -1,4 +1,4 @@
-package com.ljyh.mei.demo.album
+package com.ljyh.mei.ui.component.artwork.album
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

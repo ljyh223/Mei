@@ -1,4 +1,4 @@
-package com.ljyh.mei.demo.album
+package com.ljyh.mei.ui.component.artwork.album
 
 /** One reversible timeline: open the lid, lift clear of the rim, then turn and move aside. */
 internal const val CassettePackageOpenProgress = .45f

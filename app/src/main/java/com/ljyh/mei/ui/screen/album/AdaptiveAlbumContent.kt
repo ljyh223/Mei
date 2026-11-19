@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.artwork.CenteredArtworkPane
 import com.ljyh.mei.ui.component.artwork.LandscapeArtworkHeader
-import com.ljyh.mei.ui.component.artwork.VinylAlbumArtwork
-import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
+import com.ljyh.mei.ui.component.artwork.album.*
+import com.ljyh.mei.ui.component.artwork.album.AlbumMediaArtworkRatio
 import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
@@ -36,8 +36,6 @@ import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.tablet.*
 import com.ljyh.mei.ui.tablet.component.*
 import com.ljyh.mei.utils.share.MediaShareLink
-import java.time.Instant
-import java.time.ZoneId
 
 @Composable
 internal fun AdaptiveAlbumLayout(
@@ -57,9 +55,18 @@ internal fun AdaptiveAlbumLayout(
 
 @Composable
 internal fun AdaptiveAlbumContent(state: AlbumDetailUiState, actions: AlbumDetailActions) {
+    val background = albumMediaBackground()
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(background = background, surface = background)) {
+        AlbumMediaPage(state, actions)
+    }
+}
+
+@Composable
+private fun AlbumMediaPage(state: AlbumDetailUiState, actions: AlbumDetailActions) {
     val landscape = LocalPhoneLandscape.current
     AdaptiveAlbumLayout(compact = { AlbumDetailContent(state, actions) }) { metrics ->
         val album = state.album
+        val packageTracks = remember(state.songs) { albumPackageTracks(state.songs) }
         val songs = rememberLazyListState()
         val artists =
             remember(album.artistIds, album.artistNames, state.songs) { albumDisplayArtists(album, state.songs) }
@@ -73,11 +80,9 @@ internal fun AdaptiveAlbumContent(state: AlbumDetailUiState, actions: AlbumDetai
             else firstArtist?.id?.takeIf { it > 0 }?.let(actions.onArtistClick)
         }
         val year = remember(album.publishTime) {
-            album.publishTime.takeIf { it > 0 }?.let {
-                Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).year.toString()
-            }
+            albumReleaseYear(album.publishTime)?.toString()
         }
-        val trackSummary = listOfNotNull(year, "${state.songs.size} 首歌曲").joinToString(" · ")
+        val trackSummary = listOfNotNull(year, "${state.songs.size} 首").joinToString(" · ")
         val focus = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
         fun changeSearch(active: Boolean) {
@@ -137,9 +142,10 @@ internal fun AdaptiveAlbumContent(state: AlbumDetailUiState, actions: AlbumDetai
                             maxArtworkHeight = (availableHeight - 8.dp).coerceAtLeast(160.dp),
                             canPlay = state.canPlay && state.songs.isNotEmpty(),
                             onPlayAll = actions.onPlayAll,
-                            artworkAspectRatio = VinylAlbumArtworkRatio,
+                            artworkAspectRatio = AlbumMediaArtworkRatio,
                             artwork = { modifier ->
-                                VinylAlbumArtwork(album.picUrl, modifier.semantics { contentDescription = "专辑封面" })
+                                AlbumMediaArtwork(album.picUrl, album.publishTime, album.name,
+                                    album.artistNames.joinToString(" / "), modifier.semantics { contentDescription = "专辑封面" }, interactive = true, tracks = packageTracks)
                             },
                             more = moreButton,
                         )
@@ -149,7 +155,10 @@ internal fun AdaptiveAlbumContent(state: AlbumDetailUiState, actions: AlbumDetai
                         modifier = Modifier.fillMaxSize(), contentPadding = padding,
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        item(key = "album_artwork") { DetailSideArtwork(album.picUrl) }
+                        item(key = "album_artwork") {
+                            AlbumMediaArtwork(album.picUrl, album.publishTime, album.name,
+                                album.artistNames.joinToString(" / "), Modifier.padding(horizontal = gutter), interactive = true, tracks = packageTracks)
+                        }
                         item(key = "album_identity") {
                             Column(
                                 Modifier.padding(horizontal = gutter),
@@ -165,7 +174,7 @@ internal fun AdaptiveAlbumContent(state: AlbumDetailUiState, actions: AlbumDetai
                                     ) { Text(if (artists.size > 1) "${artist.name} 等" else artist.name) }
                                 }
                                 Text(
-                                    trackSummary, style = MaterialTheme.typography.bodyMedium,
+                                    trackSummary, style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }

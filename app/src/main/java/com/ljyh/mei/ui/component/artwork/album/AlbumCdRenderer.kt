@@ -1,4 +1,4 @@
-package com.ljyh.mei.demo.album
+package com.ljyh.mei.ui.component.artwork.album
 
 import android.graphics.Canvas
 import android.graphics.LinearGradient
@@ -22,13 +22,14 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /** Small, dependency-free perspective renderer. The lid and tray are separate solid meshes. */
-internal class AlbumCaseRenderer {
-    private data class Point(val x: Float, val y: Float, val z: Float)
+internal class AlbumCdRenderer(private val label: AlbumPackageLabel) {
     private enum class Surface { Cover, Insert, Tray, Back, Spine, Edge }
-    private data class Face(val vertices: List<Point>, val surface: Surface)
+    private data class Face(val vertices: List<AlbumPackageVertex>, val surface: Surface)
     private data class ProjectedFace(val points: List<Offset>, val depth: Float, val surface: Surface)
 
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val mirror = AlbumMirror()
+    private val ink = AlbumPackageInk()
+    private val paint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val matrix = Matrix()
     private val path = Path()
     private val source = floatArrayOf(0f, 0f, TextureSize, 0f, TextureSize, TextureSize, 0f, TextureSize)
@@ -36,83 +37,85 @@ internal class AlbumCaseRenderer {
 
     fun draw(scope: DrawScope, cover: Painter, yaw: Float, pitch: Float, opening: Float) = with(scope) {
         val hinge = radians(opening)
-        val turn = radians(yaw % 360f)
-        val tilt = radians(pitch)
-        val progress = (opening / 155f).coerceIn(0f, 1f)
-        var scale = min(size.width * (.66f - .27f * progress), size.height * .72f)
+        val progress = (opening / 135f).coerceIn(0f, 1f)
+        var scale = min(size.width * (.66f - .12f * progress), size.height * .72f)
         val pivotX = min(0f, cos(hinge)) * .5f
-        val center = Offset(size.width / 2f, size.height * .46f)
-        fun transform(point: Point, lid: Boolean): Point {
-            val hinged = if (lid) {
-                val x = point.x + .5f
-                val z = point.z - .04f
-                Point(-.5f + x * cos(hinge) - z * sin(hinge), point.y,
-                    .04f + x * sin(hinge) + z * cos(hinge))
-            } else point
-            val x = hinged.x - pivotX
-            val rotatedX = x * cos(turn) + hinged.z * sin(turn)
-            val rotatedZ = -x * sin(turn) + hinged.z * cos(turn)
-            return Point(rotatedX, hinged.y * cos(tilt) - rotatedZ * sin(tilt),
-                hinged.y * sin(tilt) + rotatedZ * cos(tilt))
+        val center = Offset(size.width / 2f, size.height * AlbumModelCenterY)
+        var projectedCenter = Offset.Zero
+        fun articulated(point: AlbumPackageVertex, lid: Boolean): AlbumPackageVertex {
+            if (!lid) return point
+            val x = point.x + .5f
+            val z = point.z - .04f
+            return AlbumPackageVertex(-.5f + x * cos(hinge) - z * sin(hinge), point.y,
+                .04f + x * sin(hinge) + z * cos(hinge))
         }
-        fun project(point: Point): Offset {
-            val perspective = 4.8f / (4.8f - point.z)
-            return Offset(center.x + point.x * scale * perspective, center.y + point.y * scale * perspective)
-        }
-        val meshes = box(-.065f, .012f, Surface.Tray, Surface.Back).map { face ->
-            Face(face.vertices.map { transform(it, lid = false) }, face.surface)
+        fun project(point: AlbumPackageVertex): Offset = center + (albumPerspectivePoint(point) - projectedCenter) * scale
+        val worldMeshes = box(-.065f, .012f, Surface.Tray, Surface.Back).map { face ->
+            Face(face.vertices.map { articulated(it, lid = false) }, face.surface)
         } + box(.04f, .057f, Surface.Cover, Surface.Insert).map { face ->
-            Face(face.vertices.map { transform(it, lid = true) }, face.surface)
+            Face(face.vertices.map { articulated(it, lid = true) }, face.surface)
         }
-        // Keep every corner in the stage even at steep pitch or an edge-on rotation.
-        meshes.flatMap { it.vertices }.forEach { point ->
-            val perspective = 4.8f / (4.8f - point.z)
-            scale = min(scale, size.width * .45f / abs(point.x * perspective).coerceAtLeast(.001f))
-            scale = min(scale, size.height * .38f / abs(point.y * perspective).coerceAtLeast(.001f))
+        val groundY = worldMeshes.maxOf { face -> face.vertices.maxOf { it.y } }
+        val camera = AlbumCamera(yaw, pitch, pivotX)
+        fun cameraMeshes(reflected: Boolean) = worldMeshes.map { face ->
+            Face(face.vertices.map { point ->
+                camera.view(if (reflected) albumReflectedVertex(point, groundY) else point)
+            }, face.surface)
         }
-        val faces = meshes.mapNotNull { face ->
+        val meshes = cameraMeshes(false)
+        // Fit around the projected bounds after the reading camera turns. The hinge's
+        // unrotated midpoint leaves the open booklet off-centre and unnecessarily small.
+        val projectedPoints = meshes.flatMap { it.vertices }.map(::albumPerspectivePoint)
+        projectedCenter = Offset(
+            (projectedPoints.minOf { it.x } + projectedPoints.maxOf { it.x }) / 2f,
+            (projectedPoints.minOf { it.y } + projectedPoints.maxOf { it.y }) / 2f,
+        )
+        projectedPoints.forEach { point ->
+            scale = min(scale, size.width * .45f / abs(point.x - projectedCenter.x).coerceAtLeast(.001f))
+            scale = min(scale, size.height * AlbumModelHalfHeight / abs(point.y - projectedCenter.y).coerceAtLeast(.001f))
+        }
+        fun prepare(meshes: List<Face>, reflected: Boolean) = meshes.mapNotNull { face ->
             val points = face.vertices.map(::project)
-            val a = points[1] - points[0]
-            val b = points[2] - points[0]
-            // Cull back-facing surfaces so artwork is never mirrored through the box.
-            if (a.x * b.y - a.y * b.x > .1f) {
+            if (albumFaceIsVisible(points, reflected)) {
                 ProjectedFace(points, face.vertices.sumOf { it.z.toDouble() }.toFloat() / 4f, face.surface)
             } else null
-        }
-
-        // A fixed floor shadow grounds the object without moving any layout bounds.
-        repeat(12) { layer ->
-            val width = scale * (1.05f + layer * .055f)
-            drawOval(Color.Black.copy(alpha = .012f),
-                topLeft = Offset(center.x - width / 2f, center.y + scale * .64f - layer),
-                size = Size(width, scale * .075f + layer * 2f))
-        }
-        faces.sortedBy { it.depth }.forEach { face ->
-            face.points.forEachIndexed { index, point ->
-                destination[index * 2] = point.x
-                destination[index * 2 + 1] = point.y
+        }.sortedBy { it.depth }
+        val original = prepare(meshes, false)
+        val reflected = prepare(cameraMeshes(true), true)
+        val modelBottom = original.flatMap { it.points }.maxOfOrNull { it.y } ?: center.y
+        val reflectionPoints = reflected.flatMap { it.points }
+        val geometry = if (reflectionPoints.isEmpty()) null else albumReflectionGeometry(
+            size.height, modelBottom, reflectionPoints.minOf { it.y }, reflectionPoints.maxOf { it.y },
+        )
+        fun drawFaces(projectedFaces: List<ProjectedFace>) {
+            projectedFaces.forEach { face ->
+                face.points.forEachIndexed { index, point ->
+                    destination[index * 2] = point.x
+                    destination[index * 2 + 1] = point.y
+                }
+                if (!matrix.setPolyToPoly(source, 0, destination, 0, 4)) return@forEach
+                val canvas = drawContext.canvas.nativeCanvas
+                canvas.save()
+                try {
+                    canvas.concat(matrix)
+                    canvas.clipRect(0f, 0f, TextureSize, TextureSize)
+                    drawSurface(scope, canvas, cover, face.surface, yaw, opening)
+                    paint.shader = null
+                    paint.color = 0x88A5A5A5.toInt()
+                    paint.style = Paint.Style.STROKE
+                    paint.strokeWidth = 1.8f
+                    canvas.drawRect(1f, 1f, TextureSize - 1f, TextureSize - 1f, paint)
+                    paint.style = Paint.Style.FILL
+                } finally {
+                    canvas.restore()
+                }
             }
-            if (!matrix.setPolyToPoly(source, 0, destination, 0, 4)) return@forEach
-            val canvas = drawContext.canvas.nativeCanvas
-            canvas.save()
-            try {
-                canvas.concat(matrix)
-                canvas.clipRect(0f, 0f, TextureSize, TextureSize)
-                drawSurface(scope, canvas, cover, face.surface, yaw, opening)
-                paint.shader = null
-                paint.color = 0x889CA99A.toInt()
-                paint.style = Paint.Style.STROKE
-                paint.strokeWidth = 1.8f
-                canvas.drawRect(1f, 1f, TextureSize - 1f, TextureSize - 1f, paint)
-                paint.style = Paint.Style.FILL
-            } finally {
-                canvas.restore()
-            }
         }
+        mirror.draw(scope, geometry, reflection = { drawFaces(reflected) }, content = { drawFaces(original) })
     }
 
     private fun box(back: Float, front: Float, face: Surface, reverse: Surface): List<Face> {
-        fun p(x: Float, y: Float, z: Float) = Point(x, y, z)
+        fun p(x: Float, y: Float, z: Float) = AlbumPackageVertex(x, y, z)
         return listOf(
             Face(listOf(p(-.5f,-.5f,front),p(.5f,-.5f,front),p(.5f,.5f,front),p(-.5f,.5f,front)), face),
             Face(listOf(p(.5f,-.5f,back),p(-.5f,-.5f,back),p(-.5f,.5f,back),p(.5f,.5f,back)), reverse),
@@ -127,11 +130,11 @@ internal class AlbumCaseRenderer {
         paint.shader = null
         paint.style = Paint.Style.FILL
         paint.color = when (surface) {
-            Surface.Cover -> 0xFF263521.toInt()
-            Surface.Insert, Surface.Back -> 0xFF29342A.toInt()
-            Surface.Tray -> 0xFF171B18.toInt()
-            Surface.Spine -> 0xFF4C554D.toInt()
-            Surface.Edge -> 0xFF7C8981.toInt()
+            Surface.Cover -> 0xFF303030.toInt()
+            Surface.Insert, Surface.Back -> 0xFF313131.toInt()
+            Surface.Tray -> 0xFF1A1A1A.toInt()
+            Surface.Spine -> 0xFF535353.toInt()
+            Surface.Edge -> 0xFF868686.toInt()
         }
         canvas.drawRect(0f, 0f, TextureSize, TextureSize, paint)
         when (surface) {
@@ -142,33 +145,17 @@ internal class AlbumCaseRenderer {
                 canvas.scale(.94f, 1f)
                 with(scope) { with(cover) { draw(Size(TextureSize, TextureSize)) } }
                 canvas.restore()
-                paint.color = 0xFF333C35.toInt()
+                paint.color = 0xFF3A3A3A.toInt()
                 canvas.drawRect(0f, 0f, 36f, TextureSize, paint)
-                paint.color = 0x779DAA98
+                paint.color = 0x77A6A6A6
                 canvas.drawRect(31f, 0f, 34f, TextureSize, paint)
                 sheen(canvas, yaw + opening, .16f)
             }
             Surface.Tray -> disc(scope, canvas, cover, yaw)
-            Surface.Insert, Surface.Back -> {
-                text(canvas, "aespa", 42f, 64f, 20f, 0xFFBFCBB5.toInt())
-                text(canvas, "ARMAGEDDON", 42f, 106f, 33f, 0xFFF0F2E9.toInt(), bold = true)
-                text(canvas, "THE 1ST ALBUM", 42f, 145f, 18f, 0xFFBFCBB5.toInt())
-                paint.color = 0x667D8B74
-                canvas.drawRect(42f, 182f, 558f, 183f, paint)
-                text(canvas, "CD / STEREO", 42f, 232f, 17f, 0xFFD0D9C6.toInt())
-                text(canvas, "MEI COLLECTION", 42f, 528f, 16f, 0xFFBFCBB5.toInt())
-                if (surface == Surface.Back) {
-                    // Printed back insert, intentionally distinct from the front cover.
-                    repeat(34) { index ->
-                        val x = 365f + index * 5f
-                        paint.color = 0xFFD1D8C7.toInt()
-                        canvas.drawRect(x, 450f, x + if (index % 3 == 0) 3f else 1.4f, 520f, paint)
-                    }
-                }
-            }
+            Surface.Insert, Surface.Back -> ink.liner(canvas, label, TextureSize)
             Surface.Spine -> {
                 sheen(canvas, yaw, .30f)
-                text(canvas, "ARMAGEDDON  /  aespa", 36f, 330f, 24f, 0xFFDDE5D5.toInt())
+                text(canvas, "${label.title} / ${label.artist}", 36f, 330f, 24f, 0xFFE2E2E2.toInt())
             }
             Surface.Edge -> sheen(canvas, yaw, .32f)
         }
@@ -176,9 +163,9 @@ internal class AlbumCaseRenderer {
 
     private fun disc(scope: DrawScope, canvas: Canvas, cover: Painter, yaw: Float) {
         val bounds = RectF(25f, 25f, 575f, 575f)
-        paint.color = 0xFF080B09.toInt()
+        paint.color = 0xFF0A0A0A.toInt()
         canvas.drawRoundRect(13f, 13f, 587f, 587f, 12f, 12f, paint)
-        paint.color = 0xFFB3BEB0.toInt()
+        paint.color = 0xFFBBBBBB.toInt()
         canvas.drawOval(bounds, paint)
         canvas.save()
         path.reset()
@@ -188,7 +175,7 @@ internal class AlbumCaseRenderer {
         with(scope) {
             drawCircle(
                 Brush.sweepGradient(listOf(Color.White.copy(alpha = .02f), Color.White.copy(alpha = .35f),
-                    Color(0xFFB6C9E5).copy(alpha = .10f), Color.Transparent, Color(0xFFD4E4A2).copy(alpha = .30f),
+                    Color(0xFFC7C7C7).copy(alpha = .10f), Color.Transparent, Color(0xFFDCDCDC).copy(alpha = .30f),
                     Color.White.copy(alpha = .02f)), center = Offset(300f, 300f)),
                 radius = 267f, center = Offset(300f, 300f),
             )
@@ -199,17 +186,17 @@ internal class AlbumCaseRenderer {
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 1.3f
         repeat(6) { index ->
-            paint.color = 0x448DA382
+            paint.color = 0x449C9C9C
             canvas.drawCircle(300f, 300f, 240f + index * 4.5f, paint)
         }
         paint.style = Paint.Style.FILL
-        paint.color = 0xFFD1D7D5.toInt()
+        paint.color = 0xFFD6D6D6.toInt()
         canvas.drawCircle(300f, 300f, 55f, paint)
-        paint.color = 0xFF7D8A88.toInt()
+        paint.color = 0xFF878787.toInt()
         canvas.drawCircle(300f, 300f, 42f, paint)
-        paint.color = 0xFFC7CFCC.toInt()
+        paint.color = 0xFFCDCDCD.toInt()
         canvas.drawCircle(300f, 300f, 33f, paint)
-        paint.color = 0xFF111713.toInt()
+        paint.color = 0xFF151515.toInt()
         canvas.drawCircle(300f, 300f, 12f, paint)
     }
 
@@ -228,7 +215,7 @@ internal class AlbumCaseRenderer {
         paint.color = color
         paint.textSize = size
         paint.typeface = if (bold) Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD) else Typeface.SANS_SERIF
-        canvas.drawText(value, x, y, paint)
+        canvas.drawText(android.text.TextUtils.ellipsize(value, paint, (TextureSize - x - 24f).coerceAtLeast(1f), android.text.TextUtils.TruncateAt.END).toString(), x, y, paint)
     }
 
     private fun radians(degrees: Float) = degrees * (PI.toFloat() / 180f)

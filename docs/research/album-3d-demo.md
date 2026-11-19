@@ -1,6 +1,6 @@
 # 独立专辑 3D Demo：CD、磁带与黑胶
 
-三个版本都只参与 Debug 构建，不接入应用导航、专辑详情或播放器。正式版不包含 Demo 入口、代码和封面素材。
+三个独立演示入口和本地演示封面仍只参与 Debug 构建。模型渲染和磁带机构已迁移到主代码的共享专辑组件，仅供专辑详情按发行年代使用；独立演示界面复用同一份渲染器。实验接入与分界见 [专辑详情年代样式](../album-era-styles.md)。
 
 ## 入口
 
@@ -36,7 +36,7 @@ adb shell am start -n com.ljyh.mei/.demo.album.Vinyl3dDemoActivity
 
 ### CD
 
-点击模型或“打开盒盖 / 合上盒盖”按钮切换状态，滑杆连续调整 0–160°。`AlbumCaseRenderer` 将盒盖和底盒作为两个独立的有厚度网格，绕左侧铰链开合，展示封面、内页、托盘与光盘。
+点击模型或“打开盒盖 / 合上盒盖”按钮切换状态，滑杆连续调整 0–160°。`AlbumCdRenderer` 将盒盖和底盒作为两个独立的有厚度网格，绕左侧铰链开合，展示封面、内页、托盘与光盘。
 
 ### 磁带 / Cassette
 
@@ -56,25 +56,25 @@ adb shell am start -n com.ljyh.mei/.demo.album.Vinyl3dDemoActivity
 
 ## 实现与素材
 
-所有代码位于 `app/src/debug/java/com/ljyh/mei/demo/album/`，入口在 `app/src/debug/AndroidManifest.xml`。
+演示入口和操作面板位于 `app/src/debug/java/com/ljyh/mei/demo/album/`，入口在 `app/src/debug/AndroidManifest.xml`。共用渲染代码位于 `app/src/main/java/com/ljyh/mei/ui/component/artwork/album/`。
 
 - `Album3dDemoActivity.kt`：三个独立 Activity，共用 Demo 主题与界面。
 - `Album3dDemoScreen.kt`：版本选择、局部保存状态、手势、按钮和滑杆。
-- `AlbumCaseRenderer.kt`：原 CD 盒渲染。
-- `CassetteDemoRenderer.kt`：磁带收藏盒、纸卡、托盘与磁带机构。
+- `AlbumCdRenderer.kt`：原 CD 盒渲染。
+- `AlbumCassetteRenderer.kt`：磁带收藏盒、纸卡、托盘与磁带机构。
 - `CassettePackageMotion.kt`：可逆的开盒、抬起、横移与转向顺序。
-- `VinylDemoRenderer.kt`：封套、唱片抽出及转动。
-- `MediaDemoRendering.kt`：磁带和黑胶共用的透视投影、背面剔除、深度排序、画布边界限制和绘制工具。
+- `AlbumVinylRenderer.kt`：封套、唱片抽出及转动。
+- `AlbumPackageRendering.kt`：磁带和黑胶共用的透视投影、背面剔除、深度排序、画布边界限制和绘制工具。
 
 三个版本使用 Compose Canvas 与 Android Canvas，不引入额外 3D 引擎。本地纹理 `app/src/debug/res/drawable-nodpi/album_demo_cover.webp` 提取自用户提供的参考视频 `0bc32ma42aab7iadwoxh6rvfdu6dzxjqdtia.f10002.mp4` 首帧封面区域，仅用于 Demo。Coil 通过应用现有加载器读取这一资源，不需要联网、重新生成纹理或新增 ImageLoader。
 
-内页、磁带标签和封套背面是演示设计，并非官方实体版本、接口提供的背封或真实曲目单。三个 Demo 都没有播放功能。
+内页、磁带标签和封套背面是演示设计，并非官方实体版本、接口提供的背封或真实曲目单。三个独立 Demo 都没有播放功能；真实专辑页的播放、收藏、下载与歌曲菜单继续调用既有业务操作。
 
 ## 验证
 
 ```sh
 ./gradlew :app:compileDebugKotlin :app:processDebugMainManifest
-./gradlew :app:testDebugUnitTest --tests 'com.ljyh.mei.demo.album.CassettePackageMotionTest'
+./gradlew :app:testDebugUnitTest --tests 'com.ljyh.mei.ui.component.artwork.album.*'
 ```
 
-如当前工作树没有 SDK 配置，可为该次命令设置 `ANDROID_HOME` 指向本机 SDK，无需修改仓库配置。定向 JVM 测试检查开合端点、盒盖／盒壁避让及收纳顺序；几何边界另做数值检查。编译、测试与入口合并不能代替设备上的视觉与手势验收。
+如当前工作树没有 SDK 配置，可为该次命令设置 `ANDROID_HOME` 指向本机 SDK，无需修改仓库配置。定向 JVM 测试检查年代分界、历史负时间戳与详情空日期解析；机构时间轴检查开合端点与收纳顺序。编译、测试与入口合并不能代替设备上的视觉与手势验收。

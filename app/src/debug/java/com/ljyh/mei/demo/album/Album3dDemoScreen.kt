@@ -1,5 +1,7 @@
 package com.ljyh.mei.demo.album
 
+import com.ljyh.mei.ui.component.artwork.album.*
+
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -70,9 +72,9 @@ private fun Album3dDemoContent(
     val renderedDetail by animateFloatAsState(detail, tween(if (adjustingDetail) 0 else detailDuration), label = "media detail")
     val renderedMechanism by animateFloatAsState(mechanism, tween(1000, easing = LinearOutSlowInEasing), label = "media mechanism")
     val cover = rememberAsyncImagePainter(R.drawable.album_demo_cover)
-    val cd = remember { AlbumCaseRenderer() }
-    val cassette = remember { CassetteDemoRenderer() }
-    val vinyl = remember { VinylDemoRenderer() }
+    val cd = remember { AlbumCdRenderer(AlbumPackageLabel("Armageddon", "aespa", 2024)) }
+    val cassette = remember { AlbumCassetteRenderer(AlbumPackageLabel("Armageddon", "aespa", 2024)) }
+    val vinyl = remember { AlbumVinylRenderer(AlbumPackageLabel("Armageddon", "aespa", 2024)) }
     val gutter = meiPageGutter()
     val expanded = detail > if (format == AlbumDemoFormat.CD) 80f else .5f
     val primaryLabel = when (format) {

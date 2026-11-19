@@ -31,7 +31,7 @@ fun AlbumDetail.toDomain() = AlbumContent(
         size = album.size,
         artistNames = album.artists.map { it.name },
         artistIds = album.artists.map { it.id },
-        publishTime = album.publishTime,
+        publishTime = album.publishTime ?: 0,
     ),
     songs = songs.map { it.toMediaMetadata().copy(coverUrl = album.picUrl) },
 )

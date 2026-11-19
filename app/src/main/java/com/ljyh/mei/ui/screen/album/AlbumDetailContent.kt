@@ -1,6 +1,5 @@
 package com.ljyh.mei.ui.screen.album
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,27 +55,24 @@ import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.meiTopBarHeight
+import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.component.glass.rememberMeiArtworkTopBarState
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntRect
-import coil3.compose.AsyncImage
+import com.ljyh.mei.ui.component.artwork.album.*
 import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import java.time.Instant
-import java.time.ZoneId
 import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
 import com.ljyh.mei.utils.share.MediaShareLink
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
@@ -88,21 +86,13 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
             val listState = rememberLazyListState()
             val artworkBar = rememberMeiArtworkTopBarState(listState, album.id)
             val surface = MaterialTheme.colorScheme.surface
-            val textColor = MaterialTheme.colorScheme.onSurface
-            val tintStrength = when {
-                coverColor == null -> 0f
-                surface.luminance() > 0.5f && coverColor.luminance() < 0.18f -> 0.08f
-                surface.luminance() <= 0.5f && coverColor.luminance() > 0.65f -> 0.08f
-                surface.luminance() > 0.5f -> 0.14f
-                else -> 0.18f
-            }
-            val albumTint by animateColorAsState(
-                targetValue = coverColor?.let { lerp(surface, it, tintStrength) } ?: surface,
-                label = "AlbumCoverTint",
-            )
+            val albumTint = surface
             val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            val topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() +
+                meiTopBarHeight(hasCustomTitle = isSearchActive)
             val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
             val allArtists = remember(album.artistIds, album.artistNames, songs) { albumDisplayArtists(album, songs) }
+            val packageTracks = remember(songs) { albumPackageTracks(songs) }
             var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
             var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
@@ -111,14 +101,16 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().hazeSource(pageHaze).background(surface),
-                    contentPadding = PaddingValues(bottom = bottomPadding + 16.dp),
+                    // The header shares the model's built-in empty edge with the toolbar fade.
+                    // Keep system/bar insets in the scroll content without reducing the viewport.
+                    contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding + 16.dp),
                 ) {
                     item(key = "album_header") {
                         AlbumHeader(
                             album = album,
                             trackCount = songs.size,
+                            packageTracks = packageTracks,
                             artists = allArtists,
-                            tint = albumTint,
                             onArtistClick = onArtistClick,
                             onShowArtists = { showArtistsSheet = true },
                             artworkModifier = artworkBar.artworkModifier,
@@ -239,36 +231,26 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
 private fun AlbumHeader(
     album: AlbumOverview,
     trackCount: Int,
+    packageTracks: List<AlbumPackageTrack>,
     artists: List<MediaMetadata.Artist>,
-    tint: Color,
     onArtistClick: (Long) -> Unit,
     onShowArtists: () -> Unit,
     artworkModifier: Modifier = Modifier,
 ) {
     val compact = LocalPageStartInset.current > 0.dp
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val heroHeight = if (compact) 224.dp else (maxWidth * 1.24f).coerceIn(400.dp, 560.dp)
-        Box(Modifier.fillMaxWidth().height(heroHeight).then(artworkModifier)) {
-            if (album.picUrl.isNotBlank()) {
-                AsyncImage(
-                    model = album.picUrl,
-                    contentDescription = "专辑《${album.name}》封面",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            Box(
-                Modifier.matchParentSize().background(
-                    Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.55f to Color.Transparent,
-                        0.82f to tint.copy(alpha = 0.82f),
-                        1f to tint,
-                    )
-                )
+        val stageHeight = minOf(maxWidth / AlbumMediaArtworkRatio, if (compact) 240.dp else 460.dp)
+        val clearance = albumModelTopClearanceDp(
+            meiTopBarContentClearance().value, stageHeight.value, albumMediaStyle(album.publishTime),
+        ).dp
+        Column(Modifier.fillMaxWidth().padding(top = clearance)) {
+            AlbumMediaArtwork(
+                album.picUrl, album.publishTime, album.name, album.artistNames.joinToString(" / "),
+                Modifier.fillMaxWidth().heightIn(max = if (compact) 240.dp else 460.dp)
+                    .then(artworkModifier), interactive = true, tracks = packageTracks,
             )
             Column(
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
                     .padding(meiPageHorizontalPadding()).padding(bottom = if (compact) 12.dp else 20.dp),
             ) {
                 Text(
@@ -298,13 +280,10 @@ private fun AlbumHeader(
                 }
                 Spacer(Modifier.height(8.dp))
                 val year = remember(album.publishTime) {
-                    album.publishTime.takeIf { it > 0 }?.let {
-                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).year
-                    }
+                    albumReleaseYear(album.publishTime)
                 }
                 Text(
                     text = listOfNotNull(
-                        "专辑",
                         year?.toString(),
                         "${album.size.takeIf { it > 0 } ?: trackCount} 首").joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,

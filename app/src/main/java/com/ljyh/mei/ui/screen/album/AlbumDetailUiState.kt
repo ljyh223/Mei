@@ -36,3 +36,7 @@ internal fun albumDisplayArtists(album: AlbumOverview, songs: List<MediaMetadata
     return album.artistNames.mapIndexed { index, name -> MediaMetadata.Artist(album.artistIds.getOrNull(index) ?: 0L, name) }
         .filter { it.name.isNotBlank() } + guests
 }
+
+internal fun albumPackageTracks(songs: List<MediaMetadata>) = songs.mapIndexed { index, song ->
+    com.ljyh.mei.ui.component.artwork.album.AlbumPackageTrack(index + 1, song.title, song.duration)
+}
