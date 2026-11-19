@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Timer
@@ -17,6 +16,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.layout.meiPageGutter
+import com.ljyh.mei.ui.component.player.LyricStylePreview
+import com.ljyh.mei.ui.screen.setting.component.LyricStylePreferences
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -29,8 +32,6 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.ljyh.mei.constants.AccompanimentLyricTextBoldKey
-import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
 import com.ljyh.mei.constants.DesktopLyricsControlsHideDelayKey
 import com.ljyh.mei.constants.DesktopLyricsEnabledKey
 import com.ljyh.mei.constants.DesktopLyricsFontSizeKey
@@ -43,12 +44,6 @@ import com.ljyh.mei.constants.DefaultDesktopLyricsFontSize
 import com.ljyh.mei.constants.DefaultDesktopLyricsTextColor
 import com.ljyh.mei.constants.DefaultDesktopLyricsTranslationColor
 import com.ljyh.mei.constants.DefaultDesktopLyricsTranslationFontSize
-import com.ljyh.mei.constants.LyricTextSize
-import com.ljyh.mei.constants.NormalLyricTextBoldKey
-import com.ljyh.mei.constants.NormalLyricTextSizeKey
-import com.ljyh.mei.constants.SeekOnLyricTapKey
-import com.ljyh.mei.constants.ShowLyricPhoneticKey
-import com.ljyh.mei.ui.screen.setting.component.EnumListPreference
 import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPickerDialog
 import com.ljyh.mei.ui.screen.setting.component.dialog.ColorPreset
 import com.ljyh.mei.ui.screen.setting.component.ListPreference
@@ -59,12 +54,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
 import com.ljyh.mei.ui.component.glass.MeiPinnedPage
-import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import androidx.compose.ui.graphics.toArgb
-import com.ljyh.mei.constants.PhoneticLyricTextBoldKey
-import com.ljyh.mei.constants.PhoneticLyricTextSizeKey
-import com.ljyh.mei.constants.ShowLyricTransitionKey
 import com.ljyh.mei.ui.screen.setting.component.ColorPreference
 
 private val desktopLyricColorPresets = listOf(
@@ -84,21 +75,6 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
     val navController = LocalNavController.current
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val (mainSize, onMainSize) = rememberEnumPreference(NormalLyricTextSizeKey, LyricTextSize.Size34)
-    val (mainBold, onMainBold) = rememberPreference(NormalLyricTextBoldKey, true)
-    val (showPhonetic, onShowPhonetic) = rememberPreference(ShowLyricPhoneticKey, true)
-    val (showTranslation, onShowTranslation) = rememberPreference(ShowLyricTransitionKey, true)
-    val (seekOnLyricTap, onSeekOnLyricTap) = rememberPreference(SeekOnLyricTapKey, true)
-    val (translationSize, onTranslationSize) = rememberEnumPreference(
-        AccompanimentLyricTextSizeKey, LyricTextSize.Size20,
-    )
-    val (phoneticSize, onPhoneticSize) = rememberEnumPreference(
-        PhoneticLyricTextSizeKey, LyricTextSize.Size20
-    )
-    val (phoneticBold, onPhoneticBold) = rememberPreference(
-        PhoneticLyricTextBoldKey, true
-    )
-    val (translationBold, onTranslationBold) = rememberPreference(AccompanimentLyricTextBoldKey, true)
     val (enabled, onEnabled) = rememberPreference(DesktopLyricsEnabledKey, false)
     val (locked, onLocked) = rememberPreference(DesktopLyricsLockedKey, false)
     val (mainColor, onMainColor) = rememberPreference(DesktopLyricsTextColorKey, DefaultDesktopLyricsTextColor)
@@ -149,73 +125,8 @@ fun LyricsSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
         ) {
             MeiLargeTitle("歌词")
 
-            PreferenceSection("主歌词") {
-                SwitchPreference(
-                    title = { Text("主歌词字体加粗") },
-                    icon = { Icon(Icons.Rounded.FormatBold, null) },
-                    checked = mainBold,
-                    onCheckedChange = onMainBold,
-                )
-                EnumListPreference(
-                    title = { Text("主歌词字体大小") },
-                    icon = { Icon(Icons.Rounded.FormatSize, null) },
-                    selectedValue = mainSize,
-                    onValueSelected = onMainSize,
-                    valueText = { it.text.toString() },
-                )
-                SwitchPreference(
-                    title = { Text("点击歌词跳转进度") },
-                    description = "关闭后点击歌词只显示播放控制",
-                    icon = { Icon(Icons.Rounded.Lyrics, null) },
-                    checked = seekOnLyricTap,
-                    onCheckedChange = onSeekOnLyricTap,
-                )
-            }
-            PreferenceSection("翻译歌词") {
-                SwitchPreference(
-                    title = { Text("显示翻译") },
-                    description = "歌词提供翻译显示",
-                    icon = { Icon(Icons.Rounded.Lyrics, null) },
-                    checked = showTranslation,
-                    onCheckedChange = onShowTranslation,
-                )
-                SwitchPreference(
-                    title = { Text("翻译歌词字体加粗") },
-                    icon = { Icon(Icons.Rounded.FormatBold, null) },
-                    checked = translationBold,
-                    onCheckedChange = onTranslationBold,
-                )
-                EnumListPreference(
-                    title = { Text("翻译歌词字体大小") },
-                    icon = { Icon(Icons.Rounded.FormatSize, null) },
-                    selectedValue = translationSize,
-                    onValueSelected = onTranslationSize,
-                    valueText = { it.text.toString() },
-                )
-            }
-
-            PreferenceSection("音译歌词") {
-                SwitchPreference(
-                    title = { Text("显示音译") },
-                    description = "歌词提供发音时显示",
-                    icon = { Icon(Icons.Rounded.Lyrics, null) },
-                    checked = showPhonetic,
-                    onCheckedChange = onShowPhonetic,
-                )
-                SwitchPreference(
-                    title = { Text("音译歌词字体加粗") },
-                    icon = { Icon(Icons.Rounded.FormatBold, null) },
-                    checked = phoneticBold,
-                    onCheckedChange = onPhoneticBold,
-                )
-                EnumListPreference(
-                    title = { Text("音译歌词字体大小") },
-                    icon = { Icon(Icons.Rounded.FormatSize, null) },
-                    selectedValue = phoneticSize,
-                    onValueSelected = onPhoneticSize,
-                    valueText = { it.text.toString() },
-                )
-            }
+            LyricStylePreview(Modifier.padding(horizontal = meiPageGutter(), vertical = 8.dp))
+            LyricStylePreferences()
             PreferenceSection("桌面歌词") {
                 SwitchPreference(
                     title = { Text("桌面歌词") },

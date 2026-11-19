@@ -124,6 +124,7 @@ class TabletPlayerContentTest {
     @Test fun phoneLandscapeKeepsTheLargeCoverWhenSwitchingPanels() {
         var state by mutableStateOf(TabletPlayerUiState("Song", "Artist", false, PlayerPanel.Lyrics, false))
         var collapsed = 0
+        var styleOpened = 0
         var playerWidth by mutableStateOf(740.dp)
         var playerHeight by mutableStateOf(320.dp)
         var coverScale by mutableFloatStateOf(1f)
@@ -152,6 +153,7 @@ class TabletPlayerContentTest {
                                     LyricPanelActions(
                                         LyricSource.NetEaseCloudMusic, {}, {}, returnToControls,
                                         Modifier.align(Alignment.BottomEnd),
+                                        onStyleClick = { styleOpened++ },
                                     )
                                 } else if (panel == PlayerPanel.Queue) {
                                     Button(returnToControls) { Text("关闭队列") }
@@ -193,6 +195,12 @@ class TabletPlayerContentTest {
             assertEquals(sourceBounds.center.x, backBounds.center.x, 1f)
             assertEquals(sourceBounds.size, backBounds.size)
             assertTrue(backBounds.bottom <= sourceBounds.top)
+            val style = compose.onNodeWithContentDescription("调整歌词样式").assertIsDisplayed()
+            val styleBounds = style.fetchSemanticsNode().boundsInRoot
+            assertEquals(sourceBounds.center.x, styleBounds.center.x, 1f)
+            assertTrue(styleBounds.bottom <= backBounds.top)
+            style.performClick()
+            compose.runOnIdle { assertEquals(1, styleOpened) }
             lyricBack.performClick()
             compose.onNodeWithTag("short-controls").assertIsDisplayed()
             compose.runOnIdle { playerHeight = 380.dp }

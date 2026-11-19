@@ -708,6 +708,7 @@ fun AppleMusicPlayer(
                             )
                         } else LyricScreen(
                             lyricData = lyricLine,
+                            onStyleClick = overlayHandler::showLyricStyle,
                             playerConnection = stateContainer.playerConnection,
                             modifier = Modifier
                                 .fillMaxWidth()

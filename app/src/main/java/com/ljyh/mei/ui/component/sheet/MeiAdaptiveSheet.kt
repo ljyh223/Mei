@@ -21,8 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.semantics.dismiss
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -86,6 +88,8 @@ fun MeiAdaptiveSheet(
     onDismissBlocked: () -> Unit = {},
     onNavigateBack: (() -> Unit)? = null,
     allowSideInCompactLayout: Boolean = false,
+    compactTitle: String? = null,
+    compactContent: Boolean = false,
     content: @Composable (close: () -> Unit) -> Unit,
 ) {
     val density = LocalDensity.current
@@ -187,7 +191,8 @@ fun MeiAdaptiveSheet(
                         sheetSwipeEnabled = dismissEnabled && !closing,
                         containerColor = Color.Transparent,
                         sheetDragHandle = {
-                            MeiSheetHeader(false, if (dismissEnabled) navigateBack.value else null, requestClose)
+                            MeiSheetHeader(false, if (dismissEnabled) navigateBack.value else null, requestClose,
+                                title = compactTitle.takeIf { compactContent })
                         },
                         sheetContent = {
                             BoxWithConstraints(Modifier.fillMaxWidth().navigationBarsPadding()) {
@@ -204,10 +209,13 @@ fun MeiAdaptiveSheet(
                     var dragged by remember { mutableFloatStateOf(0f) }
                     val panelWidth = minOf(420.dp * density.fontScale.coerceIn(1f, 1.25f), (maxWidth - 80.dp).coerceAtLeast(0.dp))
                     val panelPx = with(density) { panelWidth.toPx() }
+                    val compactPanelMaxHeight = maxHeight * 0.7f
                     val direction = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1f else -1f
                     Box(Modifier.fillMaxSize().navigationBarsPadding().padding(16.dp)) {
                         Surface(
-                            modifier = modifier.align(Alignment.CenterEnd).width(panelWidth).fillMaxHeight()
+                            modifier = modifier.align(if (compactContent) Alignment.BottomEnd else Alignment.CenterEnd)
+                                .width(panelWidth)
+                                .then(if (compactContent) Modifier.heightIn(max = compactPanelMaxHeight) else Modifier.fillMaxHeight())
                                 .graphicsLayer {
                                     translationX = direction * (dragged + (panelPx - dragged + with(density) { 16.dp.toPx() }) * (1f - reveal.value))
                                 }
@@ -227,8 +235,9 @@ fun MeiAdaptiveSheet(
                             shadowElevation = 8.dp,
                         ) {
                             Column {
-                                MeiSheetHeader(true, if (dismissEnabled) navigateBack.value else null, requestClose)
-                                BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                                MeiSheetHeader(true, if (dismissEnabled) navigateBack.value else null, requestClose,
+                                    title = compactTitle.takeIf { compactContent })
+                                BoxWithConstraints(Modifier.fillMaxWidth().weight(1f, fill = !compactContent)) {
                                     CompositionLocalProvider(LocalMeiSheetMetrics provides MeiSheetMetrics(maxHeight, presentation)) {
                                         sharedContent(requestClose)
                                     }
@@ -243,9 +252,18 @@ fun MeiAdaptiveSheet(
 }
 
 @Composable
-private fun MeiSheetHeader(side: Boolean, onBack: (() -> Unit)?, onClose: () -> Unit) {
+private fun MeiSheetHeader(side: Boolean, onBack: (() -> Unit)?, onClose: () -> Unit, title: String? = null) {
     Box(Modifier.fillMaxWidth().height(48.dp)) {
         if (!side) BottomSheetDefaults.DragHandle(Modifier.align(Alignment.Center))
+        if (!title.isNullOrBlank()) Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.CenterStart)
+                .padding(start = if (onBack != null) 48.dp else 16.dp, end = 48.dp)
+                .semantics { heading() },
+        )
         if (onBack != null) IconButton(onBack, Modifier.align(Alignment.CenterStart)) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回上一弹层")
         }

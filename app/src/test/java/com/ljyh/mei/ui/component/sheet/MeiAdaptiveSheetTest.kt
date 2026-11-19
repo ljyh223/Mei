@@ -31,6 +31,40 @@ import org.robolectric.annotation.LooperMode
 class MeiAdaptiveSheetTest {
     @get:Rule val compose = createEmptyComposeRule()
 
+    @Test fun compactSideContentWrapsItsControlsAtTheBottom() {
+        var compact by mutableStateOf(true)
+        var density = 1f
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                density = LocalDensity.current.density
+                CompositionLocalProvider(LocalAppWindowLayout provides AppWindowLayout.Wide) {
+                    MeiAdaptiveSheet(
+                        onDismissRequest = {},
+                        modifier = Modifier.testTag("compact-panel"),
+                        compactContent = compact,
+                        compactTitle = "歌词样式",
+                    ) {
+                        Box(Modifier.fillMaxWidth().height(160.dp))
+                    }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val panel = compose.onNodeWithTag("compact-panel").fetchSemanticsNode().boundsInRoot
+            assertTrue(panel.height < 240f * density)
+            assertTrue(panel.top > 600f * density)
+            compose.onNodeWithText("歌词样式").assertExists()
+            compose.runOnIdle { compact = false }
+            val regular = compose.onNodeWithTag("compact-panel").fetchSemanticsNode().boundsInRoot
+            assertTrue(regular.height > 500f * density)
+            assertTrue(regular.top < panel.top)
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun contentMovesBetweenContainersWithoutLosingDraftsOrRestartingWork() {
         var layout by mutableStateOf(AppWindowLayout.Wide)
         var starts = 0

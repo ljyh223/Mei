@@ -267,6 +267,8 @@ internal fun TabletPlayerScreen(
                                         when (visible) {
                                             PlayerPanel.Lyrics -> LyricScreen(
                                                 lyricData = container.lyricLine, playerConnection = container.playerConnection,
+                                                onStyleClick = overlays::showLyricStyle,
+                                                styleAtEnd = true,
                                                 modifier = panelModifier,
                                                 onClick = { metadata?.let { if (overlays.currentOverlayValue == OverlayState.None) overlays.showLyricSourceSelection(it) } },
                                                 onLongClick = { source -> if (source == LyricSource.QQMusic) metadata?.let {

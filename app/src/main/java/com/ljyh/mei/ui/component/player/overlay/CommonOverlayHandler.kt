@@ -30,6 +30,7 @@ import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.download.DownloadManager
 import com.ljyh.mei.ui.component.dialog.DownloadConfirmDialog
 import com.ljyh.mei.ui.component.player.sheet.LyricSourceSheet
+import com.ljyh.mei.ui.component.player.sheet.LyricStyleSheet
 import com.ljyh.mei.ui.component.player.sheet.MoreActionsSheet
 import com.ljyh.mei.ui.component.player.sheet.MusicQualitySheet
 import com.ljyh.mei.ui.component.player.sheet.PlayerActionSettingsSheet
@@ -100,6 +101,8 @@ fun CommonOverlayHandler(
             onDismissBlocked = { moreEditing.value = false },
             onNavigateBack = if (overlayHandler.canGoBack) overlayHandler::goBack else null,
             allowSideInCompactLayout = overlayHandler.showsInlinePanels,
+            compactContent = overlay == OverlayState.LyricStyle,
+            compactTitle = "歌词样式".takeIf { overlay == OverlayState.LyricStyle },
         ) { closeSheet ->
             LaunchedEffect(requestedDownload) {
                 if (requestedDownload != null) closeSheet()
@@ -197,6 +200,8 @@ fun CommonOverlayHandler(
                         embedded = true,
                         profile = overlayHandler.actionProfile,
                     )
+
+                    OverlayState.LyricStyle -> LyricStyleSheet()
 
                     OverlayState.MoreAction -> MoreActionsSheet(
                         onDismissRequest = closeSheet,

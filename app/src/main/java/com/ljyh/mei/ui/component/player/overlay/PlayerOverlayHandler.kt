@@ -123,6 +123,10 @@ class PlayerOverlayHandler(
         show(OverlayState.BottomAction)
     }
 
+    fun showLyricStyle() {
+        show(OverlayState.LyricStyle)
+    }
+
     /**
      * 显示专辑艺术家弹窗
      */

@@ -20,8 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -48,33 +48,16 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.R
-import com.ljyh.mei.constants.AccompanimentLyricTextBoldKey
-import com.ljyh.mei.constants.AccompanimentLyricTextSizeKey
-import com.ljyh.mei.constants.LyricTextSize
-import com.ljyh.mei.constants.NormalLyricTextBoldKey
-import com.ljyh.mei.constants.NormalLyricTextSizeKey
-import com.ljyh.mei.constants.PhoneticLyricTextBoldKey
-import com.ljyh.mei.constants.PhoneticLyricTextSizeKey
 import com.ljyh.mei.constants.SeekOnLyricTapKey
-import com.ljyh.mei.constants.ShowLyricPhoneticKey
-import com.ljyh.mei.constants.ShowLyricTransitionKey
 import com.ljyh.mei.playback.PlayerConnection
 import com.ljyh.mei.playback.SmoothPlaybackPosition
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource
-import com.ljyh.mei.ui.theme.SFPro
-import com.ljyh.mei.utils.preferences.rememberEnumPreference
 import com.ljyh.mei.utils.preferences.rememberPreference
 import com.ljyh.mei.utils.system.setClipboard
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
@@ -95,6 +78,7 @@ fun LyricScreen(
     playerConnection: PlayerConnection,
     onClick: (LyricSource) -> Unit,
     onLongClick: (LyricSource) -> Unit,
+    onStyleClick: () -> Unit,
     controlsVisible: Boolean,
     onToggleControls: (Boolean) -> Unit,
     anchor: LyricsAnchor = LyricsAnchor.Fixed(40.dp),
@@ -102,6 +86,7 @@ fun LyricScreen(
     lyricsEndPadding: Dp = 0.dp,
     lyricsVerticalPadding: Dp = 8.dp,
     onBackToControls: (() -> Unit)? = null,
+    styleAtEnd: Boolean = false,
 ) {
     val context = LocalContext.current
     val playbackPosition = remember(playerConnection.player) {
@@ -137,24 +122,8 @@ fun LyricScreen(
         if (lyricData.lyricLine.lines.isNotEmpty()) listState.scrollToItem(initialLineIndex)
         positioningInitialLine = false
     }
-    val (normalLyricTextSize, _) = rememberEnumPreference(
-        NormalLyricTextSizeKey,
-        LyricTextSize.Size34
-    )
-    val (normalLyricTextBold, _) = rememberPreference(NormalLyricTextBoldKey, true)
-    val (showPhonetic, _) = rememberPreference(ShowLyricPhoneticKey, true)
-    val (showTranslation, _) = rememberPreference(ShowLyricTransitionKey, true)
+    val style = rememberPlayerLyricStyle()
     val (seekOnLyricTap, _) = rememberPreference(SeekOnLyricTapKey, true)
-
-    val (accompanimentLyricTextSize, _) = rememberEnumPreference(
-        AccompanimentLyricTextSizeKey,
-        LyricTextSize.Size20
-    )
-    val (accompanimentLyricTextBold, _) = rememberPreference(AccompanimentLyricTextBoldKey, true)
-
-    val (phoneticLyricTextSize, _ ) =rememberEnumPreference(PhoneticLyricTextSizeKey, LyricTextSize.Size20)
-    val (phoneticLyricTextBold, _) = rememberPreference(PhoneticLyricTextBoldKey, true)
-
 
     LaunchedEffect(controlsVisible) {
         if (controlsVisible) {
@@ -197,40 +166,6 @@ fun LyricScreen(
                 )
             }
         }
-    }
-    val sf = SFPro()
-    val baseTextStyle = LocalTextStyle.current
-    val normalStyle = remember(baseTextStyle, normalLyricTextSize, normalLyricTextBold) {
-        baseTextStyle.copy(
-            fontSize = normalLyricTextSize.text.sp,
-            lineHeight = TextUnit.Unspecified,
-            fontFamily = sf,
-            fontWeight = if (normalLyricTextBold) FontWeight.Bold else FontWeight.Normal,
-            textMotion = TextMotion.Animated,
-        )
-    }
-    val accompanimentStyle = remember(
-        baseTextStyle, accompanimentLyricTextSize, accompanimentLyricTextBold
-    ) {
-        baseTextStyle.copy(
-            fontSize = accompanimentLyricTextSize.text.sp,
-            lineHeight = TextUnit.Unspecified,
-            fontFamily = sf,
-            fontWeight = if (accompanimentLyricTextBold) FontWeight.Bold else FontWeight.Normal,
-            textMotion = TextMotion.Animated,
-        )
-    }
-
-    val phoneticStyle = remember(
-        baseTextStyle, phoneticLyricTextSize, phoneticLyricTextBold
-    ) {
-        baseTextStyle.copy(
-            fontSize = phoneticLyricTextSize.text.sp,
-            lineHeight = TextUnit.Unspecified,
-            fontFamily = sf,
-            fontWeight = if (phoneticLyricTextBold) FontWeight.Bold else FontWeight.Normal,
-            textMotion = TextMotion.Animated,
-        )
     }
 
     Column(
@@ -296,11 +231,12 @@ fun LyricScreen(
                                 blendMode = BlendMode.Plus
                                 compositingStrategy = CompositingStrategy.Offscreen
                             },
-                        normalLineTextStyle = normalStyle,
-                        accompanimentLineTextStyle = accompanimentStyle,
-                        phoneticTextStyle = phoneticStyle,
-                        showPhonetic = showPhonetic,
-                        showTranslation = showTranslation,
+                        normalLineTextStyle = style.main,
+                        translationTextStyle = style.translation,
+                        accompanimentLineTextStyle = style.translation,
+                        phoneticTextStyle = style.phonetic,
+                        showPhonetic = style.showPhonetic,
+                        showTranslation = style.showTranslation,
                         scrollAnimationSpec = if (positioningInitialLine) snap() else
                             tween(650, easing = FastOutSlowInEasing),
                     )
@@ -312,8 +248,12 @@ fun LyricScreen(
                 onClick = onClick,
                 onLongClick = onLongClick,
                 onBackToControls = onBackToControls,
+                onStyleClick = onStyleClick.takeIf { styleAtEnd },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(start = 8.dp),
             )
+            if (!styleAtEnd) Box(Modifier.align(Alignment.BottomStart)) {
+                LyricStyleAction(onStyleClick)
+            }
         }
     }
 }
@@ -325,13 +265,15 @@ internal fun LyricPanelActions(
     onLongClick: (LyricSource) -> Unit,
     onBackToControls: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onStyleClick: (() -> Unit)? = null,
 ) {
-    if (source == null && onBackToControls == null) return
+    if (source == null && onBackToControls == null && onStyleClick == null) return
     Column(
         modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        if (onStyleClick != null) LyricStyleAction(onStyleClick)
         if (onBackToControls != null) {
             LyricActionBadge(
                 painter = rememberVectorPainter(Icons.Rounded.SwapHoriz),
@@ -357,6 +299,15 @@ internal fun LyricPanelActions(
 }
 
 @Composable
+private fun LyricStyleAction(onClick: () -> Unit) {
+    LyricActionBadge(
+        painter = rememberVectorPainter(Icons.Rounded.Tune),
+        description = "调整歌词样式",
+        onClick = onClick,
+    )
+}
+
+@Composable
 private fun LyricActionBadge(
     painter: Painter,
     description: String,
@@ -372,12 +323,11 @@ private fun LyricActionBadge(
             .padding(horizontal = 2.dp, vertical = 2.dp)
             .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick),
     ) {
-
         Icon(
             painter = painter,
             modifier = Modifier.size(16.dp),
             contentDescription = description,
-            tint = foreground.copy(alpha = 0.6f)
+            tint = foreground.copy(alpha = 0.6f),
         )
     }
 }

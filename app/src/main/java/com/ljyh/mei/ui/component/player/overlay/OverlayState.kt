@@ -19,6 +19,7 @@ sealed interface OverlayState {
     data class SongInfo(val metadata: MediaMetadata): OverlayState
     data object MoreAction: OverlayState
     data object BottomAction: OverlayState
+    data object LyricStyle : OverlayState
 
     data class TrackActionMenu(val track: MediaMetadata, val anchor: IntRect = IntRect.Zero): OverlayState
 }
