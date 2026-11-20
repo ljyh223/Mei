@@ -2,6 +2,7 @@ package com.ljyh.mei.ui.screen.setting
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.FormatBold
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -16,6 +17,7 @@ import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
 import com.ljyh.mei.constants.PlaylistCoverStyleKey
+import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.constants.updateDynamicCoverSettings
 import com.ljyh.mei.ui.screen.setting.component.DynamicCoverPreference
 import com.ljyh.mei.ui.screen.setting.component.EnumListPreference
@@ -49,7 +51,11 @@ internal fun ArtworkSettingsScreen() {
         key = PlaylistCoverStyleKey,
         defaultValue = PlaylistCoverStyle.Cover
     )
-    AppearanceSettingsPage("封面与图片") {
+    val (playlistTrackTableHeader, onPlaylistTrackTableHeaderChange) = rememberPreference(
+        key = PlaylistTrackTableHeaderKey,
+        defaultValue = false
+    )
+    AppearanceSettingsPage("内容展示") {
         PreferenceSection("歌单") {
 
             EnumListPreference(
@@ -64,6 +70,13 @@ internal fun ArtworkSettingsScreen() {
                         PlaylistCoverStyle.Combination -> "组合图片"
                     }
                 }
+            )
+            SwitchPreference(
+                title = { Text("歌单开启表头") },
+                description = "平板模式下歌单显示表头",
+                icon = { Icon(Icons.Rounded.FormatBold, null) },
+                checked = playlistTrackTableHeader,
+                onCheckedChange = onPlaylistTrackTableHeaderChange
             )
         }
         PreferenceSection("专辑") {

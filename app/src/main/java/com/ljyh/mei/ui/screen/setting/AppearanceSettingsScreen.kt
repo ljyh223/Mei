@@ -111,15 +111,15 @@ fun AppearanceSettingsScreen(scrollBehavior: TopAppBarScrollBehavior) {
         }
         PreferenceSection("更多外观设置") {
             PreferenceEntry(
-                title = { Text("封面与图片") },
-                description = "歌单封面、专辑展示与歌手人像",
+                title = { Text("内容展示") },
+                description = "歌单与专辑样式、歌手人像和图片来源",
                 icon = { Icon(Icons.Rounded.Image, null) },
                 trailingContent = { Icon(Icons.Rounded.ChevronRight, null) },
                 onClick = { Screen.ArtworkSettings.navigate(navController) },
             )
             PreferenceEntry(
                 title = { Text("播放界面") },
-                description = "播放条、列表样式与流动背景",
+                description = "播放条、歌名、进度条与流动背景",
                 icon = { Icon(Icons.Rounded.MusicVideo, null) },
                 trailingContent = { Icon(Icons.Rounded.ChevronRight, null) },
                 onClick = { Screen.PlayerAppearanceSettings.navigate(navController) },

@@ -16,7 +16,6 @@ import com.ljyh.mei.constants.HidePlayerTitleBracketsKey
 import com.ljyh.mei.constants.MeshFlowSpeedKey
 import com.ljyh.mei.constants.MeshPlayingKey
 import com.ljyh.mei.constants.MeshStaticModeKey
-import com.ljyh.mei.constants.PlaylistTrackTableHeaderKey
 import com.ljyh.mei.constants.ProgressBarStyle
 import com.ljyh.mei.constants.ProgressBarStyleKey
 import com.ljyh.mei.ui.local.LocalNavController
@@ -51,10 +50,6 @@ internal fun PlayerAppearanceSettingsScreen() {
     val (meshPlaying, onMeshPlayingChange) = rememberPreference(
         MeshPlayingKey, defaultValue = true
     )
-    val (playlistTrackTableHeader, onPlaylistTrackTableHeaderChange) = rememberPreference(
-        key = PlaylistTrackTableHeaderKey,
-        defaultValue = false
-    )
     AppearanceSettingsPage("播放界面") {
         PreferenceSection("播放控件") {
             SwitchPreference(
@@ -77,15 +72,6 @@ internal fun PlayerAppearanceSettingsScreen() {
                 selectedValue = progressBarStyle,
                 onValueSelected = onProgressBarStyleChange,
                 valueText = { it.label }
-            )
-        }
-        PreferenceSection("列表") {
-            SwitchPreference(
-                title = { Text("歌单开启表头") },
-                description = "平板模式下歌单显示表头",
-                icon = { Icon(Icons.Rounded.FormatBold, null) },
-                checked = playlistTrackTableHeader,
-                onCheckedChange = onPlaylistTrackTableHeaderChange
             )
         }
         PreferenceSection("流动背景") {

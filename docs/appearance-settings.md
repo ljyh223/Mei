@@ -5,8 +5,8 @@
 | 页面 | 内容 | 路由 |
 | --- | --- | --- |
 | 外观 | 主题模式、动态主题、主题色、液态玻璃与材质入口 | `setting/appearance` |
-| 封面与图片 | 歌单封面、专辑封面展示与模型、AM 歌手人像、动态封面来源、播放器原图 | `setting/appearance/artwork` |
-| 播放界面 | 播放条、歌名显示、进度条、歌单表头、背景速度与启停 | `setting/appearance/player` |
+| 内容展示 | 歌单封面与表头、专辑封面展示与模型、AM 歌手人像、动态封面来源、播放器原图 | `setting/appearance/artwork` |
+| 播放界面 | 播放条、歌名显示、进度条、背景速度与启停 | `setting/appearance/player` |
 | 动画与动效 | 页面切换样式、速度、播放器面板切换 | `setting/appearance/animation` |
 | 背景高级设置 | 渲染精度、网格细分，从播放界面进入 | `setting/appearance/player/background` |
 
