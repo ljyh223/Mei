@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.artist
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -31,18 +32,15 @@ internal fun ArtistPrimaryActions(
     val background = MaterialTheme.colorScheme.background
     val reduceTransparency = LocalMeiGlassAppearance.current.reduceTransparency
     val tint = foreground.copy(alpha = 0.12f)
-    val sideColors = IconButtonDefaults.filledIconButtonColors(
-        containerColor = if (reduceTransparency) tint.compositeOver(background) else tint,
-        contentColor = foreground,
-        disabledContainerColor = if (reduceTransparency) tint.compositeOver(background) else tint,
-        disabledContentColor = foreground.copy(alpha = 0.38f),
-    )
-    val sideModifier = Modifier.size(48.dp)
+    val sideBackground = if (reduceTransparency) tint.compositeOver(background) else tint
+    val sideModifier = Modifier.size(40.dp).background(sideBackground, CircleShape)
         .border(0.75.dp, foreground.copy(alpha = 0.10f), CircleShape)
     Row(horizontalArrangement = Arrangement.spacedBy(if (compact) 16.dp else 24.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        FilledIconButton(onClick = onInfo, modifier = sideModifier, shape = CircleShape, colors = sideColors) {
-            Icon(painterResource(R.drawable.ic_artist_info), "歌手简介", Modifier.size(28.dp), tint = foreground)
+        IconButton(onClick = onInfo, modifier = Modifier.size(48.dp)) {
+            Box(sideModifier, contentAlignment = Alignment.Center) {
+                Icon(painterResource(R.drawable.ic_artist_info), "歌手简介", Modifier.size(24.dp), tint = foreground)
+            }
         }
         FilledIconButton(onClick = onPlay, enabled = canPlay,
             modifier = Modifier.size(if (compact) 56.dp else 72.dp), shape = CircleShape,
@@ -51,9 +49,8 @@ internal fun ArtistPrimaryActions(
                 disabledContainerColor = foreground.copy(alpha = 0.25f), disabledContentColor = background)) {
             Icon(Icons.Rounded.PlayArrow, "播放热门歌曲", Modifier.size(if (compact) 32.dp else 40.dp))
         }
-        FilledIconButton(onClick = onToggleSubscription, enabled = !subscription.loading && !subscription.pending,
-            shape = CircleShape, colors = sideColors,
-            modifier = sideModifier.semantics {
+        IconButton(onClick = onToggleSubscription, enabled = !subscription.loading && !subscription.pending,
+            modifier = Modifier.size(48.dp).semantics {
                 stateDescription = when {
                     subscription.loading -> "正在加载收藏状态"
                     subscription.pending -> "正在更新收藏状态"
@@ -62,12 +59,14 @@ internal fun ArtistPrimaryActions(
                     else -> "未收藏"
                 }
             }) {
-            if (subscription.loading || subscription.pending) CircularProgressIndicator(
-                Modifier.size(24.dp), color = foreground, strokeWidth = 2.dp)
-            else Icon(painterResource(if (subscription.subscribed == true) R.drawable.ic_artist_star_filled else R.drawable.ic_artist_star),
-                if (subscription.error && subscription.subscribed == null) "重试获取收藏状态"
-                else if (subscription.subscribed == true) "取消收藏歌手" else "收藏歌手",
-                Modifier.size(28.dp), tint = foreground)
+            Box(sideModifier, contentAlignment = Alignment.Center) {
+                if (subscription.loading || subscription.pending) CircularProgressIndicator(
+                    Modifier.size(20.dp), color = foreground, strokeWidth = 2.dp)
+                else Icon(painterResource(if (subscription.subscribed == true) R.drawable.ic_artist_star_filled else R.drawable.ic_artist_star),
+                    if (subscription.error && subscription.subscribed == null) "重试获取收藏状态"
+                    else if (subscription.subscribed == true) "取消收藏歌手" else "收藏歌手",
+                    Modifier.size(24.dp), tint = foreground)
+            }
         }
     }
 }
