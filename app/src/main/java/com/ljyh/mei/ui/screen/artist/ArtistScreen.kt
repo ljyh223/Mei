@@ -41,7 +41,7 @@ internal fun ArtistScreen(
         android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
     } }
     val details by viewModel.artistDetail.collectAsState()
-    val appleArtwork by viewModel.appleArtwork.collectAsState()
+    val artworkSelection by viewModel.artworkSelection.collectAsState()
     val songResult by viewModel.artistSongs.collectAsState()
     val albumResult by viewModel.artistAlbums.collectAsState()
     val artist = (details as? Resource.Success)?.data?.data?.artist
@@ -74,7 +74,7 @@ internal fun ArtistScreen(
             id, artist, (details as? Resource.Success)?.data?.data?.secondaryExpertIdentiy.orEmpty(),
             details is Resource.Loading, (details as? Resource.Error)?.message,
             songs, songResult is Resource.Loading, (songResult as? Resource.Error)?.message,
-            albums, albumResult is Resource.Loading, (albumResult as? Resource.Error)?.message, color, player != null, appleArtwork, subscription,
+            albums, albumResult is Resource.Loading, (albumResult as? Resource.Error)?.message, color, player != null, artworkSelection.artwork, subscription, artworkSelection.enabled,
         ),
         ArtistDetailActions(
             onBack = { nav.popBackStack() },

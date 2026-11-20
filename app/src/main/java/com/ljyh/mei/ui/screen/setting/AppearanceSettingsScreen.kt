@@ -55,6 +55,8 @@ import com.ljyh.mei.constants.ThemeMode
 import com.ljyh.mei.constants.ThemeModeKey
 import com.ljyh.mei.constants.updateDynamicCoverSettings
 import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
+import com.ljyh.mei.constants.AppleArtistPortraitEnabledKey
+import androidx.compose.material.icons.rounded.Person
 import com.ljyh.mei.constants.OriginalCoverKey
 import com.ljyh.mei.constants.HidePlayerTitleBracketsKey
 import com.ljyh.mei.constants.PlaylistCoverStyle
@@ -132,6 +134,9 @@ fun AppearanceSettingsScreen(
     val (originalCover, onOriginalCover) = rememberPreference(
         OriginalCoverKey,
         defaultValue = false
+    )
+    val (appleArtistPortraitEnabled, onAppleArtistPortraitEnabledChange) = rememberPreference(
+        AppleArtistPortraitEnabledKey, defaultValue = false,
     )
     val dynamicCoverSettings by rememberDynamicCoverSettings()
     val (appleEnglishTitlesOnly, onAppleEnglishTitlesOnlyChange) = rememberPreference(
@@ -280,6 +285,15 @@ fun AppearanceSettingsScreen(
                     icon = { Icon(Icons.Rounded.FormatBold, null) },
                     checked = playlistTrackTableHeader,
                     onCheckedChange = onPlaylistTrackTableHeaderChange
+                )
+            }
+            PreferenceSection("歌手") {
+                SwitchPreference(
+                    title = { Text("使用 Apple Music 歌手人像") },
+                    description = "按歌手名从 Apple Music 匹配人像及可用艺术字，人像不可用时使用网易云图片",
+                    icon = { Icon(Icons.Rounded.Person, null) },
+                    checked = appleArtistPortraitEnabled,
+                    onCheckedChange = onAppleArtistPortraitEnabledChange,
                 )
             }
             PreferenceSection("播放界面") {

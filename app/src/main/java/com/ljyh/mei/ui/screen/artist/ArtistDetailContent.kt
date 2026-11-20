@@ -78,7 +78,7 @@ internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDeta
                     }
                 }
                 if (debugEnabled && state.artist != null) item(key = "artist_artwork_debug") {
-                    ArtistArtworkDebugInfo(state.appleArtwork, presentation,
+                    ArtistArtworkDebugInfo(state.appleArtwork, presentation, state.appleArtworkEnabled,
                         Modifier.padding(meiPageHorizontalPadding()))
                 }
                 item(key = "artist_catalog_spacing") { Spacer(Modifier.height(if (appleReady) 32.dp else 8.dp)) }

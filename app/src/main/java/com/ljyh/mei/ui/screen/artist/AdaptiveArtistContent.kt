@@ -146,7 +146,7 @@ internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDe
                             }
                         }
                         if (debugEnabled && artist != null) item(key = "artist_artwork_debug") {
-                            ArtistArtworkDebugInfo(state.appleArtwork, presentation,
+                            ArtistArtworkDebugInfo(state.appleArtwork, presentation, state.appleArtworkEnabled,
                                 Modifier.padding(horizontal = gutter))
                         }
                         when {

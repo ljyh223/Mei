@@ -23,6 +23,7 @@ internal data class ArtistDetailUiState(
     val canPlay: Boolean,
     val appleArtwork: AppleArtistArtwork? = null,
     val subscription: ArtistSubscriptionState = ArtistSubscriptionState(),
+    val appleArtworkEnabled: Boolean = false,
 )
 internal data class ArtistDetailActions(
     val onBack: () -> Unit,

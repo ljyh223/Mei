@@ -28,25 +28,26 @@ internal data class ArtistArtworkPresentation(
 internal fun ArtistArtworkDebugInfo(
     artwork: AppleArtistArtwork?,
     presentation: ArtistArtworkPresentation,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("图片来源 · 调试", style = MaterialTheme.typography.labelMedium)
-            Text(when (presentation.photo) {
+            Text(if (!enabled) "人像：网易云（Apple Music 歌手人像已关闭）" else when (presentation.photo) {
                 ArtistArtworkLoadState.Unavailable -> "人像：网易云（AM 资源未就绪）"
                 ArtistArtworkLoadState.Loading -> "人像：网易云（AM 图片加载中）"
                 ArtistArtworkLoadState.Error -> "人像：网易云（AM 图片加载失败）"
                 ArtistArtworkLoadState.Success -> "人像：Apple Music"
             }, style = MaterialTheme.typography.bodySmall)
-            Text(if (!presentation.usesApplePhoto) "名字：普通文字（网易云头部）" else when (presentation.wordmark) {
+            Text(if (!enabled || !presentation.usesApplePhoto) "名字：普通文字（网易云头部）" else when (presentation.wordmark) {
                 ArtistArtworkLoadState.Unavailable -> "名字：普通文字（AM 未提供艺术字）"
                 ArtistArtworkLoadState.Loading -> "名字：普通文字（AM 艺术字加载中）"
                 ArtistArtworkLoadState.Error -> "名字：普通文字（AM 艺术字加载失败）"
                 ArtistArtworkLoadState.Success -> "名字：AM 艺术字"
             }, style = MaterialTheme.typography.bodySmall)
-            if (artwork != null) Text("AM 匹配：${artwork.name} · ${artwork.id}",
+            if (enabled && artwork != null) Text("AM 匹配：${artwork.name} · ${artwork.id}",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

@@ -135,6 +135,7 @@ val CoverSingleEdgeStrongMatchKey = floatPreferencesKey("coverBackground.singleE
 val CoverThreeSideMinimumMatchKey = floatPreferencesKey("coverBackground.threeSideMinimumMatch")
 val CoverAllowSingleOccupiedSideKey = booleanPreferencesKey("coverBackground.allowSingleOccupiedSide")
 val CoverAllowThreeStrongSidesKey = booleanPreferencesKey("coverBackground.allowThreeStrongSides")
+val AppleArtistPortraitEnabledKey = booleanPreferencesKey("appleArtistPortraitEnabled")
 val AppleMotionEnglishTitlesOnlyKey = booleanPreferencesKey("appleMotionEnglishTitlesOnly")
 val AppleMusicAlbumMatchCacheKey = stringPreferencesKey("appleMusicAlbumMatchCache")
 val AppleMusicWebTokenKey = stringPreferencesKey("appleMusicWebToken")

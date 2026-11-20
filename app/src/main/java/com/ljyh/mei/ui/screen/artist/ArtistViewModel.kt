@@ -8,8 +8,11 @@ import com.ljyh.mei.data.model.api.ArtistAlbum
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.constants.AppleArtistPortraitEnabledKey
+import com.ljyh.mei.utils.preferences.dataStore
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.catch
 import com.ljyh.mei.data.repository.ArtistRepository
-import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
 import com.ljyh.mei.data.repository.artwork.AppleArtistArtworkRepository
 import com.ljyh.mei.di.repository.ColorRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -17,9 +20,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -49,12 +49,15 @@ class ArtistViewModel @Inject constructor(
 
     suspend fun artistColor(url: String): Color = colorRepository.getColorOrExtract(context, url)
 
-    private val _appleArtwork = MutableStateFlow<AppleArtistArtwork?>(null)
-    val appleArtwork: StateFlow<AppleArtistArtwork?> = _appleArtwork
+    private val artworkController = ArtistArtworkController(
+        scope = viewModelScope,
+        enabled = context.dataStore.data.map { it[AppleArtistPortraitEnabledKey] ?: false }.catch { emit(false) },
+        resolve = { id, artist -> appleArtworks.resolve(id, artist.name, artistDisplayAliases(artist)) },
+    )
+    internal val artworkSelection = artworkController.state
     private var detailId: String? = null
     private var songsId: String? = null
     private var albumsId: String? = null
-    private var artworkJob: Job? = null
     private var detailRevision = 0
     private var songsRevision = 0
     private var albumsRevision = 0
@@ -63,22 +66,13 @@ class ArtistViewModel @Inject constructor(
         if (detailId == id && !force) return
         detailId = id
         val revision = ++detailRevision
-        artworkJob?.cancel()
-        _appleArtwork.value = null
+        artworkController.bind(id, null)
         viewModelScope.launch {
             val result = repository.getArtistDetail(id)
             if (detailId != id || detailRevision != revision) return@launch
             _artistDetail.value = result
-            val artist = (result as? Resource.Success)?.data?.data?.artist ?: return@launch
-            artworkJob = viewModelScope.launch {
-                val artwork = try {
-                    withTimeoutOrNull(20_000) {
-                        appleArtworks.resolve(id, artist.name, artistDisplayAliases(artist))
-                    }
-                } catch (cancelled: CancellationException) { throw cancelled }
-                catch (_: Exception) { null }
-                if (detailId == id && detailRevision == revision) _appleArtwork.value = artwork
-            }
+            val artist = (result as? Resource.Success)?.data?.data?.artist
+            artworkController.bind(id, artist)
         }
     }
 
