@@ -122,6 +122,51 @@ class TabletSettingsNavigationTest {
     }
 
     @Test
+    fun appearanceChildrenStayInTheSameCategoryWithoutDetailAnimations() {
+        val nav = controller()
+        nav.selectSettingsCategory(Screen.AppearanceSettings.route)
+        val appearance = nav.currentBackStackEntry!!
+        for (page in listOf(Screen.ArtworkSettings, Screen.PlayerAppearanceSettings,
+            Screen.AnimationSettings, Screen.BackgroundAdvancedSettings)) {
+            assertEquals(Screen.AppearanceSettings.route, settingsCategoryForRoute(page.route))
+            assertTrue(TabletPageContent.useImmediateTransition(nav, Screen.AppearanceSettings.route, page.route))
+            assertFalse(SharedMeiPageContent.useImmediateTransition(nav, Screen.AppearanceSettings.route, page.route))
+            nav.navigate(page.route)
+            assertEquals(page.route, nav.currentDestination!!.route)
+            assertTrue(nav.popBackStack())
+            assertSame(appearance, nav.currentBackStackEntry)
+        }
+    }
+
+    @Test
+    fun deepAppearanceSettingsRestoreAcrossTabsAndReturnThroughTheirParents() {
+        val nav = controller()
+        val root = nav.currentBackStackEntry!!
+        nav.selectSettingsCategory(Screen.AppearanceSettings.route)
+        val appearance = nav.currentBackStackEntry!!
+        nav.navigate(Screen.PlayerAppearanceSettings.route)
+        val playerAppearance = nav.currentBackStackEntry!!
+        nav.navigate(Screen.BackgroundAdvancedSettings.route)
+        val advanced = nav.currentBackStackEntry!!
+        advanced.savedStateHandle["marker"] = 42
+        nav.selectMainDestination(Index.Library)
+        nav.selectMainDestination(Index.Setting)
+        assertEquals(advanced.id, nav.currentBackStackEntry!!.id)
+        assertEquals(42, nav.currentBackStackEntry!!.savedStateHandle.get<Int>("marker"))
+        assertEquals(Screen.AppearanceSettings.route, settingsCategoryForRoute(nav.currentDestination!!.route!!))
+        assertTrue(nav.popBackStack())
+        assertEquals(playerAppearance.id, nav.currentBackStackEntry!!.id)
+        assertTrue(nav.popBackStack())
+        assertEquals(appearance.id, nav.currentBackStackEntry!!.id)
+        nav.navigate(Screen.ArtworkSettings.route)
+        nav.selectSettingsCategory(Screen.CacheSettings.route)
+        assertEquals(root.id, nav.getBackStackEntry(Screen.Setting.route).id)
+        assertEquals(Screen.CacheSettings.route, nav.currentDestination!!.route)
+        assertTrue(nav.popBackStack())
+        assertEquals(root.id, nav.currentBackStackEntry!!.id)
+    }
+
+    @Test
     fun phoneSettingsSplitsOnlyWhenBothPanesFitAtTheCurrentFontScale() {
         assertFalse(canShowPhoneSettingsSplit(499.dp, 1f))
         assertTrue(canShowPhoneSettingsSplit(500.dp, 1f))

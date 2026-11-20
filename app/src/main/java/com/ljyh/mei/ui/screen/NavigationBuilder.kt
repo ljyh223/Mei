@@ -21,6 +21,10 @@ import com.ljyh.mei.ui.screen.main.library.LibraryCollection
 import com.ljyh.mei.ui.screen.daily.EveryDay
 import com.ljyh.mei.ui.screen.setting.GlassSettingsScreen
 import com.ljyh.mei.ui.screen.setting.AppearanceSettingsScreen
+import com.ljyh.mei.ui.screen.setting.ArtworkSettingsScreen
+import com.ljyh.mei.ui.screen.setting.PlayerAppearanceSettingsScreen
+import com.ljyh.mei.ui.screen.setting.AnimationSettingsScreen
+import com.ljyh.mei.ui.screen.setting.BackgroundAdvancedSettingsScreen
 import com.ljyh.mei.ui.screen.setting.BetaSettingsScreen
 import com.ljyh.mei.ui.screen.setting.LyricsSettingsScreen
 import com.ljyh.mei.ui.screen.main.findmusic.DiscoverPlaylistsScreen
@@ -118,6 +122,11 @@ internal fun NavGraphBuilder.navigationBuilder(
     pageDestination(Screen.AppearanceSettings.route) {
         AppearanceSettingsScreen(scrollBehavior)
     }
+
+    pageDestination(Screen.ArtworkSettings.route) { ArtworkSettingsScreen() }
+    pageDestination(Screen.PlayerAppearanceSettings.route) { PlayerAppearanceSettingsScreen() }
+    pageDestination(Screen.AnimationSettings.route) { AnimationSettingsScreen() }
+    pageDestination(Screen.BackgroundAdvancedSettings.route) { BackgroundAdvancedSettingsScreen() }
 
     pageDestination(Screen.BetaSettings.route) {
         BetaSettingsScreen(scrollBehavior)

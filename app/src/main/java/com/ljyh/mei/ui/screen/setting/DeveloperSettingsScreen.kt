@@ -10,6 +10,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
@@ -71,6 +73,11 @@ import com.ljyh.mei.data.repository.DynamicCover
 import com.ljyh.mei.data.repository.MotionArtworkClip
 import com.ljyh.mei.ui.component.IconButton
 import com.ljyh.mei.ui.local.LocalNavController
+import com.ljyh.mei.constants.DebugKey
+import com.ljyh.mei.utils.preferences.rememberPreference
+import com.ljyh.mei.ui.screen.setting.component.PreferenceSection
+import com.ljyh.mei.ui.screen.setting.component.SwitchPreference
+import androidx.compose.material.icons.rounded.BugReport
 import com.ljyh.mei.ui.component.glass.LocalMeiPageScroll
 import com.ljyh.mei.ui.component.glass.MeiLargeTitle
 import com.ljyh.mei.ui.component.glass.MeiPinnedPage
@@ -90,6 +97,7 @@ fun DeveloperSettingsScreen(
     viewModel: DeveloperSettingsViewModel = hiltViewModel()
 ) {
     val navController = LocalNavController.current
+    val (debug, onDebug) = rememberPreference(DebugKey, defaultValue = false)
     val playerConnection = LocalPlayerConnection.current
     val currentSong = playerConnection?.mediaMetadata?.collectAsState()?.value
     val state by viewModel.state.collectAsState()
@@ -118,7 +126,7 @@ fun DeveloperSettingsScreen(
     }
 
     MeiPinnedPage(
-        title = "动态封面调试",
+        title = "开发者设置",
         onNavigateBack = navController::navigateUp,
     ) { paddingValues ->
         Column(
@@ -127,7 +135,17 @@ fun DeveloperSettingsScreen(
                 .verticalScroll(LocalMeiPageScroll.current!!)
                 .padding(paddingValues)
         ) {
-            MeiLargeTitle("动态封面调试")
+            MeiLargeTitle("开发者设置")
+            PreferenceSection("调试显示") {
+                SwitchPreference(
+                    title = { Text("Debug") },
+                    description = "显示调试复制操作和艺人图片来源",
+                    icon = { Icon(Icons.Rounded.BugReport, null) },
+                    checked = debug,
+                    onCheckedChange = onDebug,
+                )
+            }
+            Spacer(Modifier.height(24.dp))
 
             Text(
                 "Apple Music 搜索匹配", style = MaterialTheme.typography.titleLarge,

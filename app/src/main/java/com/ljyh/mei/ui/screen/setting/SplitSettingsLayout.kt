@@ -44,7 +44,8 @@ import com.ljyh.mei.ui.screen.Screen
 
 internal fun settingsCategoryForRoute(route: String): String = when (route) {
     Screen.UsbExclusiveSettings.route, Screen.Equalizer.route, Screen.ReverbSettings.route -> Screen.AudioOutputSettings.route
-    Screen.GlassSettings.route -> Screen.AppearanceSettings.route
+    Screen.GlassSettings.route, Screen.ArtworkSettings.route, Screen.PlayerAppearanceSettings.route,
+    Screen.AnimationSettings.route, Screen.BackgroundAdvancedSettings.route -> Screen.AppearanceSettings.route
     Screen.LxSources.route, Screen.MusicFreePlugins.route -> Screen.SourceAndLyricsSettings.route
     Screen.DownloadManage.route -> Screen.DownloadSettings.route
     Screen.DeveloperSettings.route, Screen.Log.route -> Screen.About.route
@@ -66,6 +67,8 @@ private val settingsRoutes = setOf(
     Screen.SourceAndLyricsSettings.route, Screen.DownloadSettings.route, Screen.CacheSettings.route,
     Screen.BetaSettings.route, Screen.About.route, Screen.UsbExclusiveSettings.route,
     Screen.Equalizer.route, Screen.ReverbSettings.route, Screen.GlassSettings.route,
+    Screen.ArtworkSettings.route, Screen.PlayerAppearanceSettings.route,
+    Screen.AnimationSettings.route, Screen.BackgroundAdvancedSettings.route,
     Screen.LxSources.route, Screen.MusicFreePlugins.route, Screen.DownloadManage.route, Screen.DeveloperSettings.route, Screen.Log.route,
 )
 

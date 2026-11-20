@@ -230,8 +230,8 @@ fun AboutScreen() {
                         leadingContent = {
                             Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(20.dp))
                         },
-                        headlineContent = { Text("动态封面调试", style = MaterialTheme.typography.bodyLarge) },
-                        supportingContent = { Text("Apple Music 匹配、视频与色板", style = MaterialTheme.typography.bodySmall) },
+                        headlineContent = { Text("开发者设置", style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = { Text("调试显示与动态封面诊断", style = MaterialTheme.typography.bodySmall) },
                         trailingContent = {
                             Icon(Icons.Rounded.ChevronRight, contentDescription = null)
                         },
