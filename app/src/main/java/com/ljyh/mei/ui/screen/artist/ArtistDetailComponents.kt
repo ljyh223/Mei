@@ -1,19 +1,16 @@
 package com.ljyh.mei.ui.screen.artist
 
-import android.os.Build
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -21,17 +18,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.ui.component.MeiShowAllButton
@@ -63,75 +56,49 @@ internal fun ArtistHeader(
     val imageUrl = artist?.cover?.takeIf { it.isNotBlank() }
         ?: artist?.avatar?.takeIf { it.isNotBlank() }
 
-    Box(Modifier.fillMaxWidth().background(headerSurface).clip(RoundedCornerShape(0.dp))) {
-        // A blurred copy preserves the colors and light in the photograph across the fade.
-        // On older Android versions blur is unavailable, so the extracted color is used.
-        if (imageUrl != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = null,
-                modifier = Modifier.matchParentSize().blur(48.dp),
-                contentScale = ContentScale.Crop,
-            )
-        }
-        Box(
-            Modifier.matchParentSize().background(
-                Brush.verticalGradient(
-                    0f to headerSurface.copy(alpha = 0.35f),
-                    0.55f to headerSurface.copy(alpha = 0.65f),
-                    0.84f to headerSurface,
-                    1f to headerSurface,
-                )
-            )
-        )
-        Column(Modifier.fillMaxWidth()) {
-            Box(Modifier.fillMaxWidth().height(if (compact) 224.dp else 460.dp).then(artworkModifier)) {
+    Column(Modifier.fillMaxWidth().background(colors.background)) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val photoHeight = if (compact) 224.dp else (maxWidth * 1.16f).coerceIn(360.dp, 480.dp)
+            Box(Modifier.fillMaxWidth().height(photoHeight).then(artworkModifier).background(headerSurface)) {
                 if (loading) {
                     Spacer(Modifier.fillMaxSize().skeleton(true, RoundedCornerShape(0.dp)))
                 } else if (imageUrl != null) {
                     AsyncImage(
                         model = imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                            .drawWithContent {
-                                drawContent()
-                                drawRect(
-                                    brush = Brush.verticalGradient(
-                                        0f to Color.White,
-                                        0.48f to Color.White,
-                                        0.72f to Color.White.copy(alpha = 0.72f),
-                                        1f to Color.Transparent,
-                                    ),
-                                    blendMode = BlendMode.DstIn,
-                                )
-                            },
+                        contentDescription = "歌手照片",
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
+                        alignment = Alignment.TopCenter,
                     )
                 }
-                Column(
-                    modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                        .padding(meiPageHorizontalPadding()).padding(vertical = if (compact) 12.dp else 24.dp),
-                ) {
-                    Text(
-                        text = artist?.name?.takeIf { it.isNotBlank() } ?: if (loading) "歌手名称" else "未知歌手",
-                        modifier = Modifier.skeleton(loading),
-                        style = if (compact) MaterialTheme.typography.headlineSmall
-                        else MaterialTheme.typography.headlineLarge.copy(fontSize = 38.sp, lineHeight = 44.sp),
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onBackground,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-
-                }
+                // Finish at the exact page color so no tinted block ends above the catalogue.
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.48f to Color.Transparent,
+                    0.72f to colors.background.copy(alpha = 0.38f),
+                    0.92f to colors.background.copy(alpha = 0.90f),
+                    1f to colors.background,
+                )))
             }
-            Box(Modifier.fillMaxWidth().padding(meiPageHorizontalPadding()).padding(top = 24.dp, bottom = 8.dp),
-                contentAlignment = Alignment.Center) {
-                ArtistPrimaryActions(canPlay = !loading && canPlayHotSongs, subscription = subscription,
-                    onInfo = onInfo, onPlay = onPlayHotSongs, onToggleSubscription = onToggleSubscription, compact = compact)
-            }
-            Spacer(Modifier.height(16.dp))
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(meiPageHorizontalPadding())
+                .padding(top = 4.dp, bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(if (compact) 20.dp else 24.dp),
+        ) {
+            Text(
+                text = artist?.name?.takeIf { it.isNotBlank() } ?: if (loading) "歌手名称" else "未知歌手",
+                modifier = Modifier.fillMaxWidth().skeleton(loading),
+                style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = colors.onBackground,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            ArtistPrimaryActions(canPlay = !loading && canPlayHotSongs, subscription = subscription,
+                onInfo = onInfo, onPlay = onPlayHotSongs, onToggleSubscription = onToggleSubscription, compact = compact)
         }
     }
 }
