@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntRect
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.domain.MediaMetadata
+import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
 import com.ljyh.mei.ui.model.Album
 
 internal data class ArtistDetailUiState(
@@ -20,6 +21,8 @@ internal data class ArtistDetailUiState(
     val albumsError: String?,
     val coverColor: Color?,
     val canPlay: Boolean,
+    val appleArtwork: AppleArtistArtwork? = null,
+    val subscription: ArtistSubscriptionState = ArtistSubscriptionState(),
 )
 internal data class ArtistDetailActions(
     val onBack: () -> Unit,
@@ -32,6 +35,7 @@ internal data class ArtistDetailActions(
     val onRetryDetail: () -> Unit,
     val onRetrySongs: () -> Unit,
     val onRetryAlbums: () -> Unit,
+    val onToggleSubscription: () -> Unit = {},
 )
 
 internal fun artistDisplayAliases(artist: ArtistDetail.Data.Artist): List<String> =

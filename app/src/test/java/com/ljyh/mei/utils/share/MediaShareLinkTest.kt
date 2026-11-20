@@ -43,6 +43,16 @@ class MediaShareLinkTest {
     }
 
     @Test
+    fun artistSharesItsPublicPageWithoutImageOrAccountData() {
+        val content = requireNotNull(MediaShareLink.artist(7, "  王菲\n "))
+        assertEquals("https://music.163.com/artist?id=7", content.url)
+        assertEquals("分享歌手《王菲》\n${content.url}", content.text)
+        assertEquals("歌手", MediaShareLink.artist(7, " ")?.title)
+        assertNull(MediaShareLink.artist(0, "王菲"))
+        assertNull(MediaShareLink.artist(-1, "王菲"))
+    }
+
+    @Test
     fun placeholderAndDailyRecommendationIdsDoNotProducePublicLinks() {
         for (id in listOf(0L, -1L, Long.MIN_VALUE)) {
             assertNull(MediaShareLink.song(song(id)))

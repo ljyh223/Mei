@@ -14,6 +14,13 @@ import com.ljyh.mei.data.network.NeteaseHttp
 class WeApiService(private val http: NeteaseHttp) {
     private val base = "https://music.163.com"
 
+    suspend fun getSubscribedArtists(offset: Int, limit: Int = 100): kotlinx.serialization.json.JsonObject =
+        http.post(base, "/weapi/artist/sublist", mapOf("offset" to offset.toString(), "limit" to limit.toString(), "total" to "true"))
+
+    suspend fun setArtistSubscribed(id: String, subscribed: Boolean): com.ljyh.mei.data.model.api.BaseResponse =
+        http.post(base, if (subscribed) "/weapi/artist/sub" else "/weapi/artist/unsub",
+            mapOf("artistId" to id, "artistIds" to "[$id]"))
+
     suspend fun getListeningRank(uid: String, allTime: Boolean): com.ljyh.mei.data.model.response.ListeningRankResponse =
         http.post(base, "/weapi/v1/play/record", mapOf("uid" to uid, "type" to if (allTime) "0" else "1"))
 

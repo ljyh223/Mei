@@ -12,7 +12,7 @@ data class MediaShareLink private constructor(
     val subtitle: String,
 ) {
     enum class Kind(val label: String, val path: String) {
-        Song("歌曲", "song"), Playlist("歌单", "playlist"), Album("专辑", "album"),
+        Song("歌曲", "song"), Playlist("歌单", "playlist"), Album("专辑", "album"), Artist("歌手", "artist"),
     }
 
     val url: String get() = "https://music.163.com/${kind.path}?id=$id"
@@ -30,6 +30,8 @@ data class MediaShareLink private constructor(
             subtitle = metadata.artists.map { it.name.trim() }.filter(String::isNotBlank)
                 .distinct().joinToString(" / "),
         )
+
+        fun artist(id: Long, name: String): MediaShareLink? = create(Kind.Artist, id, name, "")
 
         fun playlist(id: Long, title: String, creator: String): MediaShareLink? =
             create(Kind.Playlist, id, title, creator)

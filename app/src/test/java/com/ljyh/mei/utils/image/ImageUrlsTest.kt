@@ -109,4 +109,17 @@ class ImageUrlsTest {
         assertEquals(watermark, watermark.originalArtworkUrl())
     }
 
+    @Test fun `Apple artwork templates resolve into shared size tiers with independent PNG logos`() {
+        val template = "https://is1-ssl.mzstatic.com/image/thumb/artist/{w}x{h}bb.jpg"
+        assertEquals("https://is1-ssl.mzstatic.com/image/thumb/artist/1024x1024bb.jpg",
+            template.appleArtworkImage(ArtworkSize.Detail))
+        assertEquals("https://is1-ssl.mzstatic.com/image/thumb/artist/192x192bb.png",
+            template.transparentAppleArtwork().appleArtworkImage(ArtworkSize.Small))
+        assertEquals("https://is1-ssl.mzstatic.com/image/thumb/artist/512x512bb.jpg",
+            template.replace("{w}", "%7Bw%7D").replace("{h}", "%7Bh%7D").appleArtworkImage(ArtworkSize.Card))
+        val other = "https://mzstatic.com.example.com/{w}x{h}.jpg"
+        assertEquals(other, other.appleArtworkImage(ArtworkSize.Small))
+        assertEquals(other, other.transparentAppleArtwork())
+    }
+
 }

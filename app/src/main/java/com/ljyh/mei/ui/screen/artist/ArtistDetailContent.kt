@@ -32,66 +32,72 @@ import dev.chrisbanes.haze.rememberHazeState
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDetailActions) {
-    var description by rememberSaveable(state.id) { mutableStateOf(false) }
-    val base = MaterialTheme.colorScheme.background
-    val tint by animateColorAsState(state.coverColor?.let {
-        lerp(base, it, if (base.luminance() < 0.5f) 0.38f else 0.24f)
-    } ?: base, label = "artistHeaderColor")
-    val list = rememberLazyListState()
-    val bar = rememberMeiArtworkTopBarState(list, state.id)
-    val progress by animateFloatAsState(if (bar.artworkPassed) 1f else 0f, label = "artistBar")
-    val source = rememberHazeState()
-    val compactHeader = LocalPageStartInset.current > 0.dp
-    Scaffold(containerColor = base, topBar = {
-        MeiHazeTopBar(source, state.artist?.name.orEmpty(), progress,
-            modifier = bar.toolbarModifier, onNavigateBack = actions.onBack,
-            backgroundProgress = 1f)
-    }) { padding ->
-        LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(source).background(base),
-            contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() +
-                LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())) {
-            item(key = "artist_header") {
-                when {
-                    state.artist != null -> ArtistHeader(
-                        state.artist, headerSurface = tint, artworkModifier = bar.artworkModifier,
-                        canPlayHotSongs = state.canPlay && state.songs.isNotEmpty(),
-                        compact = compactHeader,
-                        onBrowseSongs = actions.onBrowseSongs, onPlayHotSongs = actions.onPlayHotSongs,
-                    )
-                    state.detailLoading -> ArtistHeaderShimmer(tint, bar.artworkModifier, compact = compactHeader)
-                    else -> ErrorItem(state.detailError ?: "歌手信息暂不可用")
-                }
-            }
-            state.artist?.let { artist ->
-                item(key = "artist_about") {
-                    if (artist.briefDesc.isNotBlank() || state.expertIdentities.any { it.expertIdentiyCount > 0 }) {
-                        ArtistAbout(artist, tint, state.expertIdentities.filter { it.expertIdentiyCount > 0 }) { description = true }
-                    } else Spacer(Modifier.fillMaxWidth().height(48.dp).background(Brush.verticalGradient(listOf(tint, base))))
-                }
-            }
-            item { SectionTitle("热门单曲", actions.onBrowseSongs) }
-            when {
-                state.songsLoading -> item { SkeletonShimmerHost(true) { Column { repeat(5) { TrackPlaceholder(it) } } } }
-                state.songsError != null -> item { ErrorItem(state.songsError) }
-                state.songs.isEmpty() -> item { EmptyArtistSection("暂无热门单曲") }
-                else -> itemsIndexed(state.songs.take(8), key = { _, song -> song.id }) { index, song ->
-                    Track(song, onClick = { actions.onTrackClick(song, index) }, onMoreClick = { actions.onTrackMore(song, it) })
-                }
-            }
-            item { SectionTitle("专辑", actions.onBrowseAlbums) }
-            when {
-                state.albumsLoading -> item { SkeletonShimmerHost(true) {
-                    LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(4) { AlbumCardShimmer() }
+    var appleReady by remember(state.id, state.appleArtwork) { mutableStateOf(false) }
+    ArtistArtworkTheme(state.appleArtwork, appleReady) {
+        var description by rememberSaveable(state.id) { mutableStateOf(false) }
+        val base = MaterialTheme.colorScheme.background
+        val tint by animateColorAsState(if (appleReady) base else state.coverColor?.let {
+            lerp(base, it, if (base.luminance() < 0.5f) 0.38f else 0.24f)
+        } ?: base, label = "artistHeaderColor")
+        val list = rememberLazyListState()
+        val bar = rememberMeiArtworkTopBarState(list, state.id)
+        val progress by animateFloatAsState(if (bar.artworkPassed) 1f else 0f, label = "artistBar")
+        val source = rememberHazeState()
+        val compactHeader = LocalPageStartInset.current > 0.dp
+        Scaffold(containerColor = base, topBar = {
+            MeiHazeTopBar(source, state.artist?.name.orEmpty(), progress,
+                modifier = bar.toolbarModifier, onNavigateBack = actions.onBack,
+                backgroundProgress = progress,
+                backgroundMode = if (bar.artworkPassed) MeiTopBarBackground.Auto else MeiTopBarBackground.Transparent,
+                actions = { ArtistMoreButton(state, actions) { description = true } })
+        }) { padding ->
+            LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(source).background(base),
+                contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() +
+                    LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())) {
+                item(key = "artist_header") {
+                    when {
+                        state.artist != null -> {
+                            val legacy: @Composable () -> Unit = {
+                                ArtistHeader(state.artist, headerSurface = tint, artworkModifier = bar.artworkModifier,
+                                    canPlayHotSongs = state.canPlay && state.songs.isNotEmpty(), compact = compactHeader,
+                                    onBrowseSongs = actions.onBrowseSongs, onPlayHotSongs = actions.onPlayHotSongs,
+                                    onInfo = { description = true }, subscription = state.subscription,
+                                    onToggleSubscription = actions.onToggleSubscription)
+                            }
+                            val artwork = state.appleArtwork
+                            if (artwork == null) legacy() else AppleArtistHeader(state, artwork, actions,
+                                onInfo = { description = true }, onImageReady = { appleReady = it },
+                                artworkModifier = bar.artworkModifier, compact = compactHeader, fallback = legacy)
+                        }
+                        state.detailLoading -> ArtistHeaderShimmer(tint, bar.artworkModifier, compact = compactHeader)
+                        else -> ErrorItem(state.detailError ?: "歌手信息暂不可用")
                     }
-                } }
-                state.albumsError != null -> item { ErrorItem(state.albumsError) }
-                state.albums.isEmpty() -> item { EmptyArtistSection("暂无专辑") }
-                else -> item { LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(state.albums.take(10), key = { it.id }) { AlbumCard(it, onClick = actions.onAlbumClick) }
-                } }
+                }
+                item(key = "artist_catalog_spacing") { Spacer(Modifier.height(32.dp)) }
+                item { SectionTitle("热门单曲", actions.onBrowseSongs) }
+                when {
+                    state.songsLoading -> item { SkeletonShimmerHost(true) { Column { repeat(5) { TrackPlaceholder(it) } } } }
+                    state.songsError != null -> item { ErrorItem(state.songsError) }
+                    state.songs.isEmpty() -> item { EmptyArtistSection("暂无热门单曲") }
+                    else -> itemsIndexed(state.songs.take(8), key = { _, song -> song.id }) { index, song ->
+                        Track(song, onClick = { actions.onTrackClick(song, index) }, onMoreClick = { actions.onTrackMore(song, it) })
+                    }
+                }
+                item { SectionTitle("专辑", actions.onBrowseAlbums) }
+                when {
+                    state.albumsLoading -> item { SkeletonShimmerHost(true) {
+                        LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(4) { AlbumCardShimmer() }
+                        }
+                    } }
+                    state.albumsError != null -> item { ErrorItem(state.albumsError) }
+                    state.albums.isEmpty() -> item { EmptyArtistSection("暂无专辑") }
+                    else -> item { LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(state.albums.take(10), key = { it.id }) { AlbumCard(it, onClick = actions.onAlbumClick) }
+                    } }
+                }
             }
         }
+        if (description && state.artist != null) DescriptionSheet(state.artist.name, state.artist.briefDesc.ifBlank { "暂无简介" }) { description = false }
     }
-    if (description && state.artist != null) DescriptionSheet(state.artist.name, state.artist.briefDesc) { description = false }
 }

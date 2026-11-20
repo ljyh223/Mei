@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,20 +37,33 @@ fun MeiDetailMoreButton(
     onSearchActiveChange: ((Boolean) -> Unit)? = null,
     playlistCoverUrl: String? = null,
     additionalItems: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
+    toolbarButton: Boolean = true,
 ) {
     val context = LocalContext.current
     val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
     var expanded by remember(shareContent?.kind, shareContent?.id, searchActive) { mutableStateOf(false) }
     if (searchActive && onSearchActiveChange != null) {
-        MeiGlassIconButton(modifier = modifier, onClick = { onSearchActiveChange(false) }) {
-            Icon(Icons.Rounded.Close, contentDescription = "关闭搜索")
+        if (toolbarButton) {
+            MeiGlassIconButton(modifier = modifier, onClick = { onSearchActiveChange(false) }) {
+                Icon(Icons.Rounded.Close, contentDescription = "关闭搜索")
+            }
+        } else {
+            IconButton(modifier = modifier, onClick = { onSearchActiveChange(false) }) {
+                Icon(Icons.Rounded.Close, contentDescription = "关闭搜索")
+            }
         }
         return
     }
     if (shareContent == null && onSearchActiveChange == null && additionalItems == null) return
     Box(modifier) {
-        MeiGlassIconButton(onClick = { expanded = true }) {
-            Icon(Icons.Rounded.MoreVert, contentDescription = "更多操作")
+        if (toolbarButton) {
+            MeiGlassIconButton(onClick = { expanded = true }) {
+                Icon(Icons.Rounded.MoreVert, contentDescription = "更多操作")
+            }
+        } else {
+            IconButton(onClick = { expanded = true }) {
+                Icon(Icons.Rounded.MoreVert, contentDescription = "更多操作")
+            }
         }
         DropdownMenu(
             expanded = expanded,

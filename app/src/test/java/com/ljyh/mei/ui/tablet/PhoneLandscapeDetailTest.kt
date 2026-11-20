@@ -95,8 +95,6 @@ class PhoneLandscapeDetailTest {
             }
             val picture = artwork.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             artwork.assertWidthIsEqualTo(232.dp).assertHeightIsAtLeast(240.dp)
-            val viewport = compose.onNodeWithTag("detail-viewport").getUnclippedBoundsInRoot()
-            assertEquals((viewport.bottom - 24.dp).value, artwork.getUnclippedBoundsInRoot().bottom.value, 1f)
             val name = compose.onNodeWithText("测试歌手").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             assertTrue(name.left in picture.left..picture.center.x)
             assertTrue(name.top >= picture.center.y && name.bottom <= picture.bottom)
@@ -108,7 +106,11 @@ class PhoneLandscapeDetailTest {
 
             val play = compose.onNodeWithContentDescription("播放热门歌曲").assertIsDisplayed()
             val track = compose.onNodeWithText(song.title).assertIsDisplayed()
-            assertTrue(play.fetchSemanticsNode().boundsInRoot.left > picture.right)
+            assertTrue(play.fetchSemanticsNode().boundsInRoot.center.x in picture.left..picture.right)
+            assertTrue(play.fetchSemanticsNode().boundsInRoot.top >= picture.bottom)
+            compose.onNodeWithContentDescription("歌手简介").assertIsDisplayed()
+            compose.onNodeWithContentDescription("收藏歌手").assertIsDisplayed()
+            compose.onNodeWithContentDescription("更多操作").assertIsDisplayed()
             assertTrue(track.fetchSemanticsNode().boundsInRoot.left > picture.right)
             play.performClick()
             compose.runOnIdle { assertEquals("play", operation) }

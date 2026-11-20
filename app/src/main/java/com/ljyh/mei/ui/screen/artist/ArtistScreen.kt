@@ -2,6 +2,9 @@ package com.ljyh.mei.ui.screen.artist
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import com.ljyh.mei.constants.UserIdKey
+import com.ljyh.mei.utils.preferences.rememberPreference
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.data.network.Resource
@@ -30,7 +33,15 @@ internal fun ArtistScreen(
 ) {
     val nav = LocalNavController.current
     val player = LocalPlayerConnection.current
+    val context = LocalContext.current
+    val (account) = rememberPreference(UserIdKey, defaultValue = "")
+    val subscription by viewModel.subscription.collectAsState()
+    LaunchedEffect(id, account) { viewModel.loadSubscription(id, account) }
+    LaunchedEffect(viewModel) { viewModel.events.collect {
+        android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+    } }
     val details by viewModel.artistDetail.collectAsState()
+    val appleArtwork by viewModel.appleArtwork.collectAsState()
     val songResult by viewModel.artistSongs.collectAsState()
     val albumResult by viewModel.artistAlbums.collectAsState()
     val artist = (details as? Resource.Success)?.data?.data?.artist
@@ -63,7 +74,7 @@ internal fun ArtistScreen(
             id, artist, (details as? Resource.Success)?.data?.data?.secondaryExpertIdentiy.orEmpty(),
             details is Resource.Loading, (details as? Resource.Error)?.message,
             songs, songResult is Resource.Loading, (songResult as? Resource.Error)?.message,
-            albums, albumResult is Resource.Loading, (albumResult as? Resource.Error)?.message, color, player != null,
+            albums, albumResult is Resource.Loading, (albumResult as? Resource.Error)?.message, color, player != null, appleArtwork, subscription,
         ),
         ArtistDetailActions(
             onBack = { nav.popBackStack() },
@@ -73,9 +84,10 @@ internal fun ArtistScreen(
             onTrackClick = { song, _ -> play(song) },
             onTrackMore = { song, anchor -> menu = TrackMenuTarget(song, anchor, source) },
             onAlbumClick = { album -> Screen.Album.navigate(nav) { addPath(album.toString()) } },
-            onRetryDetail = { viewModel.getArtistDetail(id) },
-            onRetrySongs = { viewModel.getArtistSongs(id) },
-            onRetryAlbums = { viewModel.getArtistAlbums(id) },
+            onRetryDetail = { viewModel.getArtistDetail(id, force = true) },
+            onRetrySongs = { viewModel.getArtistSongs(id, force = true) },
+            onRetryAlbums = { viewModel.getArtistAlbums(id, force = true) },
+            onToggleSubscription = viewModel::toggleSubscription,
         ),
     )
     BasicTrackActionMenu(menu) { menu = null }

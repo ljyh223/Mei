@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,92 +52,93 @@ internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDe
         minContentWidthDp = if (landscape) 280f else 480f,
         compact = { ArtistDetailContent(state, actions) },
     ) { metrics ->
-        var description by rememberSaveable(state.id) { mutableStateOf(false) }
-        val artist = state.artist
-        val gutter = meiPageGutter()
-        val canPlay = state.canPlay && state.songs.isNotEmpty()
-        TabletDetailPage(
-            title = artist?.name ?: "歌手", sideWidth = metrics.sideWidthDp.dp, onBack = actions.onBack,
-            showToolbar = !landscape,
-            sidePane = { padding ->
-                if (landscape) {
-                    val portraitModifier = Modifier.fillMaxSize().padding(padding).padding(start = gutter)
-                    if (artist == null && state.detailError != null) {
-                        Box(portraitModifier, contentAlignment = Alignment.Center) {
-                            MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
-                                actionLabel = "重试", onAction = actions.onRetryDetail)
+        var appleReady by remember(state.id, state.appleArtwork) { mutableStateOf(false) }
+        ArtistArtworkTheme(state.appleArtwork, appleReady) {
+            var description by rememberSaveable(state.id) { mutableStateOf(false) }
+            val artist = state.artist
+            val gutter = meiPageGutter()
+            val canPlay = state.canPlay && state.songs.isNotEmpty()
+            val sideList = androidx.compose.foundation.lazy.rememberLazyListState()
+            val mainList = androidx.compose.foundation.lazy.rememberLazyListState()
+            val bar = com.ljyh.mei.ui.component.glass.rememberMeiArtworkTopBarState(sideList, state.id)
+            val contentScrolled by remember(mainList) { derivedStateOf {
+                mainList.firstVisibleItemIndex > 0 || mainList.firstVisibleItemScrollOffset > 0
+            } }
+            val backgroundMode = if (bar.artworkPassed || contentScrolled)
+                com.ljyh.mei.ui.component.glass.MeiTopBarBackground.Auto
+            else com.ljyh.mei.ui.component.glass.MeiTopBarBackground.Transparent
+            TabletDetailPage(
+                title = artist?.name ?: "歌手", sideWidth = metrics.sideWidthDp.dp, onBack = actions.onBack,
+                showToolbar = !landscape, backgroundMode = backgroundMode, toolbarModifier = bar.toolbarModifier,
+                actions = { ArtistMoreButton(state, actions) { description = true } },
+                sidePane = { padding ->
+                    if (landscape) {
+                        Box(Modifier.fillMaxSize().padding(padding).padding(start = gutter)) {
+                            if (artist == null && state.detailError != null) {
+                                MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
+                                    actionLabel = "重试", onAction = actions.onRetryDetail)
+                            } else {
+                                val legacy: @Composable () -> Unit = {
+                                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        LandscapeArtistPortrait(
+                                            url = artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
+                                            name = artist?.name.orEmpty(), loading = state.detailLoading,
+                                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                                        )
+                                        if (artist != null) ArtistPrimaryActions(canPlay, state.subscription,
+                                            { description = true }, actions.onPlayHotSongs, actions.onToggleSubscription, compact = true)
+                                    }
+                                }
+                                val artwork = state.appleArtwork
+                                if (artwork == null || artist == null) legacy() else AppleArtistHeader(
+                                    state, artwork, actions, onInfo = { description = true }, onImageReady = { appleReady = it },
+                                    modifier = Modifier.fillMaxSize(), compact = true, fallback = legacy)
+                            }
                         }
                     } else {
-                        LandscapeArtistPortrait(
-                            url = artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
-                            name = artist?.name.orEmpty(),
-                            loading = state.detailLoading,
-                            modifier = portraitModifier,
-                        )
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        item(key = "artist_artwork") {
-                            DetailSideArtwork(
-                                artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
-                                aspectRatio = 0.82f, placeholder = Icons.Rounded.Person, loading = state.detailLoading,
-                            )
-                        }
-                        item(key = "artist_identity") {
-                            Column(Modifier.padding(horizontal = gutter), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(
-                                    artist?.name ?: if (state.detailLoading) "正在加载" else "歌手信息暂不可用",
+                        LazyColumn(state = sideList, modifier = Modifier.fillMaxSize(), contentPadding = padding,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            item(key = "artist_artwork") {
+                                val legacy: @Composable () -> Unit = {
+                                    Box(bar.artworkModifier) {
+                                        DetailSideArtwork(artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
+                                            aspectRatio = 0.82f, placeholder = Icons.Rounded.Person, loading = state.detailLoading)
+                                    }
+                                }
+                                val artwork = state.appleArtwork
+                                if (artwork == null || artist == null) legacy() else AppleArtistHeader(
+                                    state, artwork, actions, onInfo = { description = true }, onImageReady = { appleReady = it },
+                                    artworkModifier = bar.artworkModifier, fallback = legacy)
+                            }
+                            if (!appleReady) item(key = "artist_identity") {
+                                Text(artist?.name ?: if (state.detailLoading) "正在加载" else "歌手信息暂不可用",
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = gutter),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
                                     maxLines = 3, overflow = TextOverflow.Ellipsis)
-                                if (artist != null) {
-                                    val aliases = artistDisplayAliases(artist)
-                                    if (aliases.isNotEmpty()) Text(aliases.joinToString(" / "), maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
-                                    val identity = (artist.identifyTag ?: artist.identities).filter(String::isNotBlank).take(3)
-                                    if (identity.isNotEmpty()) Text(identity.joinToString(" · "),
-                                        style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("${artist.musicSize} 首歌曲 · ${artist.albumSize} 张专辑",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            if (!appleReady && artist != null) item(key = "artist_play") {
+                                Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+                                    ArtistPrimaryActions(canPlay, state.subscription, { description = true },
+                                        actions.onPlayHotSongs, actions.onToggleSubscription)
                                 }
                             }
-                        }
-                        item(key = "artist_play") {
-                            Button(
-                                onClick = actions.onPlayHotSongs,
-                                enabled = canPlay,
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = gutter).heightIn(min = 48.dp),
-                            ) {
-                                Icon(Icons.Rounded.PlayArrow, null, Modifier.size(20.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("播放热门歌曲")
-                            }
-                        }
-                        if (state.detailError != null) item { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
-                            actionLabel = "重试", onAction = actions.onRetryDetail) }
-                        if (artist != null && (artist.briefDesc.isNotBlank() || state.expertIdentities.any { it.expertIdentiyCount > 0 })) {
-                            item(key = "artist_bio") {
-                                ArtistAbout(artist, MaterialTheme.colorScheme.surface,
-                                    state.expertIdentities.filter { it.expertIdentiyCount > 0 },
-                                    maxDescriptionLines = 3, expandBelowDescription = true) { description = true }
-                            }
+                            if (state.detailError != null) item { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
+                                actionLabel = "重试", onAction = actions.onRetryDetail) }
                         }
                     }
-                }
-            },
-            mainPane = { padding ->
+                },
+                        mainPane = { padding ->
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     val columns = tabletArtworkColumns(
                         maxWidth.value, LocalDensity.current.fontScale, gutter.value, VinylAlbumArtworkRatio,
                         minArtworkWidthDp = if (landscape) 104f else 156f,
                     )
-                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding,
+                    LazyColumn(state = mainList, modifier = Modifier.fillMaxSize(), contentPadding = padding,
                         verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         item(key = "songs_heading") {
                             TabletSectionHeading("热门单曲", actions.onBrowseSongs) {
-                                if (landscape) IconButton(onClick = actions.onPlayHotSongs, enabled = canPlay) {
-                                    Icon(Icons.Rounded.PlayArrow, contentDescription = "播放热门歌曲")
-                                }
+                                if (landscape) ArtistMoreButton(state, actions, inToolbar = false) { description = true }
                             }
                         }
                         when {
@@ -175,8 +175,9 @@ internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDe
                     }
                 }
             },
-        )
-        if (description && artist != null) DescriptionSheet(artist.name, artist.briefDesc) { description = false }
+            )
+            if (description && artist != null) DescriptionSheet(artist.name, artist.briefDesc.ifBlank { "暂无简介" }) { description = false }
+        }
     }
 }
 

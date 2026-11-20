@@ -61,3 +61,22 @@ fun String.originalArtworkUrl(): String {
     (processingParameters + "tostatic").forEach(builder::removeAllQueryParameters)
     return builder.build().toString()
 }
+
+/** Apple templates are resolved centrally after Coil knows the component's physical pixel size. */
+internal fun String.isAppleArtworkTemplate(): Boolean {
+    val url = toHttpUrlOrNull() ?: return false
+    return url.scheme == "https" && (url.host == "mzstatic.com" || url.host.endsWith(".mzstatic.com")) &&
+        (contains("{w}") || contains("%7Bw%7D", ignoreCase = true)) &&
+        (contains("{h}") || contains("%7Bh%7D", ignoreCase = true))
+}
+
+internal fun String.appleArtworkImage(size: ArtworkSize): String {
+    if (!isAppleArtworkTemplate()) return this
+    return replace(Regex("\\{[wh]\\}|%7B[wh]%7D", RegexOption.IGNORE_CASE), size.pixels.toString())
+        .replace("{f}", "jpg")
+}
+
+/** PNG output preserves the alpha in artist wordmarks; do not request the JPEG template. */
+fun String.transparentAppleArtwork(): String = if (isAppleArtworkTemplate()) {
+    replace(Regex("\\.(?:jpe?g|\\{f\\})(?=($|[?#]))", RegexOption.IGNORE_CASE), ".png")
+} else this

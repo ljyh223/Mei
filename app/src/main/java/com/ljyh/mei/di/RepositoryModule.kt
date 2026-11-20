@@ -82,8 +82,8 @@ object RepositoryModule {
 
     @Singleton
     @Provides
-    fun provideArtistRepository(apiService: ApiService): ArtistRepository {
-        return ArtistRepository(apiService)
+    fun provideArtistRepository(apiService: ApiService, weApiService: WeApiService): ArtistRepository {
+        return ArtistRepository(apiService, weApiService)
     }
 
     @Singleton

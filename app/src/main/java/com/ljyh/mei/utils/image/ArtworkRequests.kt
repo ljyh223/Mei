@@ -50,6 +50,11 @@ class ArtworkRequestInterceptor : Interceptor {
             is android.net.Uri -> data.toString()
             else -> return chain.proceed()
         }
+        if (source.isAppleArtworkTemplate()) {
+            val size = ArtworkSize.forBounds((chain.size.width as? Dimension.Pixels)?.px,
+                (chain.size.height as? Dimension.Pixels)?.px)
+            return chain.withRequest(request.newBuilder().data(source.appleArtworkImage(size)).build()).proceed()
+        }
         if (source.neteaseImageUrl() == null) return chain.proceed()
         val normalized = if (request.getExtra(OriginalArtwork)) {
             source.originalArtworkUrl()
