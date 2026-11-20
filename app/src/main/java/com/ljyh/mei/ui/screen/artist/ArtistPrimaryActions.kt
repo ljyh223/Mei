@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.artist
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -8,11 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.R
+import com.ljyh.mei.ui.component.glass.LocalMeiGlassAppearance
 
 /** Shared for Apple artwork and the original-photo fallback; every action has a 48dp target. */
 @Composable
@@ -26,9 +29,19 @@ internal fun ArtistPrimaryActions(
 ) {
     val foreground = MaterialTheme.colorScheme.onBackground
     val background = MaterialTheme.colorScheme.background
+    val reduceTransparency = LocalMeiGlassAppearance.current.reduceTransparency
+    val tint = foreground.copy(alpha = 0.12f)
+    val sideColors = IconButtonDefaults.filledIconButtonColors(
+        containerColor = if (reduceTransparency) tint.compositeOver(background) else tint,
+        contentColor = foreground,
+        disabledContainerColor = if (reduceTransparency) tint.compositeOver(background) else tint,
+        disabledContentColor = foreground.copy(alpha = 0.38f),
+    )
+    val sideModifier = Modifier.size(48.dp)
+        .border(0.75.dp, foreground.copy(alpha = 0.10f), CircleShape)
     Row(horizontalArrangement = Arrangement.spacedBy(if (compact) 16.dp else 24.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onInfo, modifier = Modifier.size(48.dp)) {
+        FilledIconButton(onClick = onInfo, modifier = sideModifier, shape = CircleShape, colors = sideColors) {
             Icon(painterResource(R.drawable.ic_artist_info), "歌手简介", Modifier.size(28.dp), tint = foreground)
         }
         FilledIconButton(onClick = onPlay, enabled = canPlay,
@@ -38,8 +51,9 @@ internal fun ArtistPrimaryActions(
                 disabledContainerColor = foreground.copy(alpha = 0.25f), disabledContentColor = background)) {
             Icon(Icons.Rounded.PlayArrow, "播放热门歌曲", Modifier.size(if (compact) 32.dp else 40.dp))
         }
-        IconButton(onClick = onToggleSubscription, enabled = !subscription.loading && !subscription.pending,
-            modifier = Modifier.size(48.dp).semantics {
+        FilledIconButton(onClick = onToggleSubscription, enabled = !subscription.loading && !subscription.pending,
+            shape = CircleShape, colors = sideColors,
+            modifier = sideModifier.semantics {
                 stateDescription = when {
                     subscription.loading -> "正在加载收藏状态"
                     subscription.pending -> "正在更新收藏状态"
