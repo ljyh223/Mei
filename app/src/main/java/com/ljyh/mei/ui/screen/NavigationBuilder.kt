@@ -267,6 +267,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     pageDestination(
         route = "${Screen.Album.route}/{id}",
         drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
         arguments = listOf(
             navArgument("id") {
                 type = NavType.LongType
@@ -279,6 +280,7 @@ internal fun NavGraphBuilder.navigationBuilder(
     pageDestination(
         route = "${Screen.Artist.route}/{id}",
         drawsBehindSideBar = true,
+        drawsToHorizontalEdgesInLandscape = true,
         arguments = listOf(
             navArgument("id") {
                 type = NavType.StringType
