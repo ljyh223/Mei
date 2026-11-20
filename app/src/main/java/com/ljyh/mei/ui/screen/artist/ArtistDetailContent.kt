@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.constants.DebugKey
+import com.ljyh.mei.utils.preferences.rememberPreference
 import com.ljyh.mei.ui.component.glass.*
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
@@ -32,7 +34,9 @@ import dev.chrisbanes.haze.rememberHazeState
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDetailActions) {
-    var appleReady by remember(state.id, state.appleArtwork) { mutableStateOf(false) }
+    var presentation by remember(state.id, state.appleArtwork) { mutableStateOf(ArtistArtworkPresentation()) }
+    val appleReady = presentation.usesApplePhoto
+    val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
     ArtistArtworkTheme(state.appleArtwork, appleReady) {
         var description by rememberSaveable(state.id) { mutableStateOf(false) }
         val base = MaterialTheme.colorScheme.background
@@ -66,12 +70,16 @@ internal fun ArtistDetailContent(state: ArtistDetailUiState, actions: ArtistDeta
                             }
                             val artwork = state.appleArtwork
                             if (artwork == null) legacy() else AppleArtistHeader(state, artwork, actions,
-                                onInfo = { description = true }, onImageReady = { appleReady = it },
+                                onInfo = { description = true }, onPresentationChanged = { presentation = it },
                                 artworkModifier = bar.artworkModifier, compact = compactHeader, fallback = legacy)
                         }
                         state.detailLoading -> ArtistHeaderShimmer(tint, bar.artworkModifier, compact = compactHeader)
                         else -> ErrorItem(state.detailError ?: "歌手信息暂不可用")
                     }
+                }
+                if (debugEnabled && state.artist != null) item(key = "artist_artwork_debug") {
+                    ArtistArtworkDebugInfo(state.appleArtwork, presentation,
+                        Modifier.padding(meiPageHorizontalPadding()))
                 }
                 item(key = "artist_catalog_spacing") { Spacer(Modifier.height(32.dp)) }
                 item { SectionTitle("热门单曲", actions.onBrowseSongs) }

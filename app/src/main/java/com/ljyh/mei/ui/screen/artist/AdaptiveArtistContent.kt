@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import com.ljyh.mei.constants.DebugKey
+import com.ljyh.mei.utils.preferences.rememberPreference
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
@@ -52,7 +54,9 @@ internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDe
         minContentWidthDp = if (landscape) 280f else 480f,
         compact = { ArtistDetailContent(state, actions) },
     ) { metrics ->
-        var appleReady by remember(state.id, state.appleArtwork) { mutableStateOf(false) }
+        var presentation by remember(state.id, state.appleArtwork) { mutableStateOf(ArtistArtworkPresentation()) }
+        val appleReady = presentation.usesApplePhoto
+        val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
         ArtistArtworkTheme(state.appleArtwork, appleReady) {
             var description by rememberSaveable(state.id) { mutableStateOf(false) }
             val artist = state.artist
@@ -91,7 +95,7 @@ internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDe
                                 }
                                 val artwork = state.appleArtwork
                                 if (artwork == null || artist == null) legacy() else AppleArtistHeader(
-                                    state, artwork, actions, onInfo = { description = true }, onImageReady = { appleReady = it },
+                                    state, artwork, actions, onInfo = { description = true }, onPresentationChanged = { presentation = it },
                                     modifier = Modifier.fillMaxSize(), compact = true, fallback = legacy)
                             }
                         }
@@ -107,7 +111,7 @@ internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDe
                                 }
                                 val artwork = state.appleArtwork
                                 if (artwork == null || artist == null) legacy() else AppleArtistHeader(
-                                    state, artwork, actions, onInfo = { description = true }, onImageReady = { appleReady = it },
+                                    state, artwork, actions, onInfo = { description = true }, onPresentationChanged = { presentation = it },
                                     artworkModifier = bar.artworkModifier, fallback = legacy)
                             }
                             if (!appleReady) item(key = "artist_identity") {
@@ -140,6 +144,10 @@ internal fun AdaptiveArtistContent(state: ArtistDetailUiState, actions: ArtistDe
                             TabletSectionHeading("热门单曲", actions.onBrowseSongs) {
                                 if (landscape) ArtistMoreButton(state, actions, inToolbar = false) { description = true }
                             }
+                        }
+                        if (debugEnabled && artist != null) item(key = "artist_artwork_debug") {
+                            ArtistArtworkDebugInfo(state.appleArtwork, presentation,
+                                Modifier.padding(horizontal = gutter))
                         }
                         when {
                             state.songsLoading -> item {

@@ -63,7 +63,7 @@ internal fun AppleArtistHeader(
     artwork: AppleArtistArtwork,
     actions: ArtistDetailActions,
     onInfo: () -> Unit,
-    onImageReady: (Boolean) -> Unit,
+    onPresentationChanged: (ArtistArtworkPresentation) -> Unit,
     modifier: Modifier = Modifier,
     artworkModifier: Modifier = Modifier,
     compact: Boolean = false,
@@ -73,16 +73,21 @@ internal fun AppleArtistHeader(
     val wideImage = artwork.banner?.takeIf { compact && it.width.toFloat() / it.height in 1.4f..2.4f }
     var bannerFailed by remember(artwork) { mutableStateOf(false) }
     val picture = if (bannerFailed) artwork.portrait else wideImage ?: artwork.portrait
-    val onReady by rememberUpdatedState(onImageReady)
+    var wordmarkState by remember(artwork, picture.url) {
+        mutableStateOf(if (artwork.logo == null) ArtistArtworkLoadState.Unavailable else ArtistArtworkLoadState.Loading)
+    }
+    val onPresentation by rememberUpdatedState(onPresentationChanged)
     SubcomposeAsyncImage(
         model = picture.url, contentDescription = null, modifier = modifier.fillMaxWidth(),
         contentScale = ContentScale.Crop, alignment = Alignment.TopCenter,
     ) image@{
         val result by painter.state.collectAsState()
-        val loaded = result is AsyncImagePainter.State.Success
-        LaunchedEffect(loaded, picture.url, result is AsyncImagePainter.State.Error) {
-            onReady(loaded)
-            if (result is AsyncImagePainter.State.Error && picture == wideImage) bannerFailed = true
+        val photoState = result.artistArtworkLoadState()
+        val loaded = photoState == ArtistArtworkLoadState.Success
+        val presentation = ArtistArtworkPresentation(photoState, wordmarkState)
+        LaunchedEffect(presentation, picture.url) {
+            onPresentation(presentation)
+            if (photoState == ArtistArtworkLoadState.Error && picture == wideImage) bannerFailed = true
         }
         if (!loaded) {
             fallback()
@@ -106,7 +111,7 @@ internal fun AppleArtistHeader(
                         .padding(meiPageHorizontalPadding()).padding(bottom = if (compact) 12.dp else 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(if (compact) 16.dp else 28.dp)) {
-                        ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact)
+                        ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact) { wordmarkState = it }
                         ArtistPrimaryActions(
                             canPlay = state.canPlay && state.songs.isNotEmpty(), subscription = state.subscription,
                             onInfo = onInfo, onPlay = actions.onPlayHotSongs,
@@ -120,7 +125,13 @@ internal fun AppleArtistHeader(
 }
 
 @Composable
-private fun ArtistWordmark(artwork: AppleArtistArtwork, name: String, compact: Boolean) {
+private fun ArtistWordmark(
+    artwork: AppleArtistArtwork,
+    name: String,
+    compact: Boolean,
+    onLoadStateChanged: (ArtistArtworkLoadState) -> Unit,
+) {
+    val onStateChanged by rememberUpdatedState(onLoadStateChanged)
     Box(Modifier.fillMaxWidth().heightIn(min = if (compact) 40.dp else 68.dp)
         .clearAndSetSemantics { contentDescription = name; heading() }, contentAlignment = Alignment.Center) {
         val text: @Composable () -> Unit = {
@@ -135,7 +146,14 @@ private fun ArtistWordmark(artwork: AppleArtistArtwork, name: String, compact: B
             contentScale = ContentScale.Fit, colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
         ) {
             val result by painter.state.collectAsState()
+            LaunchedEffect(result) { onStateChanged(result.artistArtworkLoadState()) }
             if (result is AsyncImagePainter.State.Success) SubcomposeAsyncImageContent() else text()
         }
     }
+}
+
+private fun AsyncImagePainter.State.artistArtworkLoadState(): ArtistArtworkLoadState = when (this) {
+    is AsyncImagePainter.State.Success -> ArtistArtworkLoadState.Success
+    is AsyncImagePainter.State.Error -> ArtistArtworkLoadState.Error
+    else -> ArtistArtworkLoadState.Loading
 }
