@@ -125,7 +125,7 @@ internal fun AppleArtistHeader(
 }
 
 @Composable
-private fun ArtistWordmark(
+internal fun ArtistWordmark(
     artwork: AppleArtistArtwork,
     name: String,
     compact: Boolean,
@@ -152,7 +152,7 @@ private fun ArtistWordmark(
     }
 }
 
-private fun AsyncImagePainter.State.artistArtworkLoadState(): ArtistArtworkLoadState = when (this) {
+internal fun AsyncImagePainter.State.artistArtworkLoadState(): ArtistArtworkLoadState = when (this) {
     is AsyncImagePainter.State.Success -> ArtistArtworkLoadState.Success
     is AsyncImagePainter.State.Error -> ArtistArtworkLoadState.Error
     else -> ArtistArtworkLoadState.Loading
