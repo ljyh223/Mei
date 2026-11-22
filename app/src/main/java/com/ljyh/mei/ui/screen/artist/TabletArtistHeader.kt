@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.artist
 
+import android.os.Build
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -45,8 +50,10 @@ internal fun TabletArtistHeader(
     ) }
     val report by rememberUpdatedState(onPresentationChanged)
     LaunchedEffect(photo, wordmark, artwork) { report(ArtistArtworkPresentation(photo, wordmark)) }
+    val usesApplePhoto = photo == ArtistArtworkLoadState.Success
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background),
-        horizontalAlignment = Alignment.CenterHorizontally) {
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(if (usesApplePhoto) 0.dp else (-20).dp)) {
         val fallback: @Composable () -> Unit = {
             val artist = state.artist
             TabletNeteaseArtistPhoto(artist?.cover?.takeIf(String::isNotBlank) ?: artist?.avatar,
@@ -59,9 +66,10 @@ internal fun TabletArtistHeader(
                     ArtistArtworkLoadState.Unavailable else ArtistArtworkLoadState.Loading
             }, fallback = fallback)
         Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(meiPageHorizontalPadding())
-            .padding(top = 8.dp, bottom = 24.dp),
+            .padding(top = if (usesApplePhoto) 8.dp else 0.dp,
+                bottom = if (usesApplePhoto) 24.dp else 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)) {
+            verticalArrangement = Arrangement.spacedBy(if (usesApplePhoto) 24.dp else 16.dp)) {
             val name = state.artist?.name ?: if (state.detailLoading) "正在加载" else "歌手"
             if (artwork != null && photo == ArtistArtworkLoadState.Success) {
                 ArtistWordmark(artwork, name, compact = false) { wordmark = it }
@@ -114,7 +122,18 @@ private fun TabletNeteaseArtistPhoto(url: String?, loading: Boolean, photoHeight
         val result by painter.state.collectAsState()
         val success = result as? AsyncImagePainter.State.Success
         val ratio = success?.result?.image?.let { it.width.toFloat() / it.height.coerceAtLeast(1) } ?: 1f
-        TabletArtistPhotoFrame(ratio, false, photoHeight, artworkModifier) {
+        TabletArtistPhotoFrame(ratio, false, photoHeight, artworkModifier, backdrop = {
+            // Both layers share the successful painter and its one Coil request.
+            if (success != null) Image(
+                painter = this@image.painter,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize().blur(48.dp).graphicsLayer {
+                    alpha = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 0.30f else 0.12f
+                },
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
+            )
+        }) {
             if (success != null) this@image.SubcomposeAsyncImageContent(Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit, alignment = Alignment.TopCenter)
             else TabletArtistPhotoPlaceholder(result !is AsyncImagePainter.State.Error)
@@ -129,13 +148,16 @@ private fun TabletArtistPhotoFrame(
     wide: Boolean,
     photoHeight: Dp,
     artworkModifier: Modifier,
+    backdrop: @Composable BoxScope.() -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
 ) {
     val background = MaterialTheme.colorScheme.background
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val ratio = aspectRatio.takeIf { it.isFinite() && it > 0f } ?: 1f
         val imageWidth = if (wide) maxWidth else (photoHeight * ratio).coerceAtMost(maxWidth)
-        Box(Modifier.fillMaxWidth().height(photoHeight).then(artworkModifier).background(background)) {
+        Box(Modifier.fillMaxWidth().height(photoHeight).then(artworkModifier)
+            .clipToBounds().background(background)) {
+            backdrop()
             Box(Modifier.align(Alignment.TopCenter).width(imageWidth).fillMaxHeight()) {
                 content()
                 if (!wide) Box(Modifier.matchParentSize().background(Brush.horizontalGradient(

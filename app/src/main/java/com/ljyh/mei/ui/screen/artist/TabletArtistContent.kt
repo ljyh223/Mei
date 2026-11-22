@@ -72,7 +72,7 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                             Modifier.padding(meiPageHorizontalPadding())) }
                     }
                     item(key = "songs_heading") { TabletArtistBody {
-                        Spacer(Modifier.height(8.dp))
+                        if (presentation.usesApplePhoto) Spacer(Modifier.height(8.dp))
                         SectionTitle("热门单曲", actions.onBrowseSongs)
                     } }
                     when {
