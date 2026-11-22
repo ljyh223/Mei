@@ -34,6 +34,8 @@ import com.ljyh.mei.utils.preferences.rememberPreference
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
+internal val TabletArtistBodyMaxWidth = 960.dp
+
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDetailActions) {
@@ -64,7 +66,7 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                         if (state.artist == null && !state.detailLoading) {
                             TabletArtistBody { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetryDetail) }
-                        } else TabletArtistHeader(state, artwork, photoHeight, actions, onInfo = { description = true },
+                        } else TabletArtistHeader(state, artwork, photoHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
                             onPresentationChanged = { presentation = it }, artworkModifier = bar.artworkModifier)
                     }
                     if (debugEnabled && state.artist != null) item(key = "artist_artwork_debug") {
@@ -125,6 +127,6 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
 @Composable
 private fun TabletArtistBody(content: @Composable ColumnScope.() -> Unit) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = 960.dp).fillMaxWidth(), content = content)
+        Column(Modifier.widthIn(max = TabletArtistBodyMaxWidth).fillMaxWidth(), content = content)
     }
 }
