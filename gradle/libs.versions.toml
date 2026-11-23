@@ -1,4 +1,5 @@
 [versions]
+zstdJni = "1.5.7-23"
 quickjs = "1.0.14"
 robolectric = "4.16.1"
 agp = "9.2.0"
@@ -48,6 +49,7 @@ zxing = "3.5.4"
 jetbrainsKotlinJvm = "2.4.21"
 
 [libraries]
+zstd-jni = { module = "com.github.luben:zstd-jni", version.ref = "zstdJni" }
 quickjs = { module = "io.github.dokar3:quickjs-kt-android", version.ref = "quickjs" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 

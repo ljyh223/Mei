@@ -143,6 +143,7 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 | 区域 | 修改入口 |
 | --- | --- |
 | 队列与来源、恢复快照 | `playback/queue/` |
+| 网易云播放日志、计时与后台重试 | `playback/log/`、`data/network/netease/`；[播放日志](playback-logging.md) |
 | 外接键盘媒体键与控制器播放权限 | `MainActivity`、`playback/MediaKeyboardControls.kt`、`MediaControllerCommands.kt`；[键盘媒体控制](keyboard-media-controls.md) |
 | 音频地址、本地／缓存与备用音源解析 | `playback/source/`、`data/repository/PlayerRepository.kt` |
 | 均衡器、混响、限制器 | `playback/equalizer/` |
@@ -209,6 +210,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | 页面转场 | [page-navigation-motion.md](page-navigation-motion.md) |
 | 图片请求与缓存 | [image-loading.md](image-loading.md) |
 | 封面底色匹配 | [cover-background-matching.md](cover-background-matching.md) |
+| 网易云播放日志与账号隔离 | [playback-logging.md](playback-logging.md) |
 | LX 备用音源 | [lx-sources.md](lx-sources.md) |
 | MusicFree 插件搜索与播放 | [musicfree-sources.md](musicfree-sources.md) |
 | 链接分享 | [media-sharing.md](media-sharing.md) |

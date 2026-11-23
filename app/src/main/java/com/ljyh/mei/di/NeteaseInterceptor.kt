@@ -65,21 +65,9 @@ class NeteaseInterceptor : Interceptor {
         "ua" to "NeteaseMusic/9.4.32.251222163637" // 或者你之前的 Android UA
     )
 
-    private val XEAPI_CONFIG = mapOf(
-        "os" to "android",
-        "osver" to Build.VERSION.RELEASE,
-        "appver" to "9.6.05",
-        "channel" to "netease",
-        "versioncode" to "9006005",
-        "mobilename" to Build.MODEL,
-        "buildver" to "260923162310",
-        "resolution" to "2268x1080",
-        "ua" to "NeteaseMusic/9.6.05.260923162310(9006005);Dalvik/2.1.0 (Linux; U; Android ${Build.VERSION.RELEASE}; ${Build.MODEL} Build/${Build.ID})"
-    )
 
     // 公用常量
     private val CONST_NMDI = "Q1NKTQkBDAAMIEF4coQMHcb6TLA7AAAAciOiJ%2F%2FOO4VQ7m%2FLvLJ1pD9CIsJP5mfzI4SusB%2BaNScGLpThEYBcPxGzj0pL5hLdZ7LqB2UVULdYgc0%3D"
-    private val CONST_URS_APPID = "F2219AE9D7828A7D73E2006D000C61031D196A37DB497E3885B8298504867886B6F0E44087D61EFC06BE92279CD6EEC6"
     private val CONST_CSRF = "40ab38f0a305fc4c7ff68e636bcf34aa"
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -296,7 +284,23 @@ class NeteaseInterceptor : Interceptor {
         }
     }
 
-    private companion object {
-        const val CRYPTO_MODE_HEADER = "X-Netease-Crypto"
+    companion object {
+        private val XEAPI_CONFIG = mapOf(
+            "os" to "android",
+            "osver" to Build.VERSION.RELEASE,
+            "appver" to "9.6.05",
+            "channel" to "netease",
+            "versioncode" to "9006005",
+            "mobilename" to Build.MODEL,
+            "buildver" to "260923162310",
+            "resolution" to "2268x1080",
+            "ua" to "NeteaseMusic/9.6.05.260923162310(9006005);Dalvik/2.1.0 (Linux; U; Android ${Build.VERSION.RELEASE}; ${Build.MODEL} Build/${Build.ID})"
+        )
+        private val CONST_URS_APPID = "F2219AE9D7828A7D73E2006D000C61031D196A37DB497E3885B8298504867886B6F0E44087D61EFC06BE92279CD6EEC6"
+
+        internal fun playbackLogProfile(): Map<String, String> =
+            XEAPI_CONFIG + mapOf("URS_APPID" to CONST_URS_APPID)
+
+        private const val CRYPTO_MODE_HEADER = "X-Netease-Crypto"
     }
 }

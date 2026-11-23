@@ -21,12 +21,14 @@ class TransitionDeckPlayer(
     private var released = false
     var onQueueEdited: (() -> Unit)? = null
     var onSeekRequested: (() -> Unit)? = null
+    var onBeforePromote: (() -> Unit)? = null
 
     val active: ExoPlayer get() = decks[current]
     val standby: ExoPlayer get() = decks[1 - current]
 
     /** The incoming deck keeps playing during the MediaSession handoff. */
     fun promote(): ExoPlayer {
+        onBeforePromote?.invoke()
         val old = active
         val next = standby
         old.setHandleAudioBecomingNoisy(false)

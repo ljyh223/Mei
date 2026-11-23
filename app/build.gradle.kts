@@ -80,6 +80,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(variantOf(libs.zstd.jni) { artifactType("aar") })
+    testRuntimeOnly(libs.zstd.jni)
     implementation(libs.quickjs)
 
     implementation(libs.androidx.core.ktx)

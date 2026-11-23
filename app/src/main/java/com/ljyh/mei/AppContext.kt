@@ -11,6 +11,7 @@ import coil3.gif.AnimatedImageDecoder
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
+import com.ljyh.mei.playback.log.PlaybackLogRepository
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.ImageCacheLimitMbKey
 import com.ljyh.mei.constants.UserAgent
@@ -44,6 +45,7 @@ class AppContext : Application(), SingletonImageLoader.Factory {
     @Inject lateinit var dynamicCoverRepository: DynamicCoverRepository
     @Inject lateinit var likedSongsRepository: LikedSongsRepository
     @Inject lateinit var userRepository: UserRepository
+    @Inject lateinit var playbackLogs: PlaybackLogRepository
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {

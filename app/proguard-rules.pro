@@ -20,3 +20,6 @@
 -dontwarn javax.imageio.ImageWriter
 -dontwarn javax.imageio.stream.ImageOutputStream
 -dontwarn javax.swing.filechooser.FileFilter
+
+# zstd-jni resolves these classes and methods by their original JNI names.
+-keep class com.github.luben.zstd.** { *; }

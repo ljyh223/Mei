@@ -33,7 +33,7 @@ import javax.inject.Singleton
 
 class SourceNotFoundException(message: String) : IOException(message)
 data class ResolvedMediaUri(val uri: Uri, val cacheKey: String, val headers: Map<String, String> = emptyMap())
-data class PlaybackSourceInfo(val name: String, val quality: String?)
+data class PlaybackSourceInfo(val name: String, val quality: String?, val isNetease: Boolean = false)
 
 @Singleton
 class MediaUriProvider @Inject constructor(
@@ -57,6 +57,15 @@ class MediaUriProvider @Inject constructor(
     private val resolutionLocks = Array(64) { Mutex() }
     private val _sourceInfo = MutableStateFlow<Map<String, PlaybackSourceInfo>>(emptyMap())
     val sourceInfo = _sourceInfo.asStateFlow()
+
+    /** Only the unqualified full-v1 cache key belongs to official audio; fallback keys include a source suffix. */
+    suspend fun recordFullyCachedPlayback(mediaId: String) {
+        val localPath = songRepository.getSong(mediaId).firstOrNull()?.path
+            ?: songRepository.getSong("local_$mediaId").firstOrNull()?.path
+        val local = localPath != null && (localPath.startsWith("content://") || File(localPath).exists())
+        val official = !local && mediaId.toLongOrNull()?.let { it > 0 } == true
+        _sourceInfo.update { it + (mediaId to PlaybackSourceInfo(if (official) "网易云" else "本地", null, official)) }
+    }
 
     suspend fun resolveMediaUri(mediaId: String, quality: String): Uri = resolveMedia(mediaId, quality, recordPlayback = false).uri
 
@@ -100,7 +109,7 @@ class MediaUriProvider @Inject constructor(
                         val duration = data.time?.takeIf { it > 0 } ?: probe.durationMs(url)
                         if (duration != null && !PreviewPolicy.isPreview(duration)) {
                             val resolved = CachedUrl(url, System.currentTimeMillis() + 10 * 60_000, baseKey,
-                                "netease", PlaybackSourceInfo("网易云", data.level), recoveryKey)
+                                "netease", PlaybackSourceInfo("网易云", data.level, isNetease = true), recoveryKey)
                             urlCache[lookupKey] = resolved
                             return@withLock selected(mediaId, resolved, recordPlayback)
                         }

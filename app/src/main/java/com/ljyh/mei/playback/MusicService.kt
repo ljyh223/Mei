@@ -91,6 +91,8 @@ import com.ljyh.mei.playback.equalizer.EqualizerProfile
 import com.ljyh.mei.playback.equalizer.FreeverbProcessor
 import com.ljyh.mei.playback.equalizer.ParametricEqualizerProcessor
 import com.ljyh.mei.playback.equalizer.SoftLimiterProcessor
+import com.ljyh.mei.playback.log.PlaybackLogController
+import com.ljyh.mei.playback.log.PlaybackLogRepository
 import com.ljyh.mei.playback.lyrics.DesktopLyricsController
 import com.ljyh.mei.playback.lyrics.ColorOsLyricsPublisher
 import com.ljyh.mei.playback.lyrics.PlaybackLyricsController
@@ -190,6 +192,10 @@ class MusicService : MediaLibraryService(),
     private val serviceJob = SupervisorJob()
     var scope = CoroutineScope(Dispatchers.Main + serviceJob)
     private var historyJob: Job? = null
+    private lateinit var playbackLogController: PlaybackLogController
+
+    @Inject
+    lateinit var playbackLogs: PlaybackLogRepository
     private var queueSaveJob: Job? = null
     private var nextArtworkUrl: String? = null
     private var nextArtworkPreload: Disposable? = null
@@ -226,6 +232,7 @@ class MusicService : MediaLibraryService(),
     lateinit var lyricManager: LyricManager
     override fun onCreate() {
         super.onCreate()
+        playbackLogController = PlaybackLogController(playbackLogs, mediaUriProvider)
         val usbInitialSettings = runBlocking { dataStore.data.first() }
         usbExclusiveEnabled = usbInitialSettings[UsbExclusivePlaybackKey] ?: false
         usbPreferences = usbInitialSettings.usbPlaybackPreferences()
@@ -304,6 +311,9 @@ class MusicService : MediaLibraryService(),
                     }
                 })
             }
+
+        playbackLogController.attach(player, scope)
+        player.onBeforePromote = { playbackLogController.finish("playend") }
 
         val usbFilter = IntentFilter().apply {
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
@@ -768,6 +778,7 @@ class MusicService : MediaLibraryService(),
     }
 
     override fun onDestroy() {
+        playbackLogController.detach(player)
         nextArtworkPreload?.dispose()
         unregisterReceiver(usbReceiver)
         usbReconfigureJob?.cancel()
@@ -812,6 +823,7 @@ class MusicService : MediaLibraryService(),
                 val mediaId = dataSpec.key ?: throw SourceNotFoundException("Missing media cache key")
                 val cacheKey = "$mediaId|$quality|full-v1"
                 if (isContentFullyCached(simpleCache, cacheKey)) {
+                    mediaUriProvider.recordFullyCachedPlayback(mediaId)
                     Timber.tag("ResolvingDataSource").d("Fully cached on disk: $cacheKey")
                     return@runBlocking dataSpec.buildUpon().setKey(cacheKey).build()
                 }
@@ -905,6 +917,7 @@ class MusicService : MediaLibraryService(),
 
     override fun onBind(intent: Intent?) = super.onBind(intent) ?: binder
     override fun onPlayerError(error: PlaybackException) {
+        playbackLogController.finish("exception")
         Timber.tag("MusicService").e( "Player Error: ${error.errorCodeName}, ${error.message}")
         val mediaId = player.currentMediaItem?.mediaId
         if (isSourceError(error) && mediaId != null) {
