@@ -34,7 +34,7 @@ internal fun TabletNeteaseArtistHeader(
     artworkModifier: Modifier,
 ) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        BoxWithConstraints(Modifier.widthIn(max = TabletArtistBodyMaxWidth).fillMaxWidth()
+        BoxWithConstraints(Modifier.widthIn(max = 960.dp).fillMaxWidth()
             .padding(meiPageHorizontalPadding()).padding(top = topPadding, bottom = 24.dp)) {
             val stacked = maxWidth < 640.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
             val portraitSize = if (stacked) (maxWidth * 0.42f).coerceIn(160.dp, 220.dp)

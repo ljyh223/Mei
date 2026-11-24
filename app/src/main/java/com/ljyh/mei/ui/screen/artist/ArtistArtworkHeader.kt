@@ -9,8 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -18,44 +16,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
-import com.ljyh.mei.ui.theme.LocalPageLightStatusBar
-
-/** The whole new presentation activates only after the main photograph is usable. */
-@Composable
-internal fun ArtistArtworkTheme(artwork: AppleArtistArtwork?, ready: Boolean, content: @Composable () -> Unit) {
-    val original = MaterialTheme.colorScheme
-    val background = artwork?.portrait?.background?.let { value ->
-        runCatching { Color(android.graphics.Color.parseColor("#$value")) }.getOrNull()
-    } ?: original.background
-    val foreground = if (background.luminance() > 0.179f) Color.Black else Color.White
-    val colors = if (ready) original.copy(
-        background = background, onBackground = foreground,
-        surface = background, onSurface = foreground, onSurfaceVariant = foreground.copy(alpha = 0.74f),
-        primary = foreground, onPrimary = background, secondary = foreground,
-        surfaceVariant = lerp(background, foreground, 0.10f),
-        surfaceContainerLowest = background,
-        surfaceContainerLow = lerp(background, foreground, 0.04f),
-        surfaceContainer = lerp(background, foreground, 0.08f),
-        surfaceContainerHigh = lerp(background, foreground, 0.12f),
-        surfaceContainerHighest = lerp(background, foreground, 0.16f),
-        outline = foreground.copy(alpha = 0.35f), outlineVariant = foreground.copy(alpha = 0.16f),
-    ) else original
-    val owner = remember { Any() }
-    val statusBar = LocalPageLightStatusBar.current
-    LifecycleResumeEffect(ready, background) {
-        statusBar(owner, if (ready) background.luminance() > 0.179f else null)
-        onPauseOrDispose { statusBar(owner, null) }
-    }
-    MaterialTheme(colorScheme = colors) {
-        CompositionLocalProvider(LocalContentColor provides colors.onBackground, content = content)
-    }
-}
 
 @Composable
 internal fun AppleArtistHeader(

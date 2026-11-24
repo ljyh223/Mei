@@ -49,7 +49,7 @@ class TabletArtistStateTest {
     )
     private val actions = ArtistDetailActions(
         onBack = {}, onBrowseSongs = { operation = "songs" }, onBrowseAlbums = { operation = "albums" },
-        onPlayHotSongs = { operation = "play" }, onTrackClick = { song, _ -> operation = "song:${song.id}" },
+        onPlayHotSongs = { operation = "play" }, onTrackClick = { song, index -> operation = "song:${song.id}:$index" },
         onTrackMore = { song, _ -> operation = "more:${song.id}" }, onAlbumClick = { operation = "album:$it" },
         onRetryDetail = {}, onRetrySongs = {}, onRetryAlbums = {}, onToggleSubscription = { operation = "favorite" },
     )
@@ -63,7 +63,11 @@ class TabletArtistStateTest {
             compose.runOnIdle { assertEquals("favorite", operation) }
             compose.onNode(vertical).performScrollToNode(hasText("歌曲 1"))
             compose.onNodeWithText("歌曲 1").performClick()
-            compose.runOnIdle { assertEquals("song:1", operation) }
+            compose.runOnIdle { assertEquals("song:1:0", operation) }
+            compose.onNodeWithText("歌曲 2").performClick()
+            compose.runOnIdle { assertEquals("song:2:1", operation) }
+            compose.onNodeWithContentDescription("歌曲 2的更多操作").performClick()
+            compose.runOnIdle { assertEquals("more:2", operation) }
             compose.onNode(vertical).performScrollToNode(hasText("专辑 1"))
             compose.onNodeWithText("专辑 1").performClick()
             compose.runOnIdle { assertEquals("album:1", operation) }
@@ -73,7 +77,7 @@ class TabletArtistStateTest {
 
     @Test fun tabletScrollPositionReturnsAfterSwitchingToTheCompactLayout() {
         show().use {
-            compose.onNode(vertical).performScrollToIndex(8)
+            compose.onNode(vertical).performScrollToNode(hasText("歌曲 11"))
             compose.waitForIdle()
             fun position() = compose.onNode(vertical).fetchSemanticsNode()
                 .config[SemanticsProperties.VerticalScrollAxisRange].value()

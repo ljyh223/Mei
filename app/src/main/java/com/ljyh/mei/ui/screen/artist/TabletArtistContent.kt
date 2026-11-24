@@ -6,17 +6,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
@@ -27,14 +27,11 @@ import com.ljyh.mei.ui.component.glass.*
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.component.sheet.DescriptionSheet
-import com.ljyh.mei.ui.component.track.Track
-import com.ljyh.mei.ui.component.track.TrackPlaceholder
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
+import com.ljyh.mei.ui.screen.artist.component.TabletArtistSongRow
 import com.ljyh.mei.utils.preferences.rememberPreference
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
-
-internal val TabletArtistBodyMaxWidth = 960.dp
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -47,10 +44,15 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
     val bar = rememberMeiArtworkTopBarState(list, state.id)
     val progress by animateFloatAsState(if (bar.artworkPassed) 1f else 0f, label = "tabletArtistBar")
     val haze = rememberHazeState()
-    ArtistArtworkTheme(artwork, presentation.usesApplePhoto) {
+    ArtistArtworkTheme(artwork, presentation.usesApplePhoto, immersive = true) {
         val background = MaterialTheme.colorScheme.background
+        val bodyWidth = if (presentation.usesApplePhoto) 1280.dp else 960.dp
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val photoHeight = minOf(maxWidth * 0.4f, maxHeight * 0.45f).coerceIn(240.dp, 400.dp)
+            val heroHeight = minOf(maxWidth * 0.62f, maxHeight * 0.76f).coerceIn(360.dp, 640.dp)
+            val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+            val songColumns = (minOf(maxWidth, bodyWidth) / (360.dp * fontScale))
+                .toInt().coerceIn(1, 3)
+            val songRows = state.songs.take(12).withIndex().chunked(songColumns)
             Scaffold(containerColor = background, contentWindowInsets = WindowInsets(0), topBar = {
                 MeiHazeTopBar(haze, state.artist?.name.orEmpty(), progress,
                     modifier = bar.toolbarModifier, onNavigateBack = actions.onBack,
@@ -64,50 +66,49 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                     contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
                     item(key = "artist_header") {
                         if (state.artist == null && !state.detailLoading) {
-                            TabletArtistBody { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
+                            TabletArtistBody(bodyWidth) { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetryDetail) }
-                        } else TabletArtistHeader(state, artwork, photoHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
+                        } else TabletArtistHeader(state, artwork, heroHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
                             onPresentationChanged = { presentation = it }, artworkModifier = bar.artworkModifier)
                     }
                     if (debugEnabled && state.artist != null) item(key = "artist_artwork_debug") {
-                        TabletArtistBody { ArtistArtworkDebugInfo(artwork, presentation, state.appleArtworkEnabled,
+                        TabletArtistBody(bodyWidth) { ArtistArtworkDebugInfo(artwork, presentation, state.appleArtworkEnabled,
                             Modifier.padding(meiPageHorizontalPadding())) }
                     }
-                    item(key = "songs_heading") { TabletArtistBody {
+                    item(key = "songs_heading") { TabletArtistBody(bodyWidth) {
                         if (presentation.usesApplePhoto) Spacer(Modifier.height(8.dp))
                         SectionTitle("热门单曲", actions.onBrowseSongs)
                     } }
                     when {
-                        state.songsLoading -> item { TabletArtistBody { SkeletonShimmerHost(true) {
-                            Column { repeat(6) { TrackPlaceholder(it, isTablet = true) } }
+                        state.songsLoading -> item { TabletArtistBody(bodyWidth) { SkeletonShimmerHost(true) {
+                            Column { repeat(3) { TabletArtistSongRow(emptyList(), songColumns, actions, loading = true) } }
                         } } }
-                        state.songsError != null -> item { TabletArtistBody {
+                        state.songsError != null -> item { TabletArtistBody(bodyWidth) {
                             MeiStatePanel("热门歌曲暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetrySongs)
                         } }
-                        state.songs.isEmpty() -> item { TabletArtistBody { EmptyArtistSection("暂无热门单曲") } }
-                        else -> itemsIndexed(state.songs.take(12), key = { _, song -> "song_${song.id}" }) { index, song ->
-                            TabletArtistBody { Track(song, index = index, isTablet = true,
-                                onClick = { actions.onTrackClick(song, index) }, onMoreClick = { actions.onTrackMore(song, it) }) }
+                        state.songs.isEmpty() -> item { TabletArtistBody(bodyWidth) { EmptyArtistSection("暂无热门单曲") } }
+                        else -> items(songRows, key = { row -> "songs_${row.first().value.id}" }) { row ->
+                            TabletArtistBody(bodyWidth) { TabletArtistSongRow(row, songColumns, actions) }
                         }
                     }
-                    item(key = "albums_heading") { TabletArtistBody {
+                    item(key = "albums_heading") { TabletArtistBody(bodyWidth) {
                         SectionTitle("专辑", actions.onBrowseAlbums)
                         Spacer(Modifier.height(12.dp))
                     } }
                     when {
-                        state.albumsLoading -> item { TabletArtistBody { SkeletonShimmerHost(true) {
+                        state.albumsLoading -> item { TabletArtistBody(bodyWidth) { SkeletonShimmerHost(true) {
                             LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 items(4) { VinylAlbumCard("", "", null,
                                     Modifier.width(164.dp * VinylAlbumArtworkRatio), isLoading = true, onClick = {}) }
                             }
                         } } }
-                        state.albumsError != null -> item { TabletArtistBody {
+                        state.albumsError != null -> item { TabletArtistBody(bodyWidth) {
                             MeiStatePanel("专辑暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetryAlbums)
                         } }
-                        state.albums.isEmpty() -> item { TabletArtistBody { EmptyArtistSection("暂无专辑") } }
-                        else -> item(key = "albums") { TabletArtistBody {
+                        state.albums.isEmpty() -> item { TabletArtistBody(bodyWidth) { EmptyArtistSection("暂无专辑") } }
+                        else -> item(key = "albums") { TabletArtistBody(bodyWidth) {
                             LazyRow(contentPadding = meiPageHorizontalPadding(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 items(state.albums.take(12), key = { it.id }) { album ->
                                     VinylAlbumCard(album.title, "${album.size} 首", album.cover,
@@ -125,8 +126,8 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
 }
 
 @Composable
-private fun TabletArtistBody(content: @Composable ColumnScope.() -> Unit) {
+private fun TabletArtistBody(maxWidth: Dp, content: @Composable ColumnScope.() -> Unit) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = TabletArtistBodyMaxWidth).fillMaxWidth(), content = content)
+        Column(Modifier.widthIn(max = maxWidth).fillMaxWidth(), content = content)
     }
 }

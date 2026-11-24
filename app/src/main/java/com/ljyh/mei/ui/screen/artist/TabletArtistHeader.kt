@@ -27,7 +27,7 @@ import com.ljyh.mei.ui.component.shimmer.skeleton
 internal fun TabletArtistHeader(
     state: ArtistDetailUiState,
     artwork: AppleArtistArtwork?,
-    photoHeight: Dp,
+    heroHeight: Dp,
     profileTopPadding: Dp,
     actions: ArtistDetailActions,
     onInfo: () -> Unit,
@@ -41,7 +41,7 @@ internal fun TabletArtistHeader(
     if (artwork == null) {
         LaunchedEffect(state.id) { report(ArtistArtworkPresentation()) }
         fallback()
-    } else TabletAppleArtistHeader(state, artwork, photoHeight, actions, onInfo,
+    } else TabletAppleArtistHeader(state, artwork, heroHeight, profileTopPadding, actions, onInfo,
         onPresentationChanged, artworkModifier, fallback)
 }
 
@@ -49,7 +49,8 @@ internal fun TabletArtistHeader(
 private fun TabletAppleArtistHeader(
     state: ArtistDetailUiState,
     artwork: AppleArtistArtwork,
-    photoHeight: Dp,
+    heroHeight: Dp,
+    topPadding: Dp,
     actions: ArtistDetailActions,
     onInfo: () -> Unit,
     onPresentationChanged: (ArtistArtworkPresentation) -> Unit,
@@ -71,51 +72,40 @@ private fun TabletAppleArtistHeader(
             if (status == ArtistArtworkLoadState.Error && picture == banner) bannerFailed = true
         }
         if (status != ArtistArtworkLoadState.Success) fallback() else {
-            Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background),
-                horizontalAlignment = Alignment.CenterHorizontally) {
-                val wide = picture == banner
-                TabletArtistPhotoFrame(picture.width.toFloat() / picture.height, wide, photoHeight, artworkModifier) {
-                    this@image.SubcomposeAsyncImageContent(Modifier.fillMaxSize(),
-                        contentScale = if (wide) ContentScale.Crop else ContentScale.Fit,
-                        alignment = Alignment.TopCenter)
+            val background = MaterialTheme.colorScheme.background
+            Box(Modifier.fillMaxWidth().heightIn(min = heroHeight).then(artworkModifier)
+                .clipToBounds().background(background)) {
+                BoxWithConstraints(Modifier.matchParentSize()) {
+                    val wide = picture == banner
+                    val ratio = picture.width.toFloat() / picture.height
+                    val imageWidth = if (wide) maxWidth else (maxHeight * ratio).coerceAtMost(maxWidth)
+                    Box(Modifier.align(Alignment.TopCenter).width(imageWidth).fillMaxHeight()) {
+                        this@image.SubcomposeAsyncImageContent(Modifier.fillMaxSize(),
+                            contentScale = if (wide) ContentScale.Crop else ContentScale.Fit,
+                            alignment = Alignment.TopCenter)
+                        if (!wide) Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
+                            0f to background, 0.12f to Color.Transparent,
+                            0.88f to Color.Transparent, 1f to background,
+                        )))
+                    }
                 }
-                Column(Modifier.widthIn(max = 560.dp).fillMaxWidth().padding(meiPageHorizontalPadding())
-                    .padding(top = 8.dp, bottom = 24.dp),
+                // Preserve the face and torso; only the lower section becomes the text backdrop.
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                    0f to Color.Black.copy(alpha = 0.22f),
+                    0.22f to Color.Transparent, 0.48f to Color.Transparent,
+                    0.62f to background.copy(alpha = 0.32f),
+                    0.76f to background.copy(alpha = 0.88f), 0.94f to background, 1f to background,
+                )))
+                Column(Modifier.align(Alignment.BottomCenter).widthIn(max = 376.dp).fillMaxWidth()
+                    .padding(meiPageHorizontalPadding())
+                    .padding(top = topPadding + heroHeight * 0.42f, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                    ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact = false) { wordmark = it }
+                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact = true) { wordmark = it }
                     if (state.artist != null) ArtistPrimaryActions(state.canPlay && state.songs.isNotEmpty(),
                         state.subscription, onInfo, actions.onPlayHotSongs, actions.onToggleSubscription)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TabletArtistPhotoFrame(
-    aspectRatio: Float,
-    wide: Boolean,
-    photoHeight: Dp,
-    artworkModifier: Modifier,
-    content: @Composable BoxScope.() -> Unit,
-) {
-    val background = MaterialTheme.colorScheme.background
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val ratio = aspectRatio.takeIf { it.isFinite() && it > 0f } ?: 1f
-        val imageWidth = if (wide) maxWidth else (photoHeight * ratio).coerceAtMost(maxWidth)
-        Box(Modifier.fillMaxWidth().height(photoHeight).then(artworkModifier).clipToBounds().background(background)) {
-            Box(Modifier.align(Alignment.TopCenter).width(imageWidth).fillMaxHeight()) {
-                content()
-                if (!wide) Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
-                    0f to background, 0.1f to Color.Transparent,
-                    0.9f to Color.Transparent, 1f to background,
-                )))
-            }
-            Box(Modifier.matchParentSize().background(Brush.verticalGradient(
-                0f to Color.Transparent, 0.55f to Color.Transparent,
-                0.82f to background.copy(alpha = 0.55f), 1f to background,
-            )))
         }
     }
 }
