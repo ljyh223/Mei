@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -39,6 +40,7 @@ import dev.chrisbanes.haze.rememberHazeState
 internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDetailActions) {
     val artwork = state.appleArtwork?.takeIf { state.appleArtworkEnabled }
     var presentation by remember(state.id, artwork) { mutableStateOf(ArtistArtworkPresentation()) }
+    var portraitPainter by remember(state.id, artwork) { mutableStateOf<Painter?>(null) }
     var description by rememberSaveable(state.id) { mutableStateOf(false) }
     val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
     val list = rememberLazyListState()
@@ -55,8 +57,10 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
         val background = MaterialTheme.colorScheme.background
         val bodyWidth = if (presentation.usesApplePhoto) 1280.dp else 960.dp
         BoxWithConstraints(Modifier.fillMaxSize().clipToBounds().background(background)) {
-            if (artwork != null) TabletArtistBackdrop(artwork, scrollPixels) { photo, color ->
-                presentation = presentation.copy(photo = photo, background = color)
+            if (artwork != null) TabletArtistBackdrop(artwork, scrollPixels) { status, photo, painter ->
+                presentation = presentation.copy(photo = status, background = photo.image.background,
+                    tabletPhotoKind = photo.kind)
+                portraitPainter = painter.takeIf { !photo.hasHero }
             }
             val preferredHeroHeight = minOf(maxWidth * 0.58f, maxHeight * 0.68f).coerceIn(320.dp, 600.dp)
             val viewportHeight = maxHeight
@@ -81,7 +85,7 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                         if (state.artist == null && !state.detailLoading) {
                             TabletArtistBody(bodyWidth) { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetryDetail) }
-                        } else TabletArtistHeader(state, artwork, presentation, heroHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
+                        } else TabletArtistHeader(state, artwork, presentation, portraitPainter, heroHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
                             onWordmarkChanged = { presentation = presentation.copy(wordmark = it) }, artworkModifier = bar.artworkModifier)
                     }
                     if (debugEnabled && state.artist != null) item(key = "artist_artwork_debug") {

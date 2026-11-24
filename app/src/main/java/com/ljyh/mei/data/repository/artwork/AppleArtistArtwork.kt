@@ -17,6 +17,7 @@ data class AppleArtistArtwork(
     val portrait: AppleArtistImage,
     val banner: AppleArtistImage? = null,
     val logo: AppleArtistImage? = null,
+    val motionPreview: AppleArtistImage? = null,
 )
 
 internal fun normalizedArtistName(name: String): String = Normalizer.normalize(name, Normalizer.Form.NFKD)
@@ -43,7 +44,9 @@ internal fun parseAppleArtistArtwork(item: JsonObject): AppleArtistArtwork? {
         .firstNotNullOfOrNull { parseArtistImage(editorial?.obj(it)) }
     val id = item.text("id").takeIf { it.isNotBlank() && it.all(Char::isDigit) } ?: return null
     val name = attributes.text("name").takeIf(String::isNotBlank) ?: return null
-    return AppleArtistArtwork(id, name, portrait, banner, logo)
+    val motionPreview = parseArtistImage(attributes.obj("editorialVideo")
+        ?.obj("motionArtistFullscreen16x9")?.obj("previewFrame"))
+    return AppleArtistArtwork(id, name, portrait, banner, logo, motionPreview)
 }
 
 private fun parseArtistImage(image: JsonObject?): AppleArtistImage? {

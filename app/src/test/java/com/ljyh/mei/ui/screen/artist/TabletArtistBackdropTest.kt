@@ -1,9 +1,11 @@
 package com.ljyh.mei.ui.screen.artist
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -22,6 +24,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,21 +44,48 @@ import org.robolectric.annotation.LooperMode
 class TabletArtistBackdropTest {
     @get:Rule val compose = createEmptyComposeRule()
 
-    @Test fun failedBannerFallsBackToPortraitAndScrollingDoesNotReloadTheImage() {
+    @Test fun failedBannerFallsBackToPortraitAndScrollingDoesNotReloadTheImage() =
+        verify(2, TabletArtistPhotoKind.Portrait) { portrait ->
+            AppleArtistArtwork("1", "测试歌手", portrait,
+                banner = portrait.copy(url = portrait.url + ".missing", width = 1920, height = 1080))
+        }
+
+    @Test fun fullscreenPreviewIsUsedBeforeAStorePromoWithoutRequiringAWordmark() =
+        verify(1, TabletArtistPhotoKind.MotionPreview) { portrait ->
+            AppleArtistArtwork("1", "测试歌手", portrait.copy(url = portrait.url + ".unrequested"),
+                banner = portrait.copy(url = portrait.url + ".promo", width = 4320, height = 1080),
+                motionPreview = portrait.copy(width = 3840, height = 2160))
+        }
+
+    @Test fun failedMotionAndHeroAdvanceToThePortrait() =
+        verify(3, TabletArtistPhotoKind.Portrait) { portrait ->
+            AppleArtistArtwork("1", "测试歌手", portrait,
+                banner = portrait.copy(url = portrait.url + ".hero", width = 4320, height = 2160),
+                motionPreview = portrait.copy(url = portrait.url + ".motion", width = 3840, height = 2160))
+        }
+
+    @Test fun ultraWideStorePromoDoesNotReplaceTheForegroundPortrait() =
+        verify(1, TabletArtistPhotoKind.Portrait) { portrait ->
+            AppleArtistArtwork("1", "测试歌手", portrait,
+                banner = portrait.copy(url = portrait.url + ".promo", width = 4320, height = 1080))
+        }
+
+    private fun verify(expectedRequests: Int, expectedKind: TabletArtistPhotoKind,
+        artworkFor: (AppleArtistImage) -> AppleArtistArtwork) {
         val context = RuntimeEnvironment.getApplication()
         val previous = context.imageLoader
         val starts = AtomicInteger()
         val loadedColor = AtomicReference<String>()
         val scroll = mutableFloatStateOf(0f)
+        val foreground = mutableStateOf<androidx.compose.ui.graphics.painter.Painter?>(null)
+        val loadedKind = AtomicReference<TabletArtistPhotoKind>()
         val file = File.createTempFile("artist-portrait-", ".png")
         val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
         try {
             bitmap.eraseColor(android.graphics.Color.BLUE)
             file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         } finally { bitmap.recycle() }
-        val artwork = AppleArtistArtwork("1", "测试歌手",
-            portrait = AppleArtistImage(file.toURI().toString(), 64, 64, "182b25"),
-            banner = AppleArtistImage(file.toURI().toString() + ".missing", 1920, 1080, "aaaaaa"))
+        val artwork = artworkFor(AppleArtistImage(file.toURI().toString(), 64, 64, "182b25"))
         val loader = ImageLoader.Builder(context).allowHardware(false).diskCache(null)
             .components {
                 add(ArtworkRequestInterceptor())
@@ -66,9 +96,14 @@ class TabletArtistBackdropTest {
             TabletContentTestActivity.content = {
                 MaterialTheme {
                     Box(Modifier.requiredSize(1000.dp, 720.dp)) {
-                        TabletArtistBackdrop(artwork, { scroll.floatValue }) { state, color ->
-                            if (state == ArtistArtworkLoadState.Success) loadedColor.set(color)
+                        TabletArtistBackdrop(artwork, { scroll.floatValue }) { state, photo, painter ->
+                            if (state == ArtistArtworkLoadState.Success) {
+                                loadedColor.set(photo.image.background)
+                                loadedKind.set(photo.kind)
+                                if (!photo.hasHero) foreground.value = painter
+                            }
                         }
+                        foreground.value?.let { Image(it, "歌手照片", Modifier.requiredSize(192.dp)) }
                     }
                 }
             }
@@ -79,12 +114,14 @@ class TabletArtistBackdropTest {
                     loadedColor.get() != null
                 }
                 assertEquals("182b25", loadedColor.get())
-                assertEquals("Only the failed banner and its portrait fallback are requested", 2, starts.get())
+                assertEquals(expectedKind, loadedKind.get())
+                if (expectedKind == TabletArtistPhotoKind.Portrait) assertNotNull(foreground.value)
+                assertEquals("Only sequential candidates are requested", expectedRequests, starts.get())
                 for (offset in listOf(100f, 220f, 400f, 0f)) {
                     compose.runOnIdle { scroll.floatValue = offset }
                     compose.waitForIdle()
                 }
-                assertEquals("Reflection and scrolling reuse the same decoded painter", 2, starts.get())
+                assertEquals("Backdrop, foreground and scrolling reuse the decoded painter", expectedRequests, starts.get())
             } finally {
                 activity.pause().stop().destroy()
                 TabletContentTestActivity.content = {}

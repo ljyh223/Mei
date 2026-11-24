@@ -40,7 +40,7 @@ class AppleArtistArtworkRepositoryTest {
             assertEquals(2, requests.size)
             assertEquals("Richard Wagner", requests[0].url.queryParameter("term"))
             assertEquals("artists", requests[0].url.queryParameter("types"))
-            assertEquals("editorialArtwork", requests[1].url.queryParameter("extend"))
+            assertEquals("editorialArtwork,editorialVideo", requests[1].url.queryParameter("extend"))
             assertEquals("/v1/catalog/us/artists/123", requests[1].url.encodedPath)
             assertEquals(result, AppleArtistArtworkRepository(catalog, context)
                 .resolve("netease-1", "理查德·瓦格纳", listOf("Richard Wagner")))
@@ -85,7 +85,7 @@ class AppleArtistArtworkRepositoryTest {
 
     private suspend fun fixture(block: suspend (Application) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Application>()
-        val cache = stringPreferencesKey("appleArtistArtwork.v1")
+        val cache = stringPreferencesKey("appleArtistArtwork.v2")
         fun encode(text: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(text.toByteArray())
         val token = encode("{\"alg\":\"fixture\"}") + "." + encode("{\"exp\":${System.currentTimeMillis()/1000+86400}}") + ".fixture"
         context.dataStore.edit {

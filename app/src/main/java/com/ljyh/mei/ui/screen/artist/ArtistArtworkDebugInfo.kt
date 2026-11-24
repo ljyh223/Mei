@@ -20,6 +20,7 @@ internal data class ArtistArtworkPresentation(
     val photo: ArtistArtworkLoadState = ArtistArtworkLoadState.Unavailable,
     val wordmark: ArtistArtworkLoadState = ArtistArtworkLoadState.Unavailable,
     val background: String? = null,
+    val tabletPhotoKind: TabletArtistPhotoKind? = null,
 ) {
     val usesApplePhoto: Boolean get() = photo == ArtistArtworkLoadState.Success
 }
@@ -48,6 +49,12 @@ internal fun ArtistArtworkDebugInfo(
                 ArtistArtworkLoadState.Error -> "名字：普通文字（AM 艺术字加载失败）"
                 ArtistArtworkLoadState.Success -> "名字：AM 艺术字"
             }, style = MaterialTheme.typography.bodySmall)
+            if (enabled && presentation.usesApplePhoto && presentation.tabletPhotoKind != null) Text(
+                when (presentation.tabletPhotoKind) {
+                    TabletArtistPhotoKind.Hero -> "背景：AM 宽幅图"
+                    TabletArtistPhotoKind.MotionPreview -> "背景：AM 动态资源预览图"
+                    TabletArtistPhotoKind.Portrait -> "背景：柔化人像；前景：AM 圆形头像"
+                }, style = MaterialTheme.typography.bodySmall)
             if (enabled && artwork != null) Text("AM 匹配：${artwork.name} · ${artwork.id}",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

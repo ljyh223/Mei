@@ -39,6 +39,28 @@ class AppleArtistArtworkTest {
         assertNull(parseAppleArtistArtwork(Json.parseToJsonElement("""{"attributes":{"artwork":${image()}}}""").jsonObject))
     }
 
+    @Test fun fullscreenMotionPreviewIsIndependentOfTheWordmarkAndStorePromo() {
+        val result = parseAppleArtistArtwork(item(
+            """, "editorialArtwork":{"subscriptionHero":${image("promo", 4320, 1080)}},
+                "editorialVideo":{"motionArtistFullscreen16x9":{"previewFrame":${image("preview", 3840, 2160)}}}"""
+        ))!!
+        assertNull(result.logo)
+        assertEquals(3840, result.motionPreview!!.width)
+        assertEquals(2160, result.motionPreview.height)
+        assertTrue(result.motionPreview.url.contains("preview"))
+        assertTrue(result.banner!!.url.contains("promo"))
+    }
+
+    @Test fun malformedOrNonAppleMotionPreviewDoesNotDiscardThePortrait() {
+        for (preview in listOf("null", image("preview", 3840, 2160).replace("mzstatic.com", "example.org"))) {
+            val result = parseAppleArtistArtwork(item(
+                """, "editorialVideo":{"motionArtistFullscreen16x9":{"previewFrame":$preview}}"""
+            ))!!
+            assertNull(result.motionPreview)
+            assertNotNull(result.portrait)
+        }
+    }
+
     private fun candidates(vararg names: Pair<String, String>) = buildJsonArray {
         names.forEach { (id, name) -> add(buildJsonObject {
             put("id", id); putJsonObject("attributes") { put("name", name) }

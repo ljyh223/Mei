@@ -7,10 +7,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
+import com.ljyh.mei.data.repository.artwork.AppleArtistImage
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
@@ -102,6 +108,37 @@ class TabletArtistStateTest {
                 .assertCountEquals(0)
             compose.onNodeWithText("专辑 1").performClick()
             compose.runOnIdle { assertEquals("album:1", operation) }
+        }
+    }
+
+    @Test fun portraitHeaderKeepsThePhotoNameAndActionsAtLargeFontWithoutAWordmark() {
+        val artwork = AppleArtistArtwork("1", "测试歌手", AppleArtistImage("", 1000, 1000))
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                CompositionLocalProvider(LocalDensity provides Density(1f, 1.8f)) {
+                    Box(Modifier.requiredSize(600.dp, 720.dp)) {
+                        TabletArtistHeader(state, artwork,
+                            ArtistArtworkPresentation(photo = ArtistArtworkLoadState.Success,
+                                tabletPhotoKind = TabletArtistPhotoKind.Portrait),
+                            ColorPainter(Color.Blue), 480.dp, 80.dp, actions,
+                            onInfo = { operation = "info" }, onWordmarkChanged = {}, artworkModifier = Modifier)
+                    }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            compose.onNodeWithContentDescription("歌手照片").assertIsDisplayed()
+            compose.onNodeWithContentDescription("测试歌手").assertIsDisplayed()
+            compose.onNodeWithContentDescription("播放热门歌曲").performClick()
+            compose.runOnIdle { assertEquals("play", operation) }
+            compose.onNodeWithContentDescription("歌手简介").performClick()
+            compose.runOnIdle { assertEquals("info", operation) }
+            compose.onNodeWithContentDescription("收藏歌手").performClick()
+            compose.runOnIdle { assertEquals("favorite", operation) }
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
         }
     }
 
