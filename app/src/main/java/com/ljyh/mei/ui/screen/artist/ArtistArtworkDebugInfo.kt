@@ -19,6 +19,7 @@ internal enum class ArtistArtworkLoadState { Unavailable, Loading, Success, Erro
 internal data class ArtistArtworkPresentation(
     val photo: ArtistArtworkLoadState = ArtistArtworkLoadState.Unavailable,
     val wordmark: ArtistArtworkLoadState = ArtistArtworkLoadState.Unavailable,
+    val background: String? = null,
 ) {
     val usesApplePhoto: Boolean get() = photo == ArtistArtworkLoadState.Success
 }

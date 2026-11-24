@@ -12,17 +12,20 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
 import com.ljyh.mei.ui.theme.LocalPageLightStatusBar
 
+internal const val ArtistImmersiveSecondaryOpacity = 0.86f
+
 /** Only activate optional artwork colors after the main photograph has decoded. */
 @Composable
 internal fun ArtistArtworkTheme(
     artwork: AppleArtistArtwork?,
     ready: Boolean,
     immersive: Boolean = false,
+    backgroundOverride: String? = null,
     content: @Composable () -> Unit,
 ) {
     val original = MaterialTheme.colorScheme
-    val background = remember(artwork, original.background, immersive) {
-        val source = artwork?.portrait?.background?.let { value ->
+    val background = remember(artwork, original.background, immersive, backgroundOverride) {
+        val source = (backgroundOverride ?: artwork?.portrait?.background)?.let { value ->
             runCatching { Color(android.graphics.Color.parseColor("#$value")) }.getOrNull()
         } ?: original.background
         if (immersive) artistImmersiveBackground(source) else source
@@ -30,7 +33,7 @@ internal fun ArtistArtworkTheme(
     val foreground = if (background.luminance() > 0.179f) Color.Black else Color.White
     val colors = if (ready) original.copy(
         background = background, onBackground = foreground,
-        surface = background, onSurface = foreground, onSurfaceVariant = foreground.copy(alpha = 0.74f),
+        surface = background, onSurface = foreground, onSurfaceVariant = foreground.copy(alpha = if (immersive) ArtistImmersiveSecondaryOpacity else 0.74f),
         primary = foreground, onPrimary = background, secondary = foreground,
         surfaceVariant = lerp(background, foreground, 0.10f),
         surfaceContainerLowest = background,
@@ -51,14 +54,16 @@ internal fun ArtistArtworkTheme(
     }
 }
 
-/** Keep the source hue, while giving white titles and secondary text a stable dark backdrop. */
+/** MusicUI darkens each source channel by 0.65 × relative luminance above its 0.1 threshold. */
 internal fun artistImmersiveBackground(source: Color): Color {
-    if (source.luminance() <= 0.065f) return source
-    var low = 0f
-    var high = 1f
-    repeat(10) {
-        val amount = (low + high) / 2f
-        if (lerp(source, Color.Black, amount).luminance() > 0.065f) low = amount else high = amount
-    }
-    return lerp(source, Color.Black, high)
+    val luminance = source.luminance()
+    if (luminance <= 0.1f) return source
+    val subtraction = luminance * 0.65f
+    return Color(
+        red = (source.red - subtraction).coerceAtLeast(0f),
+        green = (source.green - subtraction).coerceAtLeast(0f),
+        blue = (source.blue - subtraction).coerceAtLeast(0f),
+        alpha = source.alpha,
+        colorSpace = source.colorSpace,
+    )
 }

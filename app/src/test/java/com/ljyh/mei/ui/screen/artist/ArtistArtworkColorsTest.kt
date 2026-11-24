@@ -12,7 +12,7 @@ class ArtistArtworkColorsTest {
         // Neutral, cool portrait and olive landscape palettes from the supported artwork types.
         for (source in listOf(Color.White, Color(0xFF8A9BA0), Color(0xFF606C51))) {
             val background = artistImmersiveBackground(source)
-            val secondary = Color.White.copy(alpha = 0.74f).compositeOver(background)
+            val secondary = Color.White.copy(alpha = ArtistImmersiveSecondaryOpacity).compositeOver(background)
             val contrast = (secondary.luminance() + 0.05f) / (background.luminance() + 0.05f)
             assertTrue("White secondary text needs 4.5:1 contrast", contrast >= 4.5f)
         }

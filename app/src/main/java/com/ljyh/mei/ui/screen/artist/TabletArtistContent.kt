@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -44,17 +45,26 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
     val bar = rememberMeiArtworkTopBarState(list, state.id)
     val progress by animateFloatAsState(if (bar.artworkPassed) 1f else 0f, label = "tabletArtistBar")
     val haze = rememberHazeState()
-    ArtistArtworkTheme(artwork, presentation.usesApplePhoto, immersive = true) {
+    val density = LocalDensity.current.density
+    val scrollPixels = remember(list, density) { {
+        list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "artist_header" }?.let {
+            (-it.offset).coerceAtLeast(0).toFloat()
+        } ?: if (list.firstVisibleItemIndex > 0) 380f * density else 0f
+    } }
+    ArtistArtworkTheme(artwork, presentation.usesApplePhoto, immersive = true, backgroundOverride = presentation.background) {
         val background = MaterialTheme.colorScheme.background
         val bodyWidth = if (presentation.usesApplePhoto) 1280.dp else 960.dp
-        BoxWithConstraints(Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.fillMaxSize().clipToBounds().background(background)) {
+            if (artwork != null) TabletArtistBackdrop(artwork, scrollPixels) { photo, color ->
+                presentation = presentation.copy(photo = photo, background = color)
+            }
             val preferredHeroHeight = minOf(maxWidth * 0.58f, maxHeight * 0.68f).coerceIn(320.dp, 600.dp)
             val viewportHeight = maxHeight
             val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
             val songColumns = (minOf(maxWidth, bodyWidth) / (360.dp * fontScale))
                 .toInt().coerceIn(1, 3)
             val songRows = state.songs.take(12).withIndex().chunked(songColumns)
-            Scaffold(containerColor = background, contentWindowInsets = WindowInsets(0), topBar = {
+            Scaffold(containerColor = androidx.compose.ui.graphics.Color.Transparent, contentWindowInsets = WindowInsets(0), topBar = {
                 MeiHazeTopBar(haze, state.artist?.name.orEmpty(), progress,
                     modifier = bar.toolbarModifier, onNavigateBack = actions.onBack,
                     backgroundProgress = progress,
@@ -65,14 +75,14 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                     LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
                 // Leave a heading and one complete song row above the floating bottom controls.
                 val heroHeight = minOf(preferredHeroHeight, (viewportHeight - bottom - 144.dp).coerceAtLeast(320.dp))
-                LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(haze).background(background),
+                LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(haze),
                     contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
                     item(key = "artist_header") {
                         if (state.artist == null && !state.detailLoading) {
                             TabletArtistBody(bodyWidth) { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetryDetail) }
-                        } else TabletArtistHeader(state, artwork, heroHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
-                            onPresentationChanged = { presentation = it }, artworkModifier = bar.artworkModifier)
+                        } else TabletArtistHeader(state, artwork, presentation, heroHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
+                            onWordmarkChanged = { presentation = presentation.copy(wordmark = it) }, artworkModifier = bar.artworkModifier)
                     }
                     if (debugEnabled && state.artist != null) item(key = "artist_artwork_debug") {
                         TabletArtistBody(bodyWidth) { ArtistArtworkDebugInfo(artwork, presentation, state.appleArtworkEnabled,

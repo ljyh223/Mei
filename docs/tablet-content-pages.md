@@ -17,7 +17,9 @@ ui/
 │   │   ├── ArtistDetailUiState.kt    # 展示状态与操作
 │   │   ├── AdaptiveArtistContent.kt  # 三种装配选择；手机横屏保留两栏
 │   │   ├── TabletArtistContent.kt    # 平板的单一纵向列表与横向专辑
-│   │   ├── TabletArtistHeader.kt     # AM 图片／名字／操作叠层与回退
+│   │   ├── TabletArtistHeader.kt     # AM 名字／操作与网易云回退
+│   │   ├── TabletArtistBackdrop.kt   # 独立图片背景、反射与共享 Coil painter
+│   │   ├── component/ArtistBackdropEffects.kt # 径向模糊、透明遮罩与滚动变换
 │   │   ├── component/TabletArtistSongRow.kt # 共享列表内的紧凑歌曲行
 │   │   ├── TabletNeteaseArtistHeader.kt # 网易云头像、姓名与操作资料头
 │   │   ├── ArtistDetailContent.kt    # 手机单栏展示
@@ -65,7 +67,7 @@ ui/
 
 ### 歌手
 
-歌手平板整页统一滚动。AM 成功头部使用横向背景，艺术字和操作叠在图片下部；上半部保留人物，下半部渐隐到压暗后的同色正文，避免姓名和按钮独占大片空白。网易云保留紧凑资料头：圆角头像与姓名、操作组在宽屏横向排列，窄窗口或大字号下上下排列；优先头像，缺失或失败时使用封面，不生成通栏模糊背景。
+歌手平板的前景内容整页统一滚动。AM 成功后在列表外绘制横向背景，图片通过底部反射、径向可变模糊和独立透明遮罩衔接到同色正文；背景按原版系数缓慢上移并随滚动淡出。艺术字和操作位于列表头部，保持清晰并随正文滚动。渲染分层和验证边界见 [艺人详情](artist-detail.md) 与 [AM 背景研究](artist-background-research.md)。网易云保留紧凑资料头：圆角头像与姓名、操作组在宽屏横向排列，窄窗口或大字号下上下排列；优先头像，缺失或失败时使用封面，不生成通栏模糊背景。
 
 AM 正文最大 1280dp，网易云最大 960dp，沿公共内容边距对齐。预览 12 首热门歌曲，按宽度与字号选择 1–3 列的紧凑歌曲条目，取消预览中的宽表格；每行仍在同一纵向列表内，队列顺序与点歌索引不变。横向专辑预览最多 12 张，保留全部入口。
 
