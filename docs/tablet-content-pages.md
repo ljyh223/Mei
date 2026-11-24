@@ -21,8 +21,12 @@ ui/
 │   │   ├── TabletArtistBackdrop.kt   # 独立图片背景、反射与共享 Coil painter
 │   │   ├── component/ArtistBackdropEffects.kt # hero 径向模糊、透明遮罩与滚动变换
 │   │   ├── component/ArtistColorBackdrop.kt # 普通人像的低分辨率模糊颜色背景
+│   │   ├── component/ArtistMotionBackdrop.kt # 动态视频首帧、暂停与释放
+│   │   ├── component/ArtistVideoBackdropView.kt # 单纹理反射及原生背景效果
 │   │   ├── component/TabletArtistSongRow.kt # 共享列表内的紧凑歌曲行
-│   │   ├── TabletNeteaseArtistHeader.kt # 网易云头像、姓名与操作资料头
+│   │   ├── TabletNeteaseArtistHeader.kt # 网易云姓名与共用资料头装配
+│   │   ├── TabletNeteaseArtistBackdrop.kt # 网易云图片选择、共享加载与颜色背景
+│   │   ├── component/ArtistProfileHeader.kt # AM 普通图与网易云共用圆形头像／操作
 │   │   ├── ArtistDetailContent.kt    # 手机单栏展示
 │   │   └── ArtistDetailComponents.kt # 手机头部、卡片与占位组件
 │   └── album/
@@ -68,7 +72,7 @@ ui/
 
 ### 歌手
 
-歌手平板的前景内容整页统一滚动。AM 成功后在列表外绘制横向背景，图片通过底部反射、径向可变模糊和独立透明遮罩衔接到同色正文；背景按原版系数缓慢上移并随滚动淡出。动态资源使用其静态预览帧，有效宽图失败后再试普通人像；普通人像使用柔化颜色背景和前景 192dp 圆形头像，不延展为清晰的宽幅照片。艺术字和操作位于列表头部，保持清晰并随正文滚动。渲染分层和验证边界见 [艺人详情](artist-detail.md) 与 [AM 背景研究](artist-background-research.md)。网易云保留紧凑资料头：圆角头像与姓名、操作组在宽屏横向排列，窄窗口或大字号下上下排列；优先头像，缺失或失败时使用封面，不生成通栏模糊背景。
+歌手平板的前景内容整页统一滚动。AM 成功后在列表外绘制横向背景，图片通过底部反射、径向可变模糊和独立透明遮罩衔接到同色正文；背景按原版系数缓慢上移并随滚动淡出。动态资源在首帧就绪后显示静音循环视频，预览、加载或视频失败期间显示静态候选；背景不可见或页面不在前台时暂停，退出组合时释放。有效静态宽图失败后再试普通人像；普通人像使用柔化颜色背景和前景 192dp 圆形头像，不延展为清晰的宽幅照片。艺术字和操作位于列表头部，保持清晰并随正文滚动。渲染分层和验证边界见 [艺人详情](artist-detail.md) 与 [AM 背景研究](artist-background-research.md)。网易云复用普通人像的柔化背景与前景 192dp 圆形头像，姓名使用网易云文字，与操作组居中自然排列；优先头像，缺失或失败时使用封面，背景和前景共享一次解码，不把普通图片当作清晰的宽幅 hero。
 
 AM 正文最大 1280dp，网易云最大 960dp，沿公共内容边距对齐。预览 12 首热门歌曲，按宽度与字号选择 1–3 列的紧凑歌曲条目，取消预览中的宽表格；每行仍在同一纵向列表内，队列顺序与点歌索引不变。横向专辑预览最多 12 张，保留全部入口。
 

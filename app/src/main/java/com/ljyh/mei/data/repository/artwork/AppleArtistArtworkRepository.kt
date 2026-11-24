@@ -21,7 +21,7 @@ class AppleArtistArtworkRepository @Inject constructor(
     private val catalog: AppleMusicCatalogClient,
     @param:ApplicationContext private val context: Context,
 ) {
-    private val key = stringPreferencesKey("appleArtistArtwork.v2")
+    private val key = stringPreferencesKey("appleArtistArtwork.v3")
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val cache = AppleArtistArtworkCache(
         read = { context.dataStore.data.first()[key]?.let { json.decodeFromString<Map<String, ArtistArtworkEntry>>(it) }.orEmpty() },

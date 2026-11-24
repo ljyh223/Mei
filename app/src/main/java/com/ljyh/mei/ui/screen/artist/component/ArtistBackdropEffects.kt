@@ -73,7 +73,7 @@ internal fun Modifier.artistBackdropEffects(scrollPixels: () -> Float): Modifier
  * There is no glass material, refraction, tint or highlight in this renderer.
  */
 @RequiresApi(33)
-private class ArtistVariableBlur {
+internal class ArtistVariableBlur {
     private val horizontal = RuntimeShader(ArtistVariableBlurShader)
     private val vertical = RuntimeShader(ArtistVariableBlurShader)
     private var previousSize = Size.Zero

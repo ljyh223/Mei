@@ -18,10 +18,11 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import com.ljyh.mei.data.repository.artwork.AppleArtistImage
 import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
+import com.ljyh.mei.ui.screen.artist.component.ArtistMotionBackdrop
 import com.ljyh.mei.ui.screen.artist.component.artistBackdropEffects
 import com.ljyh.mei.ui.screen.artist.component.ArtistColorBackdrop
 
-internal enum class TabletArtistPhotoKind { Hero, MotionPreview, Portrait }
+internal enum class TabletArtistPhotoKind { Hero, MotionPreview, MotionVideo, Portrait }
 
 internal data class TabletArtistPhoto(val image: AppleArtistImage, val kind: TabletArtistPhotoKind) {
     val hasHero: Boolean get() = kind != TabletArtistPhotoKind.Portrait
@@ -49,35 +50,47 @@ internal fun TabletArtistBackdrop(
     var photoIndex by remember(artwork) { mutableIntStateOf(0) }
     val photo = photos[photoIndex]
     val picture = photo.image
+    var videoReady by remember(artwork) { mutableStateOf(false) }
+    var staticStatus by remember(picture.url) { mutableStateOf(ArtistArtworkLoadState.Loading) }
+    var decoded by remember(picture.url) { mutableStateOf<Painter?>(null) }
+    val videoPhoto = remember(artwork) { TabletArtistPhoto(
+        artwork.motionPreview ?: photos.first().image, TabletArtistPhotoKind.MotionVideo) }
     val report by rememberUpdatedState(onPhotoChanged)
-    SubcomposeAsyncImage(model = picture.url, contentDescription = null, modifier = Modifier.fillMaxSize()) {
-        val result by painter.state.collectAsState()
-        val status = result.artistArtworkLoadState()
-        val decoded = (result as? AsyncImagePainter.State.Success)?.painter
-        LaunchedEffect(result, photo) {
-            report(status, photo, decoded)
-            if (status == ArtistArtworkLoadState.Error && photoIndex < photos.lastIndex) photoIndex++
-        }
-        if (status == ArtistArtworkLoadState.Success) {
-            val imagePainter = checkNotNull(decoded)
-            if (!photo.hasHero) {
-                ArtistColorBackdrop(imagePainter)
-                return@SubcomposeAsyncImage
+    LaunchedEffect(videoReady, staticStatus, photo, decoded) {
+        if (videoReady) report(ArtistArtworkLoadState.Success, videoPhoto, null)
+        else report(staticStatus, photo, decoded)
+    }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val backgroundHeight = minOf(maxWidth, maxHeight)
+        SubcomposeAsyncImage(model = picture.url, contentDescription = null, modifier = Modifier.fillMaxSize()) {
+            val result by painter.state.collectAsState()
+            val status = result.artistArtworkLoadState()
+            val imagePainter = (result as? AsyncImagePainter.State.Success)?.painter
+            LaunchedEffect(result, photo) {
+                staticStatus = status
+                decoded = imagePainter
+                if (status == ArtistArtworkLoadState.Error && photoIndex < photos.lastIndex) photoIndex++
             }
-            // MusicUI bounds the background to 2H = W. Do not filter invisible pixels
-            // across the full height of a portrait tablet window.
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                Canvas(Modifier.fillMaxWidth().height(minOf(maxWidth, maxHeight))
-                    .artistBackdropEffects(scrollPixels)) {
-                    val frame = Size(size.width, size.width * 0.5f)
-                    drawArtworkFrame(imagePainter, frame)
-                    // MusicUI.ReflectionContainerView uses scale(1, -3, 1) below the original.
-                    withTransform({
-                        translate(0f, frame.height * 4f)
-                        scale(1f, -3f, Offset.Zero)
-                    }) { drawArtworkFrame(imagePainter, frame) }
+            if (imagePainter != null && !videoReady) {
+                if (!photo.hasHero) {
+                    ArtistColorBackdrop(imagePainter)
+                } else {
+                    Canvas(Modifier.fillMaxWidth().height(backgroundHeight).artistBackdropEffects(scrollPixels)) {
+                        val frame = Size(size.width, size.width * 0.5f)
+                        drawArtworkFrame(imagePainter, frame)
+                        withTransform({
+                            translate(0f, frame.height * 4f)
+                            scale(1f, -3f, Offset.Zero)
+                        }) { drawArtworkFrame(imagePainter, frame) }
+                    }
                 }
             }
+        }
+        // Video readiness is independent of preview-image success. A broken preview may
+        // still have a valid stream, and a failed stream leaves the decoded static fallback.
+        artwork.motionUrl?.let { url ->
+            ArtistMotionBackdrop(url, artwork.id, scrollPixels, { videoReady = it },
+                Modifier.fillMaxWidth().height(backgroundHeight))
         }
     }
 }

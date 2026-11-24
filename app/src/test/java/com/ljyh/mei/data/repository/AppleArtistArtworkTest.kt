@@ -61,6 +61,19 @@ class AppleArtistArtworkTest {
         }
     }
 
+    @Test fun videoCanBeUsedWithoutAPreviewAndUntrustedUrlsAreRejected() {
+        fun motion(url: String) = parseAppleArtistArtwork(item(
+            """, "editorialVideo":{"motionArtistFullscreen16x9":{"video":"$url"}}"""
+        ))!!
+        val valid = motion("https://mvod.itunes.apple.com/artist/master.m3u8")
+        assertEquals("https://mvod.itunes.apple.com/artist/master.m3u8", valid.motionUrl)
+        assertNull(valid.motionPreview)
+        for (url in listOf("http://mvod.itunes.apple.com/a.m3u8", "https://mvod.itunes.apple.com.evil.org/a.m3u8", "file:///a.m3u8")) {
+            assertNull(motion(url).motionUrl)
+            assertNotNull(motion(url).portrait)
+        }
+    }
+
     private fun candidates(vararg names: Pair<String, String>) = buildJsonArray {
         names.forEach { (id, name) -> add(buildJsonObject {
             put("id", id); putJsonObject("attributes") { put("name", name) }

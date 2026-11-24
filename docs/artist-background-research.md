@@ -80,7 +80,7 @@ MusicApplication 内旧的 `MusicCoreUI.ProgressiveBlurView` 确实调用 UIKit 
 - 常规 hero 使用 2:1 区域。后续已将普通人像的 Fit／侧缘渐隐替换为 ColorBackdrop 近似和前景圆形头像，见下文与 [艺人详情](artist-detail.md)。
 - Android 12 支持滚动阶段的额外平台模糊，但没有径向可变模糊；更早版本保留反射与渐隐。没有在 CPU 上反复生成模糊位图。
 - 手机竖屏、手机横屏、网易云平板资料头、AM 默认关闭的设置保持原有行为。
-- 官方原生 variableBlur 的采样核、motion 视频、全部 size class／非零安全区分支及 overscroll 尚未逐像素等价。当前可复刻的是已确认的常规 iPad 背景结构和参数，不是 Apple 私有渲染器。
+- 官方原生 variableBlur 的采样核、全部 size class／非零安全区分支及 overscroll 尚未逐像素等价。motion 现已接入单纹理视频及反射，仍未做设备输出与像素等价验证。当前可复刻的是已确认的常规 iPad 背景结构和参数，不是 Apple 私有渲染器。
 
 [Android RenderEffect](https://developer.android.com/reference/android/graphics/RenderEffect) 和 [AGSL shader sampling](https://developer.android.com/develop/ui/views/graphics/agsl/agsl-quick-reference) 为 Android 实现依据。本地测试通过原生 Skia 验证 shader 编译、uniform 与双 pass 绑定，并检查横图失败后使用人像及滚动／反射不重复发起图片请求；Robolectric 的 SDK 33/34 使用旧 SkSL 而不支持 `.eval`，因此该检查使用 SDK 36，见 [Robolectric issue 9691](https://github.com/robolectric/robolectric/issues/9691)。这不是模拟器或设备视觉测试，也不能证明 GPU 性能和最终像素已经一致。
 
@@ -143,6 +143,9 @@ MusicApplication 内旧的 `MusicCoreUI.ProgressiveBlurView` 确实调用 UIKit 
 
 ### 对 Mei 的结论与剩余边界
 
-研究定位到旧实现仅有人像时的 Fit、侧缘渐隐是 Mei 自己的回退，不能算作官方普通艺人方案。后续 UI 修改已区分宽幅静态 hero、motion 的静态预览，以及两者均不可用时的 ColorBackdrop 近似 + 独立头像。艺术字可选，不能当作背景可用性的开关；Android 12 以下保留页面配色与圆形头像，当前没有播放 motion 视频。具体图层降采样与渐隐边界见 [艺人详情](artist-detail.md)。
+研究定位到旧实现仅有人像时的 Fit、侧缘渐隐是 Mei 自己的回退，不能算作官方普通艺人方案。后续 UI 修改已区分宽幅静态 hero、motion 视频与静态预览，以及两者均不可用时的 ColorBackdrop 近似 + 独立头像。艺术字可选，不能当作背景可用性的开关；ColorBackdrop 在 Android 12 以下保留页面配色与圆形头像；有有效视频时，首帧后由单纹理动态背景接管。具体图层降采样与渐隐边界见 [艺人详情](artist-detail.md)。
 
 本轮已确认原生展示分支和 ColorBackdrop 的构造参数；**尚未证明目录 API 的每个 editorialArtwork 字段如何映射到原生 `wideArtwork` / `colorBackdropArtwork` / `circleArtwork`**，尤其不能认定 subscriptionHero 总会成为 wideArtwork。4:1 图和 motion 的服务端映射规则、Material 的底层采样实现及最终像素效果仍未完整核对。该研究轮次没有修改应用 UI、安装 APK、启动模拟器或进行视觉测试；后续 UI 实现另按上面的实现记录说明。
+
+
+后续视频实现复用 Media3 的装饰视频配置，使用 [TextureView](https://developer.android.com/reference/android/view/TextureView) 的纹理输出及 [RenderEffect](https://developer.android.com/reference/android/graphics/RenderEffect) 合成，不回读每帧位图。音频焦点显式关闭，参见 [ExoPlayer.Builder.setAudioAttributes](https://developer.android.com/reference/androidx/media3/exoplayer/ExoPlayer.Builder#setAudioAttributes(androidx.media3.common.AudioAttributes,boolean))。暂停、首帧和失败行为见 [艺人详情](artist-detail.md)；该实现不把 Android 的原生图层等同于 Apple 的 CAPortalLayer，也不据此宣称已验证真实设备像素输出。

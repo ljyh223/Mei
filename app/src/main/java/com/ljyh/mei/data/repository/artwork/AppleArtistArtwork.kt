@@ -18,6 +18,7 @@ data class AppleArtistArtwork(
     val banner: AppleArtistImage? = null,
     val logo: AppleArtistImage? = null,
     val motionPreview: AppleArtistImage? = null,
+    val motionUrl: String? = null,
 )
 
 internal fun normalizedArtistName(name: String): String = Normalizer.normalize(name, Normalizer.Form.NFKD)
@@ -44,9 +45,13 @@ internal fun parseAppleArtistArtwork(item: JsonObject): AppleArtistArtwork? {
         .firstNotNullOfOrNull { parseArtistImage(editorial?.obj(it)) }
     val id = item.text("id").takeIf { it.isNotBlank() && it.all(Char::isDigit) } ?: return null
     val name = attributes.text("name").takeIf(String::isNotBlank) ?: return null
-    val motionPreview = parseArtistImage(attributes.obj("editorialVideo")
-        ?.obj("motionArtistFullscreen16x9")?.obj("previewFrame"))
-    return AppleArtistArtwork(id, name, portrait, banner, logo, motionPreview)
+    val motion = attributes.obj("editorialVideo")?.obj("motionArtistFullscreen16x9")
+    val motionPreview = parseArtistImage(motion?.obj("previewFrame"))
+    val motionUrl = motion?.text("video")?.toHttpUrlOrNull()?.takeIf { url ->
+        url.scheme == "https" && (url.host == "mzstatic.com" || url.host.endsWith(".mzstatic.com") ||
+            url.host == "itunes.apple.com" || url.host.endsWith(".itunes.apple.com"))
+    }?.toString()
+    return AppleArtistArtwork(id, name, portrait, banner, logo, motionPreview, motionUrl)
 }
 
 private fun parseArtistImage(image: JsonObject?): AppleArtistImage? {

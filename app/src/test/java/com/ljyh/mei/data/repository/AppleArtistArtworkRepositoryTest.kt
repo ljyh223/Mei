@@ -85,7 +85,7 @@ class AppleArtistArtworkRepositoryTest {
 
     private suspend fun fixture(block: suspend (Application) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Application>()
-        val cache = stringPreferencesKey("appleArtistArtwork.v2")
+        val cache = stringPreferencesKey("appleArtistArtwork.v3")
         fun encode(text: String) = Base64.getUrlEncoder().withoutPadding().encodeToString(text.toByteArray())
         val token = encode("{\"alg\":\"fixture\"}") + "." + encode("{\"exp\":${System.currentTimeMillis()/1000+86400}}") + ".fixture"
         context.dataStore.edit {

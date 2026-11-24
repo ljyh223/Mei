@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BlendMode
 import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RenderEffect
@@ -35,21 +34,16 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import coil3.compose.AsyncImage
 import coil3.request.crossfade
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.ljyh.mei.data.repository.DynamicCover
-import com.ljyh.mei.playback.source.CacheManager
 import com.ljyh.mei.utils.image.rememberOriginalArtworkRequest
 import com.ljyh.mei.utils.image.rememberPlayerArtworkRequest
 import kotlin.time.Duration.Companion.milliseconds
@@ -119,7 +113,7 @@ fun DynamicCoverView(
         mutableStateOf(Triple(0, 0, 1f))
     }
     var textureView by remember(cover?.cacheKey, cover?.url) {
-        mutableStateOf<CenterCropTextureView?>(null)
+        mutableStateOf<ArtworkTextureView?>(null)
     }
     var blurredFrameView by remember(cover?.cacheKey, cover?.url) {
         mutableStateOf<BlurredFrameView?>(null)
@@ -137,21 +131,7 @@ fun DynamicCoverView(
     }
     val player = remember(cover?.cacheKey, cover?.url) {
         cover?.let {
-            ExoPlayer.Builder(context)
-                .setMediaSourceFactory(DefaultMediaSourceFactory(CacheManager.getCacheDataSourceFactory(context)))
-                .build().apply {
-                    volume = 0f
-                    repeatMode = Player.REPEAT_MODE_ONE
-                    val item = MediaItem.Builder().setUri(it.url).apply {
-                        if (it.url.contains(".m3u8", ignoreCase = true)) {
-                            setMimeType(MimeTypes.APPLICATION_M3U8)
-                        } else {
-                            setCustomCacheKey(it.cacheKey)
-                        }
-                    }.build()
-                    setMediaItem(item)
-                    prepare()
-                }
+            createArtworkVideoPlayer(context, it.url, it.cacheKey).apply { prepare() }
         }
     }
     DisposableEffect(player) {
@@ -259,7 +239,7 @@ fun DynamicCoverView(
                 AndroidView(
                     factory = { viewContext ->
                         FrameLayout(viewContext).also { frame ->
-                            CenterCropTextureView(viewContext).also {
+                            ArtworkTextureView(viewContext).also {
                                 textureView = it
                                 player.setVideoTextureView(it)
                                 frame.addView(it, FrameLayout.LayoutParams(-1, -1))
@@ -274,7 +254,7 @@ fun DynamicCoverView(
                         }
                     },
                     update = { frame ->
-                        (frame.getChildAt(0) as CenterCropTextureView).setVideoDimensions(
+                        (frame.getChildAt(0) as ArtworkTextureView).setVideoDimensions(
                             videoDimensions.first, videoDimensions.second, videoDimensions.third,
                             fitVideoWidth,
                         )
@@ -403,45 +383,5 @@ private class BottomFadeView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (fadeColor != null) canvas.drawBitmap(mask, null, destination, paint)
-    }
-}
-
-private class CenterCropTextureView(context: Context) : TextureView(context) {
-    private var videoWidth = 0
-    private var videoHeight = 0
-    private var pixelRatio = 1f
-    private var fitWidth = false
-
-    fun setVideoDimensions(width: Int, height: Int, ratio: Float, fitWidth: Boolean) {
-        videoWidth = width
-        videoHeight = height
-        pixelRatio = ratio
-        this.fitWidth = fitWidth
-        updateTransform()
-    }
-
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        updateTransform()
-    }
-
-    private fun updateTransform() {
-        if (width <= 0 || height <= 0 || videoWidth <= 0 || videoHeight <= 0 || pixelRatio <= 0f) {
-            setTransform(Matrix())
-            return
-        }
-        val videoRatio = videoWidth * pixelRatio / videoHeight
-        val viewRatio = width.toFloat() / height
-        if (fitWidth) {
-            // TextureView initially stretches the decoded frame to its bounds. Correct only its
-            // height, anchored at the top, so the video keeps its aspect ratio and both sides.
-            setTransform(Matrix().apply {
-                setScale(1f, viewRatio / videoRatio, width / 2f, 0f)
-            })
-            return
-        }
-        val scaleX = if (videoRatio > viewRatio) videoRatio / viewRatio else 1f
-        val scaleY = if (videoRatio < viewRatio) viewRatio / videoRatio else 1f
-        setTransform(Matrix().apply { setScale(scaleX, scaleY, width / 2f, height / 2f) })
     }
 }

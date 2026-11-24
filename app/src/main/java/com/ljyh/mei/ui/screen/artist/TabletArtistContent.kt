@@ -41,6 +41,10 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
     val artwork = state.appleArtwork?.takeIf { state.appleArtworkEnabled }
     var presentation by remember(state.id, artwork) { mutableStateOf(ArtistArtworkPresentation()) }
     var portraitPainter by remember(state.id, artwork) { mutableStateOf<Painter?>(null) }
+    var neteasePortrait by remember(state.id, state.artist?.avatar, state.artist?.cover) { mutableStateOf<Painter?>(null) }
+    var neteasePhotoState by remember(state.id, state.artist?.avatar, state.artist?.cover) {
+        mutableStateOf(ArtistArtworkLoadState.Unavailable)
+    }
     var description by rememberSaveable(state.id) { mutableStateOf(false) }
     val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
     val list = rememberLazyListState()
@@ -57,6 +61,10 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
         val background = MaterialTheme.colorScheme.background
         val bodyWidth = if (presentation.usesApplePhoto) 1280.dp else 960.dp
         BoxWithConstraints(Modifier.fillMaxSize().clipToBounds().background(background)) {
+            TabletNeteaseArtistBackdrop(state, visible = !presentation.usesApplePhoto) { status, painter ->
+                neteasePhotoState = status
+                neteasePortrait = painter
+            }
             if (artwork != null) TabletArtistBackdrop(artwork, scrollPixels) { status, photo, painter ->
                 presentation = presentation.copy(photo = status, background = photo.image.background,
                     tabletPhotoKind = photo.kind)
@@ -86,7 +94,8 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                             TabletArtistBody(bodyWidth) { MeiStatePanel("歌手信息暂未加载", Icons.Rounded.CloudOff,
                                 actionLabel = "重试", onAction = actions.onRetryDetail) }
                         } else TabletArtistHeader(state, artwork, presentation, portraitPainter, heroHeight, padding.calculateTopPadding() + 16.dp, actions, onInfo = { description = true },
-                            onWordmarkChanged = { presentation = presentation.copy(wordmark = it) }, artworkModifier = bar.artworkModifier)
+                            onWordmarkChanged = { presentation = presentation.copy(wordmark = it) }, artworkModifier = bar.artworkModifier,
+                            neteasePortrait = neteasePortrait, neteaseLoading = neteasePhotoState == ArtistArtworkLoadState.Loading)
                     }
                     if (debugEnabled && state.artist != null) item(key = "artist_artwork_debug") {
                         TabletArtistBody(bodyWidth) { ArtistArtworkDebugInfo(artwork, presentation, state.appleArtworkEnabled,

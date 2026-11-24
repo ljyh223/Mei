@@ -52,6 +52,7 @@ internal fun ArtistArtworkDebugInfo(
             if (enabled && presentation.usesApplePhoto && presentation.tabletPhotoKind != null) Text(
                 when (presentation.tabletPhotoKind) {
                     TabletArtistPhotoKind.Hero -> "背景：AM 宽幅图"
+                    TabletArtistPhotoKind.MotionVideo -> "背景：AM 动态视频"
                     TabletArtistPhotoKind.MotionPreview -> "背景：AM 动态资源预览图"
                     TabletArtistPhotoKind.Portrait -> "背景：柔化人像；前景：AM 圆形头像"
                 }, style = MaterialTheme.typography.bodySmall)
