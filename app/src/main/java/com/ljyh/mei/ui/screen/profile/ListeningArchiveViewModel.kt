@@ -69,7 +69,9 @@ internal class ListeningArchiveViewModel internal constructor(
 
     fun refresh() = load(force = true)
 
-    private fun load(force: Boolean = false) {
+    fun refreshRecent() = load(force = true, recentOnly = true)
+
+    private fun load(force: Boolean = false, recentOnly: Boolean = false) {
         val session = identity ?: return
         if (session.first.isBlank() || session.second.isBlank()) return
         if (force && job?.isActive == true) return
@@ -81,7 +83,7 @@ internal class ListeningArchiveViewModel internal constructor(
             try {
                 coroutineScope {
                     launch {
-                        if (force || period !in ranks) {
+                        if (!recentOnly && (force || period !in ranks)) {
                             val result = source.rank(session.first, period)
                             if (identity != session || request != generation) return@launch
                             if (result is Resource.Error && ranks[period] is Resource.Success)

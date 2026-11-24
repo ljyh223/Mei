@@ -71,6 +71,39 @@ class ListeningArchiveViewModelTest {
         assertFalse(vm.state.value.refreshing)
     }
 
+    @Test fun historyRefreshReusesRankAndUpdatesTheSharedRecentCache() = fixture { vm, source ->
+        vm.bind("100", "test-session")
+        val originalRank = vm.state.value.rank
+        vm.refreshRecent()
+        assertEquals(1, source.calls["rank-100-false"])
+        assertEquals(2, source.calls["recent"])
+        assertSame(originalRank, vm.state.value.rank)
+        // Returning to the archive consumes the refreshed cache, without another request.
+        vm.bind("100", "test-session")
+        assertEquals(2, source.calls["recent"])
+    }
+
+    @Test fun historyRefreshKeepsRowsAfterFailureAndCannotFetchAfterLogout() = fixture { vm, source ->
+        vm.bind("100", "test-session")
+        val originalRecent = vm.state.value.recent
+        source.barrier = CompletableDeferred()
+        source.fail = true
+        vm.refreshRecent()
+        vm.refreshRecent()
+        assertSame(originalRecent, vm.state.value.recent)
+        assertTrue(vm.state.value.refreshing)
+        assertEquals(2, source.calls["recent"])
+        source.barrier!!.complete(Unit)
+        yield()
+        assertSame(originalRecent, vm.state.value.recent)
+        assertEquals("最近收听刷新失败，已保留原内容", vm.state.value.refreshError)
+        assertFalse(vm.state.value.refreshing)
+        vm.bind(null, "")
+        vm.refreshRecent()
+        assertSame(Resource.Loading, vm.state.value.recent)
+        assertEquals(2, source.calls["recent"])
+    }
+
     private fun fixture(block: suspend CoroutineScope.(ListeningArchiveViewModel, FakeSource) -> Unit) = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val source = FakeSource()

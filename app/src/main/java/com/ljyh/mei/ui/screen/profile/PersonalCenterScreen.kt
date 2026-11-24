@@ -13,11 +13,8 @@ import coil3.compose.AsyncImage
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.UserAvatarUrlKey
 import com.ljyh.mei.utils.preferences.rememberPreference
-import com.ljyh.mei.utils.preferences.dataStore
 import com.ljyh.mei.ui.local.LocalPlayerConnection
 import com.ljyh.mei.playback.queue.ListQueue
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -53,9 +50,6 @@ internal fun PersonalCenterScreen(
 ) {
     val nav = LocalNavController.current
     val signedIn = bindLibraryAccount(viewModel)
-    val libraryEntry = remember(nav) { nav.getBackStackEntry(Screen.Library.route) }
-    val archiveModel: ListeningArchiveViewModel = hiltViewModel(libraryEntry)
-    val archive by archiveModel.state.collectAsStateWithLifecycle()
     val footprint by viewModel.listeningFootprint.collectAsStateWithLifecycle()
     val reportStatus by viewModel.listeningReportStatus.collectAsStateWithLifecycle()
     val player = LocalPlayerConnection.current
@@ -70,12 +64,8 @@ internal fun PersonalCenterScreen(
         viewModel.refreshErrors.collect { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
     }
     val profile = if (signedIn) (library as? LibraryUiState.Content)?.data?.profile else null
-    val cookie by remember(context) {
-        context.dataStore.data.map { it[CookieKey].orEmpty() }.distinctUntilChanged()
-    }.collectAsStateWithLifecycle(initialValue = null)
-    LaunchedEffect(profile?.userId, cookie, signedIn) {
-        archiveModel.bind(profile?.userId.takeIf { signedIn }, cookie)
-    }
+    val archiveModel = rememberListeningArchive(profile?.userId.takeIf { signedIn })
+    val archive by archiveModel.state.collectAsStateWithLifecycle()
     val state = PersonalCenterState(
         signedIn = signedIn, profile = profile,
         membership = profileMembership(vip, System.currentTimeMillis()),
@@ -94,6 +84,7 @@ internal fun PersonalCenterScreen(
         onManageAccount = { Screen.ContentSettings.navigate(nav) },
         onLogout = { confirmLogout = true },
         onRankPeriod = archiveModel::selectPeriod,
+        onOpenRecentListening = { Screen.ListeningHistory.navigate(nav) },
         onPlay = { tracks, index, title ->
             if (index in tracks.indices) player?.playQueue(ListQueue(
                 id = "listening-archive", title = title,

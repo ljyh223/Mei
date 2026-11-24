@@ -23,6 +23,7 @@ internal data class PersonalCenterActions(
     val onManageAccount: () -> Unit,
     val onLogout: () -> Unit,
     val onRankPeriod: (Boolean) -> Unit = {},
+    val onOpenRecentListening: () -> Unit = {},
     val onPlay: (List<com.ljyh.mei.data.model.response.ListeningTrack>, Int, String) -> Unit = { _, _, _ -> },
 )
 

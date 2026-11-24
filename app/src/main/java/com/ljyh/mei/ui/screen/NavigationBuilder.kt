@@ -75,6 +75,11 @@ internal fun NavGraphBuilder.navigationBuilder(
         pages.PersonalCenter(hiltViewModel(parentEntry))
     }
 
+    pageDestination(Screen.ListeningHistory.route, drawsBehindSideBar = true) { entry ->
+        val parentEntry = remember(entry) { navController.getBackStackEntry(Screen.Library.route) }
+        com.ljyh.mei.ui.screen.profile.ListeningHistoryScreen(hiltViewModel(parentEntry))
+    }
+
     pageDestination(
         "${Screen.LibraryCollection.route}/{collection}",
         drawsBehindSideBar = true,

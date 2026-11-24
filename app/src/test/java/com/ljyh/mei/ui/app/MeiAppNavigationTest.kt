@@ -88,6 +88,24 @@ class MeiAppNavigationTest {
     }
 
     @Test
+    fun cloudHistoryReturnsToArchiveAndSharesItsLibraryOwnerInBothPageSets() {
+        for (pages in listOf(SharedMeiPageContent, TabletPageContent)) {
+            val nav = controller(pages)
+            nav.navigate(Screen.Library.route)
+            val library = nav.currentBackStackEntry!!
+            nav.navigate(Screen.PersonalCenter.route)
+            val archive = nav.currentBackStackEntry!!
+            archive.savedStateHandle["scroll_marker"] = 12
+            Screen.ListeningHistory.navigate(nav)
+            assertEquals(Screen.ListeningHistory.route, nav.currentDestination!!.route)
+            assertSame(library, nav.getBackStackEntry(Screen.Library.route))
+            assertTrue(nav.popBackStack())
+            assertSame(archive, nav.currentBackStackEntry)
+            assertEquals(12, nav.currentBackStackEntry!!.savedStateHandle.get<Int>("scroll_marker"))
+        }
+    }
+
+    @Test
     fun changingPageSetPreservesCurrentEntryAndSavedState() {
         val nav = controller(SharedMeiPageContent)
         nav.navigate(Screen.Library.route)

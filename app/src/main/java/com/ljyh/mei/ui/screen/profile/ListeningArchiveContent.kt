@@ -190,17 +190,16 @@ private fun FrequentArtists(tracks: List<ListeningTrack>, allTime: Boolean) {
 
 @Composable
 private fun RecentListening(archive: ListeningArchiveState, actions: PersonalCenterActions) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
     val tracks = (archive.recent as? Resource.Success)?.data.orEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SectionHeading("最近收听", if (tracks.size > 6) (if (expanded) "收起" else "更多") else null) { expanded = !expanded }
+        SectionHeading("最近收听", "查看全部", actions.onOpenRecentListening)
         when (val result = archive.recent) {
             is Resource.Loading -> LoadingLine("正在同步最近收听")
             is Resource.Error -> InlineRetry(result.message, actions.onRefresh)
             is Resource.Success -> {
                 if (tracks.isEmpty()) EmptyMusicText("云端还没有最近收听记录")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    itemsIndexed(tracks.take(if (expanded) 100 else 6), key = { _, track -> track.song.id }) { index, track ->
+                    itemsIndexed(tracks.take(6), key = { _, track -> track.song.id }) { index, track ->
                         Column(Modifier.width(116.dp).clickable(role = Role.Button,
                             onClickLabel = "播放${track.song.title}", onClick = { actions.onPlay(tracks, index, "最近收听") }),
                             verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -268,5 +267,5 @@ internal fun formatListeningDuration(minutes: Int): String {
     return if (value < 60) "$value 分钟" else "${value / 60} 小时 ${value % 60} 分钟"
 }
 
-private fun formatPlayedAt(timestamp: Long): String = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault())
+internal fun formatPlayedAt(timestamp: Long): String = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault())
     .format(DateTimeFormatter.ofPattern("M月d日 HH:mm"))
