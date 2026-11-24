@@ -53,12 +53,12 @@ internal fun ArtistArtworkTheme(
 
 /** Keep the source hue, while giving white titles and secondary text a stable dark backdrop. */
 internal fun artistImmersiveBackground(source: Color): Color {
-    if (source.luminance() <= 0.10f) return source
+    if (source.luminance() <= 0.065f) return source
     var low = 0f
     var high = 1f
     repeat(10) {
         val amount = (low + high) / 2f
-        if (lerp(source, Color.Black, amount).luminance() > 0.10f) low = amount else high = amount
+        if (lerp(source, Color.Black, amount).luminance() > 0.065f) low = amount else high = amount
     }
     return lerp(source, Color.Black, high)
 }

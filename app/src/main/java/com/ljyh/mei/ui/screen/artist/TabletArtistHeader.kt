@@ -75,33 +75,35 @@ private fun TabletAppleArtistHeader(
             val background = MaterialTheme.colorScheme.background
             Box(Modifier.fillMaxWidth().heightIn(min = heroHeight).then(artworkModifier)
                 .clipToBounds().background(background)) {
-                BoxWithConstraints(Modifier.matchParentSize()) {
-                    val wide = picture == banner
+                BoxWithConstraints(Modifier.matchParentSize().padding(top = 24.dp)) {
                     val ratio = picture.width.toFloat() / picture.height
-                    val imageWidth = if (wide) maxWidth else (maxHeight * ratio).coerceAtMost(maxWidth)
+                    val imageWidth = (maxHeight * ratio).coerceAtMost(maxWidth)
                     Box(Modifier.align(Alignment.TopCenter).width(imageWidth).fillMaxHeight()) {
                         this@image.SubcomposeAsyncImageContent(Modifier.fillMaxSize(),
-                            contentScale = if (wide) ContentScale.Crop else ContentScale.Fit,
+                            contentScale = ContentScale.Fit,
                             alignment = Alignment.TopCenter)
-                        if (!wide) Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
+                        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
                             0f to background, 0.12f to Color.Transparent,
                             0.88f to Color.Transparent, 1f to background,
+                        )))
+                        Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                            0f to background, 0.10f to Color.Transparent, 1f to Color.Transparent,
                         )))
                     }
                 }
                 // Preserve the face and torso; only the lower section becomes the text backdrop.
                 Box(Modifier.matchParentSize().background(Brush.verticalGradient(
                     0f to Color.Black.copy(alpha = 0.22f),
-                    0.22f to Color.Transparent, 0.48f to Color.Transparent,
-                    0.62f to background.copy(alpha = 0.32f),
-                    0.76f to background.copy(alpha = 0.88f), 0.94f to background, 1f to background,
+                    0.22f to Color.Transparent, 0.50f to Color.Transparent,
+                    0.68f to background.copy(alpha = 0.32f),
+                    0.84f to background.copy(alpha = 0.88f), 1f to background,
                 )))
-                Column(Modifier.align(Alignment.BottomCenter).widthIn(max = 376.dp).fillMaxWidth()
+                Column(Modifier.align(Alignment.BottomCenter).widthIn(max = 416.dp).fillMaxWidth()
                     .padding(meiPageHorizontalPadding())
-                    .padding(top = topPadding + heroHeight * 0.42f, bottom = 24.dp),
+                    .padding(top = topPadding + heroHeight * 0.42f, bottom = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact = true) { wordmark = it }
+                    ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact = true, logoHeight = 64.dp) { wordmark = it }
                     if (state.artist != null) ArtistPrimaryActions(state.canPlay && state.songs.isNotEmpty(),
                         state.subscription, onInfo, actions.onPlayHotSongs, actions.onToggleSubscription)
                 }

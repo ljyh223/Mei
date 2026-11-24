@@ -48,7 +48,8 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
         val background = MaterialTheme.colorScheme.background
         val bodyWidth = if (presentation.usesApplePhoto) 1280.dp else 960.dp
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val heroHeight = minOf(maxWidth * 0.62f, maxHeight * 0.76f).coerceIn(360.dp, 640.dp)
+            val preferredHeroHeight = minOf(maxWidth * 0.58f, maxHeight * 0.68f).coerceIn(320.dp, 600.dp)
+            val viewportHeight = maxHeight
             val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
             val songColumns = (minOf(maxWidth, bodyWidth) / (360.dp * fontScale))
                 .toInt().coerceIn(1, 3)
@@ -62,6 +63,8 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
             }) { padding ->
                 val bottom = maxOf(padding.calculateBottomPadding(),
                     LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+                // Leave a heading and one complete song row above the floating bottom controls.
+                val heroHeight = minOf(preferredHeroHeight, (viewportHeight - bottom - 144.dp).coerceAtLeast(320.dp))
                 LazyColumn(state = list, modifier = Modifier.fillMaxSize().hazeSource(haze).background(background),
                     contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
                     item(key = "artist_header") {
@@ -76,7 +79,6 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
                             Modifier.padding(meiPageHorizontalPadding())) }
                     }
                     item(key = "songs_heading") { TabletArtistBody(bodyWidth) {
-                        if (presentation.usesApplePhoto) Spacer(Modifier.height(8.dp))
                         SectionTitle("热门单曲", actions.onBrowseSongs)
                     } }
                     when {

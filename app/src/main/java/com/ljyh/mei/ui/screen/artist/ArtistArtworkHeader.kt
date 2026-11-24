@@ -15,6 +15,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
@@ -94,6 +95,7 @@ internal fun ArtistWordmark(
     artwork: AppleArtistArtwork,
     name: String,
     compact: Boolean,
+    logoHeight: Dp = if (compact) 48.dp else 96.dp,
     onLoadStateChanged: (ArtistArtworkLoadState) -> Unit,
 ) {
     val onStateChanged by rememberUpdatedState(onLoadStateChanged)
@@ -107,7 +109,7 @@ internal fun ArtistWordmark(
         val logo = artwork.logo
         if (logo == null) text() else SubcomposeAsyncImage(
             model = logo.url, contentDescription = null,
-            modifier = Modifier.fillMaxWidth().height(if (compact) 48.dp else 96.dp),
+            modifier = Modifier.fillMaxWidth().height(logoHeight),
             contentScale = ContentScale.Fit, colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
         ) {
             val result by painter.state.collectAsState()
