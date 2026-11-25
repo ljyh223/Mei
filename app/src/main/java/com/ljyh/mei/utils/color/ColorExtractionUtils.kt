@@ -3,6 +3,7 @@ package com.ljyh.mei.utils.color
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.luminance
 import androidx.core.graphics.ColorUtils
 import androidx.palette.graphics.Palette
 
@@ -49,4 +50,18 @@ fun Color.shiftHue(amount: Float): Color {
     ColorUtils.colorToHSL(this.toArgb(), hsl)
     hsl[0] = (hsl[0] + amount).mod(360f)
     return Color(ColorUtils.HSLToColor(hsl))
+}
+
+/** MusicUI darkens each source channel by 0.65 × relative luminance above its 0.1 threshold. */
+internal fun immersiveArtworkBackground(source: Color): Color {
+    val luminance = source.luminance()
+    if (luminance <= 0.1f) return source
+    val subtraction = luminance * 0.65f
+    return Color(
+        red = (source.red - subtraction).coerceAtLeast(0f),
+        green = (source.green - subtraction).coerceAtLeast(0f),
+        blue = (source.blue - subtraction).coerceAtLeast(0f),
+        alpha = source.alpha,
+        colorSpace = source.colorSpace,
+    )
 }

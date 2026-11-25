@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.artist.component
 
+import com.ljyh.mei.ui.component.artwork.backdrop.ArtworkVariableBlur
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PorterDuff
@@ -16,7 +17,7 @@ import androidx.compose.ui.geometry.Size
 internal class ArtistVideoComposition {
     val imageNode = RenderNode("artist-video-image").apply { setClipToBounds(true) }
     val outputNode = RenderNode("artist-video-output").apply { setClipToBounds(true) }
-    private val variable = if (Build.VERSION.SDK_INT >= 33) ArtistVariableBlur() else null
+    private val variable = if (Build.VERSION.SDK_INT >= 33) ArtworkVariableBlur() else null
     private val fadePaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN) }
     private var width = 0
     private var height = 0

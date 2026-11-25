@@ -152,6 +152,9 @@ class AlbumDetailViewModel @Inject constructor(
 
     fun cachedCoverColor(url: String): Color? = colorRepository.getFromMemory(url)
 
+    suspend fun coverColor(url: String, image: coil3.Image): Color =
+        colorRepository.getColorFromLoadedArtwork(url, image)
+
     suspend fun coverColor(url: String): Color? =
         url.takeIf { it.isNotBlank() }?.let { colorRepository.getColorOrExtract(context, it) }
 

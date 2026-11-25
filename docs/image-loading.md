@@ -17,3 +17,6 @@
 ## Apple Music 艺人图片模板
 
 艺人页直接向 Coil 传入 Apple 返回的 `mzstatic.com` 图片模板。`ArtworkRequestInterceptor` 在解析组件实际像素尺寸后，由 `ImageUrls.kt` 统一替换 `{w}`／`{h}`，复用 192、512、1024px 档位；Logo 在公共入口选择 PNG 以保留透明背景。已经解析为具体尺寸的 Apple URL、其他 CDN、本地资源不进入这套模板解析。普通艺人图片与 Logo 各自加载，不等待整批资源。页面无资源或主图失败时回退原布局，状态与匹配见 [艺人详情](artist-detail.md)。
+
+
+手机竖屏专辑的静态大封面在 Coil 解码成功后，将同一份 painter 用于清晰图片与倒影，将 Image 交给 `ColorRepository.getColorFromLoadedArtwork` 取色。页面不再为该底色另发一个缩略图请求。渐隐、可变模糊与页面取色都随当前图片状态更新，不创建独立 ImageLoader 或覆盖尺寸缓存键；具体启用范围见 [专辑详情](album-era-styles.md)。

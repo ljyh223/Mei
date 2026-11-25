@@ -1,25 +1,19 @@
 package com.ljyh.mei.ui.screen.artist
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import com.ljyh.mei.data.repository.artwork.AppleArtistImage
 import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
 import com.ljyh.mei.ui.screen.artist.component.ArtistMotionBackdrop
-import com.ljyh.mei.ui.screen.artist.component.artistBackdropEffects
+import com.ljyh.mei.ui.component.artwork.backdrop.artworkBackdropEffects
+import com.ljyh.mei.ui.component.artwork.backdrop.ArtworkReflection
 import com.ljyh.mei.ui.screen.artist.component.ArtistColorBackdrop
 
 internal enum class TabletArtistPhotoKind { Hero, MotionPreview, MotionVideo, Portrait }
@@ -75,14 +69,8 @@ internal fun TabletArtistBackdrop(
                 if (!photo.hasHero) {
                     ArtistColorBackdrop(imagePainter)
                 } else {
-                    Canvas(Modifier.fillMaxWidth().height(backgroundHeight).artistBackdropEffects(scrollPixels)) {
-                        val frame = Size(size.width, size.width * 0.5f)
-                        drawArtworkFrame(imagePainter, frame)
-                        withTransform({
-                            translate(0f, frame.height * 4f)
-                            scale(1f, -3f, Offset.Zero)
-                        }) { drawArtworkFrame(imagePainter, frame) }
-                    }
+                    ArtworkReflection(imagePainter, Modifier.fillMaxWidth().height(backgroundHeight)
+                        .artworkBackdropEffects(scrollPixels), frameAspectRatio = 2f)
                 }
             }
         }
@@ -91,17 +79,6 @@ internal fun TabletArtistBackdrop(
         artwork.motionUrl?.let { url ->
             ArtistMotionBackdrop(url, artwork.id, scrollPixels, { videoReady = it },
                 Modifier.fillMaxWidth().height(backgroundHeight))
-        }
-    }
-}
-
-private fun DrawScope.drawArtworkFrame(painter: Painter, frame: Size) {
-    val intrinsic = painter.intrinsicSize.takeIf { it.width > 0 && it.height > 0 } ?: frame
-    val scale = ContentScale.Crop.computeScaleFactor(intrinsic, frame)
-    val image = Size(intrinsic.width * scale.scaleX, intrinsic.height * scale.scaleY)
-    clipRect(0f, 0f, frame.width, frame.height) {
-        withTransform({ translate((frame.width - image.width) / 2f, (frame.height - image.height) / 2f) }) {
-            with(painter) { draw(image) }
         }
     }
 }

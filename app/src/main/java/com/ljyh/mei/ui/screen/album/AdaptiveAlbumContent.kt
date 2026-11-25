@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
@@ -44,7 +45,16 @@ internal fun AdaptiveAlbumLayout(
 
 @Composable
 internal fun AdaptiveAlbumContent(state: AlbumDetailUiState, actions: AlbumDetailActions) {
-    AlbumArtworkTheme(state) { AlbumMediaPage(state, actions) }
+    val staticBackdrop = usesPhoneStaticAlbumBackdrop(state)
+    var staticColor by remember(state.album.id, state.album.picUrl, staticBackdrop) { mutableStateOf<Color?>(null) }
+    val report by rememberUpdatedState(actions.onStaticArtworkChanged)
+    val pageActions = actions.copy(onStaticArtworkChanged = { url, image ->
+        if (!staticBackdrop || url != state.album.picUrl) null else {
+            staticColor = if (image == null) null else state.coverColor ?: Color(0xFF252A30)
+            if (image == null) null else report(url, image)?.also { staticColor = it }
+        }
+    })
+    AlbumArtworkTheme(state, staticColor) { AlbumMediaPage(state, pageActions) }
 }
 
 @Composable

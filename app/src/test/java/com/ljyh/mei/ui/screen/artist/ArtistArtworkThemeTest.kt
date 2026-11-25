@@ -1,5 +1,7 @@
 package com.ljyh.mei.ui.screen.artist
 
+import com.ljyh.mei.utils.color.immersiveArtworkBackground
+
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +58,7 @@ class ArtistArtworkThemeTest {
                 assertEquals(appleColors.onBackground, scheme.get().onBackground)
                 assertEquals(appleColors.primary, scheme.get().primary)
                 assertEquals(appleColors.onSurfaceVariant, scheme.get().onSurfaceVariant)
-                assertEquals(artistImmersiveBackground(palette), scheme.get().background)
+                assertEquals(immersiveArtworkBackground(palette), scheme.get().background)
                 assertEquals(scheme.get().onBackground, ink.get())
                 assertNotEquals(Color.White, scheme.get().background)
             }

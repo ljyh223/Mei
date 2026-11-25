@@ -92,6 +92,30 @@ class AlbumDetailControlsTest {
         assertTrue("Regression must exercise taller, wrapped metadata", longHeight > shortHeight)
     }
 
+    @Test fun staticPaletteIsPhonePortraitOnlyAndWaitsForDecodedArtwork() {
+        var wide by mutableStateOf(false)
+        var landscape by mutableStateOf(false)
+        var color by mutableStateOf<androidx.compose.ui.graphics.Color?>(null)
+        var palette: AlbumArtworkColors? = null
+        show {
+            CompositionLocalProvider(
+                com.ljyh.mei.ui.component.layout.LocalAppWindowLayout provides if (wide)
+                    com.ljyh.mei.ui.component.layout.AppWindowLayout.Wide else com.ljyh.mei.ui.component.layout.AppWindowLayout.Compact,
+                com.ljyh.mei.ui.component.layout.LocalPhoneLandscape provides landscape,
+            ) {
+                AlbumArtworkTheme(state().copy(artworkMode = AlbumArtworkMode.Static), color) {
+                    val current = LocalAlbumArtworkColors.current
+                    SideEffect { palette = current }
+                }
+            }
+        }
+        compose.runOnIdle { assertNull(palette); color = androidx.compose.ui.graphics.Color.Blue }
+        compose.runOnIdle { assertEquals(albumStaticArtworkColors(androidx.compose.ui.graphics.Color.Blue), palette); wide = true }
+        compose.runOnIdle { assertNull(palette); wide = false; landscape = true }
+        compose.runOnIdle { assertNull(palette); landscape = false; color = null }
+        compose.runOnIdle { assertNull(palette) }
+    }
+
     @Test fun motionPaletteOverridesTheLightAppThemeAndToolbarForeground() {
         val cover = com.ljyh.mei.data.repository.DynamicCover(
             1, "", com.ljyh.mei.data.repository.DynamicCover.Source.APPLE_MUSIC, "album-test",

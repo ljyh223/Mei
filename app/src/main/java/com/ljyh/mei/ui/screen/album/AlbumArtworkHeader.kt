@@ -161,6 +161,8 @@ internal fun AlbumArtworkVisual(
                 val motion = state.motionArtwork?.let { if (portrait) it.portraitVariant() ?: it else it }
                 DynamicCoverView(imageUrl = album.picUrl, cover = motion, playing = resumed,
                     modifier = Modifier.matchParentSize(), onPlaybackError = { actions.onArtworkError() })
+            } else if (usesPhoneStaticAlbumBackdrop(state)) {
+                AlbumStaticArtwork(state, actions, Modifier.matchParentSize())
             } else {
                 SubcomposeAsyncImage(model = album.picUrl, contentDescription = "专辑《${album.name}》封面",
                     contentScale = ContentScale.Crop, alignment = Alignment.TopCenter,

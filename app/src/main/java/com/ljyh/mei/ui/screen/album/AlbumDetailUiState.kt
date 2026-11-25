@@ -37,6 +37,7 @@ internal data class AlbumDetailActions(
     val onArtworkModeChange: (AlbumArtworkMode) -> Unit = {},
     val onArtworkError: () -> Unit = {},
     val onModelModeChange: (AlbumModelMode) -> Unit = {},
+    val onStaticArtworkChanged: suspend (String, coil3.Image?) -> Color? = { _, _ -> null },
 )
 
 internal fun albumDisplayArtists(album: AlbumOverview, songs: List<MediaMetadata>): List<MediaMetadata.Artist> {

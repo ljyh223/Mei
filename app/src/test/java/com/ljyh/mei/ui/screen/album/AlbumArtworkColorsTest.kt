@@ -6,6 +6,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AlbumArtworkColorsTest {
+    @Test fun staticArtworkUsesTheSameImmersiveAdjustmentAndReadableText() {
+        for (source in listOf(Color.White, Color.Black, Color(0xFF8A9BA0), Color.Blue)) {
+            val colors = albumStaticArtworkColors(source)
+            assertEquals(com.ljyh.mei.utils.color.immersiveArtworkBackground(source), colors.background)
+            for (text in listOf(colors.title, colors.secondary, colors.tertiary, colors.accent)) {
+                assertTrue(albumColorContrast(text, colors.background) >= 4.5f)
+            }
+        }
+    }
     @Test fun darkApplePaletteSuppliesThePageAndAllFourTextRoles() {
         val palette = CoverPalette("050a0c", "ccf5f0", "a1d4ce", "84bdb5", "b7dfd2")
         val colors = albumArtworkColors(palette, null, Color.White)

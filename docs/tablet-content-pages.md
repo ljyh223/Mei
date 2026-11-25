@@ -21,8 +21,7 @@ ui/
 │   │   ├── TabletArtistReleaseShelf.kt # 专辑／单曲与 EP 横向分区
 │   │   ├── ArtistDiscography.kt      # 发行时间排序与类别组织
 │   │   ├── TabletArtistHeader.kt     # AM 名字／操作与网易云回退
-│   │   ├── TabletArtistBackdrop.kt   # 独立图片背景、反射与共享 Coil painter
-│   │   ├── component/ArtistBackdropEffects.kt # hero 径向模糊、透明遮罩与滚动变换
+│   │   ├── TabletArtistBackdrop.kt   # 图片选择；反射和模糊复用共享 backdrop 组件
 │   │   ├── component/ArtistColorBackdrop.kt # 普通人像的低分辨率模糊颜色背景
 │   │   ├── component/ArtistMotionBackdrop.kt # 动态视频首帧、暂停与释放
 │   │   ├── component/ArtistVideoBackdropView.kt # 单纹理原图／倒影的区域裁剪

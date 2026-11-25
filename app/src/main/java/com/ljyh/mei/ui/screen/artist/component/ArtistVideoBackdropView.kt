@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.artist.component
 
+import com.ljyh.mei.ui.component.artwork.backdrop.ArtworkBackdropGeometry
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -48,12 +49,12 @@ internal class ArtistVideoBackdropView(context: Context) : FrameLayout(context) 
     fun updatePresentation(ready: Boolean, scrollPixels: Float) {
         val density = resources.displayMetrics.density
         val scroll = scrollPixels / density
-        val zoom = ArtistBackdropGeometry.scale(scroll)
+        val zoom = ArtworkBackdropGeometry.scale(scroll)
         scaleX = zoom
         scaleY = zoom
         translationY = -scrollPixels.coerceAtLeast(0f) * 0.4f
-        alpha = if (ready) ArtistBackdropGeometry.opacity(scroll) else 0f
-        val radius = (ArtistBackdropGeometry.extraBlur(scroll) * density).toInt()
+        alpha = if (ready) ArtworkBackdropGeometry.opacity(scroll) else 0f
+        val radius = (ArtworkBackdropGeometry.extraBlur(scroll) * density).toInt()
         if (radius != extraBlur) {
             extraBlur = radius
             if (Build.VERSION.SDK_INT >= 29) composition?.setExtraBlur(radius)

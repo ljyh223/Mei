@@ -10,6 +10,9 @@ import com.ljyh.mei.data.repository.CoverPalette
 import com.ljyh.mei.ui.component.artwork.album.albumMediaBackground
 import com.ljyh.mei.ui.component.glass.LocalMeiChromeContentColor
 import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
+import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
+import com.ljyh.mei.ui.component.layout.AppWindowLayout
+import com.ljyh.mei.utils.color.immersiveArtworkBackground
 import com.ljyh.mei.ui.theme.LocalPageLightStatusBar
 
 internal data class AlbumArtworkColors(
@@ -53,8 +56,27 @@ internal fun albumArtworkColors(
     return AlbumArtworkColors(background, title, secondary, tertiary, accent)
 }
 
+/** Phone portrait static artwork uses the displayed bitmap, rather than optional video metadata. */
 @Composable
-internal fun AlbumArtworkTheme(state: AlbumDetailUiState, content: @Composable () -> Unit) {
+internal fun usesPhoneStaticAlbumBackdrop(state: AlbumDetailUiState): Boolean =
+    LocalAppWindowLayout.current != AppWindowLayout.Wide && !LocalPhoneLandscape.current &&
+        albumArtworkKind(state.artworkMode, state.album.publishTime, state.motionArtwork != null, state.modelMode) == AlbumArtworkKind.Static
+
+internal fun albumStaticArtworkColors(source: Color): AlbumArtworkColors {
+    val background = immersiveArtworkBackground(source)
+    val ink = if (background.luminance() > .179f) Color.Black else Color.White
+    fun secondary(amount: Float): Color = lerp(background, ink, amount).takeIf {
+        albumColorContrast(it, background) >= 4.5f
+    } ?: ink
+    return AlbumArtworkColors(background, ink, secondary(.86f), secondary(.78f), ink)
+}
+
+@Composable
+internal fun AlbumArtworkTheme(
+    state: AlbumDetailUiState,
+    staticColor: Color? = null,
+    content: @Composable () -> Unit,
+) {
     val original = MaterialTheme.colorScheme
     val fallbackBackground = albumMediaBackground()
     val motion = state.motionArtwork?.takeIf {
@@ -62,8 +84,10 @@ internal fun AlbumArtworkTheme(state: AlbumDetailUiState, content: @Composable (
     }
     val portrait = !LocalPhoneLandscape.current
     val preferred = if (portrait) motion?.portraitClip?.palette else motion?.palette
-    val palette = remember(motion, preferred, fallbackBackground) {
+    val staticBackdrop = usesPhoneStaticAlbumBackdrop(state)
+    val palette = remember(motion, preferred, fallbackBackground, staticBackdrop, staticColor) {
         motion?.let { albumArtworkColors(preferred, it.palette, fallbackBackground) }
+            ?: staticColor?.takeIf { staticBackdrop }?.let(::albumStaticArtworkColors)
     }
     val background = palette?.background ?: fallbackBackground
     val colors = if (palette == null) original.copy(background = background, surface = background) else {

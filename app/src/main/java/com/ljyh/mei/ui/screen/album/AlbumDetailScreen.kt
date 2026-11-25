@@ -283,18 +283,7 @@ internal fun AlbumDetailScreen(
         }
         is Resource.Success -> {
             val coverUrl = result.data.album.picUrl
-            var coverColor by remember(coverUrl) {
-                mutableStateOf<Color?>(viewModel.cachedCoverColor(coverUrl))
-            }
-            LaunchedEffect(coverUrl) {
-                coverColor = try {
-                    viewModel.coverColor(coverUrl)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    null
-                }
-            }
+            val coverColor = remember(coverUrl) { viewModel.cachedCoverColor(coverUrl) }
             content(
                 AlbumDetailUiState(
                     album = result.data.album,
@@ -321,6 +310,7 @@ internal fun AlbumDetailScreen(
                     onArtworkModeChange = artworkPreferences.onModeChange,
                     onModelModeChange = artworkPreferences.onModelChange,
                     onArtworkError = { failedMotion = true },
+                    onStaticArtworkChanged = { url, image -> image?.let { viewModel.coverColor(url, it) } },
                     onBack = { navController.popBackStack() },
                     onArtistClick = { artistId ->
                         Screen.Artist.navigate(navController) { addPath(artistId.toString()) }

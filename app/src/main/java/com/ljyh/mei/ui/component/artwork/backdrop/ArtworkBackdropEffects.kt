@@ -1,4 +1,4 @@
-package com.ljyh.mei.ui.screen.artist.component
+package com.ljyh.mei.ui.component.artwork.backdrop
 
 import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 
 /** MusicUI 24B156: the mask is drawn at half width, then expanded over the artwork. */
-internal object ArtistBackdropGeometry {
+internal object ArtworkBackdropGeometry {
     const val MaxRadius = 160f
     fun scale(scroll: Float): Float = when {
         scroll < 0f -> 1f - scroll * 0.002f
@@ -31,28 +31,35 @@ internal object ArtistBackdropGeometry {
 
 /** Only the photographic layer is filtered. Names, buttons and song rows stay sharp. */
 @Composable
-internal fun Modifier.artistBackdropEffects(scrollPixels: () -> Float): Modifier {
+internal fun Modifier.artworkBackdropEffects(
+    scrollPixels: () -> Float,
+    clearHeightFraction: Float = 0f,
+    fadeStartFraction: Float = .25f,
+    fadeEndFraction: Float = .65f,
+): Modifier {
     val filter = remember {
-        if (Build.VERSION.SDK_INT >= 33) ArtistVariableBlur() else null
+        if (Build.VERSION.SDK_INT >= 33) ArtworkVariableBlur() else null
     }
-    val scrollBlur = remember { if (Build.VERSION.SDK_INT >= 31) ArtistScrollBlur() else null }
+    val scrollBlur = remember { if (Build.VERSION.SDK_INT >= 31) ArtworkScrollBlur() else null }
     return graphicsLayer {
         renderEffect = if (Build.VERSION.SDK_INT >= 31) scrollBlur?.effect(
-            ArtistBackdropGeometry.extraBlur(scrollPixels() / density) * density,
+            ArtworkBackdropGeometry.extraBlur(scrollPixels() / density) * density,
         )?.asComposeRenderEffect() else null
     }.graphicsLayer {
         val scroll = scrollPixels() / density
-        val zoom = ArtistBackdropGeometry.scale(scroll)
+        val zoom = ArtworkBackdropGeometry.scale(scroll)
         scaleX = zoom
         scaleY = zoom
         translationY = -scrollPixels().coerceAtLeast(0f) * 0.4f
-        alpha = ArtistBackdropGeometry.opacity(scroll)
+        alpha = ArtworkBackdropGeometry.opacity(scroll)
     }.graphicsLayer {
         compositingStrategy = CompositingStrategy.Offscreen
     }.drawWithCache {
+        val fadeExtent = maxOf(1f, fadeEndFraction)
         val fade = Brush.verticalGradient(
-            0f to Color.White, 0.25f to Color.White, 0.65f to Color.Transparent,
-            1f to Color.Transparent, endY = size.width,
+            0f to Color.White, (fadeStartFraction / fadeExtent) to Color.White,
+            (fadeEndFraction / fadeExtent) to Color.Transparent, 1f to Color.Transparent,
+            endY = size.width * fadeExtent,
         )
         onDrawWithContent {
             drawContent()
@@ -61,7 +68,7 @@ internal fun Modifier.artistBackdropEffects(scrollPixels: () -> Float): Modifier
         }
     }.graphicsLayer {
         renderEffect = if (Build.VERSION.SDK_INT >= 33) {
-            filter?.effect(size, density)?.asComposeRenderEffect()
+            filter?.effect(size, density, clearHeightFraction)?.asComposeRenderEffect()
         } else null
         clip = true
     }
@@ -73,20 +80,22 @@ internal fun Modifier.artistBackdropEffects(scrollPixels: () -> Float): Modifier
  * There is no glass material, refraction, tint or highlight in this renderer.
  */
 @RequiresApi(33)
-internal class ArtistVariableBlur {
-    private val horizontal = RuntimeShader(ArtistVariableBlurShader)
-    private val vertical = RuntimeShader(ArtistVariableBlurShader)
+internal class ArtworkVariableBlur {
+    private val horizontal = RuntimeShader(ArtworkVariableBlurShader)
+    private val vertical = RuntimeShader(ArtworkVariableBlurShader)
     private var previousSize = Size.Zero
     private var previousDensity = 0f
+    private var previousClearHeight = -1f
     private var base: RenderEffect? = null
 
-    fun effect(size: Size, density: Float): RenderEffect? {
+    fun effect(size: Size, density: Float, clearHeightFraction: Float = 0f): RenderEffect? {
         if (size.width <= 0f || size.height <= 0f) return null
-        if (size != previousSize || density != previousDensity) {
+        if (size != previousSize || density != previousDensity || clearHeightFraction != previousClearHeight) {
             for ((shader, axis) in listOf(horizontal to floatArrayOf(1f, 0f), vertical to floatArrayOf(0f, 1f))) {
                 shader.setFloatUniform("bounds", size.width, size.height)
                 shader.setFloatUniform("axis", axis)
-                shader.setFloatUniform("maxRadius", ArtistBackdropGeometry.MaxRadius * density)
+                shader.setFloatUniform("maxRadius", ArtworkBackdropGeometry.MaxRadius * density)
+                shader.setFloatUniform("clearHeight", size.width * clearHeightFraction)
             }
             base = RenderEffect.createChainEffect(
                 RenderEffect.createRuntimeShaderEffect(vertical, "image"),
@@ -94,13 +103,14 @@ internal class ArtistVariableBlur {
             )
             previousSize = size
             previousDensity = density
+            previousClearHeight = clearHeightFraction
         }
         return base
     }
 }
 
 @RequiresApi(31)
-private class ArtistScrollBlur {
+private class ArtworkScrollBlur {
     private var previousRadius = -1
     private var output: RenderEffect? = null
     fun effect(extraPixels: Float): RenderEffect? {
@@ -117,14 +127,15 @@ private class ArtistScrollBlur {
 
 // Mask stops recovered from ArtistDetailBackgroundView, not the older MusicCoreUI blur.
 // x/2 reproduces MusicUI's half-width mask renderer, hence the broad elliptical clear area.
-internal const val ArtistVariableBlurShader = """
+internal const val ArtworkVariableBlurShader = """
     uniform shader image;
     uniform float2 bounds;
     uniform float2 axis;
     uniform float maxRadius;
+    uniform float clearHeight;
 
     float mask(float2 p) {
-        float distance = length(float2((p.x - bounds.x * 0.5) * 0.5, p.y)) / bounds.x;
+        float distance = length(float2((p.x - bounds.x * 0.5) * 0.5, max(0.0, p.y - clearHeight))) / bounds.x;
         if (distance <= 0.4) return 0.0;
         if (distance <= 0.5) return mix(0.0, 0.0625, (distance - 0.4) / 0.1);
         if (distance <= 0.75) return mix(0.0625, 0.4, (distance - 0.5) / 0.25);

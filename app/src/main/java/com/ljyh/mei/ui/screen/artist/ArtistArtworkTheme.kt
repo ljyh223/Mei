@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
 import com.ljyh.mei.ui.theme.LocalPageLightStatusBar
+import com.ljyh.mei.utils.color.immersiveArtworkBackground
 
 internal const val ArtistImmersiveSecondaryOpacity = 0.86f
 
@@ -29,7 +30,7 @@ internal fun ArtistArtworkTheme(
         val source = sourceColor ?: (backgroundOverride ?: artwork?.portrait?.background)?.let { value ->
             runCatching { Color(android.graphics.Color.parseColor("#$value")) }.getOrNull()
         } ?: original.background
-        if (immersive) artistImmersiveBackground(source) else source
+        if (immersive) immersiveArtworkBackground(source) else source
     }
     val foreground = if (background.luminance() > 0.179f) Color.Black else Color.White
     val colors = if (ready) original.copy(
@@ -53,18 +54,4 @@ internal fun ArtistArtworkTheme(
     MaterialTheme(colorScheme = colors) {
         CompositionLocalProvider(LocalContentColor provides colors.onBackground, content = content)
     }
-}
-
-/** MusicUI darkens each source channel by 0.65 × relative luminance above its 0.1 threshold. */
-internal fun artistImmersiveBackground(source: Color): Color {
-    val luminance = source.luminance()
-    if (luminance <= 0.1f) return source
-    val subtraction = luminance * 0.65f
-    return Color(
-        red = (source.red - subtraction).coerceAtLeast(0f),
-        green = (source.green - subtraction).coerceAtLeast(0f),
-        blue = (source.blue - subtraction).coerceAtLeast(0f),
-        alpha = source.alpha,
-        colorSpace = source.colorSpace,
-    )
 }
