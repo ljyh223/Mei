@@ -2,7 +2,6 @@ package com.ljyh.mei.ui.screen.main.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ljyh.mei.AppContext
 import com.ljyh.mei.data.model.eapi.HomePageResourceShow
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.network.Resource
@@ -20,73 +19,19 @@ class HomeViewModel @Inject constructor(
     private val playlists: com.ljyh.mei.data.repository.PlaylistRepository,
     private val colorRepository: ColorRepository
 ) : ViewModel() {
-    val context= AppContext.instance
 
-    private val _homePageResourceShow =
-        MutableStateFlow<Resource<List<HomePageResourceShow.Data.Block>>>(Resource.Loading)
-    val homePageResourceShow: StateFlow<Resource<List<HomePageResourceShow.Data.Block>>> = _homePageResourceShow
+    private val feed = HomeFeedController(repository, viewModelScope)
+    val homePageResourceShow = feed.content
+    val loadingMore = feed.loadingMore
+    val loadMoreError = feed.loadMoreError
+    val refreshing = feed.refreshing
+    val refreshError = feed.refreshError
+    val hasMore = feed.hasMore
 
+    fun homePageResourceShow(refresh: Boolean = false) = feed.load(refresh)
+    fun homePageResourceShow(refresh: Boolean = false, userId: String) = feed.load(refresh, userId)
+    fun loadMore() = feed.loadMore()
 
-    private var feed: HomePageResourceShow.Data? = null
-    private var requestJob: kotlinx.coroutines.Job? = null
-    private var account: String? = null
-    val loadingMore = MutableStateFlow(false)
-    val loadMoreError = MutableStateFlow(false)
-    val refreshing = MutableStateFlow(false)
-    val refreshError = MutableStateFlow(false)
-    val hasMore = MutableStateFlow(false)
-
-    fun homePageResourceShow(refresh: Boolean = false, userId: String = account.orEmpty()) {
-        val changed = account != null && account != userId
-        if (!changed && !refresh && _homePageResourceShow.value is Resource.Success) return
-        if (!changed && !refresh && requestJob?.isActive == true) return
-        account = userId
-        requestJob?.cancel()
-        if (changed) {
-            feed = null
-            _homePageResourceShow.value = Resource.Loading
-        }
-        loadingMore.value = false
-        loadMoreError.value = false
-        refreshError.value = false
-        requestJob = viewModelScope.launch {
-            try {
-                refreshing.value = true
-                when (val result = repository.getHomePageResourceShow(refresh || changed)) {
-                    is Resource.Success -> {
-                        feed = result.data
-                        hasMore.value = result.data.hasMore
-                        _homePageResourceShow.value = Resource.Success(result.data.blocks)
-                    }
-                    is Resource.Error -> {
-                        if (feed == null) _homePageResourceShow.value = result
-                        else refreshError.value = true
-                    }
-                    else -> Unit
-                }
-            } finally { refreshing.value = false }
-        }
-    }
-
-    fun loadMore() {
-        val previous = feed ?: return
-        if (!hasMore.value || refreshing.value || loadingMore.value) return
-        loadingMore.value = true
-        loadMoreError.value = false
-        requestJob = viewModelScope.launch {
-            try {
-                when (val result = repository.loadMore(previous)) {
-                    is Resource.Success -> {
-                        feed = result.data
-                        hasMore.value = result.data.hasMore
-                        _homePageResourceShow.value = Resource.Success(result.data.blocks)
-                    }
-                    is Resource.Error -> loadMoreError.value = true
-                    else -> Unit
-                }
-            } finally { loadingMore.value = false }
-        }
-    }
     val preparingPlaylistId = MutableStateFlow<String?>(null)
 
     suspend fun preparePlaylistQueue(id: String): Resource<com.ljyh.mei.playback.queue.ListQueue> {
@@ -132,7 +77,8 @@ class HomeViewModel @Inject constructor(
     /** Returns immediately when a card re-enters composition, avoiding its fallback-color flash. */
     fun getCachedColor(url: String) = colorRepository.getFromMemory(url)
 
-    suspend fun getOrExtractColor(url: String) = colorRepository.getColorOrExtract(context, url)
+    suspend fun colorFromLoadedArtwork(url: String, image: coil3.Image) =
+        colorRepository.getColorFromLoadedArtwork(url, image)
 
 
 

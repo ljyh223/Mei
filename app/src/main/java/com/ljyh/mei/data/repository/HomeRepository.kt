@@ -10,34 +10,48 @@ import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.EApiService
 import com.ljyh.mei.data.network.safeApiCall
 import com.ljyh.mei.utils.preferences.dataStore
-import com.ljyh.mei.utils.preferences.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
+import com.ljyh.mei.data.network.Resource
 import kotlinx.serialization.json.*
 import kotlinx.serialization.encodeToString
-import java.io.File
 
-class HomeRepository(private val eApiService: EApiService, private val apiService: ApiService) {
+interface HomeFeedSource {
+    fun isHomePageCacheFresh(userId: String): Boolean
+    suspend fun getCachedHomePageResourceShow(userId: String): HomePageResourceShow.Data?
+    suspend fun getHomePageResourceShow(refresh: Boolean = false): Resource<HomePageResourceShow.Data>
+    suspend fun loadMore(previous: HomePageResourceShow.Data): Resource<HomePageResourceShow.Data>
+}
+
+class HomeRepository(private val eApiService: EApiService, private val apiService: ApiService) : HomeFeedSource {
     private val context = AppContext.instance
     private val adDeviceIdProvider = AdDeviceIdProvider(context, eApiService)
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; encodeDefaults = true }
 
-    suspend fun getHomePageResourceShow(refresh: Boolean = false) = fetch(null, refresh)
-    suspend fun loadMore(previous: HomePageResourceShow.Data) = fetch(previous, false)
+    private val cache = HomeFeedCache(context.filesDir, json)
+
+    override fun isHomePageCacheFresh(userId: String): Boolean =
+        cache.peek(userId)?.let { HomeFeedCachePolicy.isFresh(it.savedAt, System.currentTimeMillis()) } == true
+
+    override suspend fun getCachedHomePageResourceShow(userId: String) = withContext(Dispatchers.IO) {
+        if (context.dataStore.data.first()[UserIdKey].orEmpty() != userId) null else cache.read(userId)?.data
+    }
+
+    override suspend fun getHomePageResourceShow(refresh: Boolean) = fetch(null, refresh)
+    override suspend fun loadMore(previous: HomePageResourceShow.Data) = fetch(previous, false)
 
     private suspend fun fetch(previous: HomePageResourceShow.Data?, refresh: Boolean) = withContext(Dispatchers.IO) {
         safeApiCall {
-            val user = context.dataStore[UserIdKey].orEmpty()
-            // New format includes pagination state; old block-only cache cannot resume a feed.
-            val cache = File(context.filesDir, "home_feed_v5_${user.hashCode()}.json")
-            val saved = if (cache.exists()) runCatching {
-                json.decodeFromString<HomePageResourceShow.Data>(cache.readText())
-            }.getOrNull() else null
-            if (previous == null && !refresh && cache.exists() &&
-                System.currentTimeMillis() - cache.lastModified() in 0 until 30 * 60 * 1000L) {
-                saved?.let { return@safeApiCall it }
+            val user = context.dataStore.data.first()[UserIdKey].orEmpty()
+            // Pagination already carries its cursor and downgrade state; do not decode the growing cache again.
+            val stored = if (previous == null) cache.read(user) else null
+            val saved = stored?.data
+            if (previous == null && !refresh && stored != null &&
+                HomeFeedCachePolicy.isFresh(stored.savedAt, System.currentTimeMillis())) {
+                return@safeApiCall stored.data
             }
-            val adId = adDeviceIdProvider.get()
+            val adId = adDeviceIdProvider.cachedAndRefresh()
             val request = buildGetHomePageResourceShow("true") {
                 isFirstScreen = (previous == null).toString()
                 cursor = (previous?.cursor ?: 0).toString()
@@ -59,6 +73,7 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
                 extJson = JsonObject(extras).toString()
                 adExtJson = json.encodeToString(buildAdExtJson { adDeviceId = adId })
             }
+            val requestedAt = System.currentTimeMillis()
             val response = eApiService.getHomePageResourceShow(request)
             check(response.code == 200) { "Home request failed: ${response.code}" }
             val page = response.data
@@ -66,9 +81,9 @@ class HomeRepository(private val eApiService: EApiService, private val apiServic
                 previous?.cursor ?: 0, page.cursor, page.hasMore,
                 page.blocks.joinToString { it.positionCode })
             val combined = previous?.append(page) ?: page.copy(loadedPositionCodes = page.blocks.map { it.positionCode }.distinct())
-            if (context.dataStore[UserIdKey].orEmpty() == user) {
-                // Cache failure should not turn a successful network response into an error.
-                runCatching { cache.writeText(json.encodeToString(combined)) }
+            if (context.dataStore.data.first()[UserIdKey].orEmpty() == user) {
+                if (previous == null) cache.store(user, combined, requestedAt)
+                else cache.storeNextPage(user, previous, combined)
             }
             combined
         }

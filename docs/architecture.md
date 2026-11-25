@@ -14,6 +14,7 @@
 | 手机／平板外层、底栏、搜索与输入法避让 | `ui/app/PhoneApp.kt`、`ui/tablet/TabletApp.kt` | 两种外层各自布局，导航与用户意图共享 |
 | 页面注册、参数、返回栈 | `ui/screen/Screen.kt`、`NavigationBuilder.kt`、`PageDestination.kt` | 同一业务目的地共用路由 |
 | 页面数据与操作 | 对应功能的 Screen、ViewModel、Repository | 先核对现有状态所有者，再调整边界 |
+| 首页等待、图片呈现与缓存 | `ui/screen/main/home/`、`data/repository/HomeRepository.kt` | `HomeFeedController` 由 ViewModel 持有，见 [首页加载](home-feed.md) |
 | 歌单双栏、排序、位置或下载确认 | `ui/screen/playlist/` | 见 [歌单架构](playlist-detail-architecture.md) |
 | 顶栏、内容边距、集合页框架 | `ui/component/glass/`、`layout/`、`collection/` | 复用公共容器及安全区规则 |
 | 接口与响应解析 | `data/repository/`、`data/network/`、`data/model/` | 路径、协议和模型一起核对 |
@@ -204,6 +205,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | 歌单展示、布局与状态恢复 | [playlist-detail-architecture.md](playlist-detail-architecture.md) |
 | 艺人资源、大图顶部及无资源回退 | [artist-detail.md](artist-detail.md) |
 | 综合搜索、分类分页与结果状态 | [search-results.md](search-results.md) |
+| 首页加载、图片取色与缓存 | [home-feed.md](home-feed.md) |
 | 完整集合页与公共卡片 | [collection-pages.md](collection-pages.md) |
 | UI 边距、顶栏与材质背景 | [ui-chrome-alignment.md](ui-chrome-alignment.md)，范围以 AGENTS.md 为准 |
 | 外观设置分组、子页与偏好 | [appearance-settings.md](appearance-settings.md) |

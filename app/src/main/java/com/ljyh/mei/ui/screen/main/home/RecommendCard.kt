@@ -62,10 +62,9 @@ fun RecommendCard(
         mutableStateOf(viewModel.getCachedColor(cover) ?: Color.DarkGray)
     }
 
-    LaunchedEffect(cover, isLoading) {
-        if (!isLoading) {
-            extractedColor = viewModel.getOrExtractColor(cover)
-        }
+    var loadedArtwork by remember(cover) { mutableStateOf<coil3.Image?>(null) }
+    LaunchedEffect(cover, loadedArtwork) {
+        loadedArtwork?.let { extractedColor = viewModel.colorFromLoadedArtwork(cover, it) }
     }
 
     // Gently soften saturated artwork colors and give the text a little contrast headroom.
@@ -85,6 +84,7 @@ fun RecommendCard(
     ) {
         if (!isLoading) AsyncImage(
             model = cover,
+            onSuccess = { loadedArtwork = it.result.image },
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
