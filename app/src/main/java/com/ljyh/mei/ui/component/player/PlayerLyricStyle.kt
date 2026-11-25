@@ -41,6 +41,7 @@ internal fun rememberPlayerLyricStyle(): PlayerLyricStyle {
     val showTranslation by rememberPreference(ShowLyricTransitionKey, true)
     val showPhonetic by rememberPreference(ShowLyricPhoneticKey, true)
     val baseStyle = LocalTextStyle.current.copy(
+        color = LocalPlayerForegroundColor.current,
         fontFamily = SFPro(),
         lineHeight = TextUnit.Unspecified,
         textMotion = TextMotion.Animated,

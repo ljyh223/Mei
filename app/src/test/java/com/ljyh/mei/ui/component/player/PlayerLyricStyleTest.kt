@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -48,6 +52,39 @@ import org.robolectric.annotation.LooperMode
 @Config(sdk = [36], qualifiers = "w600dp-h900dp", manifest = Config.NONE)
 @LooperMode(LooperMode.Mode.PAUSED)
 class PlayerLyricStyleTest {
+    @Test fun everyLyricRoleFollowsPlayerInkInsteadOfAnOldWhiteTextStyle() {
+        var foreground by mutableStateOf(Color.Black)
+        var style: PlayerLyricStyle? = null
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                CompositionLocalProvider(LocalPlayerForegroundColor provides foreground,
+                    LocalTextStyle provides LocalTextStyle.current.copy(color = Color.White)) {
+                    val current = rememberPlayerLyricStyle()
+                    SideEffect { style = current }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            compose.runOnIdle {
+                val current = requireNotNull(style)
+                assertEquals(Color.Black, current.main.color)
+                assertEquals(Color.Black, current.translation.color)
+                assertEquals(Color.Black, current.phonetic.color)
+                foreground = Color.White
+            }
+            compose.runOnIdle {
+                val current = requireNotNull(style)
+                assertEquals(Color.White, current.main.color)
+                assertEquals(Color.White, current.translation.color)
+                assertEquals(Color.White, current.phonetic.color)
+            }
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @get:Rule val compose = createEmptyComposeRule()
 
     @Test

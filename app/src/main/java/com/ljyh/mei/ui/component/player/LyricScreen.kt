@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -123,6 +122,7 @@ fun LyricScreen(
         positioningInitialLine = false
     }
     val style = rememberPlayerLyricStyle()
+    val lyricBlendMode = playerLyricBlendMode(style.main.color)
     val (seekOnLyricTap, _) = rememberPreference(SeekOnLyricTapKey, true)
 
     LaunchedEffect(controlsVisible) {
@@ -228,9 +228,12 @@ fun LyricScreen(
                             .padding(vertical = lyricsVerticalPadding)
                             .padding(end = lyricsEndPadding)
                             .graphicsLayer {
-                                blendMode = BlendMode.Plus
+                                blendMode = lyricBlendMode
                                 compositingStrategy = CompositingStrategy.Offscreen
                             },
+                        // The renderer has its own white/Plus defaults independent of TextStyle.
+                        textColor = style.main.color,
+                        blendMode = lyricBlendMode,
                         normalLineTextStyle = style.main,
                         translationTextStyle = style.translation,
                         accompanimentLineTextStyle = style.translation,
