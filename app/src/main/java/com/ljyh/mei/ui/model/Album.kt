@@ -9,7 +9,9 @@ data class Album(
     val title: String,
     val cover: String,
     val size: Int,
-    var artist: List<Artist>
+    var artist: List<Artist>,
+    val releaseType: String = "",
+    val publishTime: Long = 0,
 ){
     data class Artist(
         val id: Long,

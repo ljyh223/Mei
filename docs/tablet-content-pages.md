@@ -17,12 +17,17 @@ ui/
 │   │   ├── ArtistDetailUiState.kt    # 展示状态与操作
 │   │   ├── AdaptiveArtistContent.kt  # 三种装配选择；手机横屏保留两栏
 │   │   ├── TabletArtistContent.kt    # 平板的单一纵向列表与横向专辑
+│   │   ├── TabletArtistOverview.kt   # 最新发行与三首一列的热门歌曲
+│   │   ├── TabletArtistReleaseShelf.kt # 专辑／单曲与 EP 横向分区
+│   │   ├── ArtistDiscography.kt      # 发行时间排序与类别组织
 │   │   ├── TabletArtistHeader.kt     # AM 名字／操作与网易云回退
 │   │   ├── TabletArtistBackdrop.kt   # 独立图片背景、反射与共享 Coil painter
 │   │   ├── component/ArtistBackdropEffects.kt # hero 径向模糊、透明遮罩与滚动变换
 │   │   ├── component/ArtistColorBackdrop.kt # 普通人像的低分辨率模糊颜色背景
 │   │   ├── component/ArtistMotionBackdrop.kt # 动态视频首帧、暂停与释放
-│   │   ├── component/ArtistVideoBackdropView.kt # 单纹理反射及原生背景效果
+│   │   ├── component/ArtistVideoBackdropView.kt # 单纹理原图／倒影的区域裁剪
+│   │   ├── component/ArtistVideoComposition.kt # 显式 GPU 合成、模糊与隔离渐隐
+│   │   ├── component/ArtistLatestReleaseCard.kt # 普通卡片内左封面／右发行信息
 │   │   ├── component/TabletArtistSongRow.kt # 共享列表内的紧凑歌曲行
 │   │   ├── TabletNeteaseArtistHeader.kt # 网易云姓名与共用资料头装配
 │   │   ├── TabletNeteaseArtistBackdrop.kt # 网易云图片选择、共享加载与颜色背景
@@ -74,7 +79,7 @@ ui/
 
 歌手平板的前景内容整页统一滚动。AM 成功后在列表外绘制横向背景，图片通过底部反射、径向可变模糊和独立透明遮罩衔接到同色正文；背景按原版系数缓慢上移并随滚动淡出。动态资源在首帧就绪后显示静音循环视频，预览、加载或视频失败期间显示静态候选；背景不可见或页面不在前台时暂停，退出组合时释放。有效静态宽图失败后再试普通人像；普通人像使用柔化颜色背景和前景 192dp 圆形头像，不延展为清晰的宽幅照片。艺术字和操作位于列表头部，保持清晰并随正文滚动。渲染分层和验证边界见 [艺人详情](artist-detail.md) 与 [AM 背景研究](artist-background-research.md)。网易云复用普通人像的柔化背景与前景 192dp 圆形头像，姓名使用网易云文字，与操作组居中自然排列；优先头像，缺失或失败时使用封面，背景和前景共享一次解码，不把普通图片当作清晰的宽幅 hero。
 
-AM 正文最大 1280dp，网易云最大 960dp，沿公共内容边距对齐。预览 12 首热门歌曲，按宽度与字号选择 1–3 列的紧凑歌曲条目，取消预览中的宽表格；每行仍在同一纵向列表内，队列顺序与点歌索引不变。横向专辑预览最多 12 张，保留全部入口。
+AM 与网易云正文统一最大 1280dp，沿公共内容边距对齐。两种来源共用沉浸式图片配色；网易云从实际解码的人像取色，背景渐隐到同色正文，取色复用共享颜色仓库及 Coil 已加载图片，不额外下载。普通姓名统一字号与标题区域，切换来源不改变正文宽度规则。首行左侧 Latest Release 普通横向卡片（左封面、右文字）、右侧热门单曲，普通字号从 840dp 正文宽度并排，不足或字体放大时上下排列。左侧封面图片本身与右侧自然歌曲内容等高，保持方形、文字居右；不拉伸歌曲行或增大歌曲内容高度；热门单曲预览 12 首，三首一列横向浏览，右栏按宽度显示一至两列；队列顺序与点歌索引不变。随后是专辑、单曲与 EP 两个横向分区，各最多预览 12 张，全部入口保留对应类别。类型和发行时间来自原接口字段，预览逐页补充并设有上限，完整分类分页继续按服务端原始条数推进。MV 尚未设计，不显示空壳分区。实现与验证边界见艺人专题。
 
 AM 歌手人像默认关闭；仅主图解码成功后启用 AM 配色及头部，Logo 缺失或失败时使用普通姓名。艺术字限制宽高并保持比例；文字／操作可随大字号增高，避开顶栏。图片缓存、来源调试及各资源失败回退见 [艺人详情](artist-detail.md)。简介从 Info 或更多菜单打开。
 

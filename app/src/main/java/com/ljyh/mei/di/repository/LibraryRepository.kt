@@ -1,6 +1,9 @@
 package com.ljyh.mei.di.repository
 
 import android.content.Context
+import android.graphics.Bitmap
+import coil3.Image
+import coil3.BitmapImage
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import coil3.imageLoader
@@ -60,6 +63,30 @@ class ColorRepository @Inject constructor(private val colorDao: ColorDao) {
             ?: return@withContext Color(0xFF777777)
         memoryCache[url] = color
         colorDao.insertColor(CacheColor(url = cacheKey(url), color = color.toArgb()))
+        color
+    }
+
+    /** Reuse the card's decoded image instead of starting another thumbnail download for its palette. */
+    suspend fun getColorFromLoadedArtwork(url: String, image: Image): Color = withContext(Dispatchers.IO) {
+        memoryCache[url]?.let { return@withContext it }
+        colorDao.getColor(cacheKey(url))?.let {
+            return@withContext Color(it.color).also { color -> memoryCache[url] = color }
+        }
+        val color = withContext(Dispatchers.Default) {
+            // Animated drawables are also displayed by Coil; do not draw their mutable state on another thread.
+            val original = (image as? BitmapImage)?.bitmap ?: return@withContext null
+            val readable = if (original.config == Bitmap.Config.HARDWARE) {
+                original.copy(Bitmap.Config.ARGB_8888, false)
+            } else original
+            try {
+                readable?.let(::extractCoverColor)
+            } finally {
+                // Coil owns the displayed bitmap; only dispose of our software copy.
+                if (readable !== original) readable?.recycle()
+            }
+        } ?: return@withContext Color(0xFF777777)
+        memoryCache[url] = color
+        colorDao.insertColor(CacheColor(cacheKey(url), color.toArgb()))
         color
     }
 

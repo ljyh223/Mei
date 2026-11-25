@@ -26,6 +26,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.ljyh.mei.data.model.api.ArtistAlbum
+import com.ljyh.mei.data.model.domain.ArtistReleaseCategory
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
@@ -118,6 +119,11 @@ fun ArtistSongsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewMo
 fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewModel()) {
     val navController = LocalNavController.current
     val albums = viewModel.albums.collectAsLazyPagingItems()
+    val categoryTitle = when (viewModel.albumCategory) {
+        ArtistReleaseCategory.All -> "全部专辑"
+        ArtistReleaseCategory.Albums -> "专辑"
+        ArtistReleaseCategory.SinglesAndEps -> "单曲与 EP"
+    }
     val searchState by viewModel.albumSearchState.collectAsStateWithLifecycle()
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -131,7 +137,7 @@ fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewM
     BackHandler(enabled = isSearchActive, onBack = ::closeSearch)
     LaunchedEffect(searchQuery) { viewModel.searchAlbums(searchQuery) }
     MeiCollectionPage(
-        title = "全部专辑",
+        title = categoryTitle,
         itemCount = if (searching) currentSearch.matches.size else albums.itemCount,
         itemKey = if (searching) ({ index -> currentSearch.matches[index].id }) else albums.itemKey { it.id },
         onNavigateBack = { if (isSearchActive) closeSearch() else navController.popBackStack() },
@@ -144,9 +150,9 @@ fun ArtistAlbumsScreen(id: String, viewModel: ArtistCatalogViewModel = hiltViewM
         },
         loading = if (searching) currentSearch.isSearching else albums.loadState.refresh is LoadState.Loading,
         failed = if (searching) currentSearch.error != null else albums.loadState.refresh is LoadState.Error,
-        emptyText = if (searching) "没有找到匹配的专辑" else "暂无专辑", emptyActionLabel = null,
+        emptyText = if (searching) "没有找到匹配的专辑" else "暂无$categoryTitle", emptyActionLabel = null,
         showLargeTitle = !isSearchActive,
-        titleContent = if (isSearchActive) ({ ArtistCatalogSearchField(searchQuery, { searchQuery = it }, "搜索歌手专辑") }) else null,
+        titleContent = if (isSearchActive) ({ ArtistCatalogSearchField(searchQuery, { searchQuery = it }, "搜索$categoryTitle") }) else null,
         actions = { CatalogSearchAction(isSearchActive) { if (isSearchActive) closeSearch() else isSearchActive = true } },
         footer = {
             if (searching) CatalogSearchStatus(currentSearch) { viewModel.searchAlbums(searchQuery) }

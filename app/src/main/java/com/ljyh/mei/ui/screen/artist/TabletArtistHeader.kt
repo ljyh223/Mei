@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.screen.artist
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,7 @@ internal fun TabletArtistHeader(
     if (portraitPainter != null) {
         ArtistProfileHeader(state, actions, onInfo, portraitPainter, false, profileTopPadding, artworkModifier) {
             ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact = true,
-                logoHeight = 64.dp, onLoadStateChanged = onWordmarkChanged)
+                logoHeight = 64.dp, nameStyle = MaterialTheme.typography.headlineLarge, onLoadStateChanged = onWordmarkChanged)
         }
         return
     }

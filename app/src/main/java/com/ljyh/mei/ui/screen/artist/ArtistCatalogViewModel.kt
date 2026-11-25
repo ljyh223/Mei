@@ -7,6 +7,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
 import com.ljyh.mei.data.model.api.ArtistAlbum
+import com.ljyh.mei.data.model.domain.ArtistReleaseCategory
 import com.ljyh.mei.data.model.api.ArtistSong
 import com.ljyh.mei.data.network.Resource
 import com.ljyh.mei.data.repository.ArtistRepository
@@ -31,6 +32,7 @@ class ArtistCatalogViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val artistId: String = checkNotNull(savedStateHandle["id"])
+    val albumCategory = ArtistReleaseCategory.fromRoute(savedStateHandle["category"])
     private val cachedSongs = mutableListOf<ArtistSong.HotSong>()
     private val cachedAlbums = mutableListOf<ArtistAlbum.HotAlbum>()
     private var allSongsLoaded = false
@@ -49,7 +51,7 @@ class ArtistCatalogViewModel @Inject constructor(
     }.flow.cachedIn(viewModelScope)
 
     val albums = Pager(PagingConfig(pageSize = 30, initialLoadSize = 30, enablePlaceholders = false)) {
-        ArtistAlbumsPagingSource(repository, artistId)
+        ArtistAlbumsPagingSource(repository, artistId, albumCategory)
     }.flow.cachedIn(viewModelScope)
 
     fun searchSongs(rawQuery: String) {
@@ -99,7 +101,7 @@ class ArtistCatalogViewModel @Inject constructor(
             _albumSearchState.value = ArtistCatalogSearchState()
             return
         }
-        fun matches() = cachedAlbums.filter { it.name.contains(query, ignoreCase = true) }
+        fun matches() = cachedAlbums.filter { albumCategory.matches(it.type) && it.name.contains(query, ignoreCase = true) }
         _albumSearchState.value = ArtistCatalogSearchState(query, matches(), !allAlbumsLoaded)
         if (allAlbumsLoaded) return
         albumSearchJob = viewModelScope.launch {

@@ -24,6 +24,8 @@ data class ArtistAlbum(
         @SerialName("name") val name: String = "",
         @SerialName("id") val id: Long = 0,
         @SerialName("size") val size: Int = 0,
+        @SerialName("type") val type: String = "",
+        @SerialName("publishTime") val publishTime: Long = 0,
     ) {
         @Serializable
         data class Artist(

@@ -24,6 +24,7 @@ internal data class ArtistDetailUiState(
     val appleArtwork: AppleArtistArtwork? = null,
     val subscription: ArtistSubscriptionState = ArtistSubscriptionState(),
     val appleArtworkEnabled: Boolean = false,
+    val albumsHasMore: Boolean = false,
 )
 internal data class ArtistDetailActions(
     val onBack: () -> Unit,
@@ -37,6 +38,9 @@ internal data class ArtistDetailActions(
     val onRetrySongs: () -> Unit,
     val onRetryAlbums: () -> Unit,
     val onToggleSubscription: () -> Unit = {},
+    val onPortraitDecoded: suspend (String, coil3.Image) -> Color? = { _, _ -> null },
+    val onBrowseAlbumReleases: () -> Unit = onBrowseAlbums,
+    val onBrowseSingles: () -> Unit = onBrowseAlbums,
 )
 
 internal fun artistDisplayAliases(artist: ArtistDetail.Data.Artist): List<String> =

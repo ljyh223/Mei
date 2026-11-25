@@ -29,7 +29,7 @@ internal fun TabletNeteaseArtistHeader(
     ArtistProfileHeader(state, actions, onInfo, portrait, loading, topPadding, artworkModifier) {
         Text(state.artist?.name ?: if (state.detailLoading) "正在加载" else "歌手",
             modifier = Modifier.fillMaxWidth().skeleton(state.detailLoading).semantics { heading() },
-            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }

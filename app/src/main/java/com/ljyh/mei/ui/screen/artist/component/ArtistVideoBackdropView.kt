@@ -1,27 +1,23 @@
 package com.ljyh.mei.ui.screen.artist.component
 
 import android.content.Context
-import android.graphics.BlendMode
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
-import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import android.view.View
 import android.widget.FrameLayout
-import androidx.annotation.RequiresApi
-import androidx.compose.ui.geometry.Size
 import com.ljyh.mei.ui.component.player.cover.ArtworkTextureView
 
-/** Draw one decoded texture twice; reflection never needs another decoder or CPU frame copy. */
+/** One texture is composed before filtering; neither child may escape its destination region. */
 internal class ArtistVideoBackdropView(context: Context) : FrameLayout(context) {
     val texture = ArtworkTextureView(context)
     private val fadePaint = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN) }
-    private val effects = if (Build.VERSION.SDK_INT >= 31) ArtistVideoEffects() else null
+    private val composition = if (Build.VERSION.SDK_INT >= 29) ArtistVideoComposition() else null
     private var extraBlur = 0
 
     init {
@@ -45,10 +41,8 @@ internal class ArtistVideoBackdropView(context: Context) : FrameLayout(context) 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w <= 0 || h <= 0) return
-        fadePaint.shader = LinearGradient(0f, 0f, 0f, w.toFloat(),
-            intArrayOf(Color.WHITE, Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT),
-            floatArrayOf(0f, 0.25f, 0.65f, 1f), Shader.TileMode.CLAMP)
-        if (Build.VERSION.SDK_INT >= 31) setRenderEffect(effects?.effect(w, h, resources.displayMetrics.density, extraBlur))
+        fadePaint.shader = artistVideoFade(w.toFloat())
+        if (Build.VERSION.SDK_INT >= 29) composition?.resize(w, h, resources.displayMetrics.density, extraBlur)
     }
 
     fun updatePresentation(ready: Boolean, scrollPixels: Float) {
@@ -60,45 +54,55 @@ internal class ArtistVideoBackdropView(context: Context) : FrameLayout(context) 
         translationY = -scrollPixels.coerceAtLeast(0f) * 0.4f
         alpha = if (ready) ArtistBackdropGeometry.opacity(scroll) else 0f
         val radius = (ArtistBackdropGeometry.extraBlur(scroll) * density).toInt()
-        if (radius != extraBlur && width > 0 && height > 0) {
+        if (radius != extraBlur) {
             extraBlur = radius
-            if (Build.VERSION.SDK_INT >= 31) setRenderEffect(effects?.effect(width, height, density, radius))
+            if (Build.VERSION.SDK_INT >= 29) composition?.setExtraBlur(radius)
         }
     }
 
     override fun dispatchDraw(canvas: Canvas) {
-        val save = if (Build.VERSION.SDK_INT < 31) canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
-            else canvas.save()
-        drawChild(canvas, texture, drawingTime)
-        val reflection = canvas.save()
-        canvas.translate(0f, texture.height * 4f)
-        canvas.scale(1f, -3f)
-        drawChild(canvas, texture, drawingTime)
-        canvas.restoreToCount(reflection)
-        if (Build.VERSION.SDK_INT < 31) canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fadePaint)
-        canvas.restoreToCount(save)
+        if (width <= 0 || height <= 0) return
+        if (Build.VERSION.SDK_INT >= 29 && canvas.isHardwareAccelerated) {
+            // RenderEffect belongs to an explicitly drawn node, not an outer View whose
+            // recording path is controlled by AndroidView interop. Mask after filtering.
+            composition?.record { drawFrames(it) }?.let(canvas::drawRenderNode)
+        } else {
+            val save = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
+            drawFrames(canvas)
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fadePaint)
+            canvas.restoreToCount(save)
+        }
+    }
+
+    private fun drawFrames(canvas: Canvas) {
+        drawArtistVideoFrames(canvas, width.toFloat(), texture.height.toFloat(), height.toFloat()) {
+            drawChild(it, texture, drawingTime)
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        if (Build.VERSION.SDK_INT >= 29) composition?.discard()
+        super.onDetachedFromWindow()
     }
 }
 
-@RequiresApi(31)
-private class ArtistVideoEffects {
-    private val variable = if (Build.VERSION.SDK_INT >= 33) ArtistVariableBlur() else null
-    private var previousDensity = 0f
-    private var bounds = Size.Zero
-    private var base: RenderEffect? = null
+internal fun artistVideoFade(width: Float): Shader = LinearGradient(0f, 0f, 0f, width,
+    intArrayOf(Color.WHITE, Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT),
+    floatArrayOf(0f, 0.25f, 0.65f, 1f), Shader.TileMode.CLAMP)
 
-    fun effect(width: Int, height: Int, density: Float, extraPixels: Int): RenderEffect {
-        val size = Size(width.toFloat(), height.toFloat())
-        if (size != bounds || density != previousDensity || base == null) {
-            val image = if (Build.VERSION.SDK_INT >= 33) variable?.effect(size, density) else null
-            val mask = RenderEffect.createShaderEffect(LinearGradient(0f, 0f, 0f, size.width,
-                intArrayOf(Color.WHITE, Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT),
-                floatArrayOf(0f, 0.25f, 0.65f, 1f), Shader.TileMode.CLAMP))
-            base = RenderEffect.createBlendModeEffect(image ?: RenderEffect.createOffsetEffect(0f, 0f), mask, BlendMode.DST_IN)
-            bounds = size
-            previousDensity = density
-        }
-        return if (extraPixels > 0) RenderEffect.createBlurEffect(extraPixels.toFloat(), extraPixels.toFloat(),
-            checkNotNull(base), Shader.TileMode.MIRROR) else checkNotNull(base)
+/** In both draws, the original lower edge maps to the exact same seam coordinate. */
+internal inline fun drawArtistVideoFrames(canvas: Canvas, width: Float, frameHeight: Float,
+    height: Float, drawFrame: (Canvas) -> Unit) {
+    val original = canvas.save()
+    canvas.clipRect(0f, 0f, width, minOf(frameHeight, height))
+    drawFrame(canvas)
+    canvas.restoreToCount(original)
+    if (height > frameHeight) {
+        val reflection = canvas.save()
+        canvas.clipRect(0f, frameHeight, width, height)
+        canvas.translate(0f, frameHeight * 4f)
+        canvas.scale(1f, -3f)
+        drawFrame(canvas)
+        canvas.restoreToCount(reflection)
     }
 }

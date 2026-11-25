@@ -149,3 +149,6 @@ MusicApplication 内旧的 `MusicCoreUI.ProgressiveBlurView` 确实调用 UIKit 
 
 
 后续视频实现复用 Media3 的装饰视频配置，使用 [TextureView](https://developer.android.com/reference/android/view/TextureView) 的纹理输出及 [RenderEffect](https://developer.android.com/reference/android/graphics/RenderEffect) 合成，不回读每帧位图。音频焦点显式关闭，参见 [ExoPlayer.Builder.setAudioAttributes](https://developer.android.com/reference/androidx/media3/exoplayer/ExoPlayer.Builder#setAudioAttributes(androidx.media3.common.AudioAttributes,boolean))。暂停、首帧和失败行为见 [艺人详情](artist-detail.md)；该实现不把 Android 的原生图层等同于 Apple 的 CAPortalLayer，也不据此宣称已验证真实设备像素输出。
+
+
+视频接缝修正：用户设备截图出现原图与倒影的硬切换后，将外围 View 效果改为显式录制／绘制 RenderNode。原图和倒影先合并为单一输入，统一可变模糊后，再在隔离图层上进行 DST_IN 遮罩，最后施加额外滚动模糊；两次纹理绘制各自裁剪，源图下沿在两次变换后映射到相同的接缝坐标。依据 [RenderNode](https://developer.android.com/reference/android/graphics/RenderNode) 与 RenderEffect 的显式节点应用方式；新的定向测试确认显示列表与几何约束，仍未宣称已验证该设备的视频像素效果。

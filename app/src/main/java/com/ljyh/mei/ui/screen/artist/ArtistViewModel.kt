@@ -12,6 +12,7 @@ import com.ljyh.mei.constants.AppleArtistPortraitEnabledKey
 import com.ljyh.mei.utils.preferences.dataStore
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.catch
+import com.ljyh.mei.data.repository.loadArtistAlbumPreview
 import com.ljyh.mei.data.repository.ArtistRepository
 import com.ljyh.mei.data.repository.artwork.AppleArtistArtworkRepository
 import com.ljyh.mei.di.repository.ColorRepository
@@ -48,6 +49,7 @@ class ArtistViewModel @Inject constructor(
     fun cachedArtistColor(url: String): Color? = colorRepository.getFromMemory(url)
 
     suspend fun artistColor(url: String): Color = colorRepository.getColorOrExtract(context, url)
+    suspend fun artistColor(url: String, image: coil3.Image): Color = colorRepository.getColorFromLoadedArtwork(url, image)
 
     private val artworkController = ArtistArtworkController(
         scope = viewModelScope,
@@ -81,7 +83,15 @@ class ArtistViewModel @Inject constructor(
         albumsId = id
         val revision = ++albumsRevision
         viewModelScope.launch {
-            val result = repository.getArtistAlbums(id)
+            val result = loadArtistAlbumPreview(
+                loadPage = { offset, limit ->
+                    if (albumsId != id || albumsRevision != revision) throw kotlinx.coroutines.CancellationException()
+                    repository.getArtistAlbums(id, offset, limit)
+                },
+                onPage = { page ->
+                    if (albumsId == id && albumsRevision == revision) _artistAlbums.value = Resource.Success(page)
+                },
+            )
             if (albumsId == id && albumsRevision == revision) _artistAlbums.value = result
         }
     }

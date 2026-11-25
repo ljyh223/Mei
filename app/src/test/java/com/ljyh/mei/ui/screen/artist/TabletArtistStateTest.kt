@@ -50,7 +50,8 @@ class TabletArtistStateTest {
         detailLoading = false, detailError = null,
         songs = (1L..12L).map { MediaMetadata(it, "歌曲 $it", "", emptyList(), 60000, MediaMetadata.Album(1, "曲目专辑")) },
         songsLoading = false, songsError = null,
-        albums = (1L..6L).map { Album(it, "专辑 $it", "", 10, emptyList()) },
+        albums = (1L..6L).map { Album(it, "专辑 $it", "", 10, emptyList(), "专辑", 10000 - it) } +
+            Album(100, "最新单曲", "", 1, emptyList(), "Single", 20000),
         albumsLoading = false, albumsError = null, coverColor = null, canPlay = true,
     )
     private val actions = ArtistDetailActions(
@@ -58,6 +59,7 @@ class TabletArtistStateTest {
         onPlayHotSongs = { operation = "play" }, onTrackClick = { song, index -> operation = "song:${song.id}:$index" },
         onTrackMore = { song, _ -> operation = "more:${song.id}" }, onAlbumClick = { operation = "album:$it" },
         onRetryDetail = {}, onRetrySongs = {}, onRetryAlbums = {}, onToggleSubscription = { operation = "favorite" },
+        onBrowseAlbumReleases = { operation = "album-category" }, onBrowseSingles = { operation = "single-category" },
     )
 
     @Test fun tabletUsesOneVerticalFeedAndPreservesPlaybackAndAlbumActions() {
@@ -81,9 +83,81 @@ class TabletArtistStateTest {
         }
     }
 
+    @Test fun overviewPlacesLatestReleaseBesideSongsAndCategoryActionsStaySeparate() {
+        show().use {
+            compose.onNode(vertical).performScrollToNode(hasText("Latest Release"))
+            val latest = compose.onNodeWithText("Latest Release").fetchSemanticsNode().boundsInRoot
+            val songs = compose.onNodeWithText("热门单曲").fetchSemanticsNode().boundsInRoot
+            assertTrue(latest.left < songs.left)
+            assertEquals(latest.top, songs.top, 1f)
+            val releaseBounds = compose.onNodeWithText("最新单曲").fetchSemanticsNode().boundsInRoot
+            val horizontal = SemanticsMatcher.keyIsDefined(SemanticsProperties.HorizontalScrollAxisRange)
+            val songsBounds = compose.onNode(horizontal and hasAnyDescendant(hasText("歌曲 1")))
+                .fetchSemanticsNode().boundsInRoot
+            assertEquals(releaseBounds.top, songsBounds.top, 1f)
+            assertEquals(releaseBounds.bottom, songsBounds.bottom, 1f)
+            val releaseImage = compose.onNodeWithContentDescription("最新发行封面", useUnmergedTree = true)
+                .fetchSemanticsNode().boundsInRoot
+            val releaseTitle = compose.onNodeWithText("最新单曲", useUnmergedTree = true)
+                .fetchSemanticsNode().boundsInRoot
+            assertTrue(releaseImage.right < releaseTitle.left)
+            val dateBounds = compose.onNodeWithText("1970/01/01", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val titleBounds = compose.onNodeWithText("最新单曲", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val countBounds = compose.onNodeWithText("1 首歌曲", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertTrue(dateBounds.bottom <= titleBounds.top)
+            assertTrue(titleBounds.bottom <= countBounds.top)
+            val fullSongsBounds = compose.onNode(horizontal and hasAnyDescendant(hasText("歌曲 1")))
+                .getUnclippedBoundsInRoot()
+            val fullImageBounds = compose.onNodeWithContentDescription("最新发行封面", useUnmergedTree = true)
+                .getUnclippedBoundsInRoot()
+            assertEquals(fullSongsBounds.top.value, fullImageBounds.top.value, 1f)
+            assertEquals(fullSongsBounds.bottom.value, fullImageBounds.bottom.value, 1f)
+            assertEquals((fullImageBounds.right - fullImageBounds.left).value,
+                (fullImageBounds.bottom - fullImageBounds.top).value, 1f)
+            val firstSong = compose.onNodeWithText("歌曲 1").getUnclippedBoundsInRoot()
+            val secondSong = compose.onNodeWithText("歌曲 2").getUnclippedBoundsInRoot()
+            assertEquals((firstSong.bottom - firstSong.top).value * 3f,
+                (fullSongsBounds.bottom - fullSongsBounds.top).value, 1f)
+            assertEquals(firstSong.bottom.value, secondSong.top.value, 1f)
+            compose.onNodeWithText("最新单曲").performClick()
+            compose.runOnIdle { assertEquals("album:100", operation) }
+            compose.onNode(vertical).performScrollToNode(hasText("单曲与 EP"))
+            // The first All action is Top Songs, then Albums, then Singles and EPs.
+            compose.onAllNodesWithText("全部").onLast().performClick()
+            compose.runOnIdle { assertEquals("single-category", operation) }
+            compose.onAllNodes(vertical).assertCountEquals(1)
+        }
+    }
+
+    @Test fun narrowLargeFontOverviewStacksWithoutChangingTheSongQueueIndex() {
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                CompositionLocalProvider(LocalDensity provides Density(1f, 1.6f)) {
+                    Box(Modifier.requiredSize(600.dp, 700.dp)) {
+                        TabletArtistOverview(state, artistDiscography(state.albums).latest, actions)
+                    }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val latest = compose.onNodeWithText("Latest Release").fetchSemanticsNode().boundsInRoot
+            val songs = compose.onNodeWithText("热门单曲").fetchSemanticsNode().boundsInRoot
+            assertTrue(latest.bottom < songs.top)
+            assertEquals(latest.left, songs.left, 1f)
+            val horizontal = SemanticsMatcher.keyIsDefined(SemanticsProperties.HorizontalScrollAxisRange)
+            compose.onNode(horizontal).performScrollToNode(hasText("歌曲 11"))
+            compose.onNodeWithText("歌曲 11").performClick()
+            compose.runOnIdle { assertEquals("song:11:10", operation) }
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun tabletScrollPositionReturnsAfterSwitchingToTheCompactLayout() {
         show().use {
-            compose.onNode(vertical).performScrollToNode(hasText("歌曲 11"))
+            compose.onNode(vertical).performScrollToNode(hasText("单曲与 EP"))
             compose.waitForIdle()
             fun position() = compose.onNode(vertical).fetchSemanticsNode()
                 .config[SemanticsProperties.VerticalScrollAxisRange].value()

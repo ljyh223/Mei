@@ -304,9 +304,12 @@ internal fun NavGraphBuilder.navigationBuilder(
     }
 
     pageDestination(
-        route = "${Screen.ArtistAlbums.route}/{id}",
+        route = "${Screen.ArtistAlbums.route}/{id}?category={category}",
         drawsBehindSideBar = true,
-        arguments = listOf(navArgument("id") { type = NavType.StringType }),
+        arguments = listOf(
+            navArgument("id") { type = NavType.StringType },
+            navArgument("category") { type = NavType.StringType; defaultValue = "all" },
+        ),
     ) {
         pages.ArtistAlbums(id = it.arguments!!.getString("id")!!)
     }

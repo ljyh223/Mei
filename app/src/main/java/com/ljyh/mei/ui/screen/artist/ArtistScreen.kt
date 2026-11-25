@@ -17,7 +17,7 @@ import com.ljyh.mei.ui.component.track.BasicTrackActionMenu
 import com.ljyh.mei.ui.component.track.TrackMenuTarget
 import com.ljyh.mei.ui.local.LocalNavController
 import com.ljyh.mei.ui.local.LocalPlayerConnection
-import com.ljyh.mei.ui.model.Album
+import com.ljyh.mei.data.model.domain.ArtistReleaseCategory
 import com.ljyh.mei.ui.screen.Screen
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
@@ -57,10 +57,7 @@ internal fun ArtistScreen(
         catch (_: Exception) { }
     }
     val songs = remember(songResult) { (songResult as? Resource.Success)?.data?.hotSongs.orEmpty().map { it.toMediaMetadata() } }
-    val albums = remember(albumResult) { (albumResult as? Resource.Success)?.data?.hotAlbums.orEmpty().map { album ->
-        Album(album.id, album.name, album.picUrl, album.size,
-            album.artists.map { Album.Artist(it.id.toLong(), it.name) })
-    } }
+    val albums = remember(albumResult) { (albumResult as? Resource.Success)?.data?.hotAlbums.orEmpty().map { it.toArtistAlbum() } }
     val source = QueueSource(QueueSource.Type.ARTIST, id, artist?.name)
     fun play(track: MediaMetadata) {
         player?.onTrackClicked(track.id.toString(), buildQueue = {
@@ -75,6 +72,7 @@ internal fun ArtistScreen(
             details is Resource.Loading, (details as? Resource.Error)?.message,
             songs, songResult is Resource.Loading, (songResult as? Resource.Error)?.message,
             albums, albumResult is Resource.Loading, (albumResult as? Resource.Error)?.message, color, player != null, artworkSelection.artwork, subscription, artworkSelection.enabled,
+            albumsHasMore = (albumResult as? Resource.Success)?.data?.more == true,
         ),
         ArtistDetailActions(
             onBack = { nav.popBackStack() },
@@ -88,6 +86,13 @@ internal fun ArtistScreen(
             onRetrySongs = { viewModel.getArtistSongs(id, force = true) },
             onRetryAlbums = { viewModel.getArtistAlbums(id, force = true) },
             onToggleSubscription = viewModel::toggleSubscription,
+            onPortraitDecoded = { url, image -> viewModel.artistColor(url, image) },
+            onBrowseAlbumReleases = { Screen.ArtistAlbums.navigate(nav) {
+                addPath(id); addQuery("category", ArtistReleaseCategory.Albums.routeValue)
+            } },
+            onBrowseSingles = { Screen.ArtistAlbums.navigate(nav) {
+                addPath(id); addQuery("category", ArtistReleaseCategory.SinglesAndEps.routeValue)
+            } },
         ),
     )
     BasicTrackActionMenu(menu) { menu = null }

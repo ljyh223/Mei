@@ -32,12 +32,14 @@ class ArtistCatalogResponseTest {
     @Test
     fun artistAlbumPageContainsAlbumsAndMoreFlag() {
         val response = json.decodeFromString<ArtistAlbum>(
-            """{"code":200,"hotAlbums":[{"id":403900711,"name":"太阳之子","picUrl":"https://p1.music.126.net/cover.jpg","size":13,"artists":[{"id":6452,"name":"周杰伦"}]}],"more":true}"""
+            """{"code":200,"hotAlbums":[{"id":403900711,"name":"太阳之子","picUrl":"https://p1.music.126.net/cover.jpg","size":13,"type":"专辑","publishTime":1722470400000,"artists":[{"id":6452,"name":"周杰伦"}]}],"more":true}"""
         )
 
         assertEquals(200, response.code)
         assertTrue(response.more)
         assertEquals(403900711L, response.hotAlbums.single().id)
         assertEquals("周杰伦", response.hotAlbums.single().artists.single().name)
+        assertEquals("专辑", response.hotAlbums.single().type)
+        assertEquals(1722470400000L, response.hotAlbums.single().publishTime)
     }
 }

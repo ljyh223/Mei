@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,7 @@ import com.ljyh.mei.ui.tablet.TabletContentTestActivity
 import com.ljyh.mei.utils.image.ArtworkRequestInterceptor
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -49,6 +51,9 @@ class TabletNeteaseArtistBackdropTest {
         val count = AtomicInteger()
         val portrait = mutableStateOf<Painter?>(null)
         val visible = mutableStateOf(true)
+        val palette = AtomicReference<Color>()
+        val colorUrl = AtomicReference<String>()
+        val colorRequests = AtomicInteger()
         val file = File.createTempFile("netease-portrait-", ".png")
         val bitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
         try {
@@ -69,22 +74,30 @@ class TabletNeteaseArtistBackdropTest {
             TabletContentTestActivity.content = {
                 MaterialTheme {
                     Box(Modifier.requiredSize(1000.dp, 720.dp)) {
-                        TabletNeteaseArtistBackdrop(state, visible.value) { status, painter ->
+                        TabletNeteaseArtistBackdrop(state, visible.value, onPortraitChanged = { status, painter, color ->
                             if (status == ArtistArtworkLoadState.Success) portrait.value = painter
-                        }
+                            if (color != null) palette.set(color)
+                        }, onColorRequested = { loadedUrl, _ ->
+                            colorUrl.set(loadedUrl)
+                            colorRequests.incrementAndGet()
+                            Color.Blue
+                        })
                         portrait.value?.let { Image(it, "歌手照片", Modifier.requiredSize(192.dp)) }
                     }
                 }
             }
             val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
             try {
-                compose.waitUntil(10_000) { compose.waitForIdle(); portrait.value != null }
+                compose.waitUntil(10_000) { compose.waitForIdle(); portrait.value != null && palette.get() != null }
                 assertEquals(requests, count.get())
+                assertEquals(url, colorUrl.get())
+                assertEquals(Color.Blue, palette.get())
                 for (shown in listOf(false, true)) {
                     compose.runOnIdle { visible.value = shown }
                     compose.waitForIdle()
                 }
                 assertNotNull(portrait.value)
+                assertEquals(1, colorRequests.get())
                 assertEquals("Foreground and background share one decode", requests, count.get())
             } finally {
                 activity.pause().stop().destroy()

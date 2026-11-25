@@ -21,11 +21,12 @@ internal fun ArtistArtworkTheme(
     ready: Boolean,
     immersive: Boolean = false,
     backgroundOverride: String? = null,
+    sourceColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
     val original = MaterialTheme.colorScheme
-    val background = remember(artwork, original.background, immersive, backgroundOverride) {
-        val source = (backgroundOverride ?: artwork?.portrait?.background)?.let { value ->
+    val background = remember(artwork, original.background, immersive, backgroundOverride, sourceColor) {
+        val source = sourceColor ?: (backgroundOverride ?: artwork?.portrait?.background)?.let { value ->
             runCatching { Color(android.graphics.Color.parseColor("#$value")) }.getOrNull()
         } ?: original.background
         if (immersive) artistImmersiveBackground(source) else source

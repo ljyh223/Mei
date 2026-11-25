@@ -53,7 +53,9 @@ internal fun ArtistProfileHeader(
                 }
             }
             Spacer(Modifier.height(32.dp))
-            title()
+            Box(Modifier.fillMaxWidth().heightIn(min = 40.dp), contentAlignment = Alignment.Center) {
+                title()
+            }
             Spacer(Modifier.height(16.dp))
             if (state.artist != null) ArtistPrimaryActions(state.canPlay && state.songs.isNotEmpty(),
                 state.subscription, onInfo, actions.onPlayHotSongs, actions.onToggleSubscription)

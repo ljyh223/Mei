@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -96,13 +97,14 @@ internal fun ArtistWordmark(
     name: String,
     compact: Boolean,
     logoHeight: Dp = if (compact) 48.dp else 96.dp,
+    nameStyle: TextStyle? = null,
     onLoadStateChanged: (ArtistArtworkLoadState) -> Unit,
 ) {
     val onStateChanged by rememberUpdatedState(onLoadStateChanged)
     Box(Modifier.fillMaxWidth().heightIn(min = if (compact) 40.dp else 68.dp)
         .clearAndSetSemantics { contentDescription = name; heading() }, contentAlignment = Alignment.Center) {
         val text: @Composable () -> Unit = {
-            Text(name, style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
+            Text(name, style = nameStyle ?: if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }

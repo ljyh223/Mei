@@ -156,9 +156,9 @@ fun ArtistHeaderShimmer(
 // ─── Shared ───────────────────────────────────────────────────────────────────
 
 @Composable
-fun SectionTitle(title: String, onShowAll: (() -> Unit)? = null) {
+fun SectionTitle(title: String, onShowAll: (() -> Unit)? = null, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(meiPageHorizontalPadding()).padding(top = 16.dp),
+        modifier = modifier.fillMaxWidth().padding(meiPageHorizontalPadding()).padding(top = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,

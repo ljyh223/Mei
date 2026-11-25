@@ -1,0 +1,68 @@
+package com.ljyh.mei.ui.screen.artist
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import com.ljyh.mei.data.repository.artwork.AppleArtistArtwork
+import com.ljyh.mei.data.repository.artwork.AppleArtistImage
+import com.ljyh.mei.ui.tablet.TabletContentTestActivity
+import java.util.concurrent.atomic.AtomicReference
+import org.junit.Assert.*
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.LooperMode
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], manifest = Config.NONE)
+@LooperMode(LooperMode.Mode.PAUSED)
+class ArtistArtworkThemeTest {
+    @get:Rule val compose = createEmptyComposeRule()
+
+    @Test fun neteaseUsesTheSameImmersivePaletteAsAppleAndNeverFadesBackToTheLightTheme() {
+        val apple = mutableStateOf(true)
+        val dark = mutableStateOf(false)
+        val scheme = AtomicReference<ColorScheme>()
+        val ink = AtomicReference<Color>()
+        val palette = Color(0xFF2871A5)
+        val artwork = AppleArtistArtwork("1", "歌手", AppleArtistImage("", 1000, 1000, "2871a5"))
+        TabletContentTestActivity.content = {
+            MaterialTheme(colorScheme = if (dark.value) darkColorScheme() else lightColorScheme()) {
+                ArtistArtworkTheme(if (apple.value) artwork else null, true, immersive = true,
+                    sourceColor = if (apple.value) null else palette) {
+                    val current = MaterialTheme.colorScheme
+                    val color = LocalContentColor.current
+                    SideEffect { scheme.set(current); ink.set(color) }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            compose.waitForIdle()
+            val appleColors = scheme.get()
+            for (isDark in listOf(false, true)) {
+                compose.runOnIdle { apple.value = false; dark.value = isDark }
+                compose.waitForIdle()
+                assertEquals(appleColors.background, scheme.get().background)
+                assertEquals(appleColors.onBackground, scheme.get().onBackground)
+                assertEquals(appleColors.primary, scheme.get().primary)
+                assertEquals(appleColors.onSurfaceVariant, scheme.get().onSurfaceVariant)
+                assertEquals(artistImmersiveBackground(palette), scheme.get().background)
+                assertEquals(scheme.get().onBackground, ink.get())
+                assertNotEquals(Color.White, scheme.get().background)
+            }
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+}
