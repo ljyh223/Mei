@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DownloadPathKey
+import com.ljyh.mei.utils.preferences.rememberAlbumArtworkPreferences
+import com.ljyh.mei.constants.AppleMotionEnglishTitlesOnlyKey
+import com.ljyh.mei.utils.preferences.rememberDynamicCoverSettings
 import com.ljyh.mei.constants.CookieKey
 import com.ljyh.mei.constants.DownloadQuality
 import com.ljyh.mei.constants.DownloadQualityKey
@@ -126,6 +129,16 @@ internal fun AlbumDetailScreen(
     }
 
     val detail = (albumDetail as? Resource.Success)?.data
+    val artworkPreferences = rememberAlbumArtworkPreferences()
+    val artworkMode = artworkPreferences.value.mode
+    val allowMotion = !LocalPhoneLandscape.current
+    val motionSettings by rememberDynamicCoverSettings()
+    val (englishMotionOnly) = rememberPreference(AppleMotionEnglishTitlesOnlyKey, false)
+    val motionArtwork by viewModel.motionArtwork.collectAsState()
+    var failedMotion by remember(id, motionArtwork?.url, artworkMode) { mutableStateOf(false) }
+    LaunchedEffect(detail, artworkMode, motionSettings, englishMotionOnly, allowMotion) {
+        viewModel.loadMotionArtwork(detail, artworkMode, motionSettings.activeSources, englishMotionOnly, allowMotion)
+    }
 
     val scope = rememberCoroutineScope()
     var isAlbumSearchActive by remember { mutableStateOf(false) }
@@ -295,6 +308,9 @@ internal fun AlbumDetailScreen(
                     canPlay = playerConnection != null,
                     searchQuery = albumSearchQuery,
                     isSearchActive = isAlbumSearchActive,
+                    artworkMode = artworkMode,
+                    modelMode = artworkPreferences.value.model,
+                    motionArtwork = motionArtwork?.takeIf { it.songId == result.data.songs.firstOrNull()?.id && !failedMotion },
                 ),
                 AlbumDetailActions(
                     onSearchQueryChange = { albumSearchQuery = it },
@@ -302,12 +318,21 @@ internal fun AlbumDetailScreen(
                         isAlbumSearchActive = active
                         if (!active) albumSearchQuery = ""
                     },
+                    onArtworkModeChange = artworkPreferences.onModeChange,
+                    onModelModeChange = artworkPreferences.onModelChange,
+                    onArtworkError = { failedMotion = true },
                     onBack = { navController.popBackStack() },
                     onArtistClick = { artistId ->
                         Screen.Artist.navigate(navController) { addPath(artistId.toString()) }
                     },
                     onPlayAll = {
-                        buildListQueue(0)?.let { playerConnection?.playQueue(it) }
+                        buildListQueue(0)?.let { playerConnection?.playQueue(it, startInShuffleMode = false) }
+                    },
+                    onShuffle = {
+                        val count = result.data.songs.size
+                        if (count > 0) buildListQueue(kotlin.random.Random.nextInt(count))?.let {
+                            playerConnection?.playQueue(it, startInShuffleMode = true)
+                        }
                     },
                     onSubscribe = {
                         when ((subscriptionState as? Resource.Success)?.data) {

@@ -29,10 +29,12 @@ import dev.chrisbanes.haze.glass.hazeGlass
 
 val LocalMeiHazeState = staticCompositionLocalOf<HazeState?> { null }
 val LocalMeiGlassEnabled = staticCompositionLocalOf { false }
+/** Artwork pages may provide a verified foreground independent of the app's theme mode. */
+val LocalMeiChromeContentColor = staticCompositionLocalOf<Color?> { null }
 
 @Composable
 fun meiGlassContentColor(secondary: Boolean = false): Color =
-    LocalMeiGlassAppearance.current.contentColor(
+    LocalMeiChromeContentColor.current ?: LocalMeiGlassAppearance.current.contentColor(
         MaterialTheme.colorScheme, secondary, liveGlass = LocalMeiGlassEnabled.current,
     )
 

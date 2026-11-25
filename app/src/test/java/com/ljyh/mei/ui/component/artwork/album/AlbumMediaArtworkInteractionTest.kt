@@ -31,6 +31,35 @@ import org.robolectric.annotation.LooperMode
 class AlbumMediaArtworkInteractionTest {
     @get:Rule val compose = createEmptyComposeRule()
 
+    @Test fun changingFixedStyleImmediatelyReplacesTheMechanismAndResetsItsOpenState() {
+        val style = mutableStateOf(AlbumMediaStyle.CD)
+        TabletContentTestActivity.content = {
+            MaterialTheme { Box(Modifier.width(380.dp).height(380.dp)) {
+                AlbumMediaArtwork(null, null, "固定造型", interactive = true, style = style.value)
+            } }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        fun mechanism() = compose.onNodeWithContentDescription("专辑《固定造型》封面")
+        fun description() = mechanism().fetchSemanticsNode().config[SemanticsProperties.StateDescription]
+        try {
+            compose.waitForIdle()
+            assertEquals("盒盖已合上", description())
+            mechanism().performClick()
+            assertEquals("盒盖已打开", description())
+            compose.runOnIdle { style.value = AlbumMediaStyle.Cassette }
+            assertEquals("包装已合上", description())
+            mechanism().performClick()
+            assertEquals("包装已打开，磁带在托盘内", description())
+            compose.runOnIdle { style.value = AlbumMediaStyle.Vinyl }
+            assertEquals("唱片在封套内", description())
+            mechanism().performClick()
+            assertTrue(description().contains("唱片正在抽出") || description().contains("唱片已抽出"))
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun openLinerCanReachTheLastTrackAndShrinkingMetadataClampsTheSelectedPage() {
         val tracks = mutableStateOf((1..17).map { AlbumPackageTrack(it, "曲目 $it", 180_000) })
         val date = LocalDate.of(1983, 1, 1).atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli()

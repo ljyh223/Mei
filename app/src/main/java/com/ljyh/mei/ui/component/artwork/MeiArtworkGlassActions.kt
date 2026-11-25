@@ -62,6 +62,7 @@ internal fun MeiArtworkPlayButton(
     modifier: Modifier = Modifier,
     preparing: Boolean = false,
     accessibilityLabel: String? = null,
+    label: String = "播放全部",
 ) {
     MeiGlassSurface(
         modifier = modifier.alpha(if (enabled) 1f else 0.5f),
@@ -83,7 +84,7 @@ internal fun MeiArtworkPlayButton(
                 }
             }
             Text(
-                "播放全部",
+                label,
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

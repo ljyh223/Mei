@@ -67,12 +67,14 @@ internal fun AlbumMediaArtwork(
     interactive: Boolean = false,
     isLoading: Boolean = false,
     tracks: List<AlbumPackageTrack> = emptyList(),
+    style: AlbumMediaStyle? = null,
+    fillAvailableSpace: Boolean = false,
 ) {
-    val format = remember(publishTime) { albumMediaStyle(publishTime) }
+    val format = style ?: albumMediaStyle(publishTime)
     val pages = remember(tracks, format) { albumLinerPages(tracks, format) }
-    var trackPage by rememberSaveable(coverUrl) { mutableIntStateOf(0) }
+    var trackPage by rememberSaveable(coverUrl, format) { mutableIntStateOf(0) }
     val page = trackPage.coerceIn(0, pages.lastIndex)
-    val label = remember(title, artist, publishTime, pages, page) {
+    val label = remember(title, artist, publishTime, pages, page, format) {
         AlbumPackageLabel(title, artist, albumReleaseYear(publishTime), pages[page], tracks.size, page, pages.size, albumLinerCapacity(format))
     }
     val resolver = rememberConstraintsSizeResolver()
@@ -124,7 +126,8 @@ internal fun AlbumMediaArtwork(
     }
     val canInteract = interactive && format != AlbumMediaStyle.Plain && !loading
     val modelHaze = rememberHazeState()
-    BoxWithConstraints(modifier.fillMaxWidth().aspectRatio(AlbumMediaArtworkRatio).then(resolver)
+    BoxWithConstraints(modifier.fillMaxWidth()
+        .then(if (fillAvailableSpace) Modifier else Modifier.aspectRatio(AlbumMediaArtworkRatio)).then(resolver)
         .clip(shape).background(albumMediaBackground()).skeleton(loading, shape)) {
         if (!isLoading) Canvas(Modifier.matchParentSize().hazeSource(modelHaze).background(albumMediaBackground())
             .then(if (canInteract) Modifier.clickable(onClickLabel = action, onClick = ::activate)

@@ -20,21 +20,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.res.painterResource
+import com.ljyh.mei.R
 import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -44,7 +39,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,10 +49,9 @@ import androidx.compose.ui.Modifier
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import com.ljyh.mei.ui.component.glass.MeiHazeTopBar
+import com.ljyh.mei.ui.component.glass.MeiTopBarBackground
 import com.ljyh.mei.ui.component.glass.meiTopBarHeight
-import com.ljyh.mei.ui.component.glass.meiTopBarContentClearance
 import com.ljyh.mei.ui.component.glass.rememberMeiArtworkTopBarState
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -67,32 +60,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntRect
-import com.ljyh.mei.ui.component.artwork.album.*
-import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.sheet.AlbumArtistBottomSheet
 import com.ljyh.mei.ui.component.sheet.DescriptionSheet
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
-import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
-import com.ljyh.mei.utils.share.MediaShareLink
-import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
+import com.ljyh.mei.ui.component.layout.LocalPhoneLandscape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailActions) {
     with(state) {
         with(actions) {
+            val landscape = LocalPhoneLandscape.current
             val listState = rememberLazyListState()
             val artworkBar = rememberMeiArtworkTopBarState(listState, album.id)
             val surface = MaterialTheme.colorScheme.surface
-            val albumTint = surface
             val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            val topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() +
-                meiTopBarHeight(hasCustomTitle = isSearchActive)
+            val modelHeader = albumArtworkKind(artworkMode, album.publishTime, motionArtwork != null, modelMode, allowMotion = !landscape) == AlbumArtworkKind.Model
+            val topPadding = when {
+                landscape -> WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                modelHeader -> WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + meiTopBarHeight(hasCustomTitle = isSearchActive)
+                else -> 0.dp
+            }
             val songIndexById = remember(songs) { songs.withIndex().associate { it.value.id to it.index } }
             val allArtists = remember(album.artistIds, album.artistNames, songs) { albumDisplayArtists(album, songs) }
-            val packageTracks = remember(songs) { albumPackageTracks(songs) }
             var showDescriptionSheet by remember(album.id) { mutableStateOf(false) }
             var showArtistsSheet by remember(album.id) { mutableStateOf(false) }
 
@@ -106,32 +98,26 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                     contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding + 16.dp),
                 ) {
                     item(key = "album_header") {
-                        AlbumHeader(
-                            album = album,
-                            trackCount = songs.size,
-                            packageTracks = packageTracks,
-                            artists = allArtists,
-                            onArtistClick = onArtistClick,
+                        if (landscape) BoxWithConstraints(Modifier.fillMaxWidth().padding(meiPageHorizontalPadding())) {
+                            AlbumLandscapeArtworkPane(state, actions,
+                                modifier = Modifier.fillMaxWidth().height(minOf(maxWidth, 320.dp)),
+                                more = { AlbumDetailMoreButton(state, actions) },
+                            )
+                        } else AlbumHeader(
+                            state = state, actions = actions, artists = allArtists,
                             onShowArtists = { showArtistsSheet = true },
                             artworkModifier = artworkBar.artworkModifier,
                         )
                     }
-                    item(key = "album_actions") {
+                    if (!landscape) item(key = "album_actions") {
                         AlbumActions(
-                            tint = albumTint,
-                            hasSongs = songs.isNotEmpty(),
-                            canPlay = canPlay,
-                            isSubscribed = isSubscribed,
-                            isSubscriptionLoading = isSubscriptionLoading,
-                            canSubscribe = canSubscribe,
-                            onPlayAll = onPlayAll,
-                            onSubscribe = onSubscribe,
-                            onDownload = onDownload,
+                            hasSongs = songs.isNotEmpty(), canPlay = canPlay,
+                            onShuffle = onShuffle, onPlayAll = onPlayAll, onDownload = onDownload,
                         )
                     }
                     if (album.description.isNotBlank()) {
                         item(key = "album_description") {
-                            AlbumDescription(album.id, album.description, onExpand = { showDescriptionSheet = true })
+                            AlbumDescription(album.id, album.description, maxLines = 1, onExpand = { showDescriptionSheet = true })
                         }
                     }
                     if (searchQuery.isNotBlank()) {
@@ -168,18 +154,19 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
                     }
                 }
 
-                MeiHazeTopBar(
+                if (!landscape) MeiHazeTopBar(
                     modifier = artworkBar.toolbarModifier,
                     state = pageHaze,
                     title = album.name,
                     progress = if (artworkBar.artworkPassed || isSearchActive) 1f else 0f,
                     backgroundProgress = 1f,
+                    backgroundMode = if (!modelHeader && !isSearchActive && !artworkBar.artworkPassed) {
+                        MeiTopBarBackground.Transparent
+                    } else MeiTopBarBackground.Auto,
                     onNavigateBack = { if (isSearchActive) onSearchActiveChange(false) else onBack() },
                     actions = {
-                        MeiDetailMoreButton(
-                            shareContent = MediaShareLink.album(album),
-                            searchActive = isSearchActive,
-                            searchLabel = "搜索专辑歌曲",
+                        AlbumDetailMoreButton(
+                            state = state, actions = actions,
                             onSearchActiveChange = { active ->
                                 if (!active) onSearchQueryChange("")
                                 onSearchActiveChange(active)
@@ -228,127 +215,46 @@ internal fun AlbumDetailContent(state: AlbumDetailUiState, actions: AlbumDetailA
 }
 
 @Composable
-private fun AlbumHeader(
-    album: AlbumOverview,
-    trackCount: Int,
-    packageTracks: List<AlbumPackageTrack>,
-    artists: List<MediaMetadata.Artist>,
-    onArtistClick: (Long) -> Unit,
-    onShowArtists: () -> Unit,
-    artworkModifier: Modifier = Modifier,
-) {
-    val compact = LocalPageStartInset.current > 0.dp
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val stageHeight = minOf(maxWidth / AlbumMediaArtworkRatio, if (compact) 240.dp else 460.dp)
-        val clearance = albumModelTopClearanceDp(
-            meiTopBarContentClearance().value, stageHeight.value, albumMediaStyle(album.publishTime),
-        ).dp
-        Column(Modifier.fillMaxWidth().padding(top = clearance)) {
-            AlbumMediaArtwork(
-                album.picUrl, album.publishTime, album.name, album.artistNames.joinToString(" / "),
-                Modifier.fillMaxWidth().heightIn(max = if (compact) 240.dp else 460.dp)
-                    .then(artworkModifier), interactive = true, tracks = packageTracks,
-            )
-            Column(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(meiPageHorizontalPadding()).padding(bottom = if (compact) 12.dp else 20.dp),
-            ) {
-                Text(
-                    text = album.name,
-                    style = if (compact) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (artists.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    val firstArtist = artists.first()
-                    Text(
-                        text = if (artists.size > 1) "${firstArtist.name} 等" else firstArtist.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (artists.size > 1 || firstArtist.id > 0) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.heightIn(min = 48.dp)
-                            .clickable(enabled = artists.size > 1 || firstArtist.id > 0) {
-                                if (artists.size > 1) onShowArtists() else onArtistClick(firstArtist.id)
-                            }
-                            .wrapContentHeight(Alignment.CenterVertically),
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                val year = remember(album.publishTime) {
-                    albumReleaseYear(album.publishTime)
-                }
-                Text(
-                    text = listOfNotNull(
-                        year?.toString(),
-                        "${album.size.takeIf { it > 0 } ?: trackCount} 首").joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 internal fun AlbumActions(
-    tint: Color,
     hasSongs: Boolean,
     canPlay: Boolean,
-    isSubscribed: Boolean?,
-    isSubscriptionLoading: Boolean,
-    canSubscribe: Boolean,
+    onShuffle: () -> Unit,
     onPlayAll: () -> Unit,
-    onSubscribe: () -> Unit,
     onDownload: () -> Unit,
-    playInCenter: Boolean = false,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    @Composable
-    fun SubscribeButton() {
-        FilledTonalIconButton(onClick = onSubscribe, enabled = canSubscribe, modifier = Modifier.size(48.dp)) {
-            if (isSubscribed == null && isSubscriptionLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            } else {
-                Icon(
-                    if (isSubscribed == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = when (isSubscribed) {
-                        true -> "取消收藏专辑"
-                        false -> "收藏专辑"
-                        null -> "重试获取收藏状态"
-                    },
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-    }
-    val surface = MaterialTheme.colorScheme.surface
-    Box(
-        modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint, surface))),
-        contentAlignment = if (playInCenter) Alignment.Center else Alignment.CenterStart,
-    ) {
+    val colors = MaterialTheme.colorScheme
+    val secondaryColors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = colors.onSurface.copy(alpha = .08f), contentColor = colors.onSurface,
+    )
+    BoxWithConstraints(modifier.fillMaxWidth().padding(if (compact) PaddingValues(0.dp) else meiPageHorizontalPadding()).padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center) {
+        val spacing = if (compact) 8.dp else 12.dp
+        val playWidth = minOf(144.dp, (maxWidth - 104.dp - spacing * 2).coerceAtLeast(48.dp))
         Row(
-            modifier = Modifier.padding(meiPageHorizontalPadding()).padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(if (playInCenter) 16.dp else 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(spacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (playInCenter) SubscribeButton()
-            Button(
-                onClick = onPlayAll,
-                enabled = hasSongs && canPlay,
-                modifier = Modifier.widthIn(min = 144.dp).height(48.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("播放全部")
+            FilledTonalIconButton(onClick = onShuffle, enabled = hasSongs && canPlay,
+                modifier = Modifier.size(52.dp), shape = androidx.compose.foundation.shape.CircleShape, colors = secondaryColors) {
+                Icon(painterResource(R.drawable.ic_player_shuffle), contentDescription = "随机播放专辑", modifier = Modifier.size(24.dp))
             }
-            if (!playInCenter) SubscribeButton()
-            FilledTonalIconButton(onClick = onDownload, enabled = hasSongs, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Default.Download, contentDescription = "下载专辑", modifier = Modifier.size(20.dp))
+            Button(
+                onClick = onPlayAll, enabled = hasSongs && canPlay,
+                modifier = Modifier.width(playWidth).heightIn(min = 52.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = colors.onSurface, contentColor = colors.surface),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("播放", textAlign = TextAlign.Center)
+            }
+            FilledTonalIconButton(onClick = onDownload, enabled = hasSongs,
+                modifier = Modifier.size(52.dp), shape = androidx.compose.foundation.shape.CircleShape, colors = secondaryColors) {
+                Icon(Icons.Rounded.Download, contentDescription = "下载专辑", modifier = Modifier.size(24.dp))
             }
         }
     }

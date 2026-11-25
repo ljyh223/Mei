@@ -1,5 +1,8 @@
 package com.ljyh.mei.ui.screen.album
 
+import com.ljyh.mei.constants.AlbumArtworkMode
+import com.ljyh.mei.constants.AlbumModelMode
+import com.ljyh.mei.data.repository.DynamicCover
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntRect
 import com.ljyh.mei.data.model.domain.AlbumOverview
@@ -16,6 +19,9 @@ internal data class AlbumDetailUiState(
     val canPlay: Boolean,
     val searchQuery: String,
     val isSearchActive: Boolean,
+    val artworkMode: AlbumArtworkMode = AlbumArtworkMode.Auto,
+    val motionArtwork: DynamicCover? = null,
+    val modelMode: AlbumModelMode = AlbumModelMode.Auto,
 )
 internal data class AlbumDetailActions(
     val onSearchQueryChange: (String) -> Unit,
@@ -23,10 +29,14 @@ internal data class AlbumDetailActions(
     val onBack: () -> Unit,
     val onArtistClick: (Long) -> Unit,
     val onPlayAll: () -> Unit,
+    val onShuffle: () -> Unit,
     val onSubscribe: () -> Unit,
     val onDownload: () -> Unit,
     val onTrackClick: (MediaMetadata, Int) -> Unit,
     val onTrackMore: (MediaMetadata, IntRect) -> Unit,
+    val onArtworkModeChange: (AlbumArtworkMode) -> Unit = {},
+    val onArtworkError: () -> Unit = {},
+    val onModelModeChange: (AlbumModelMode) -> Unit = {},
 )
 
 internal fun albumDisplayArtists(album: AlbumOverview, songs: List<MediaMetadata>): List<MediaMetadata.Artist> {

@@ -5,6 +5,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ljyh.mei.constants.MusicQuality
+import com.ljyh.mei.constants.AlbumArtworkMode
+import com.ljyh.mei.constants.DynamicCoverSources
+import com.ljyh.mei.data.repository.DynamicCover
+import com.ljyh.mei.data.repository.DynamicCoverRepository
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.AlbumContent
 import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.api.BaseResponse
@@ -24,6 +29,7 @@ import javax.inject.Inject
 class AlbumDetailViewModel @Inject constructor(
     private val repository: PlaylistRepository,
     private val colorRepository: ColorRepository,
+    private val dynamicCoverRepository: DynamicCoverRepository,
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
     private val _albumDetail = MutableStateFlow<Resource<AlbumContent>>(Resource.Loading)
@@ -41,6 +47,49 @@ class AlbumDetailViewModel @Inject constructor(
     val subscriptionPending: StateFlow<Boolean> = _subscriptionPending
     private var subscriptionLoadJob: Job? = null
 
+
+    private val _motionArtwork = MutableStateFlow<DynamicCover?>(null)
+    val motionArtwork: StateFlow<DynamicCover?> = _motionArtwork
+    private var artworkJob: Job? = null
+    private var artworkRequest: Triple<AlbumContent?, DynamicCoverSources, Boolean>? = null
+
+    internal fun loadMotionArtwork(
+        content: AlbumContent?,
+        mode: AlbumArtworkMode,
+        sources: DynamicCoverSources,
+        englishOnly: Boolean,
+        allowMotion: Boolean = true,
+    ) {
+        val enabled = allowMotion && (mode == AlbumArtworkMode.Auto || mode == AlbumArtworkMode.Motion)
+        // NetEase motion belongs to a song; Apple motion identifies the album itself.
+        val albumSources = DynamicCoverSources(appleMusic = sources.appleMusic, netease = false)
+        val request = Triple(content, if (enabled) albumSources else DynamicCoverSources.Disabled, englishOnly)
+        if (artworkRequest == request) return
+        artworkRequest = request
+        artworkJob?.cancel()
+        _motionArtwork.value = null
+        if (content == null || !request.second.anyEnabled) return
+        val first = content.songs.firstOrNull() ?: return
+        // Album artists identify the release, not a guest credited on the first track.
+        val sample = first.copy(
+            title = content.album.name,
+            coverUrl = content.album.picUrl,
+            album = MediaMetadata.Album(content.album.id, content.album.name),
+            artists = content.album.artistNames.mapIndexed { index, name ->
+                MediaMetadata.Artist(content.album.artistIds.getOrNull(index) ?: 0, name)
+            }.ifEmpty { first.artists },
+        )
+        artworkJob = viewModelScope.launch {
+            try {
+                val cover = dynamicCoverRepository.resolve(sample, englishOnly, request.second)
+                if (artworkRequest == request) _motionArtwork.value = cover
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Decoration cannot fail the album or hold up its tracks.
+            }
+        }
+    }
 
     fun getAlbumDetail(id: String) {
         viewModelScope.launch {

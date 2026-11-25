@@ -16,7 +16,8 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.domain.MediaMetadata
-import com.ljyh.mei.ui.component.artwork.VinylAlbumArtworkRatio
+import com.ljyh.mei.constants.AlbumArtworkMode
+import com.ljyh.mei.constants.AlbumModelMode
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
 import com.ljyh.mei.ui.component.layout.AppWindowLayout
 import com.ljyh.mei.ui.component.layout.LocalAppWindowLayout
@@ -121,7 +122,7 @@ class PhoneLandscapeDetailTest {
         }
     }
 
-    @Test fun albumShowsVinylWithPlaybackAndAlbumActionsBesideTheTrackList() {
+    @Test fun albumShowsLargeStillModelWithOnlyPlayAndMoreOverTheArtwork() {
         var operation = ""
         showDetail {
             AdaptiveAlbumContent(
@@ -130,34 +131,41 @@ class PhoneLandscapeDetailTest {
                     coverColor = null, songs = listOf(song), displayedSongs = listOf(song),
                     isSubscribed = false, isSubscriptionLoading = false, canSubscribe = true, canPlay = true,
                     searchQuery = "", isSearchActive = false,
+                    artworkMode = AlbumArtworkMode.Model, modelMode = AlbumModelMode.Vinyl,
                 ),
                 AlbumDetailActions(
                     onSearchQueryChange = {}, onSearchActiveChange = {}, onBack = {}, onArtistClick = {},
-                    onPlayAll = { operation = "play" }, onSubscribe = { operation = "subscribe" },
+                    onPlayAll = { operation = "play" }, onShuffle = { operation = "shuffle" }, onSubscribe = { operation = "subscribe" },
                     onDownload = { operation = "download" },
                     onTrackClick = { track, _ -> operation = track.title }, onTrackMore = { _, _ -> },
                 ),
             )
         }
-        val play = compose.onNodeWithText("播放全部").assertIsDisplayed()
+        val play = compose.onNodeWithText("播放").assertIsDisplayed()
         val track = compose.onNodeWithText(song.title).assertIsDisplayed()
         assertInSeparatePanes(play, track)
         assertNoDetailToolbar("测试专辑")
         compose.onNodeWithText("歌曲 · 1").assertIsDisplayed()
         val more = compose.onNodeWithContentDescription("更多操作").assertIsDisplayed()
-        assertInSeparatePanes(more, track)
+        assertTrue(more.fetchSemanticsNode().boundsInRoot.left > play.fetchSemanticsNode().boundsInRoot.right)
         val artwork = compose.onNodeWithContentDescription("专辑封面").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        assertEquals(VinylAlbumArtworkRatio, artwork.width / artwork.height, 0.01f)
+        val viewport = compose.onNodeWithTag("detail-viewport").fetchSemanticsNode().boundsInRoot
+        assertTrue("Model uses the pane height instead of a short fixed-ratio stage", artwork.height >= viewport.height * .75f)
         assertTrue(artwork.contains(play.fetchSemanticsNode().boundsInRoot.center))
         assertTrue(artwork.contains(more.fetchSemanticsNode().boundsInRoot.center))
+        compose.onNodeWithContentDescription("随机播放专辑").assertDoesNotExist()
+        compose.onNodeWithContentDescription("下载专辑").assertDoesNotExist()
         play.performClick()
         compose.runOnIdle { assertEquals("play", operation) }
         more.performClick()
-        compose.onNodeWithText("收藏专辑").assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals("subscribe", operation) }
+        compose.onNodeWithText("随机播放专辑").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("shuffle", operation) }
         more.performClick()
         compose.onNodeWithText("下载专辑").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals("download", operation) }
+        more.performClick()
+        compose.onNodeWithText("收藏专辑").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals("subscribe", operation) }
         more.performClick()
         compose.onNodeWithText("搜索专辑歌曲").assertIsDisplayed()
         compose.onNodeWithText("专辑信息").assertIsDisplayed()

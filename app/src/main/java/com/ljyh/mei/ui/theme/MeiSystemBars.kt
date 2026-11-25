@@ -13,10 +13,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 
-/** Page requests use an owner so a departing page cannot clear a newer page request. */
+/** The active artwork page requests its icon appearance without overriding an expanded player. */
 internal val LocalPageLightStatusBar = compositionLocalOf<(Any, Boolean?) -> Unit> { { _, _ -> } }
 
-/** Full-screen playback takes precedence over page artwork. */
+/** The player can request dark or light status bar icons for its artwork, or clear the request. */
 internal val LocalPlayerLightStatusBar = compositionLocalOf<(Boolean?) -> Unit> { {} }
 
 @Composable

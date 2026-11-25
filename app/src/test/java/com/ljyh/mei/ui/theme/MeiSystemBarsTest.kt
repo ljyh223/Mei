@@ -23,6 +23,42 @@ class MeiSystemBarsTest {
     @get:Rule val compose = createEmptyComposeRule()
 
     @Test
+    fun pagePaletteRestoresThemeAndCannotOverridePlayerOrClearANewerPage() {
+        lateinit var setPage: (Any, Boolean?) -> Unit
+        lateinit var setPlayer: (Boolean?) -> Unit
+        TabletContentTestActivity.content = {
+            ProvideMeiSystemBars(false) {
+                val page = LocalPageLightStatusBar.current
+                val player = LocalPlayerLightStatusBar.current
+                SideEffect { setPage = page; setPlayer = player }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val window = activity.get().window
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            fun assertStatus(light: Boolean) = compose.runOnIdle {
+                assertEquals(light, controller.isAppearanceLightStatusBars)
+                assertEquals(true, controller.isAppearanceLightNavigationBars)
+            }
+            val oldPage = Any()
+            val newPage = Any()
+            assertStatus(true)
+            compose.runOnIdle { setPage(oldPage, false) }
+            assertStatus(false)
+            compose.runOnIdle { setPlayer(true) }
+            assertStatus(true)
+            compose.runOnIdle { setPage(newPage, false); setPage(oldPage, null); setPlayer(null) }
+            assertStatus(false)
+            compose.runOnIdle { setPage(newPage, null) }
+            assertStatus(true)
+        } finally {
+            activity.pause().stop()?.destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
+    @Test
     fun themeControlsBothBarsAndPlayerOnlyOverridesStatusBar() {
         var darkTheme by mutableStateOf(false)
         var playerLightStatusBar by mutableStateOf<Boolean?>(null)
