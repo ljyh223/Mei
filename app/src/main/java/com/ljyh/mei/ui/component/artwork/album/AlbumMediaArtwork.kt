@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -83,10 +84,17 @@ internal fun AlbumMediaArtwork(
         ImageRequest.Builder(context).data(coverUrl).size(resolver).build()
     }
     val placeholder = rememberVectorPainter(Icons.Rounded.Album)
-    val cover = rememberAsyncImagePainter(request, placeholder = placeholder, error = placeholder,
+    val imagePainter = rememberAsyncImagePainter(request, placeholder = placeholder, error = placeholder,
         contentScale = ContentScale.Crop)
-    val imageState by cover.state.collectAsState()
-    val loading = isLoading || imageState is AsyncImagePainter.State.Loading
+    val imageState by imagePainter.state.collectAsState()
+    val emptyTexture = remember { ColorPainter(Color.Transparent) }
+    // The physical object is ready before its cover texture. Loading never hides its geometry.
+    val cover = when (imageState) {
+        is AsyncImagePainter.State.Success -> imagePainter
+        is AsyncImagePainter.State.Error -> placeholder
+        else -> emptyTexture
+    }
+    val stageLoading = isLoading || (format == AlbumMediaStyle.Plain && imageState is AsyncImagePainter.State.Loading)
     val shape = RoundedCornerShape(4.dp)
     var yaw by rememberSaveable(coverUrl, format) { mutableFloatStateOf(-16f) }
     var detail by rememberSaveable(coverUrl, format) { mutableFloatStateOf(0f) }
@@ -124,11 +132,11 @@ internal fun AlbumMediaArtwork(
         detail = albumNextOpeningTarget(format, detail)
         pausedDetail = null
     }
-    val canInteract = interactive && format != AlbumMediaStyle.Plain && !loading
+    val canInteract = interactive && format != AlbumMediaStyle.Plain && !isLoading
     val modelHaze = rememberHazeState()
     BoxWithConstraints(modifier.fillMaxWidth()
         .then(if (fillAvailableSpace) Modifier else Modifier.aspectRatio(AlbumMediaArtworkRatio)).then(resolver)
-        .clip(shape).background(albumMediaBackground()).skeleton(loading, shape)) {
+        .clip(shape).background(albumMediaBackground()).skeleton(stageLoading, shape)) {
         if (!isLoading) Canvas(Modifier.matchParentSize().hazeSource(modelHaze).background(albumMediaBackground())
             .then(if (canInteract) Modifier.clickable(onClickLabel = action, onClick = ::activate)
                 .pointerInput(coverUrl, format) {
