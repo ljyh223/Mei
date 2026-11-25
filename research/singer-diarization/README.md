@@ -1,179 +1,126 @@
 # 歌词行演唱者识别研究
 
-## 目标
+输入歌曲音频和同步歌词，输出歌曲内匿名歌手的演唱区间／歌词行归属。当前先建设双人歌曲的逐行验证集；后续可扩展到多歌手、重叠演唱和学习型方法。项目目标见 `MISSION.md`，该任务书不代表已经实现的能力。
 
-输入一首歌的音频和已同步歌词，输出每行的演唱者集合。产品可据此决定靠左、靠右或保持普通排版。第一阶段限定双人歌曲，标签为 `A`、`B`、`A+B`、`unknown`；`A/B` 仅在一首歌内区分歌手，不代表真实姓名或固定左右位置。
+## 当前状态（2026-11-05）
 
-先测量**逐行分配正确率**和**可自动排版的覆盖率**。歌词文本识别、逐字同步和歌手真实姓名识别暂不属于第一阶段。
+**第二批筛选结果：**《发现爱》《珊瑚海》《小酒窝》《铁血丹心》《世界真细小》已由用户听音认可为标准候选，其中《发现爱》最适合优先开展逐句标注。五首尚未完成本地录音版本、逐行身份及时间轴确认，不计作已验证的逐行答案。
 
-## 第一阶段：20 首歌曲的小规模数据集
+**最新试听反馈：** Havana 转为片段用途；現夢保留为相似音色困难样本；Chinatown Blues 保留主候选；表白确认为同一人，转为独唱负例，原双角色划分不再有效。旧记录不删除。本地试听页现保留两首可继续逐行核对的候选（現夢、Chinatown Blues）；不是四首都通过。第二批五首候选及采集入口见 [BATCH02.md](BATCH02.md)，音频尚未取得。下文第一批的 4 首／234 行为反馈前的历史盘点。
 
-1. 先用 2–3 首歌曲打通导入与人工核对，再扩到 20 首包含明显轮唱的双人歌曲。音频和歌词必须是同一版本；现场版、剪辑版、伴奏版另算一首。
-2. 每首保留完整音频、同步歌词和来源记录。先人工核对时间偏移，再标注每行 `A`、`B`、`A+B` 或 `unknown`。一句中途换人且无法准确拆分时标为 `unknown`。
-3. 留出 5 首作为测试集，从一开始就不依据它们调算法。训练集与测试集按**歌曲**划分；若要评估陌生歌手，还需按歌手组合划分。
-4. 先做无需训练的声音特征基线，再决定是否增加歌曲和训练小模型。记录每类标签的数量，避免只有独唱样本。
+识别算法尚未实现。已具备候选筛选、音频下载与时长筛查、TTML 导入、本地逐句试听与人工结果校验导入。
 
-`data/` 存放本地音频、歌词和标签，已被本目录的 `.gitignore` 排除。不要把受版权保护的原始音频或歌词提交到仓库。
+重扫 3,585 份 TTML：
 
-## 数据格式
+| 候选级别 | ID 数 | 按规范化歌词内容去重 |
+|---|---:|---:|
+| broad / confirmed | 1,676 | 1,108 |
+| balanced | 1,095 | 707 |
+| strict | 999 | 632 |
 
-每首歌有一个稳定的 `song_id`。建议本地使用：
+这些全部是**候选**，不是已确认的双人歌曲。`confirmed` 为兼容旧输出保留的文件名，只表示符合格式筛选条件。TTML 和 LYS 来自同一歌词库，不构成独立人工证据；脚本只检查 LYS 是否带有对唱布局属性，未核对逐行角色一致性。`person` / `other` 是候选角色类型，不能证明其对应不同的真实人类歌手。
+
+当前 20 个采集 ID：13 个为试听／版本可疑，1 个缺失音频，6 个通过时长筛查。其中 2 首沿用此前人工排除决定，另外 4 首共 234 行进入逐句试听队列。原始标签有 225 行 `reviewed=true`、9 行未核对；这些历史标记完整保留，**不会自动计作本轮已验证答案**。本轮是否可用于评测只看显式导入的逐行人工记录。
+
+## 先开始试听
+
+**正式细标请使用新的完整入口：** [ANNOTATION_HANDBOOK.md](ANNOTATION_HANDBOOK.md)。运行 `python3 tools/prepare_listening.py` 后，在同一本地 HTTP 服务打开 `/data/listening/`。它整理全部候选、保留替代 ID 和源异常，支持身份参照、前中后定位点、句内分段、主唱／背景、同人叠唱、未知、歌词外人声及版本绑定。下方旧 `/data/review/` 页面和 schema 1 用于历史行级记录，不能代替本轮详细分段标注。
+
+详见 [REVIEW_GUIDE.md](REVIEW_GUIDE.md)，其中列出 4 首歌曲的重点问题。
+
+```bash
+cd /home/ljyh/code/android/Mei/research/singer-diarization
+python3 tools/prepare_review.py
+python3 -m http.server 4174 --bind 127.0.0.1 --directory .
+```
+
+打开 <http://127.0.0.1:4174/data/review/>。可播放本地音频、点击试听本句、调整全曲偏移，逐行标注并导出 JSON。浏览器暂存不替代导出备份。该服务仅用于本机，停止命令为 Ctrl+C。
+
+把导出文件写回本地数据集：
+
+```bash
+python3 tools/prepare_review.py --import-review /实际路径/494865824-review.json
+```
+
+导入前检查歌曲、音频／歌词／原标签版本、时间范围、逐行标签和时间确认。导入结果写入 `data/verified/`，不覆盖 `data/labels/`。允许分批试听、累计导出；若新导出遗漏已导入的行，导入会拒绝，以免丢失人工结果。偏移改变后所有行需重新确认时间。
+
+## 标签和确认规则
+
+| 标签 | 含义 |
+|---|---|
+| A / B | 本曲两位不同歌手，身份编号在全曲内保持一致，不代表男女或真实姓名 |
+| A+B | 两位目标歌手在同一歌词行同时演唱；同一个人叠唱不算 |
+| unknown | 歌手不清、第三位、句中换人且没有拆分、无法确认重叠等，备注具体原因 |
+| skip | 制作信息、无演唱等不参与本阶段歌手归属的行 |
+
+`unknown` 不等于无演唱，也不等于合唱。后续多人和片段级标注应使用活跃歌手集合，不能把所有复杂情形压成 A+B。
+
+每行必须分别完成：选择身份标签、核对时间。歌曲级“音频可用／两个歌手”不能替代逐行核对。歌曲结论为 `uncertain` / `exclude` 的人工结果可以保存，但不会进入本阶段评测；unknown / skip 不计入 A/B/A+B 正确率，评测时必须另外报告它们的比例。
+
+旧的 `tools/duet-annotator` 使用男女标签，不是本研究当前的身份标注入口；其导出不能直接映射成 A/B，必须重新确认身份。
+
+## 文件与可迁移性
 
 ```text
 data/
-  audio/<song_id>.wav
-  lyrics/<song_id>.ttml
-  labels/<song_id>.jsonl
-  songs.jsonl
+  audio/                 本地原音频
+  lyrics/                本次复核所用 TTML 快照
+  labels/                历史导入标签（保留）
+  candidates/            候选筛选／下载／历史试听记录
+  songs.jsonl            全部采集样本的版本、状态、偏移和评测资格
+  review/                生成的试听页、输入包和 queue.tsv
+  verified/              明确导入的逐行人工结果
 ```
 
-`songs.jsonl` 每行是一首歌，记录 `song_id`、`audio_path`、`lyric_path`、`audio_version`、`lyric_source`、`split`（`train`/`test`）以及时间偏移 `offset_ms`。路径相对于本研究目录。`offset_ms` 是“音频时间减歌词时间”，核对后填写。
+`songs.jsonl` 的音频／歌词路径相对本研究目录，来源绝对路径只用作溯源。音频、歌词以及旧标签内容一起确定 `revision`，源内容变化后旧确认不再自动有效。音频文件哈希记录完全相同的文件，`lyric_group_id` 用于同歌词分组；二者均不能代替音频指纹和人工版本核查。
 
-`labels/<song_id>.jsonl` 每行是一条歌词：
+`offset_ms = 音频时间 - 歌词时间`，原始歌词时间保持不变。例如歌词 10s 对应音频 10.3s，偏移为 +300ms。首次核对前值为 null；试听页初始 0 只是可编辑起点。全曲偏移无法修复剪辑版、速度差和逐句漂移，应将歌曲标为待查。
 
-```json
-{"song_id":"demo-duet","line_index":0,"start_ms":1000,"end_ms":3000,"text":"示例歌词","agent_ids":["A"],"label":"A","label_source":"manual","reviewed":true}
-```
+当前全部 `split=unassigned`。待版本和身份复核后，先建立同曲／同录音分组，再按歌曲划分训练、验证、测试；未知歌手泛化实验还需补充真实歌手身份，并进行歌手隔离。不要随机按歌词行划分，更不要把所有人的 A/B 当跨歌曲固定类别。输入模型时剥离 `agent_ids`、人工标签、角色前缀等答案字段。
 
-- 时间使用毫秒，且 `start_ms < end_ms`。保存原始歌词时间；分析音频时再加 `offset_ms`。
-- `agent_ids` 保存来源中的原始歌手标识；`agent_type` 保存 TTML 声明的 agent 类型。`label` 是人工核对后的研究标签。`A+B` 表示两人同时唱这一行；无法判断填 `unknown`，不猜测。
-- `label_source` 可为 `manual`、`ttml` 或 `lrc_role`。从现有歌词导入的标记都先设 `reviewed=false`，听音频核对后再改为 `true`。只用已核对的行计算测试指标。
+`data/` 已被 Git 排除。原音频、歌词和衍生标注的发布权限应分别核对，不随代码仓库公开提交；独立项目迁移时需单独迁移本地数据，不能仅 clone Git。
 
-## 从 TTML 导入候选标签
+## 候选筛选
 
 ```bash
-python3 tools/import_ttml.py --song-id demo-duet --input data/lyrics/demo-duet.ttml --output data/labels/demo-duet.jsonl
+python3 tools/filter_ncm_duets.py --no-write
+python3 tools/filter_ncm_duets.py
 ```
 
-脚本提取主歌词行时间、文本和 `ttm:agent`，跳过翻译、音译及 `x-bg` 背景人声，**不自动把 agent 映射为 A/B**。TTML 中的 agent 可能表示合唱组，也可能缺失；背景人声还可能影响 `A+B` 标签，必须结合音频核对。
+默认源目录为 `/home/ljyh/code/temp/amll-ttml-db-main/ncm-lyrics`，可用 `--input-dir` / `--output-dir` 覆盖。
 
-## 从 NCM 歌词库筛选对唱候选
+- broad：前两位候选角色各至少 1 行，两位合计占全部非空主歌词行至少 80%，相邻主歌词至少切换一次。
+- confirmed：broad，且有 LYS 对唱布局属性，或根本没有 LYS；仅是格式支持，不是人工确认。
+- balanced：confirmed，两位各至少 5 行、至少切换 5 次、合计至少 80%。
+- strict：confirmed，两位各至少 8 行、至少切换 5 次、合计至少 90%；仅两个候选歌手角色，无 group、缺失／未知角色行，且元数据 ID 不冲突。
 
-### 格式里的对唱信息
+组唱、未知角色均计入覆盖率分母；它们或第三人打断相邻切换，不能删除中间行后伪造切换。背景人声另列风险，不据此确认或否认合唱。去重哈希使用规范化歌词文本，不依赖角色类型或时间戳；只是防泄漏分组线索，不证明两段音频相同。
 
-同一份歌词在 `ncm-lyrics/` 下会生成多种格式，但只有一部分格式保留“谁在唱”的信息：
+输出保留 `ids_*`、`report.jsonl`、`preview.tsv`、`summary.json` 等旧文件名。每条候选带 `annotation_status=candidate_only`、`review_flags`、`lys_agent_agreement=not_checked`。`find_ncm_duets.py` 是旧的 person-only 扫描器，不再用于全量采集。
 
-| 格式 | 是否保留对唱信息 | 具体位置 |
-|---|---|---|
-| `.ttml` | 是，主来源 | 每个 `<p>` 的 `ttm:agent`，以及文件头部的 `<ttm:agent type="person/other/group" ...>` |
-| `.lys` | 是，派生确认 | 每行开头 `[property]`；1/2/4/5/7/8 表示对唱视图左/右，6/7/8 表示背景人声 |
-| `.eslrc` | 否 | 只有逐字时间戳和文本，没有歌手字段 |
-| `.lrc` / `.yrc` / `.qrc` | 否 | 只有整行或逐字时间戳和文本 |
-
-LYS 的属性表：
-
-| property | 背景人声 | 对唱视图 |
-|---|---|---|
-| 0 | 未设置 | 未设置 |
-| 1 | 未设置 | 左 |
-| 2 | 未设置 | 右 |
-| 3 | 否 | 未设置 |
-| 4 | 否 | 左 |
-| 5 | 否 | 右 |
-| 6 | 是 | 未设置 |
-| 7 | 是 | 左 |
-| 8 | 是 | 右 |
-
-LYS 属性定义参考 [Lyricify 歌词指南](https://docs.lyricify.app/lyrics/guide/)；ESLRC 的格式只描述逐字时间，参考 [amll-lyric 的 eslrc 说明](https://docs.rs/amll-lyric/0.2.4/amll_lyric/eslrc/index.html)。
-
-例如 `108468`（小酒窝）的 TTML 声明了 `v1=person`、`v2=other`，LYS 前四行是 `[0]`，到第二遍主歌变成 `[2]`；同目录的 `.eslrc` 只有 `[00:30.751]幸[00:31.037]福...`，无法区分这是谁唱的。`101818`（一念执着，胡歌/阿兰）也是同样的结构。
-
-因此：**在目前这个歌词库里，能用于自动筛选的是 TTML 和 LYS；ESLRC 只能用于取逐字时间轴。** LYS 的 `[2]` 与 TTML 的第二个 agent 在抽样文件里逐行对齐（时间差为 0）。这个库中 LYS 只有 0/2/6/8 四种属性。
-
-### 筛选脚本
+## 音频采集与检查
 
 ```bash
-python3 tools/filter_ncm_duets.py --no-write  # 只看统计
-python3 tools/filter_ncm_duets.py             # 写 ID、JSONL 和预览表
-```
-
-默认扫描 `/home/ljyh/code/temp/amll-ttml-db-main/ncm-lyrics`，输出到 `data/candidates/ncm_duets/`：
-
-- `ids_broad.txt` / `ids_confirmed.txt` / `ids_balanced.txt` / `ids_strict.txt`
-- `ids_confirmed_lys.txt`（TTML + LYS 双重证据） / `ids_confirmed_ttml_only.txt`（未生成 LYS，仅 TTML）
-- `ids_broad_unique.txt` / `ids_balanced_unique.txt` / `ids_strict_unique.txt`（按歌词内容去重后的代表 ID）
-- `report.jsonl`（全部 broad 候选）
-- `confirmed_report.jsonl`、`balanced_report.jsonl`、`strict_report.jsonl`
-- `preview.tsv`（适合直接打开人工扫一眼）
-- `summary.json`
-- `lys_unmatched.jsonl`（LYS 有对唱但未进入 broad 的异常项及原因）
-
-脚本不复制歌词文件，只在报告里保留绝对路径。可用 `--input-dir`、`--output-dir` 和 `--max-extra-ratio` 调整。
-
-### 口径
-
-- **broad**：TTML 中至少有两位 `person`/`other` 歌手，取行数最多的两位；每人至少 1 行，两位合计至少占全部演唱行的 80%，且至少切换 1 次。
-- **confirmed**：broad 且有 LYS 对唱属性；未生成 LYS 的 TTML 项也保留，但标记 `confidence=ttml_only`。只想取双重证据时用 `ids_confirmed_lys.txt`。
-- **balanced**：confirmed，且两位各至少 5 行、切换至少 5 次、两位合计至少 80%。
-- **strict**：confirmed，且两位各至少 8 行、切换至少 5 次、两位合计至少 90%，TTML 中没有 `group` agent 行。
-
-`type="other"` 在本库中经常表示第二演唱者，不能像旧脚本那样直接排除；`group` 和 `organization` 不算独立歌手。`musicName`/`artists` 元数据只作展示，不作为对唱判据（它可能列别名，也可能漏掉客串歌手）。
-
-### 当前快照结果（2026-11-05）
-
-```text
-TTML 文件                      3,585
-LYS / ESLRC 文件                3,356 / 3,356
-仅 TTML、没有 LYS                  229
-broad                          1,684（去重 1,122）
-confirmed                      1,684（去重 1,122）
-balanced                       1,103（去重 719）
-strict                         1,000（去重 639）
-```
-
-- broad/confirmed 中有 `1,591` 个同时有 TTML 和 LYS 证据，`93` 个只有 TTML（未生成 LYS）；没有出现“有 LYS、但 TTML 两位歌手不一致”的 broad 项。
-- 同一份歌词可能对应多个网易云 ID；报告里的 `content_hash` 和 `same_content_ids` 可用于合并。去重后 broad 从 1,684 降到 1,122，strict 从 1,000 降到 639。
-- LYS 有对唱属性的文件有 `1,605` 个：`1,591` 个进入 confirmed；`8` 个是 RAD DOGS、Bad Apple!! 等多人/合唱歌曲，主两位合计不足 80%；`5` 个是《经过》《昔涟》等单人伴奏/和声伴奏版本；另有 1 个 ID 0 无效。后两类和无效项都排除，详情见 `lys_unmatched.jsonl`。
-- 旧脚本 `find_ncm_duets.py` 只数 `type="person"`，会漏掉 `other` 表示的第二演唱者；它给出的 71 个候选不能当作全量对唱集合。之前的 20 首人工听音结果仍然有效，但候选池应改为使用本节的输出。
-- 文件 `0.ttml` 的 ID 不是有效的网易云歌曲 ID，已排除。
-
-### 抽样核对
-
-| ID | 歌曲 | 歌手 | 前两位行数 | 切换 | 证据 | 结果 |
-|---|---|---|---|---:|---|---|
-| `101818` | 一念执着 | 胡歌 / 阿兰 | 38 / 8 | 4 | TTML + LYS `[0]/[2]` | 清晰对唱 |
-| `108468` | 小酒窝 | 林俊杰 / 蔡卓妍 | 30 / 12 | 8 | TTML + LYS `[0]/[2]` | strict |
-| `112678` | 铁血丹心 | 罗文 / 甄妮 | 20 / 14 | 24 | TTML + LYS `[0]/[2]` | strict |
-| `108406` | Go! | MC HotDog / 林俊杰 | 70 / 16 | 4 | TTML + LYS `[0]/[2]/[6]` | 有 1 行背景人声 |
-| `37155` | Ring Ring Ring | S.H.E | 65 / 4 | 2 | TTML + LYS `[0]/[2]` | confirmed，第二人太少 |
-| `101126` | 第三十八年夏至 | 河图 | 45 / 5 | 1 | TTML + LYS `[0]/[2]` | confirmed，未达 balanced |
-| `307081` | 表白 | 萧亚轩 | 54 / 4（另 1 行 other） | 6 | 仅 TTML | confirmed，无 LYS |
-| `852226` | 現夢 -genmu- | みぃ / yukina / TUMENECO | 29 / 22（另 8 行 other） | 29 | 仅 TTML | confirmed，多一个歌手/声部 |
-| `2631336275` | 经过（伴奏 男调中文伴唱） | HOYO-MiX | 9（仅一人） | 0 | 仅 LYS `[2]` | 排除：不是双人对唱 |
-
-这些只是抽样，用于说明筛选口径；是否真的是两个可区分的人类歌手，仍需要听音频和人工核对。`balanced`/`strict` 只是按歌词标注结构提高置信度，不能代替听感。
-
-### 取回音频
-
-取回音频前，把只含 cookie 值的 `MUSIC_U` 放进环境变量，再给脚本 api-enhanced 的本地地址。脚本默认仅处理前 20 个 ID，使用 `exhigh`，不请求解锁；签名音频 URL 不写入文件，也不会把 cookie 转发给音乐 CDN。
-
-```bash
-export MUSIC_U='你的MUSIC_U值'
+# MUSIC_U 通过本机环境变量提供，不写入命令记录、数据文件或仓库
 python3 tools/fetch_ncm_audio.py --api-base http://127.0.0.1:3000 --limit 20
-```
-
-也可用 `--level standard` 降低文件体积，或显式添加 `--unblock`。音频保存到 `data/audio/`，歌曲详情和下载状态记录在 `data/candidates/downloads.jsonl`。无可用音频 URL 的歌曲会保留在清单中并标为 `no_audio_url`。
-
-接口可能返回 30/45 秒试听片段，下载成功不等于拿到整首歌。用下面的命令将音频时长与 TTML 最后一行时间比较，只把覆盖率达到 90% 的样本先列为完整音频。该检查需要安装 FFmpeg（含 `ffprobe`）。
-
-```bash
 python3 tools/check_audio_coverage.py
 ```
 
-### 当前第一批结果
+下载默认使用新的 `ids_strict_unique.txt`，而不是旧的 person-only ID 池；采集接口仍需用户本机已配置的 api-enhanced。只返回候选 URL 不代表整首音频，`downloaded` 仅表示拿到文件。时长检查输出 `duration_pass`，明确不证明版本正确或歌词同步正确。再次采集时指定单独 manifest 或备份旧清单，避免覆盖历史下载记录。
 
-20 个下载请求里有 19 个返回了音频文件，但完整度检查发现只有 6 个文件覆盖了整首歌，13 个是 30/45 秒试听或不匹配版本，另有 1 个没有音频 URL。`downloads.jsonl` 里的 `downloaded` 只表示拿到了文件，不表示它是完整歌曲。完整候选 ID：`307081`、`852226`、`494865824`、`524148352`、`545728377`、`1300598277`。
+## 验证
 
-人工试听确认后，首批 6 首完整音频中有 4 首可用：`494865824`（Havana）、`852226`（現夢 -genmu-）、`307081`（表白）和 `545728377`（Chinatown Blues）；`524148352`（一口）几乎是同一人演唱，`1300598277`（The Mob）音色不适合当前研究，已排除。决定记录在 `data/candidates/manual_audio_review.jsonl`。
+```bash
+python3 -m unittest discover -s tests -v
+node --test tests/review.test.mjs
+```
 
-这 4 首目前共导入 234 行歌词，其中 225 行为已核对的 `A/B` 标签、9 行保留为 `unknown`：Havana 为 A 42 / B 28；現夢为 A 22 / B 29，另有 8 行 `type="other"`；表白为 A 54 / B 4，另有 1 行无可用 person agent；Chinatown Blues 为 A 26 / B 20。表白的网易云详情只列一位歌手，但 TTML 标有两个 person agent；因此保留用户试听确认的歌词角色，歌手身份只用歌曲内部 A/B 表示。每首的映射不跨歌曲复用。
+覆盖筛选分母、伪切换、去重、同源证据语义以及人工确认与历史标记隔离。测试不会安装 APK，不会确认真实歌手身份或实际听感。
 
-**与旧候选池的关系：** 上述 20 首来自早期只统计 `type="person"` 的列表，因此仍有参考价值，但不再代表全量候选。全量池请使用 `ncm_duets` 输出；下一步可以优先从 `balanced`/`strict` 中按音频完整度和听感复核。
+## 研究数据参考
 
-## 可参考的数据来源
+- Suda 等（2022）：https://www.gavo.t.u-tokyo.ac.jp/~hitoshi/diarization/
+- FruitsMusic：https://huggingface.co/datasets/fruits-music/fruits-music
+- IdolSongsJp：https://huggingface.co/datasets/imprt/idol-songs-jp
 
-- [Suda 等人 2022 年论文的数据页](https://www.gavo.t.u-tokyo.ac.jp/~hitoshi/diarization/)有歌手时间段标注，但没有可下载的歌曲音频，因此不能单独构成可训练样本。
-- [FruitsMusic](https://huggingface.co/datasets/fruits-music/fruits-music)有“谁在何时唱什么”的标注。它有专门的[许可条款](https://huggingface.co/datasets/fruits-music/fruits-music/blob/main/LICENSE.md)及下载确认流程；使用前先核对条款、音频取得方式和与目标歌曲的差异。它以多人日语偶像歌曲为主，可用于研究参考，不能替代双人歌曲测试集。
-- [IdolSongsJp](https://huggingface.co/datasets/imprt/idol-songs-jp)含多轨音频；其[许可条款](https://huggingface.co/datasets/imprt/idol-songs-jp/blob/main/LICENSE.md)区分研究与产品使用，并限制器乐信号用于模型训练。暂不自动下载或并入本项目数据。
-
-目前从本机 TTML 库筛出的歌词仍由其原始库提供；研究目录中的音频、导入标签和试听筛选记录被 `.gitignore` 排除，不应提交到仓库。后续优先处理剩余候选中按歌词内容去重后的歌曲，并按完整音频和实际听感筛选。
+这些来源需另查音频取得方式和许可。本地候选数量不能当作公开数据集规模，也不代表有可训练的完整音频。

@@ -11,7 +11,7 @@ from urllib.request import Request, urlopen
 
 
 RESEARCH_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_IDS = RESEARCH_DIR / "data/candidates/two_person_ids.txt"
+DEFAULT_IDS = RESEARCH_DIR / "data/candidates/ncm_duets/ids_strict_unique.txt"
 DEFAULT_AUDIO_DIR = RESEARCH_DIR / "data/audio"
 DEFAULT_MANIFEST = RESEARCH_DIR / "data/candidates/downloads.jsonl"
 VALID_LEVELS = {

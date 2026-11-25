@@ -47,7 +47,7 @@ def main_text(element: ET.Element) -> str:
     return "".join(parts).strip()
 
 
-def extract(ttml: Path, song_id: str) -> list[dict]:
+def extract(ttml: Path, song_id: str, *, strict: bool = True) -> list[dict]:
     root = ET.parse(ttml).getroot()
     agent_types = {}
     for element in root.iter():
@@ -59,6 +59,8 @@ def extract(ttml: Path, song_id: str) -> list[dict]:
     for element in root.iter():
         if local_name(element.tag) != "p":
             continue
+        if role_of(element) in {"x-translation", "x-roman", "x-bg"}:
+            continue
         begin, end = element.get("begin"), element.get("end")
         if not begin or not end:
             continue
@@ -66,7 +68,7 @@ def extract(ttml: Path, song_id: str) -> list[dict]:
         if not text:
             continue
         start_ms, end_ms = parse_time_ms(begin), parse_time_ms(end)
-        if start_ms >= end_ms:
+        if start_ms >= end_ms and strict:
             raise ValueError(f"Invalid line interval: {begin} .. {end}")
         agent = element.get(f"{{{TTM_NS}}}agent", element.get("ttm:agent"))
         rows.append({
@@ -75,12 +77,25 @@ def extract(ttml: Path, song_id: str) -> list[dict]:
             "start_ms": start_ms,
             "end_ms": end_ms,
             "text": text,
-            "agent_ids": [agent] if agent else [],
+            "agent_ids": agent.split() if agent else [],
             "agent_type": agent_types.get(agent, "unknown") if agent else "unknown",
             "label": "unknown",
             "label_source": "ttml",
             "reviewed": False,
         })
+        if start_ms >= end_ms:
+            rows[-1]['source_invalid_interval'] = True
+        backgrounds = []
+        for child in element.iter():
+            if role_of(child) != 'x-bg':
+                continue
+            backgrounds.append({
+                'text': main_text(child), 'begin': child.get('begin'), 'end': child.get('end'),
+                'agent_ids': (child.get(f'{{{TTM_NS}}}agent') or agent or '').split(),
+                'candidate_only': True,
+            })
+        if backgrounds:
+            rows[-1]['source_background_spans'] = backgrounds
     return rows
 
 

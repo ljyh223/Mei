@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>歌手归属 · 逐句试听核对</title>
+<style>
+body{font:16px system-ui;max-width:1050px;margin:24px auto;padding:0 18px;color:#20242c;background:#f5f6f8}
+header{position:sticky;top:0;background:#f5f6f8;padding:12px 0;border-bottom:1px solid #bbb;z-index:1}
+audio{display:block;width:100%;margin:12px 0}button,select,input{font:inherit;padding:7px;margin:3px}button{cursor:pointer}
+article{padding:16px;background:white;margin:10px 0;border:1px solid #ddd;border-radius:10px}article[data-done=true]{border-left:5px solid #207044}
+.meta{font-size:14px;color:#515b69}.lyric{font-size:20px;margin:10px 0}button[aria-pressed=true]{background:#234e7a;color:white}
+#notice{color:#9b321f}label{display:inline-block;margin:4px}input[type=number]{width:110px}article input[type=text]{width:70%}
+</style>
+<h1>逐句试听核对</h1>
+<p>A/B 表示本曲两位不同歌手，不表示男女。始终保持同一人同一编号。两人同时唱才选 A+B；同一人叠唱不能据此选 A+B；一句中途换人、第三位或身份不清选 unknown 并备注；制作信息或无演唱行选 skip。</p>
+<p>原标签仅作候选。每行听完后手动选标签，并勾选“该行时间已核对”。只点播放或只切换歌曲均不会确认标签。每首核对前、中、后段的音频版本和偏移；如偏移随时间变化，选择“待查”，不要作为正确版本提交。</p>
+<header>
+<select id="songs" aria-label="歌曲"></select><span id="progress"></span>
+<audio id="audio" controls preload="metadata"></audio>
+<div id="info" class="meta"></div><div id="notice" role="status"></div>
+<label>全曲偏移 ms <input id="offset" type="number" step="1" value="0"></label>
+<label><input id="version" type="checkbox">已核对音频与歌词版本</label>
+<label>歌曲结论 <select id="decision"><option value="uncertain">待查</option><option value="two_singers">两位可区分歌手</option><option value="exclude">排除本阶段</option></select></label>
+<button id="export">导出本曲核对结果</button>
+<p class="meta">更改偏移会清除本曲逐行时间确认。进度暂存于本浏览器；请导出 JSON 备份，再使用导入命令写回数据集。原始标签保留。</p>
+</header>
+<main id="lines"></main>
+<script type="application/json" id="bundle">__BUNDLE_JSON__</script>
+<script type="module" src="review.mjs"></script>
+</html>

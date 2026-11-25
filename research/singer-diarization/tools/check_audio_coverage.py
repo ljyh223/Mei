@@ -1,4 +1,4 @@
-"""Compare downloaded audio duration with the last timed TTML lyric line."""
+"""Duration screening only; a pass does NOT verify recording or alignment."""
 
 import argparse
 import json
@@ -70,7 +70,9 @@ def main() -> None:
                     "audio_seconds": round(audio_seconds, 3),
                     "lyric_end_seconds": round(lyric_seconds, 3),
                     "coverage": round(ratio, 4),
-                    "status": "complete" if ratio >= args.minimum_coverage else "preview_or_mismatch",
+                    "status": "duration_pass" if ratio >= args.minimum_coverage else "preview_or_mismatch",
+                    "audio_version_verified": False,
+                    "timing_verified": False,
                 })
             except (OSError, ValueError, subprocess.SubprocessError, ET.ParseError) as exc:
                 record.update({"status": "check_error", "error": type(exc).__name__})
@@ -80,9 +82,9 @@ def main() -> None:
     with args.output.open("w", encoding="utf-8") as output:
         for record in records:
             output.write(json.dumps(record, ensure_ascii=False) + "\n")
-    complete = sum(record["status"] == "complete" for record in records)
+    complete = sum(record["status"] == "duration_pass" for record in records)
     previews = sum(record["status"] == "preview_or_mismatch" for record in records)
-    print(f"Complete: {complete}; preview/mismatch: {previews}; total: {len(records)}")
+    print(f"Duration pass (not version verified): {complete}; preview/mismatch: {previews}; total: {len(records)}")
     for record in records:
         duration = record.get("audio_seconds")
         coverage = record.get("coverage")
