@@ -1,6 +1,5 @@
 package com.ljyh.mei
 
-import com.ljyh.mei.utils.lyric.TranslationHelper
 import com.ljyh.mei.utils.lyric.YRCParser
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import org.junit.Assert.*
@@ -25,30 +24,23 @@ class YRCAndTranslationTest {
 [00:33.327]无法停止那将要失去什么的预感"""
 
     @Test
-    fun testYRCJsonVerbatimLinesParsed() {
-        val result = YRCParser.parse(yrcRaw, null)
-        val lines = result.lines as List<KaraokeLine>
-        assertTrue("Should parse at least 1 line, got ${lines.size}", lines.size >= 1)
-        val hasMetadata = lines.any {
-            it.syllables.any { s -> s.content.startsWith("作") || s.content.startsWith("編") }
+    fun testYRCJsonHeadersAreExcludedFromLyrics() {
+        val expected = listOf("初めてのルーブルは", "なんてことはなかったわ", "私だけのモナリザ")
+        for (result in listOf(YRCParser.parse(yrcRaw, null), YRCParser.parse(yrcRaw))) {
+            val lyrics = result.lines.map { line ->
+                (line as KaraokeLine).syllables.joinToString("") { it.content }
+            }
+            assertEquals(expected, lyrics)
         }
-        assertTrue("Should have JSON metadata lines", hasMetadata)
     }
 
     @Test
-    fun testYRCJsonVerbatimLineTiming() {
-        val result = YRCParser.parse(yrcRaw, null)
-        val lines = result.lines as List<KaraokeLine>
-
-        val line0 = lines.firstOrNull { it.start == 0 }
-        assertNotNull("Should have a line at t=0", line0)
-        val text0 = line0!!.syllables.joinToString("") { it.content }
-        assertTrue("First line should contain '作词'", text0.contains("作词"))
-
-        val line1000 = lines.firstOrNull { it.start == 1000 }
-        assertNotNull("Should have a line at t=1000", line1000)
-        val text1000 = line1000!!.syllables.joinToString("") { it.content }
-        assertTrue("Line at t=1000 should contain '编曲'", text1000.contains("编曲"))
+    fun testYRCJsonHeadersDoNotShiftLyricTiming() {
+        val lines = YRCParser.parse(yrcRaw, null).lines
+        assertEquals(
+            listOf(20570 to 22470, 22760 to 24890, 24920 to 26570),
+            lines.map { it.start to it.end },
+        )
     }
 
     @Test
@@ -76,23 +68,15 @@ class YRCAndTranslationTest {
     }
 
     @Test
-    fun testTranslationNotAssignedToMetadata() {
-        val result = YRCParser.parse(yrcRaw, translationLrc)
-        val lines = result.lines as List<KaraokeLine>
+    fun testTranslationMatchesTimedLyricWhenJsonHeaderSharesTimestamp() {
+        val yrc = """
+            {"t":1000,"c":[{"tx":"作词: "},{"tx":"歌手"}]}
+            [1000,500](1000,500,0)初
+        """.trimIndent()
+        val line = YRCParser.parse(yrc, "[00:01.000]初次").lines.single() as KaraokeLine
 
-        val metadataLines = lines.filter {
-            it.syllables.any { s ->
-                s.content.contains("作词") || s.content.contains("编曲") ||
-                s.content.contains("制作人") || s.content.contains("作曲")
-            }
-        }
-
-        for (metaLine in metadataLines) {
-            assertNull(
-                "Metadata line '${metaLine.syllables.joinToString("") { it.content }}' should not have translation, got: ${metaLine.translation}",
-                metaLine.translation
-            )
-        }
+        assertEquals("初", line.syllables.single().content)
+        assertEquals("初次", line.translation)
     }
 
     @Test
@@ -179,17 +163,13 @@ class YRCAndTranslationTest {
 
     @Test
     fun testYRCWithRubyTextTranslationAssigned() {
-        val result = YRCParser.parse(yrcWithRuby, translationLrcForRuby)
-        val lines = result.lines as List<KaraokeLine>
+        val lines = YRCParser.parse(yrcWithRuby, translationLrcForRuby).lines
 
-        // Metadata at t=0 should NOT get a translation
-        val metaLine = lines.firstOrNull { it.start == 0 }
-        assertNotNull("Should have metadata line at t=0", metaLine)
-        assertNull("Metadata line should not have translation", metaLine!!.translation)
-
-        // The first lyric line at 40320 should get translation if matched
-        val firstLyric = lines.firstOrNull { it.start == 40320 }
-        assertNotNull("Should have lyric line at 40320", firstLyric)
+        assertEquals(listOf(40320, 52040, 61900), lines.map { it.start })
+        assertEquals(
+            listOf("【摇摇晃晃】", "【没有注意脚下】", null),
+            lines.map { (it as KaraokeLine).translation },
+        )
     }
 
     @Test
