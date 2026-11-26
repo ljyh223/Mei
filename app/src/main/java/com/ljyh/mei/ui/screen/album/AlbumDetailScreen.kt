@@ -88,8 +88,8 @@ internal fun AlbumDetailScreen(
     val navController = LocalNavController.current
     val playerConnection = LocalPlayerConnection.current
     val (cookie) = rememberPreference(CookieKey, "")
-    LaunchedEffect(id, cookie) {
-        viewModel.isSubscribe(id, authenticated = cookie.isNotBlank())
+    LaunchedEffect(id) {
+        viewModel.isSubscribe(id)
     }
 
     val albumDetail by viewModel.albumDetail.collectAsState()

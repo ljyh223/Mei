@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ljyh.mei.data.model.room.AlbumArtistCrossRef
+import com.ljyh.mei.data.model.room.AlbumSubscription
 import com.ljyh.mei.data.model.room.AlbumEntity
 import com.ljyh.mei.data.model.room.ArtistEntity
 import com.ljyh.mei.data.model.room.CacheColor
@@ -19,6 +20,7 @@ import com.ljyh.mei.data.model.room.Playlist
 import com.ljyh.mei.data.model.room.PlaylistSongCrossRef
 import com.ljyh.mei.data.model.room.QQSong
 import com.ljyh.mei.data.model.room.Song
+import com.ljyh.mei.di.dao.AlbumSubscriptionDao
 import com.ljyh.mei.di.dao.AlbumsDao
 import com.ljyh.mei.di.dao.CachedLyricDao
 import com.ljyh.mei.di.dao.ColorDao
@@ -34,9 +36,9 @@ import com.ljyh.mei.di.dao.SongDao
     entities = [
         CacheColor::class, Song::class, Like::class, QQSong::class, Playlist::class,
         PlaybackHistory::class, AlbumEntity::class, ArtistEntity::class, AlbumArtistCrossRef::class,
-        CachedLyric::class, DownloadTask::class, PlaylistSongCrossRef::class
+        CachedLyric::class, DownloadTask::class, PlaylistSongCrossRef::class, AlbumSubscription::class
     ],
-    version = 19
+    version = 20
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -47,6 +49,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
     abstract fun historyDao(): HistoryDao
     abstract fun AlbumsDao(): AlbumsDao
+    abstract fun albumSubscriptionDao(): AlbumSubscriptionDao
     abstract fun cachedLyricDao(): CachedLyricDao
     abstract fun downloadDao(): DownloadDao
     abstract fun playlistSongCrossRefDao(): PlaylistSongCrossRefDao
@@ -198,6 +201,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `album_subscription` (
+                        `userId` TEXT NOT NULL,
+                        `albumId` INTEGER NOT NULL,
+                        `subscribed` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`userId`, `albumId`)
+                    )
+                """.trimIndent())
+            }
+        }
+
+        internal val MIGRATIONS = arrayOf(
+            MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
+            MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
+            MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
+        )
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -207,7 +230,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "app_database"
-                ).addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+                ).addMigrations(*MIGRATIONS)
                     .build()
                     .also { INSTANCE = it }
             }

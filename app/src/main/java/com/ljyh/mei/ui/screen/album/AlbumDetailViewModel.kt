@@ -14,6 +14,7 @@ import com.ljyh.mei.data.model.domain.AlbumContent
 import com.ljyh.mei.data.model.domain.AlbumOverview
 import com.ljyh.mei.data.model.api.BaseResponse
 import com.ljyh.mei.data.network.Resource
+import com.ljyh.mei.data.repository.AlbumSubscriptionRepository
 import com.ljyh.mei.data.repository.PlaylistRepository
 import com.ljyh.mei.di.repository.ColorRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,6 +29,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AlbumDetailViewModel @Inject constructor(
     private val repository: PlaylistRepository,
+    private val albumSubscriptions: AlbumSubscriptionRepository,
     private val colorRepository: ColorRepository,
     private val dynamicCoverRepository: DynamicCoverRepository,
     @param:ApplicationContext private val context: Context,
@@ -103,50 +105,25 @@ class AlbumDetailViewModel @Inject constructor(
     fun unSubscribeAlbum(id: String) = updateSubscription(id, false)
 
     private fun updateSubscription(id: String, subscribed: Boolean) {
-        val previous = (_subscriptionState.value as? Resource.Success)?.data ?: return
-        if (_subscriptionPending.value) return
+        if (_subscriptionState.value !is Resource.Success || _subscriptionPending.value) return
         _subscriptionPending.value = true
-        _subscriptionState.value = Resource.Success(subscribed)
         viewModelScope.launch {
             try {
                 if (subscribed) _subscribeAlbum.value = Resource.Loading
                 else _unSubscribeAlbum.value = Resource.Loading
-                val result = if (subscribed) repository.subscribeAlbum(id)
-                    else repository.unsubscribeAlbum(id)
-                val checked = when (result) {
-                    is Resource.Success -> if (result.data.code == 200) result else {
-                        Resource.Error("专辑收藏操作失败 (${result.data.code})")
-                    }
-                    is Resource.Error -> result
-                    Resource.Loading -> Resource.Loading
-                }
-                if (subscribed) _subscribeAlbum.value = checked else _unSubscribeAlbum.value = checked
-                if (checked is Resource.Error) {
-                    _subscriptionState.value = Resource.Success(previous)
-                }
-            } catch (cancelled: CancellationException) {
-                _subscriptionState.value = Resource.Success(previous)
-                throw cancelled
+                // Only server-confirmed changes enter Room; its observation updates the button.
+                val result = albumSubscriptions.setSubscribed(id.toLong(), subscribed)
+                if (subscribed) _subscribeAlbum.value = result else _unSubscribeAlbum.value = result
             } finally {
                 _subscriptionPending.value = false
             }
         }
     }
 
-
-    fun isSubscribe(id: Long, authenticated: Boolean = true) {
+    fun isSubscribe(id: Long) {
         subscriptionLoadJob?.cancel()
-        if (!authenticated) {
-            _subscriptionState.value = Resource.Success(false)
-            return
-        }
         subscriptionLoadJob = viewModelScope.launch {
-            _subscriptionState.value = Resource.Loading
-            _subscriptionState.value = when (val result = repository.getAlbumDynamic(id)) {
-                is Resource.Success -> Resource.Success(result.data.isSubscribed == true)
-                is Resource.Error -> result
-                Resource.Loading -> Resource.Loading
-            }
+            albumSubscriptions.observe(id).collect { _subscriptionState.value = it }
         }
     }
 

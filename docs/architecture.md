@@ -18,6 +18,7 @@
 | 歌单双栏、排序、位置或下载确认 | `ui/screen/playlist/` | 见 [歌单架构](playlist-detail-architecture.md) |
 | 顶栏、内容边距、集合页框架 | `ui/component/glass/`、`layout/`、`collection/` | 复用公共容器及安全区规则 |
 | 接口与响应解析 | `data/repository/`、`data/network/`、`data/model/` | 路径、协议和模型一起核对 |
+| 专辑收藏状态与缓存 | `data/repository/AlbumSubscriptionRepository.kt`、`ui/screen/album/AlbumDetailViewModel.kt` | 账号隔离、先读数据库再后台校准，见 [专辑收藏缓存](album-subscriptions.md) |
 | 本地库、历史、下载记录 | `di/AppDatabase.kt`、`di/dao/`、`di/repository/` | 检查迁移与数据所有权 |
 | 播放、队列、音源或音效 | `playback/` | 页面通过播放连接消费服务状态 |
 | 图片背景反射与可变模糊 | `ui/component/artwork/backdrop/` | 共享纯图片渲染，资源选择及状态仍归各功能页面 |
