@@ -45,9 +45,9 @@ import kotlinx.coroutines.isActive
 private const val PreviewLineDurationMs = 4_000
 private val PreviewLyrics = SyncedLyrics(
     lines = listOf(
-        Triple("让音乐流动", "Let the music flow", "ràng yīn yuè liú dòng"),
-        Triple("把此刻留住", "Keep this moment", "bǎ cǐ kè liú zhù"),
-        Triple("跟随新的节拍", "Follow a new rhythm", "gēn suí xīn de jié pāi"),
+        Triple("そんな気がした", "流露出如此情感", "so n na ki ga shi ta"),
+        Triple("なんでだろう？", "究竟是为何？", "na n de da ro u?"),
+        Triple("ただただ不思議で", "为此感到不可思议", "ta da ta da fu shi gi de"),
     ).mapIndexed { index, (text, translation, phonetic) ->
         val start = index * PreviewLineDurationMs
         KaraokeLine.MainKaraokeLine(
