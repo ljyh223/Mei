@@ -46,7 +46,7 @@ jobs:
         run: |
           sdkmanager_path="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           (yes || true) | "$sdkmanager_path" --licenses >/dev/null
-          "$sdkmanager_path" 'platforms;android-37.0' 'build-tools;34.0.0' 'cmake;3.22.1'
+          "$sdkmanager_path" 'platforms;android-37.1' 'build-tools;34.0.0' 'cmake;3.22.1'
 
       - name: Prepare Rust USB toolchain
         run: |
