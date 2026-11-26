@@ -15,7 +15,6 @@ import androidx.media3.common.Player.REPEAT_MODE_ONE
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
-import com.ljyh.mei.constants.LoopPlaybackKey
 import com.ljyh.mei.data.model.domain.createPlaceholder
 import com.ljyh.mei.data.model.domain.metadata
 import com.ljyh.mei.data.model.domain.toMediaItem
@@ -28,8 +27,6 @@ import com.ljyh.mei.extensions.getQueueWindows
 import com.ljyh.mei.playback.queue.ListQueue
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.playback.queue.QueueSource
-import com.ljyh.mei.utils.preferences.dataStore
-import com.ljyh.mei.utils.preferences.get
 import com.ljyh.mei.utils.log.reportException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -182,7 +179,7 @@ class PlayerConnection(
         // 判断用户是否开启了“列表循环”设置
         // 如果开启：列表模式 = REPEAT_MODE_ALL
         // 如果关闭：列表模式 = REPEAT_MODE_OFF (播完停止)
-        val shouldLoopAll = service.dataStore[LoopPlaybackKey] == true
+        val shouldLoopAll = service.loopPlaybackEnabled
 
         when (currentUiMode) {
             PlayMode.REPEAT_MODE_ALL -> {
@@ -245,6 +242,11 @@ class PlayerConnection(
     // 监听 Repeat 变化
     override fun onRepeatModeChanged(mode: Int) {
         updatePlayModeState() // 统一更新状态
+        updateCanSkipPreviousAndNext()
+    }
+
+    override fun onEvents(player: Player, events: Player.Events) {
+        // Commands can change after individual timeline/repeat callbacks have run.
         updateCanSkipPreviousAndNext()
     }
 

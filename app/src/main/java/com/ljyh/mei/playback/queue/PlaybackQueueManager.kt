@@ -13,6 +13,7 @@ import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.network.api.ApiService
 import com.ljyh.mei.data.network.api.WeApiService
+import com.ljyh.mei.playback.playbackRepeatMode
 import com.ljyh.mei.playback.queue.Queue
 import com.ljyh.mei.playback.transition.TransitionDeckPlayer
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +42,7 @@ class PlaybackQueueManager(
     private val weApiService: WeApiService,
     private val scope: CoroutineScope,
     private val externalDetails: suspend (List<String>) -> List<MediaItem> = { emptyList() },
+    private val loopPlaybackEnabled: () -> Boolean = { true },
 ) : Player.Listener {
 
     private val TAG = "QueueManager"
@@ -191,7 +193,7 @@ class PlaybackQueueManager(
                     status.position.toLong()
                 )
 
-                player.repeatMode = Player.REPEAT_MODE_ALL
+                player.repeatMode = playbackRepeatMode(loopPlaybackEnabled())
                 player.prepare()
 
                 // 如果需要，再开启随机 此时当前播放的歌曲已经定下来了，ExoPlayer 只会打乱"后面"的歌

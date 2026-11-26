@@ -154,6 +154,8 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 | 歌词加载、桌面窗口与系统歌词发布 | `playback/lyrics/`；服务持有 `PlaybackLyricsController`，共享获取与合并在 `utils/lyric/LyricManager.kt`；[ColorOS 接入](coloros-lockscreen-lyrics.md) |
 | 下载准备与后台执行 | 页面任务持有者 → `download/DownloadManager.kt` → `DownloadWorker` |
 
+循环播放偏好由 `MusicService` 持有并实时同步，未保存时默认开启；`PlaybackRepeatMode.kt` 统一新队列、恢复队列和切换模式的循环规则，保留单曲循环与 FM 的专用行为。手机、平板及 mini player 的下一首可用状态订阅 `PlayerConnection.canSkipNext`，并在播放器事件批次完成后更新，避免随机顺序变化后停留在旧状态。
+
 手机与平板播放器从共享 `PlayerHost` 绑定当前播放状态与弹层；平板展示独立位于 `ui/tablet/player/`，具体入口、视觉复用和恢复边界见 [平板播放器](tablet-player.md)。
 
 歌词与下一首封面等预加载由播放侧触发，进入共享数据源或缓存；页面消费结果。修改手机或平板显示不应另建播放器、歌词管理器或图片加载器。

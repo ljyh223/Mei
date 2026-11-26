@@ -216,6 +216,8 @@ class MusicService : MediaLibraryService(),
 
     lateinit var queueManager: PlaybackQueueManager
     var queueTitle: String? = null
+    var loopPlaybackEnabled: Boolean = true
+        private set
 
     @Inject
     lateinit var weApiService: WeApiService
@@ -234,6 +236,7 @@ class MusicService : MediaLibraryService(),
         super.onCreate()
         playbackLogController = PlaybackLogController(playbackLogs, mediaUriProvider)
         val usbInitialSettings = runBlocking { dataStore.data.first() }
+        loopPlaybackEnabled = usbInitialSettings.loopPlaybackEnabled()
         usbExclusiveEnabled = usbInitialSettings[UsbExclusivePlaybackKey] ?: false
         usbPreferences = usbInitialSettings.usbPlaybackPreferences()
         usbManager = getSystemService(UsbManager::class.java)
@@ -458,8 +461,17 @@ class MusicService : MediaLibraryService(),
 
         // The manager must exist before restored items publish timeline events.
         queueManager = PlaybackQueueManager(player, apiService, weApiService, scope,
-            externalDetails = { ids -> mediaUriProvider.externalDetails(ids).map { it.toMediaItem() } })
-        restorePlayerState()
+            externalDetails = { ids -> mediaUriProvider.externalDetails(ids).map { it.toMediaItem() } },
+            loopPlaybackEnabled = { loopPlaybackEnabled })
+        val restoreJob = restorePlayerState()
+        scope.launch {
+            // Restore the saved single-repeat mode before preference updates can persist a new one.
+            restoreJob.join()
+            dataStore.data.map { it.loopPlaybackEnabled() }.distinctUntilChanged().collect { enabled ->
+                loopPlaybackEnabled = enabled
+                player.applyLoopPlayback(enabled, queueManager.isFmMode)
+            }
+        }
         scope.launch {
             while (isActive) {
                 delay(10_000)
@@ -474,48 +486,49 @@ class MusicService : MediaLibraryService(),
 
     }
 
-    private fun restorePlayerState() {
-        scope.launch {
-            try {
-                val preferences = context.dataStore.data.firstOrNull() ?: return@launch
-                val snapshot = PlaybackQueueSnapshotCodec.decode(preferences[LastPlaybackQueueKey])
-                // A user action made while the service was starting takes precedence over the snapshot.
-                val playerWasEmpty = player.mediaItemCount == 0
-                if (playerWasEmpty && snapshot != null) {
-                    queueManager.isFmMode = snapshot.isFmMode
-                    val items = snapshot.ids.mapIndexed { index, id ->
-                        val item = if (index == snapshot.currentIndex && snapshot.currentSong != null) {
-                            snapshot.currentSong.toMediaItem()
-                        } else {
-                            createPlaceholder(id)
-                        }
-                        val entry = snapshot.entries?.getOrNull(index)
-                        item.withQueueEntry(entry?.source, entry?.entryId ?: java.util.UUID.randomUUID().toString())
+    private fun restorePlayerState() = scope.launch {
+        try {
+            val preferences = context.dataStore.data.firstOrNull() ?: return@launch
+            val snapshot = PlaybackQueueSnapshotCodec.decode(preferences[LastPlaybackQueueKey])
+            // A user action made while the service was starting takes precedence over the snapshot.
+            val playerWasEmpty = player.mediaItemCount == 0
+            if (playerWasEmpty && snapshot != null) {
+                queueManager.isFmMode = snapshot.isFmMode
+                val items = snapshot.ids.mapIndexed { index, id ->
+                    val item = if (index == snapshot.currentIndex && snapshot.currentSong != null) {
+                        snapshot.currentSong.toMediaItem()
+                    } else {
+                        createPlaceholder(id)
                     }
-                    player.setMediaItems(items, snapshot.currentIndex, snapshot.positionMs)
-                    player.playWhenReady = false
-                    player.prepare()
-                    currentMediaMetadata.value = player.currentMetadata
+                    val entry = snapshot.entries?.getOrNull(index)
+                    item.withQueueEntry(entry?.source, entry?.entryId ?: java.util.UUID.randomUUID().toString())
                 }
-
-                if (playerWasEmpty) {
-                    val savedShuffleMode = !queueManager.isFmMode && (preferences[IsShuffleModeKey] ?: false)
-                    val savedRepeatMode = if (queueManager.isFmMode) Player.REPEAT_MODE_ALL
-                        else preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL
-                    player.repeatMode = savedRepeatMode
-                    player.shuffleModeEnabled = savedShuffleMode
-                    queueManager.setShuffleModeEnabled(savedShuffleMode)
-                    Timber.tag("MusicService").d(
-                        "Restored queue: ${snapshot?.ids?.size ?: 0}, FM: ${queueManager.isFmMode}, shuffle: $savedShuffleMode, repeat: $savedRepeatMode"
-                    )
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.tag("MusicService").e(e, "Failed to restore player state")
-            } finally {
-                restoringQueue = false
+                player.setMediaItems(items, snapshot.currentIndex, snapshot.positionMs)
+                player.playWhenReady = false
+                player.prepare()
+                currentMediaMetadata.value = player.currentMetadata
             }
+
+            if (playerWasEmpty) {
+                val savedShuffleMode = !queueManager.isFmMode && (preferences[IsShuffleModeKey] ?: false)
+                val savedRepeatMode = playbackRepeatMode(
+                    loopPlayback = preferences.loopPlaybackEnabled(),
+                    currentRepeatMode = preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL,
+                    isFmMode = queueManager.isFmMode,
+                )
+                player.repeatMode = savedRepeatMode
+                player.shuffleModeEnabled = savedShuffleMode
+                queueManager.setShuffleModeEnabled(savedShuffleMode)
+                Timber.tag("MusicService").d(
+                    "Restored queue: ${snapshot?.ids?.size ?: 0}, FM: ${queueManager.isFmMode}, shuffle: $savedShuffleMode, repeat: $savedRepeatMode"
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.tag("MusicService").e(e, "Failed to restore player state")
+        } finally {
+            restoringQueue = false
         }
     }
 

@@ -56,6 +56,7 @@ fun PlayerControlsSection(
     )
 
     val isFM = playerConnection.isFMMode.collectAsState()
+    val canSkipNext = playerConnection.canSkipNext.collectAsState()
     val isBuffering = isPlaying && playbackState == STATE_BUFFERING
 
     Column(
@@ -106,7 +107,7 @@ fun PlayerControlsSection(
             PlayerControls(
                 playerConnection = playerConnection,
                 canSkipPrevious = !isFM.value || playerConnection.player.hasPreviousMediaItem(),
-                canSkipNext = playerConnection.player.hasNextMediaItem(),
+                canSkipNext = canSkipNext.value,
                 isPlaying = isPlaying,
                 playbackState = playbackState,
                 tight = tightControls,
