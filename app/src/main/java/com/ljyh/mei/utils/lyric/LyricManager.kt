@@ -1,5 +1,7 @@
 package com.ljyh.mei.utils.lyric
 
+import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
+
 import com.ljyh.mei.data.model.response.Lyric
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.unblockneteasemusic.model.MusicLyrics

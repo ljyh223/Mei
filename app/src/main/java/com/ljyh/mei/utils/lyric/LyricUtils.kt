@@ -1,5 +1,7 @@
 package com.ljyh.mei.utils.lyric
 
+import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
+
 import android.util.Log
 import com.ljyh.mei.ui.model.LyricData
 import com.ljyh.mei.ui.model.LyricSource

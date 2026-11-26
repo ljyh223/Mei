@@ -161,6 +161,8 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 
 歌词与下一首封面等预加载由播放侧触发，进入共享数据源或缓存；页面消费结果。修改手机或平板显示不应另建播放器、歌词管理器或图片加载器。
 
+TTML 的自动歌词合并、旧缓存恢复及下载导出统一使用 `lyrics-core` 的 `com.mocharealm.accompanist.lyrics.core.parser.TTMLParser`；不再保留解析器和 XML 工具的项目副本。主唱／和声翻译按上游的 XML 角色结构区分，普通翻译中的括号保持原文，不再根据末尾全角括号猜测和声翻译。网易云 YRC、QQ QRC、LRC 及其业务合并规则继续使用现有专项实现。
+
 图片统一使用 `AppContext` 提供的 Coil ImageLoader，普通 UI 将 URL 交给现有组件；`ArtworkRequestInterceptor` 与 `ImageUrls.kt` 统一处理尺寸。播放器高清封面有明确的专用入口。详见 [图片加载](image-loading.md)，不要在页面散落 CDN 参数或额外建立缓存键。
 
 USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `app/src/main/cpp/`。修改前阅读 [Rust USB 说明](../app/src/main/rust/mei-usb-core/README.md) 和当前 CMake／Gradle 接线，按实际参与构建的文件判断，保留来源与许可说明。

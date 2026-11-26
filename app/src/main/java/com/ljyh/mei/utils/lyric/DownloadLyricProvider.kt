@@ -1,5 +1,7 @@
 package com.ljyh.mei.utils.lyric
 
+import com.mocharealm.accompanist.lyrics.core.parser.TTMLParser
+
 import android.content.Context
 import com.ljyh.mei.constants.EmbedOriginalTtmlKey
 import com.ljyh.mei.data.model.response.Lyric
