@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -101,6 +102,10 @@ fun FluidProgressSlider(
         mediaKey = mediaKey,
     )
 
+    // Preserve the existing externally controlled value with Material3's stateful custom track.
+    val progressState = remember(valueRange) { SliderState(sliderPosition, trackRange = valueRange) }
+    progressState.value = sliderPosition
+
     val trackHeight = 6.dp
     val activeTrackAlpha by animateFloatAsState(
         targetValue = if (isInteracting) 1f else 0.65f,
@@ -122,7 +127,7 @@ fun FluidProgressSlider(
             contentAlignment = Alignment.Center
         ) {
             Slider(
-                value = sliderPosition,
+                state = progressState,
                 onValueChange = {
                     rawDragPosition = it
                     hasScrubbed = true
@@ -134,7 +139,6 @@ fun FluidProgressSlider(
                     }
                     hasScrubbed = false
                 },
-                valueRange = valueRange,
                 interactionSource = interactionSource,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = isDurationValid,

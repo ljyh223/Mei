@@ -23,6 +23,7 @@ import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.RefractionProfile
 import dev.chrisbanes.haze.glass.hazeGlass
@@ -71,13 +72,15 @@ fun MeiGlassSurface(
             GlassStyle.clear.then {
                 shape(resolvedShape)
                 tint(Color.Transparent)
-                optics(
-                    blurRadius = appearance.blur.dp,
-                    refractionStrength = appearance.refraction,
-                    refractionHeightFraction = 0.35f,
-                    refractionDisplacement = 56.dp,
-                    refractionProfile = RefractionProfile.Edge(28.dp),
-                )
+                optics {
+                    copy(
+                        blurRadius = OpticalSizeValue.Fixed(appearance.blur.dp),
+                        refractionStrength = appearance.refraction,
+                        refractionHeightFraction = 0.35f,
+                        refractionDisplacement = 56.dp,
+                        refractionProfile = RefractionProfile.Edge(28.dp),
+                    )
+                }
                 specularIntensity(appearance.highlight * if (dark) 0.42f / 0.55f else 1f)
                 ambientResponse(if (dark) 0.22f else 0.42f)
                 edgeShadow(Color.Black.copy(alpha = if (dark) 0.25f else 0.10f))

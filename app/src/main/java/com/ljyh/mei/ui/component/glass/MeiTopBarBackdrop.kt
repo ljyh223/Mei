@@ -28,6 +28,7 @@ import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazePerformanceMode
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.glass.OpticalSizeValue
 import dev.chrisbanes.haze.glass.GlassStyle
 import dev.chrisbanes.haze.glass.hazeGlass
 
@@ -141,12 +142,14 @@ internal val MeiTopBarBlurStyle = GlassStyle.regular.then {
     shape(RoundedCornerShape(0.dp))
     tint(Color.Transparent)
     backgroundColor(Color.Transparent)
-    optics(
-        blurRadius = 10.dp,
-        refractionStrength = 0f,
-        depth = 1f,
-        progressive = TopBarProgressiveBlur,
-    )
+    optics {
+        copy(
+            blurRadius = OpticalSizeValue.Fixed(10.dp),
+            refractionStrength = 0f,
+            depth = OpticalSizeValue.Fixed(1f),
+            progressive = TopBarProgressiveBlur,
+        )
+    }
     specularIntensity(0f)
     edgeShadow(Color.Transparent)
     ambientResponse(0f)

@@ -15,7 +15,9 @@ val meiAbiSplits = providers.gradleProperty("meiAbiSplits")
 
 android {
     namespace = "com.ljyh.mei"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) { minorApiLevel = 1 }
+    }
     defaultConfig {
         applicationId = "com.ljyh.mei"
         minSdk = 29
@@ -159,7 +161,7 @@ dependencies {
         exclude(group = "com.google.code.gson", module = "gson")
     }
     implementation(libs.logging.interceptor)
-    ksp("org.jetbrains.kotlin:kotlin-metadata-jvm:2.3.20")
+    ksp(libs.kotlin.metadata.jvm)
 
 
     // 列表拖拽

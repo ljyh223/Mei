@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -85,6 +86,10 @@ fun PlayerProgressSlider(
         position.toFloat()
     }.coerceIn(valueRange)
 
+    // Preserve the existing externally controlled value with Material3's stateful custom track.
+    val progressState = remember(valueRange) { SliderState(sliderPosition, trackRange = valueRange) }
+    progressState.value = sliderPosition
+
     // 计算进度百分比 (0.0 - 1.0)
     val progressFraction = if (isDurationValid) {
         (sliderPosition / valueRange.endInclusive).coerceIn(0f, 1f)
@@ -116,7 +121,7 @@ fun PlayerProgressSlider(
         // 自定义 Slider
         // 我们利用 Material3 Slider 的逻辑，但是完全重写 Track 和 Thumb
         Slider(
-            value = sliderPosition,
+            state = progressState,
             onValueChange = {
                 rawDragPosition = it
                 hasScrubbed = true
@@ -128,7 +133,6 @@ fun PlayerProgressSlider(
                 }
                 hasScrubbed = false
             },
-            valueRange = valueRange,
             interactionSource = interactionSource,
             modifier = Modifier
                 .fillMaxWidth()
