@@ -59,33 +59,45 @@ internal fun AppleArtistHeader(
         if (!loaded) {
             fallback()
         } else {
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val height = if (compact) {
-                    if (constraints.hasBoundedHeight) maxHeight.coerceAtMost(360.dp) else 300.dp
-                } else (maxWidth * 1.48f).coerceIn(460.dp, 660.dp) + 16.dp
-                val background = MaterialTheme.colorScheme.background
-                val foreground = MaterialTheme.colorScheme.onBackground
-                Box(Modifier.fillMaxWidth().height(height).background(background)) {
-                    this@image.SubcomposeAsyncImageContent(
-                        modifier = Modifier.fillMaxWidth().height(height * 0.88f).then(artworkModifier),
-                        contentScale = ContentScale.Crop, alignment = Alignment.TopCenter,
-                    )
-                    Box(Modifier.matchParentSize().background(Brush.verticalGradient(
-                        0f to Color.Transparent, 0.34f to Color.Transparent,
-                        0.68f to background.copy(alpha = 0.72f), 0.88f to background, 1f to background,
-                    )))
-                    Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                        .padding(meiPageHorizontalPadding()).padding(bottom = if (compact) 12.dp else 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(if (compact) 16.dp else 28.dp)) {
-                        ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact) { wordmarkState = it }
-                        ArtistPrimaryActions(
-                            canPlay = state.canPlay && state.songs.isNotEmpty(), subscription = state.subscription,
-                            onInfo = onInfo, onPlay = actions.onPlayHotSongs,
-                            onToggleSubscription = actions.onToggleSubscription, compact = compact,
-                        )
-                    }
-                }
+            ArtistPhotoHeader(state, actions, onInfo, compact, artworkModifier,
+                title = { ArtistWordmark(artwork, state.artist?.name ?: artwork.name, compact) { wordmarkState = it } },
+                photo = { modifier ->
+                    this@image.SubcomposeAsyncImageContent(modifier = modifier,
+                        contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)
+                })
+        }
+    }
+}
+
+/** Shared photo-to-color transition, title placement and controls for either artwork source. */
+@Composable
+internal fun ArtistPhotoHeader(
+    state: ArtistDetailUiState,
+    actions: ArtistDetailActions,
+    onInfo: () -> Unit,
+    compact: Boolean,
+    artworkModifier: Modifier = Modifier,
+    title: @Composable () -> Unit,
+    photo: @Composable (Modifier) -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val height = if (compact) {
+            if (constraints.hasBoundedHeight) maxHeight.coerceAtMost(360.dp) else 300.dp
+        } else (maxWidth * 1.48f).coerceIn(460.dp, 660.dp) + 16.dp
+        val background = MaterialTheme.colorScheme.background
+        Box(Modifier.fillMaxWidth().height(height).background(background)) {
+            photo(Modifier.fillMaxWidth().height(height * 0.88f).then(artworkModifier))
+            Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                0f to Color.Transparent, 0.34f to Color.Transparent,
+                0.68f to background.copy(alpha = 0.72f), 0.88f to background, 1f to background,
+            )))
+            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .padding(meiPageHorizontalPadding()).padding(bottom = if (compact) 12.dp else 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(if (compact) 16.dp else 28.dp)) {
+                title()
+                ArtistPrimaryActions(state.canPlay && state.songs.isNotEmpty(), state.subscription,
+                    onInfo, actions.onPlayHotSongs, actions.onToggleSubscription, compact)
             }
         }
     }

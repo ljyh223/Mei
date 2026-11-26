@@ -30,6 +30,43 @@ import org.robolectric.annotation.LooperMode
 class ArtistArtworkThemeTest {
     @get:Rule val compose = createEmptyComposeRule()
 
+    @Test fun landscapePhotoPaletteKeepsBothPanesReadableAndWaitsForThePhoto() {
+        val ready = mutableStateOf(false)
+        val palette = mutableStateOf(Color.White)
+        val scheme = AtomicReference<ColorScheme>()
+        val ink = AtomicReference<Color>()
+        val original = lightColorScheme()
+        TabletContentTestActivity.content = {
+            MaterialTheme(colorScheme = original) {
+                ArtistArtworkTheme(null, ready.value, sourceColor = palette.value) {
+                    val current = MaterialTheme.colorScheme
+                    val foreground = LocalContentColor.current
+                    SideEffect { scheme.set(current); ink.set(foreground) }
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            compose.waitForIdle()
+            assertEquals(original.background, scheme.get().background)
+            for ((background, foreground) in listOf(Color.White to Color.Black, Color(0xFF142840) to Color.White)) {
+                compose.runOnIdle { ready.value = true; palette.value = background }
+                compose.waitForIdle()
+                assertEquals(background, scheme.get().background)
+                assertEquals(background, scheme.get().surface)
+                assertEquals(foreground, scheme.get().onBackground)
+                assertEquals(foreground, scheme.get().onSurface)
+                assertEquals(foreground, ink.get())
+            }
+            compose.runOnIdle { ready.value = false }
+            compose.waitForIdle()
+            assertEquals(original.background, scheme.get().background)
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
+
     @Test fun neteaseUsesTheSameImmersivePaletteAsAppleAndNeverFadesBackToTheLightTheme() {
         val apple = mutableStateOf(true)
         val dark = mutableStateOf(false)

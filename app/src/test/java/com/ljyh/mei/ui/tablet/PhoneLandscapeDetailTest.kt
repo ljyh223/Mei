@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -53,7 +54,7 @@ class PhoneLandscapeDetailTest {
 
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun landscapeArtistPhotoFillsTheLeftPaneEvenWhenTheSourceIsWide() {
+    fun landscapeNeteasePhotoSharesTheAppleHeaderLayoutAndUsesItsDecodedPalette() {
         val photo = File.createTempFile("mei-artist-portrait", ".png")
         val bitmap = Bitmap.createBitmap(400, 200, Bitmap.Config.ARGB_8888)
         try {
@@ -62,6 +63,8 @@ class PhoneLandscapeDetailTest {
             bitmap.recycle()
         }
         var operation = ""
+        var paletteRequests = 0
+        var paletteUrl: String? = null
         try {
             showDetail {
                 AdaptiveArtistContent(
@@ -86,6 +89,11 @@ class PhoneLandscapeDetailTest {
                         onTrackClick = { track, _ -> operation = track.title },
                         onTrackMore = { _, _ -> }, onAlbumClick = {},
                         onRetryDetail = {}, onRetrySongs = {}, onRetryAlbums = {},
+                        onPortraitDecoded = { url, _ ->
+                            paletteRequests++
+                            paletteUrl = url
+                            Color(0xFF214D62)
+                        },
                     ),
                 )
             }
@@ -95,10 +103,12 @@ class PhoneLandscapeDetailTest {
                 compose.onAllNodesWithContentDescription("歌手照片").fetchSemanticsNodes().size == 1
             }
             val picture = artwork.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-            artwork.assertWidthIsEqualTo(232.dp).assertHeightIsAtLeast(240.dp)
+            artwork.assertWidthIsEqualTo(232.dp).assertHeightIsAtLeast(150.dp)
             val name = compose.onNodeWithText("测试歌手").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-            assertTrue(name.left in picture.left..picture.center.x)
-            assertTrue(name.top >= picture.center.y && name.bottom <= picture.bottom)
+            assertEquals(picture.center.x, name.center.x, 1f)
+            assertTrue(name.top > picture.top && name.bottom <= picture.bottom)
+            compose.waitUntil { paletteRequests == 1 }
+            assertEquals(photo.toURI().toString(), paletteUrl)
             compose.onNodeWithText("艺名").assertDoesNotExist()
             compose.onNodeWithText("入驻艺人").assertDoesNotExist()
             compose.onNodeWithText("这是一段简介").assertDoesNotExist()
@@ -108,7 +118,9 @@ class PhoneLandscapeDetailTest {
             val play = compose.onNodeWithContentDescription("播放热门歌曲").assertIsDisplayed()
             val track = compose.onNodeWithText(song.title).assertIsDisplayed()
             assertTrue(play.fetchSemanticsNode().boundsInRoot.center.x in picture.left..picture.right)
-            assertTrue(play.fetchSemanticsNode().boundsInRoot.top >= picture.bottom)
+            val playBounds = play.fetchSemanticsNode().boundsInRoot
+            assertEquals(picture.center.x, playBounds.center.x, 1f)
+            assertTrue(playBounds.top >= name.bottom)
             compose.onNodeWithContentDescription("歌手简介").assertIsDisplayed()
             compose.onNodeWithContentDescription("收藏歌手").assertIsDisplayed()
             compose.onNodeWithContentDescription("更多操作").assertIsDisplayed()

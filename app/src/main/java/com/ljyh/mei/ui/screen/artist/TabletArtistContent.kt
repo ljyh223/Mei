@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.ljyh.mei.constants.DebugKey
+import com.ljyh.mei.ui.screen.artist.component.ArtistColorBackdrop
 import com.ljyh.mei.ui.component.MeiStatePanel
 import com.ljyh.mei.ui.component.glass.*
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
@@ -61,12 +62,14 @@ internal fun TabletArtistContent(state: ArtistDetailUiState, actions: ArtistDeta
         val bodyWidth = 1280.dp
         val discography = remember(state.albums) { artistDiscography(state.albums) }
         BoxWithConstraints(Modifier.fillMaxSize().clipToBounds().background(background)) {
-            TabletNeteaseArtistBackdrop(state, visible = !presentation.usesApplePhoto,
+            NeteaseArtistArtwork(state,
                 onPortraitChanged = { status, painter, color ->
                     neteasePhotoState = status
                     neteasePortrait = painter
                     neteaseColor = color
-                }, onColorRequested = actions.onPortraitDecoded)
+                }, onColorRequested = actions.onPortraitDecoded) { painter, _ ->
+                if (!presentation.usesApplePhoto && painter != null) ArtistColorBackdrop(painter)
+            }
             if (artwork != null) TabletArtistBackdrop(artwork, scrollPixels) { status, photo, painter ->
                 presentation = presentation.copy(photo = status, background = photo.image.background,
                     tabletPhotoKind = photo.kind)

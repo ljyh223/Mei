@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.screen.artist
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -9,32 +10,35 @@ import coil3.Image
 import kotlinx.coroutines.CancellationException
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
-import com.ljyh.mei.ui.screen.artist.component.ArtistColorBackdrop
 
-/** One NetEase decode serves the circular portrait and the same color field as ordinary AM artwork. */
+/** Shared NetEase source fallback and palette extraction, using the same decoded image as the UI. */
 @Composable
-internal fun TabletNeteaseArtistBackdrop(
+internal fun NeteaseArtistArtwork(
     state: ArtistDetailUiState,
-    visible: Boolean,
     onPortraitChanged: (ArtistArtworkLoadState, Painter?, Color?) -> Unit,
     onColorRequested: suspend (String, Image) -> Color? = { _, _ -> null },
+    preferCover: Boolean = false,
+    modifier: Modifier = Modifier.fillMaxSize(),
+    content: @Composable (Painter?, ArtistArtworkLoadState) -> Unit,
 ) {
-    val sources = remember(state.artist?.avatar, state.artist?.cover) {
-        listOfNotNull(state.artist?.avatar?.takeIf(String::isNotBlank),
-            state.artist?.cover?.takeIf(String::isNotBlank)).distinct()
+    val sources = remember(state.artist?.avatar, state.artist?.cover, preferCover) {
+        val artist = state.artist
+        val urls = if (preferCover) listOf(artist?.cover, artist?.avatar) else listOf(artist?.avatar, artist?.cover)
+        urls.mapNotNull { it?.takeIf(String::isNotBlank) }.distinct()
     }
     var index by remember(state.id, sources) { mutableIntStateOf(0) }
     val report by rememberUpdatedState(onPortraitChanged)
     val colorRequested by rememberUpdatedState(onColorRequested)
     if (sources.isEmpty()) {
         LaunchedEffect(state.id, sources) { report(ArtistArtworkLoadState.Unavailable, null, null) }
+        Box(modifier) { content(null, ArtistArtworkLoadState.Unavailable) }
         return
     }
     val url = sources[index]
     key(state.id, url) {
         var palette by remember { mutableStateOf<Color?>(null) }
         var paletteAttempted by remember { mutableStateOf(false) }
-        SubcomposeAsyncImage(model = url, contentDescription = null, modifier = Modifier.fillMaxSize()) {
+        SubcomposeAsyncImage(model = url, contentDescription = null, modifier = modifier) {
             val result by painter.state.collectAsState()
             val image = (result as? AsyncImagePainter.State.Success)?.painter
             LaunchedEffect(result, url) {
@@ -49,7 +53,7 @@ internal fun TabletNeteaseArtistBackdrop(
                 }
                 if (result is AsyncImagePainter.State.Error && index < sources.lastIndex) index++
             }
-            if (visible && image != null) ArtistColorBackdrop(image)
+            content(image, result.artistArtworkLoadState())
         }
     }
 }

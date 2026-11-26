@@ -17,6 +17,7 @@ import coil3.annotation.DelicateCoilApi
 import coil3.imageLoader
 import coil3.intercept.Interceptor
 import coil3.request.allowHardware
+import com.ljyh.mei.ui.screen.artist.component.ArtistColorBackdrop
 import com.ljyh.mei.data.model.api.ArtistDetail
 import com.ljyh.mei.ui.tablet.TabletContentTestActivity
 import com.ljyh.mei.utils.image.ArtworkRequestInterceptor
@@ -45,7 +46,9 @@ class TabletNeteaseArtistBackdropTest {
     @Test fun failedAvatarFallsBackToCoverSharedByBackgroundAndForeground() = verify(true, 2)
     @Test fun showingAndHidingTheBackdropDoesNotReloadThePortrait() = verify(false, 1)
 
-    private fun verify(failedAvatar: Boolean, requests: Int) {
+    @Test fun failedLandscapeCoverFallsBackToAvatarWithOnePaletteExtraction() = verify(true, 2, preferCover = true)
+
+    private fun verify(failedAvatar: Boolean, requests: Int, preferCover: Boolean = false) {
         val context = RuntimeEnvironment.getApplication()
         val previous = context.imageLoader
         val count = AtomicInteger()
@@ -62,7 +65,8 @@ class TabletNeteaseArtistBackdropTest {
         } finally { bitmap.recycle() }
         val url = file.toURI().toString()
         val state = ArtistDetailUiState("1", ArtistDetail.Data.Artist(name = "网易云歌手",
-            avatar = if (failedAvatar) "$url.missing" else url, cover = url), emptyList(),
+            avatar = if (failedAvatar && !preferCover) "$url.missing" else url,
+            cover = if (failedAvatar && preferCover) "$url.missing" else url), emptyList(),
             false, null, emptyList(), false, null, emptyList(), false, null, null, true,
             appleArtworkEnabled = false)
         val loader = ImageLoader.Builder(context).allowHardware(false).diskCache(null).components {
@@ -74,14 +78,16 @@ class TabletNeteaseArtistBackdropTest {
             TabletContentTestActivity.content = {
                 MaterialTheme {
                     Box(Modifier.requiredSize(1000.dp, 720.dp)) {
-                        TabletNeteaseArtistBackdrop(state, visible.value, onPortraitChanged = { status, painter, color ->
+                        NeteaseArtistArtwork(state, preferCover = preferCover, onPortraitChanged = { status, painter, color ->
                             if (status == ArtistArtworkLoadState.Success) portrait.value = painter
                             if (color != null) palette.set(color)
                         }, onColorRequested = { loadedUrl, _ ->
                             colorUrl.set(loadedUrl)
                             colorRequests.incrementAndGet()
                             Color.Blue
-                        })
+                        }) { painter, _ ->
+                            if (visible.value && painter != null) ArtistColorBackdrop(painter)
+                        }
                         portrait.value?.let { Image(it, "歌手照片", Modifier.requiredSize(192.dp)) }
                     }
                 }
