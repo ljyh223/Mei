@@ -33,7 +33,11 @@ class PlaybackLogClient internal constructor(private val client: HttpClient) {
         expectSuccess = false
         followRedirects = false
         install(HttpTimeout) { requestTimeoutMillis = 20_000 }
-        engine { config { followRedirects(false); followSslRedirects(false) } }
+        engine { config {
+            dns(PlaybackLogDns())
+            followRedirects(false)
+            followSslRedirects(false)
+        } }
     })
 
     internal suspend fun upload(

@@ -20,10 +20,26 @@ class PlaybackLogWorker(context: Context, params: WorkerParameters) : CoroutineW
         val repository = EntryPointAccessors.fromApplication(
             applicationContext, PlaybackLogWorkerEntryPoint::class.java,
         ).playbackLogRepository()
-        if (repository.drain()) Result.retry() else Result.success()
+        val outcome = try {
+            repository.drain()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            PlaybackLogDrain.RETRY
+        }
+        when {
+            outcome == PlaybackLogDrain.COMPLETE -> Result.success()
+            outcome == PlaybackLogDrain.RETRY && runAttemptCount < 3 -> Result.retry()
+            else -> {
+                // Hand off to the successor instead of keeping the entire chain in long backoff.
+                repository.schedule()
+                Result.success()
+            }
+        }
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (_: Exception) {
+        // A scheduling/database failure must not fail the successor chain.
         Result.retry()
     }
 }
