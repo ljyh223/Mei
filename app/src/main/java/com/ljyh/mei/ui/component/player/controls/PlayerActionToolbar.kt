@@ -44,6 +44,7 @@ fun PlayerActionToolbar(
         selectedAction = selectedAction,
         hasSong = metadata != null,
         canShare = metadata?.neteaseId?.let { it > 0 } == true,
+        isMusicFree = metadata?.id?.let { it < 0 } == true,
         onAction = { if (it == PlayerAction.LYRICS) onLyricClick() else onAction(it) },
         modifier = modifier,
     )
@@ -61,13 +62,14 @@ internal fun PlayerActionRow(
     onAction: (PlayerAction) -> Unit,
     modifier: Modifier = Modifier,
     foreground: Color = LocalPlayerForegroundColor.current,
+    isMusicFree: Boolean = false,
 ) {
     Spacer(Modifier.height(16.dp))
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically) {
         actions.forEach { action ->
             val selected = selectedAction == action
-            val enabled = action.isAvailable(hasSong, canShare)
+            val enabled = action.isAvailable(hasSong, canShare, isMusicFree)
             val tint = foreground.copy(alpha = foreground.alpha * when {
                 !enabled -> .3f
                 selected -> 1f

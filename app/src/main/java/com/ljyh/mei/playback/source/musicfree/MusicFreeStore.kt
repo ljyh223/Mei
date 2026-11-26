@@ -6,10 +6,12 @@ import android.util.AtomicFile
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ljyh.mei.BuildConfig
+import com.ljyh.mei.constants.LastPlaybackQueueKey
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.di.repository.SongRepository
 import com.ljyh.mei.playback.source.lx.LxScriptDownloader
 import com.ljyh.mei.playback.source.lx.readLimited
+import com.ljyh.mei.playback.queue.PlaybackQueueSnapshotCodec
 import com.ljyh.mei.utils.preferences.dataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -37,7 +39,8 @@ class MusicFreeStore @Inject constructor(
     private val lock = Mutex()
     private val resolutionLocks = Array(16) { Mutex() }
     private val directory get() = File(context.noBackupFilesDir, "musicfree").apply { mkdirs() }
-    private val tracksDirectory get() = File(directory, "tracks").apply { mkdirs() }
+    private val trackCache by lazy { MusicFreeTrackCache(File(directory, "tracks")) }
+    @Volatile private var queuedTrackIds = emptySet<String>()
     private val audioCache = ConcurrentHashMap<String, Pair<Long, MusicFreeAudio>>()
     val plugins: Flow<List<MusicFreePlugin>> = context.dataStore.data.map {
         it[key]?.let { value -> musicFreeJson.decodeFromString<List<MusicFreePlugin>>(value) } ?: emptyList()
@@ -140,6 +143,7 @@ class MusicFreeStore @Inject constructor(
             }
             if (id.matches(Regex("[a-f0-9]{64}"))) AtomicFile(File(directory, "$id.js")).delete()
             audioCache.clear()
+            trackCache.removePlugin(id, retainedTrackIds())
         }
     }
 
@@ -164,34 +168,47 @@ class MusicFreeStore @Inject constructor(
         lock.withLock {
             val enabledIds = snapshot().filter { it.enabled }.map { it.id }.toSet()
             require(tracks.all { it.pluginId in enabledIds }) { "插件已停用或删除" }
-            for (track in tracks) {
+            val uniqueTracks = tracks.distinctBy { it.pluginId to it.originalId }
+            val originals = uniqueTracks.associateBy { it.mediaId.toString() }
+            require(originals.size == uniqueTracks.size) { "歌曲标识冲突，请重新搜索" }
+            val records = mutableMapOf<String, ByteArray>()
+            var bytes = 0L
+            for ((id, track) in originals) {
                 currentCoroutineContext().ensureActive()
-                val existing = trackFor(track.mediaId.toString())
+                val existing = trackCache.read(id)
                 require(existing == null || (existing.pluginId == track.pluginId && existing.originalId == track.originalId)) {
                     "歌曲标识冲突，请重新搜索"
                 }
                 val data = musicFreeJson.encodeToString(track).toByteArray()
-                require(data.size <= MAX_TRACK_BYTES) { "插件返回的歌曲信息过大" }
-                write(AtomicFile(File(tracksDirectory, "${track.mediaId}.json")), data)
+                require(data.size <= MusicFreeTrackCache.MAX_TRACK_BYTES) { "插件返回的歌曲信息过大" }
+                bytes += data.size
+                require(bytes <= MusicFreeTrackCache.MAX_CACHE_BYTES) { "MusicFree 队列超过歌曲资料缓存容量" }
+                records[id] = data
+            }
+            trackCache.writeBatch(records, retainedTrackIds())
+            currentCoroutineContext().ensureActive()
+            songs.insertSongs(originals.values.map { track ->
                 val metadata = track.metadata()
-                songs.insertSong(Song(
+                Song(
                     id = metadata.id.toString(), title = metadata.title, artist = metadata.artists.map { it.name },
                     album = metadata.album.title, cover = metadata.coverUrl, duration = metadata.duration / 1000,
-                ))
-            }
+                )
+            })
         }
+    }
+
+    internal fun retainQueuedTracks(mediaIds: Collection<String>) {
+        queuedTrackIds = mediaIds.filter { it.toLongOrNull()?.let { id -> id < 0 } == true }.toSet()
+    }
+
+    private suspend fun retainedTrackIds(): Set<String> {
+        val saved = PlaybackQueueSnapshotCodec.decode(context.dataStore.data.first()[LastPlaybackQueueKey])
+        return queuedTrackIds + saved?.ids.orEmpty()
     }
 
     suspend fun trackFor(mediaId: String): MusicFreeTrack? = withContext(Dispatchers.IO) {
         if (mediaId.toLongOrNull()?.let { it < 0 } != true) return@withContext null
-        val file = File(tracksDirectory, "$mediaId.json")
-        if (!file.exists()) return@withContext null
-        file.inputStream().use {
-            val bytes = it.readLimited(MAX_TRACK_BYTES + 1)
-            require(bytes.size <= MAX_TRACK_BYTES)
-            musicFreeJson.decodeFromString<MusicFreeTrack>(bytes.toString(Charsets.UTF_8))
-                .also { track -> require(track.mediaId.toString() == mediaId) }
-        }
+        trackCache.read(mediaId)
     }
 
     suspend fun resolve(mediaId: String, requestedQuality: String): MusicFreeAudio {
@@ -208,7 +225,10 @@ class MusicFreeStore @Inject constructor(
             val headers = (result["headers"] as? JsonObject)?.mapValues {
                 (it.value as? JsonPrimitive)?.contentOrNull ?: error("插件返回的请求头无效")
             }.orEmpty().toMutableMap()
-            result.text("userAgent").takeIf { it.isNotBlank() }?.let { headers["User-Agent"] = it }
+            result.text("userAgent").takeIf { it.isNotBlank() }?.let { userAgent ->
+                headers.keys.removeAll { it.equals("User-Agent", ignoreCase = true) }
+                headers["User-Agent"] = userAgent
+            }
             require(headers.size <= 64 && headers.all { (key, value) ->
                 key.length <= 256 && value.length <= 8192 && '\r' !in value && '\n' !in value
             }) { "插件返回的请求头无效" }
@@ -243,6 +263,5 @@ class MusicFreeStore @Inject constructor(
     companion object {
         const val MAX_PLUGINS = 20
         private const val MAX_SCRIPT_BYTES = 1024 * 1024
-        private const val MAX_TRACK_BYTES = 256 * 1024
     }
 }

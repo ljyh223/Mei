@@ -1,6 +1,7 @@
 package com.ljyh.mei.ui.component.menu
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
@@ -9,6 +10,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,14 +24,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.DebugKey
 import com.ljyh.mei.ui.component.glass.MeiGlassIconButton
+import com.ljyh.mei.ui.component.layout.MeiPageLayout
 import com.ljyh.mei.utils.preferences.rememberPreference
 import com.ljyh.mei.utils.share.MediaShareLink
 import com.ljyh.mei.utils.share.shareMediaLink
 import com.ljyh.mei.utils.system.setClipboard
 
-/** One floating toolbar action for collection search and public link sharing. */
+internal enum class MeiDetailMoreButtonStyle { Toolbar, Plain, Artwork }
+
+/** Shared entry point for collection search and public link sharing. */
 @Composable
-fun MeiDetailMoreButton(
+internal fun MeiDetailMoreButton(
     shareContent: MediaShareLink?,
     modifier: Modifier = Modifier,
     searchActive: Boolean = false,
@@ -37,33 +42,21 @@ fun MeiDetailMoreButton(
     onSearchActiveChange: ((Boolean) -> Unit)? = null,
     playlistCoverUrl: String? = null,
     additionalItems: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
-    toolbarButton: Boolean = true,
+    style: MeiDetailMoreButtonStyle = MeiDetailMoreButtonStyle.Toolbar,
 ) {
     val context = LocalContext.current
     val debugEnabled by rememberPreference(DebugKey, defaultValue = false)
     var expanded by remember(shareContent?.kind, shareContent?.id, searchActive) { mutableStateOf(false) }
     if (searchActive && onSearchActiveChange != null) {
-        if (toolbarButton) {
-            MeiGlassIconButton(modifier = modifier, onClick = { onSearchActiveChange(false) }) {
-                Icon(Icons.Rounded.Close, contentDescription = "关闭搜索")
-            }
-        } else {
-            IconButton(modifier = modifier, onClick = { onSearchActiveChange(false) }) {
-                Icon(Icons.Rounded.Close, contentDescription = "关闭搜索")
-            }
+        MeiDetailMoreIconButton(style, modifier, onClick = { onSearchActiveChange(false) }) {
+            Icon(Icons.Rounded.Close, contentDescription = "关闭搜索")
         }
         return
     }
     if (shareContent == null && onSearchActiveChange == null && additionalItems == null) return
     Box(modifier) {
-        if (toolbarButton) {
-            MeiGlassIconButton(onClick = { expanded = true }) {
-                Icon(Icons.Rounded.MoreVert, contentDescription = "更多操作")
-            }
-        } else {
-            IconButton(onClick = { expanded = true }) {
-                Icon(Icons.Rounded.MoreVert, contentDescription = "更多操作")
-            }
+        MeiDetailMoreIconButton(style, onClick = { expanded = true }) {
+            Icon(Icons.Rounded.MoreVert, contentDescription = "更多操作")
         }
         DropdownMenu(
             expanded = expanded,
@@ -106,5 +99,23 @@ fun MeiDetailMoreButton(
                 additionalItems { expanded = false }
             }
         }
+    }
+}
+
+@Composable
+private fun MeiDetailMoreIconButton(
+    style: MeiDetailMoreButtonStyle,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    when (style) {
+        MeiDetailMoreButtonStyle.Toolbar -> MeiGlassIconButton(modifier = modifier, onClick = onClick) { content() }
+        MeiDetailMoreButtonStyle.Plain -> IconButton(onClick, modifier, content = content)
+        MeiDetailMoreButtonStyle.Artwork -> FilledTonalIconButton(
+            onClick = onClick,
+            modifier = modifier.size(MeiPageLayout.ToolbarTouchSize),
+            content = content,
+        )
     }
 }

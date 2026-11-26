@@ -75,11 +75,10 @@ object CacheManager {
         // 1. 先配置你的 OkHttp (负责处理网络流)
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor { chain ->
-                chain.proceed(
-                    chain.request().newBuilder()
-                        .addHeader("User-Agent", UserAgent)
-                        .build()
-                )
+                val request = chain.request()
+                chain.proceed(if (request.header("User-Agent") == null) {
+                    request.newBuilder().header("User-Agent", UserAgent).build()
+                } else request)
             }
             .build()
         val okHttpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)

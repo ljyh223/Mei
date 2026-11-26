@@ -30,7 +30,7 @@ import com.ljyh.mei.ui.component.layout.meiPageGutter
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
 import com.ljyh.mei.ui.screen.main.library.*
 import com.ljyh.mei.ui.screen.profile.PersonalCenterEntry
-import com.ljyh.mei.ui.component.artwork.MeiArtworkGlassActions
+import com.ljyh.mei.ui.component.artwork.MeiArtworkActions
 import com.ljyh.mei.ui.component.artwork.MeiArtworkPlayButton
 import com.ljyh.mei.ui.component.artwork.PlaylistCoverStage
 import com.ljyh.mei.ui.component.shimmer.skeleton
@@ -214,7 +214,7 @@ private fun LibraryLikedSection(
             )
         }
         if (landscape) {
-            MeiArtworkGlassActions(
+            MeiArtworkActions(
                 modifier = Modifier.widthIn(max = artworkLimit).fillMaxWidth(),
                 actionAlignment = ExpandedLikedCoverActionAlignment,
                 artwork = { artwork() },

@@ -21,6 +21,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
@@ -75,6 +76,10 @@ class SearchMusicFreeTest {
             assertEquals(listOf("Song1", "Song2"), songs.map { it.title })
             assertTrue(songs.all { it.id < 0 && it.neteaseId == 0L })
             assertFalse(vm.pageState.value.data!!.hasMore)
+            val superseded = vm.queuePreparation(songs)
+            vm.queuePreparation(emptyList()).invoke()
+            assertTrue(runCatching { superseded() }.exceptionOrNull() is CancellationException)
+            assertNull(store.trackFor(songs.first().id.toString()))
             var prepared = false
             vm.prepareSongs(songs) { prepared = true }
             await { prepared }
@@ -83,12 +88,14 @@ class SearchMusicFreeTest {
                 assertTrue(store.resolve(song.id.toString(), "standard").url.startsWith("https://example.com/item:"))
             }
             assertEquals(0, catalogueCalls)
+            val disabledSource = vm.queuePreparation(songs)
             store.enable(plugin.id, false)
             await { vm.currentSource.value == null && !vm.pageState.value.loading }
             assertNull(saved.get<String>("source"))
             assertEquals(SearchType.Song, vm.currentTab.value)
             assertTrue(vm.pageState.value.error)
             assertEquals(1, catalogueCalls)
+            assertTrue(runCatching { disabledSource() }.exceptionOrNull() is CancellationException)
         } finally {
             viewModels.clear()
             client.close()

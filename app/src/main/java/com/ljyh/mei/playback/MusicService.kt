@@ -284,7 +284,8 @@ class MusicService : MediaLibraryService(),
                             historyJob = scope.launch {
                                 delay(5000L.milliseconds)
                                 try {
-                                    recordHistory(mediaItem)
+                                    val current = player.currentMediaItem?.takeIf { it.mediaId == mediaItem.mediaId }
+                                    recordHistory(current ?: mediaItem)
                                 } catch (e: Exception) {
                                     Timber.tag("MusicService").e("add history record error $e")
                                     e.printStackTrace()
@@ -475,7 +476,10 @@ class MusicService : MediaLibraryService(),
             },
             scope = scope,
             loopPlaybackEnabled = { loopPlaybackEnabled },
-            onQueueChanged = { scheduleQueueSave() },
+            onQueueChanged = {
+                mediaUriProvider.retainMusicFreeQueue(player.mediaItems.map(MediaItem::mediaId))
+                scheduleQueueSave()
+            },
         )
         val restoreJob = restorePlayerState()
         scope.launch {
@@ -792,6 +796,7 @@ class MusicService : MediaLibraryService(),
         player.removeListener(this)
         player.removeListener(sleepTimer)
         queueManager.release()
+        mediaUriProvider.retainMusicFreeQueue(emptyList())
         audioPlayer.release()
         audioEffectsController.release()
         standbyAudioEffectsController.release()

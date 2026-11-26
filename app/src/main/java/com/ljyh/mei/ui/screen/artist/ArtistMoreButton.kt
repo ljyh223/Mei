@@ -10,13 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import com.ljyh.mei.R
 import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
+import com.ljyh.mei.ui.component.menu.MeiDetailMoreButtonStyle
 import com.ljyh.mei.ui.component.menu.MeiMenuItem
 import com.ljyh.mei.utils.share.MediaShareLink
 
 @Composable
 internal fun ArtistMoreButton(state: ArtistDetailUiState, actions: ArtistDetailActions, inToolbar: Boolean = true, onInfo: () -> Unit) {
     MeiDetailMoreButton(
-        toolbarButton = inToolbar,
+        style = if (inToolbar) MeiDetailMoreButtonStyle.Toolbar else MeiDetailMoreButtonStyle.Plain,
         shareContent = state.id.toLongOrNull()?.let { MediaShareLink.artist(it, state.artist?.name.orEmpty()) },
         additionalItems = { dismiss ->
             MeiMenuItem("全部歌曲", Icons.AutoMirrored.Rounded.QueueMusic, enabled = state.artist != null) {

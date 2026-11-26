@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.ljyh.mei.constants.AlbumArtworkMode
 import com.ljyh.mei.constants.AlbumModelMode
 import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
+import com.ljyh.mei.ui.component.menu.MeiDetailMoreButtonStyle
 import com.ljyh.mei.ui.component.menu.MeiMenuItem
 import com.ljyh.mei.utils.share.MediaShareLink
 
@@ -39,6 +40,7 @@ internal fun AlbumDetailMoreButton(
     MeiDetailMoreButton(
         shareContent = MediaShareLink.album(state.album), searchActive = state.isSearchActive,
         searchLabel = "搜索专辑歌曲", onSearchActiveChange = onSearchActiveChange,
+        style = if (landscape) MeiDetailMoreButtonStyle.Artwork else MeiDetailMoreButtonStyle.Toolbar,
         additionalItems = { dismiss ->
             MeiMenuItem(
                 when (state.isSubscribed) {

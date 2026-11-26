@@ -153,12 +153,12 @@ class PhoneLandscapeDetailTest {
                 ),
             )
         }
-        val play = compose.onNodeWithText("播放").assertIsDisplayed()
+        val play = compose.onNodeWithText("播放").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
         val track = compose.onNodeWithText(song.title).assertIsDisplayed()
         assertInSeparatePanes(play, track)
         assertNoDetailToolbar("测试专辑")
         compose.onNodeWithText("歌曲 · 1").assertIsDisplayed()
-        val more = compose.onNodeWithContentDescription("更多操作").assertIsDisplayed()
+        val more = compose.onNodeWithContentDescription("更多操作").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
         assertTrue(more.fetchSemanticsNode().boundsInRoot.left > play.fetchSemanticsNode().boundsInRoot.right)
         val artwork = compose.onNodeWithContentDescription("专辑封面").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val viewport = compose.onNodeWithTag("detail-viewport").fetchSemanticsNode().boundsInRoot

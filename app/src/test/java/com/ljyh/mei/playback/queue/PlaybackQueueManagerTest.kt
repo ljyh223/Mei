@@ -102,17 +102,28 @@ class PlaybackQueueManagerTest {
     }
 
     @Test fun olderSuspendingQueueCannotReplaceTheLastSelectedQueue() {
-        val status = CompletableDeferred<Queue.Status>()
-        val old = object : Queue {
-            override val id = "old"
-            override val title = "Old"
-            override suspend fun getInitialStatus() = withContext(NonCancellable) { status.await() }
+        val ready = CompletableDeferred<Unit>()
+        val old = ListQueue("old", items = listOf("1" to track("1"))) {
+            withContext(NonCancellable) { ready.await() }
         }
         val (manager, player) = fixture()
         manager.playQueue(old); idle()
         manager.playQueue(queue("10", "11")); idle()
-        status.complete(Queue.Status("Old", listOf("1" to track("1")), 0)); idle()
+        ready.complete(Unit); idle()
         assertEquals(listOf("10", "11"), ids(player))
+    }
+
+    @Test fun cancelledQueuePreparationLeavesTheActiveFmSessionRunning() {
+        val (manager, player) = fixture(fm = { listOf(track("2")) })
+        manager.startFmMode(track("1"))
+        idle()
+        manager.playQueue(ListQueue("unavailable", items = listOf("10" to track("10"))) {
+            throw kotlinx.coroutines.CancellationException()
+        })
+        idle()
+        assertTrue(manager.isFmMode)
+        assertEquals(listOf("1", "2"), ids(player))
+        assertTrue(player.playWhenReady)
     }
 
     @Test fun shuffleRowsAndDraggingFollowActualPlaybackOrderOnBothPlayers() {
@@ -185,6 +196,31 @@ class PlaybackQueueManagerTest {
         assertEquals(Player.REPEAT_MODE_ONE, nextPlayer.repeatMode)
         nextManager.setShuffleModeEnabled(true); idle()
         assertEquals(listOf(2, 0, 1), nextPlayer.queueOrderIndices())
+    }
+
+    @Test fun fillingRestoredEntriesKeepsTheCurrentTrackAndSavedShuffleOrder() {
+        val resolved = CompletableDeferred<Unit>()
+        val (manager, player) = fixture(wrapped = true, resolver = resolver(catalogue = { ids ->
+            resolved.await()
+            ids.map { track(it, "Resolved $it") }
+        }))
+        val snapshot = PlaybackQueueSnapshot(
+            ids = listOf("1", "2", "3", "4"),
+            currentIndex = 1,
+            positionMs = 20_000,
+            entries = listOf("a", "b", "c", "d").map { QueueEntrySnapshot(it) },
+            shuffleEntryIds = listOf("c", "b", "d", "a"),
+        )
+        assertTrue(manager.restore(snapshot, true, Player.REPEAT_MODE_ALL))
+        val sources = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).localConfiguration?.uri }
+        resolved.complete(Unit)
+        await { (0 until player.mediaItemCount).all { player.getMediaItemAt(it).metadata != null } }
+        assertEquals(sources, (0 until player.mediaItemCount).map { player.getMediaItemAt(it).localConfiguration?.uri })
+        assertEquals(listOf(2, 1, 3, 0), player.queueOrderIndices())
+        assertEquals("b", player.currentMediaItem?.queueEntryId)
+        assertEquals("Resolved 2", player.currentMediaItem?.metadata?.title)
+        player.seekToNextMediaItem()
+        assertEquals("d", player.currentMediaItem?.queueEntryId)
     }
 
     @Test fun restoredLocalAndCatalogueSongsWithEqualIdsUseSeparateMetadata() {

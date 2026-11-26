@@ -28,7 +28,8 @@ class SearchViewModel @Inject constructor(
     val sources = _sources.asStateFlow()
     private val messages = Channel<String>(Channel.BUFFERED)
     val events = messages.receiveAsFlow()
-    private var preparing = false
+    private var preparationRevision = 0L
+    private var menuPreparation: Job? = null
 
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     val searchSuggest = input.debounce(300).distinctUntilChanged().mapLatest { query ->
@@ -68,11 +69,15 @@ class SearchViewModel @Inject constructor(
                 val previous = _sources.value
                 _sources.value = available
                 if (currentSource.value != null && available.none { it.id == currentSource.value }) {
+                    cancelPreparation()
                     saved["source"] = null
                     results.selectSource(null, selectSong = false)
                 }
                 previous.forEach { old ->
-                    if (available.firstOrNull { it.id == old.id } != old) results.invalidateSource(old.id)
+                    if (available.firstOrNull { it.id == old.id } != old) {
+                        if (currentSource.value == old.id) cancelPreparation()
+                        results.invalidateSource(old.id)
+                    }
                 }
             }
         }
@@ -80,38 +85,66 @@ class SearchViewModel @Inject constructor(
 
     fun updateInputQuery(query: String) { input.value = query }
     fun onSearchInit(query: String, type: Int) {
-        if (query.trim() != currentQuery.value) tracks.clear()
+        if (query.trim() != currentQuery.value) {
+            cancelPreparation()
+            tracks.clear()
+        }
         results.initialize(query, type)
     }
-    fun onTabChange(type: SearchType) = results.select(type)
+    fun onTabChange(type: SearchType) {
+        if (type != currentTab.value) cancelPreparation()
+        results.select(type)
+    }
     fun onSourceChange(id: String?) {
         if (id != null && sources.value.none { it.id == id }) return
+        if (id != currentSource.value || currentTab.value != SearchType.Song) cancelPreparation()
         saved["source"] = id
         results.selectSource(id)
     }
     fun retry() = results.retry()
     fun loadMore() = results.loadMore()
 
-    /** Persist original plugin objects before any queue action, including the shared song menu. */
+    internal fun cancelPreparation() {
+        preparationRevision++
+        menuPreparation?.cancel()
+    }
+
+    /** The service starts the queue command at click time and owns cancellation of its setup. */
+    internal fun queuePreparation(songs: List<MediaMetadata>): suspend () -> Unit {
+        cancelPreparation()
+        return trackPreparation(songs)
+    }
+
     fun prepareSongs(songs: List<MediaMetadata>, onReady: () -> Unit) {
-        val external = songs.filter { it.id < 0 }
-        if (external.isEmpty()) { onReady(); return }
-        if (preparing) return
-        val originals = external.map { tracks[it.id] }
-        if (originals.any { it == null }) {
-            messages.trySend("歌曲信息已失效，请重新搜索")
-            return
+        menuPreparation?.cancel()
+        val prepare = trackPreparation(songs)
+        menuPreparation = viewModelScope.launch {
+            prepare()
+            onReady()
         }
-        preparing = true
-        viewModelScope.launch {
+    }
+
+    private fun trackPreparation(songs: List<MediaMetadata>): suspend () -> Unit {
+        val originals = songs.filter { it.id < 0 }.map { tracks[it.id] }
+        if (originals.isEmpty()) return {}
+        val revision = preparationRevision
+        return {
+            if (revision != preparationRevision) throw CancellationException()
             try {
+                check(originals.none { it == null }) { "Missing original plugin track" }
                 musicFree.prepareQueue(originals.filterNotNull())
-                onReady()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                messages.send("无法准备播放，请重试或检查音源")
-            } finally { preparing = false }
+                if (revision == preparationRevision) messages.trySend(
+                    if (originals.any { it == null }) "歌曲信息已失效，请重新搜索"
+                    else "无法准备播放，请重试或检查音源",
+                )
+                throw CancellationException()
+            }
+            if (revision != preparationRevision) throw CancellationException()
         }
     }
+
+    override fun onCleared() = cancelPreparation()
 }

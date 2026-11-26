@@ -142,14 +142,13 @@ internal fun SearchResultScreen(
     }
     BackHandler(enabled = editing) { leaveEditing() }
     val playSongs: (List<MediaMetadata>, Int, String) -> Unit = { songs, index, section ->
-        viewModel.prepareSongs(songs) {
-            player?.playQueue(ListQueue(
-                id = "SearchQueue-$keyword-$section-${sourceId ?: "netease"}",
-                title = "搜索：$keyword",
-                items = songs.map { it.id.toString() to it.toMediaItem() },
-                startIndex = index, position = 0, source = source,
-            ))
-        }
+        player?.playQueue(ListQueue(
+            id = "SearchQueue-$keyword-$section-${sourceId ?: "netease"}",
+            title = "搜索：$keyword",
+            items = songs.map { it.id.toString() to it.toMediaItem() },
+            startIndex = index, position = 0, source = source,
+            prepare = viewModel.queuePreparation(songs),
+        ))
     }
     val actions = SearchActions(
         onSong = playSongs,

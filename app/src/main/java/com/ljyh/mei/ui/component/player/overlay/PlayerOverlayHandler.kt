@@ -179,7 +179,7 @@ class PlayerOverlayHandler(
     /** Toolbar and menu commands share a single execution path; only toolbar panels toggle off. */
     fun handlePlayerAction(action: PlayerAction, togglePanel: Boolean = true) {
         val metadata = stateContainer.mediaMetadata.value
-        if (!action.isAvailable(metadata != null, metadata?.neteaseId?.let { it > 0 } == true)) return
+        if (!action.isAvailable(metadata)) return
         when (action) {
             PlayerAction.PLAY_MODE -> stateContainer.playerConnection.switchPlayMode()
             PlayerAction.LYRICS -> { showLyrics(); _detailsVisible.value = true; dismiss() }

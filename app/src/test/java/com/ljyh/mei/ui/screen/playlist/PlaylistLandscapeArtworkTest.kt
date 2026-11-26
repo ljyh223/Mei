@@ -7,22 +7,31 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import com.ljyh.mei.ui.component.artwork.LandscapeArtworkHeader
 import com.ljyh.mei.ui.component.glass.LocalMeiGlassEnabled
+import com.ljyh.mei.ui.component.glass.LocalMeiHazeState
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.local.LocalPlayerAwareWindowInsets
 import com.ljyh.mei.ui.model.PlaylistHeaderStyle
 import com.ljyh.mei.ui.model.UiPlaylist
 import com.ljyh.mei.ui.tablet.TabletContentTestActivity
+import dev.chrisbanes.haze.rememberHazeState
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -37,6 +46,47 @@ import org.robolectric.annotation.LooperMode
 @LooperMode(LooperMode.Mode.PAUSED)
 class PlaylistLandscapeArtworkTest {
     @get:Rule val compose = createEmptyComposeRule()
+
+    @Test
+    fun artworkActionsKeepTheirTouchTargetWithoutCreatingACoverSamplingLayer() {
+        var retainsPageBackdrop = false
+        var enabled by mutableStateOf(false)
+        var played = false
+        TabletContentTestActivity.content = {
+            MaterialTheme {
+                val pageBackdrop = rememberHazeState()
+                CompositionLocalProvider(
+                    LocalMeiGlassEnabled provides true,
+                    LocalMeiHazeState provides pageBackdrop,
+                ) {
+                    LandscapeArtworkHeader(
+                        maxArtworkHeight = 192.dp,
+                        canPlay = enabled,
+                        onPlayAll = { played = true },
+                        artwork = { Box(it) },
+                        more = {
+                            val backdrop = LocalMeiHazeState.current
+                            SideEffect { retainsPageBackdrop = backdrop === pageBackdrop }
+                        },
+                    )
+                }
+            }
+        }
+        val activity = Robolectric.buildActivity(TabletContentTestActivity::class.java).setup()
+        try {
+            val play = compose.onNodeWithText("播放全部").assertHeightIsAtLeast(48.dp)
+            play.assertIsNotEnabled()
+            compose.runOnIdle {
+                assertTrue(retainsPageBackdrop)
+                enabled = true
+            }
+            play.performClick()
+            compose.runOnIdle { assertTrue(played) }
+        } finally {
+            activity.pause().stop().destroy()
+            TabletContentTestActivity.content = {}
+        }
+    }
 
     @Test
     fun likedPlaylistUsesTheThreeCoverStageWithFloatingActions() {

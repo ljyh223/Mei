@@ -13,15 +13,18 @@ class ListQueue(
     val startIndex: Int = 0,
     val position: Int = 0,
     override val source: QueueSource = QueueSource.fromQueue(id, title),
+    private val prepare: suspend () -> Unit = {},
 ) : Queue {
 
     /** Use the song tapped in the visible list, even if the caller supplied a stale index. */
     fun startingAt(trackId: String): ListQueue? {
         val index = items.indexOfFirst { it.first == trackId }
         if (index < 0) return null
-        return ListQueue(id, title, items, startIndex = index, source = source)
+        return ListQueue(id, title, items, startIndex = index, source = source, prepare = prepare)
     }
 
-    override suspend fun getInitialStatus(): Queue.Status =
-        Queue.Status(title, items, startIndex, position)
+    override suspend fun getInitialStatus(): Queue.Status {
+        prepare()
+        return Queue.Status(title, items, startIndex, position)
+    }
 }

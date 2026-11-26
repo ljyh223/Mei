@@ -9,10 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.ljyh.mei.ui.component.artwork.MeiArtworkGlassActions
+import com.ljyh.mei.ui.component.artwork.MeiArtworkActions
 import com.ljyh.mei.ui.component.artwork.MeiArtworkPlayButton
 
-/** Phone landscape has a still artwork stage and two controls that sample that stage only. */
+/** Phone landscape overlays playback actions on the still artwork. */
 @Composable
 internal fun AlbumLandscapeArtworkPane(
     state: AlbumDetailUiState,
@@ -24,7 +24,7 @@ internal fun AlbumLandscapeArtworkPane(
         state.modelMode, allowMotion = false) == AlbumArtworkKind.Model
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val frame = if (model) Modifier.fillMaxSize() else Modifier.size(minOf(maxWidth, maxHeight))
-        MeiArtworkGlassActions(
+        MeiArtworkActions(
             modifier = frame.semantics { contentDescription = "专辑封面" },
             artwork = {
                 AlbumArtworkVisual(state, actions, Modifier.fillMaxSize(), portrait = false,

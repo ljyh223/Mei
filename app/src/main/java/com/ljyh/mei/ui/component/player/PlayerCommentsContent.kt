@@ -35,6 +35,12 @@ fun PlayerCommentsContent(
     viewModel: CommentViewModel = hiltViewModel(),
     foreground: Color = Color.White,
 ) {
+    if (songId.toLongOrNull()?.let { it < 0 } == true) {
+        Box(modifier, contentAlignment = Alignment.Center) {
+            Text("当前音源不提供评论", color = foreground)
+        }
+        return
+    }
     val expandedReplies by viewModel.expandedReplies.collectAsState()
     val pagingItems = viewModel.pagingData.collectAsLazyPagingItems()
 

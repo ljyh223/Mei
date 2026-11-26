@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ljyh.mei.ui.component.layout.meiPageGutter
 
-/** Controls overlay a separate capture of the artwork, so both lenses sample the cover. */
+/** Place the controls on top of the landscape cover. */
 @Composable
 internal fun LandscapeArtworkHeader(
     maxArtworkHeight: Dp,
@@ -27,7 +27,7 @@ internal fun LandscapeArtworkHeader(
         val artworkHeight = if (fillArtworkHeight) maxArtworkHeight else minOf(maxArtworkHeight, maxWidth / artworkAspectRatio)
         // Very short windows can crop the cover while leaving room for both actions.
         val artworkWidth = maxOf(artworkHeight * artworkAspectRatio, 192.dp).coerceAtMost(maxWidth)
-        MeiArtworkGlassActions(
+        MeiArtworkActions(
             modifier = Modifier.width(artworkWidth).height(artworkHeight),
             actionAlignment = actionAlignment,
             artwork = { artwork(Modifier.matchParentSize()) },

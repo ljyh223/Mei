@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.rounded.Comment
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.ljyh.mei.data.model.domain.MediaMetadata
 
 enum class PlayerAction(val id: String, val label: String, val icon: ImageVector) {
     PLAY_MODE("mode", "播放模式", Icons.Rounded.Repeat),
@@ -19,11 +20,15 @@ enum class PlayerAction(val id: String, val label: String, val icon: ImageVector
     // Existing phone configurations may keep this shortcut; new configurations use the title menu.
     MORE("more", "更多", Icons.Rounded.MoreVert);
 
-    fun isAvailable(hasSong: Boolean, canShare: Boolean): Boolean = when (this) {
+    fun isAvailable(hasSong: Boolean, canShare: Boolean, isMusicFree: Boolean = false): Boolean = when (this) {
         PLAY_MODE, QUEUE, SLEEP_TIMER, MORE -> true
         SHARE -> hasSong && canShare
+        COMMENTS, ADD_TO_PLAYLIST, DOWNLOAD -> hasSong && !isMusicFree
         else -> hasSong
     }
+
+    fun isAvailable(song: MediaMetadata?): Boolean =
+        isAvailable(song != null, song?.neteaseId?.let { it > 0 } == true, song?.id?.let { it < 0 } == true)
 
     companion object {
         val defaultActions = listOf(PLAY_MODE, QUEUE, LYRICS)

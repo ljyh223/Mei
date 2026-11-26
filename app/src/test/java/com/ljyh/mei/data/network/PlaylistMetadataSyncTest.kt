@@ -23,6 +23,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -33,6 +34,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], manifest = Config.NONE)
@@ -148,6 +150,44 @@ class PlaylistMetadataSyncTest {
         }
     }
 
+    @Test fun secondEditWaitsForTheEarlierMutationAndItsReadback() = runBlocking {
+        fixture { f ->
+            coroutineScope {
+                val count = AtomicInteger(4)
+                val firstCommitted = CompletableDeferred<Unit>()
+                val firstResponse = CompletableDeferred<Unit>()
+                val secondCommitted = CompletableDeferred<Unit>()
+                val firstReadback = CompletableDeferred<Unit>()
+                f.headerBarrier = firstReadback
+                f.mutate = { ids ->
+                    val confirmed = count.incrementAndGet()
+                    f.headerCount = confirmed
+                    if ("456" in ids) {
+                        firstCommitted.complete(Unit)
+                        firstResponse.await()
+                    } else secondCommitted.complete(Unit)
+                    confirmed
+                }
+                val first = async { f.repo.manipulateTrack("add", "123", "456") }
+                firstCommitted.await()
+                val second = async(start = CoroutineStart.UNDISPATCHED) { f.repo.manipulateTrack("add", "123", "789") }
+                try {
+                    assertNull(withTimeoutOrNull(400) { secondCommitted.await() })
+                    firstResponse.complete(Unit)
+                    f.headerStarted.await()
+                    assertNull(withTimeoutOrNull(400) { secondCommitted.await() })
+                } finally {
+                    firstResponse.complete(Unit)
+                    firstReadback.complete(Unit)
+                }
+                assertTrue(first.await() is Resource.Success)
+                assertTrue(second.await() is Resource.Success)
+                assertEquals(6, f.local.getPlaylist("123")!!.count)
+                assertEquals("server-custom-cover", f.local.getPlaylist("123")!!.cover)
+            }
+        }
+    }
+
     private suspend fun fixture(block: suspend (Fixture) -> Unit) {
         val f = Fixture()
         try {
@@ -176,13 +216,15 @@ class PlaylistMetadataSyncTest {
         var mutationRequests = 0
         var summaryRequests = 0
         var detailRequests = 0
+        var mutate: suspend (String) -> Int = { count }
         val client = HttpClient(MockEngine { request ->
             val body = Json.parseToJsonElement((request.body as TextContent).text).jsonObject
             val response = when (request.url.encodedPath) {
                 "/api/playlist/manipulate/tracks" -> {
                     mutationRequests++
                     assertEquals("123", body.getValue("pid").jsonPrimitive.content)
-                    if (includeMutationCount) """{"code":$mutationCode,"count":$count}"""
+                    val confirmed = mutate(body.getValue("trackIds").jsonPrimitive.content)
+                    if (includeMutationCount) """{"code":$mutationCode,"count":$confirmed}"""
                     else """{"code":$mutationCode}"""
                 }
                 "/api/v6/playlist/detail" -> {

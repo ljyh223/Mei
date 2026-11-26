@@ -47,6 +47,8 @@ class PlaybackQueueManager(
     )
     private var sessionScope = newSessionScope()
     private var revision = 0L
+    private var queueRequestRevision = 0L
+    private var queueLoadJob: Job? = null
     private var fetchingFmRevision: Long? = null
     private val loadingTracks = mutableSetOf<QueueTrackKey>()
     private val _state = MutableStateFlow(PlaybackQueueState())
@@ -54,7 +56,8 @@ class PlaybackQueueManager(
     private val _fmMode = MutableStateFlow(false)
     val fmMode = _fmMode.asStateFlow()
     val isFmMode: Boolean get() = _fmMode.value
-    internal val canRestore: Boolean get() = revision == 0L && player.mediaItemCount == 0
+    internal val canRestore: Boolean
+        get() = revision == 0L && queueRequestRevision == 0L && player.mediaItemCount == 0
 
     init {
         player.addListener(this)
@@ -84,16 +87,23 @@ class PlaybackQueueManager(
         if (force || _state.subscriptionCount.value > 0) _state.value = player.readQueueState()
     }
 
+    private fun cancelQueueLoad() {
+        queueRequestRevision++
+        queueLoadJob?.cancel()
+    }
+
     fun playQueue(queue: Queue, startInShuffleMode: Boolean = false, playWhenReady: Boolean = true) {
         commandScope.launch {
-            val requestRevision = beginSession(fm = false)
-            sessionScope.launch loadQueue@ {
+            cancelQueueLoad()
+            val requestRevision = queueRequestRevision
+            queueLoadJob = commandScope.launch loadQueue@ {
                 try {
                     val status = queue.getInitialStatus()
-                    if (requestRevision != revision) return@loadQueue
+                    if (requestRevision != queueRequestRevision) return@loadQueue
                     val items = status.ids.map { (id, item) ->
                         (item ?: createPlaceholder(id)).withQueueEntry(queue.source)
                     }
+                    beginSession(fm = false)
                     player.shuffleModeEnabled = false
                     if (items.isEmpty()) {
                         player.clearMediaItems()
@@ -120,6 +130,7 @@ class PlaybackQueueManager(
 
     private fun startFm(seed: MediaItem?) {
         commandScope.launch {
+            cancelQueueLoad()
             beginSession(fm = true)
             player.shuffleModeEnabled = false
             player.repeatMode = Player.REPEAT_MODE_ALL
@@ -263,9 +274,14 @@ class PlaybackQueueManager(
                 val current = player.getMediaItemAt(index)
                 val replacement = resolved[current.queueTrackKey]
                 if (replacement != null && current.isQueuePlaceholder) {
-                    player.replaceMediaItem(index, replacement.withQueueEntry(
+                    val enriched = replacement.withQueueEntry(
                         current.queueSource, player.queueEntryKey(index), current.queueMediaKind,
-                    ))
+                    )
+                    // Media3 updates the existing source only if its URI and cache key stay the same.
+                    player.replaceMediaItem(index, current.buildUpon()
+                        .setMediaMetadata(enriched.mediaMetadata)
+                        .setTag(enriched.localConfiguration?.tag)
+                        .build())
                 }
             }
         } finally {
@@ -389,6 +405,7 @@ class PlaybackQueueManager(
     }
 
     fun release() {
+        cancelQueueLoad()
         revision++
         player.removeListener(this)
         commandScope.cancel()
@@ -397,4 +414,4 @@ class PlaybackQueueManager(
 }
 
 private val MediaItem.isQueuePlaceholder: Boolean
-    get() = localConfiguration?.uri.toString() == PLACEHOLDER_URI
+    get() = localConfiguration?.let { it.uri.toString() == PLACEHOLDER_URI && it.tag == null } == true

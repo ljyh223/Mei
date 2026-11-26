@@ -69,7 +69,6 @@ fun MoreActionsSheet(
 ) {
     val playerConnection = LocalPlayerConnection.current
     val currentSong = playerConnection?.mediaMetadata?.collectAsState()?.value
-    val canShare = currentSong?.neteaseId?.let { it > 0 } == true
     val sleepTimerStatus = playerConnection?.let {
         rememberSleepTimerStatus(it.service.sleepTimer)
     }
@@ -197,7 +196,7 @@ fun MoreActionsSheet(
                         }
                     }
                 } else {
-                    items(visibleActions.filter { it != MoreAction.SHARE || canShare }, key = MoreAction::id) { action ->
+                    items(visibleActions.filter { it.playerAction?.isAvailable(currentSong) != false }, key = MoreAction::id) { action ->
                         MoreActionRow(action) { onActionClick(action) }
                     }
                 }

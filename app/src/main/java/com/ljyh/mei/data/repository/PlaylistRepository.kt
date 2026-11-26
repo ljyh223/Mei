@@ -51,6 +51,7 @@ class PlaylistRepository(
     private val membershipReadPermits = Semaphore(3)
     private val membershipReadLocks = ConcurrentHashMap<String, Mutex>()
     private val membershipReadTimes = ConcurrentHashMap<String, Long>()
+    private val trackMutationLocks = ConcurrentHashMap<String, Mutex>()
 
     suspend fun getAlbumDynamic(id: Long): Resource<AlbumDynamic> = withContext(Dispatchers.IO) {
         safeApiCall {
@@ -122,8 +123,8 @@ class PlaylistRepository(
         pid: String,
         trackIds: String,
         imme: Boolean = true
-    ): Resource<ManipulateTrackResult> {
-        return withContext(Dispatchers.IO) {
+    ): Resource<ManipulateTrackResult> = withContext(Dispatchers.IO) {
+        trackMutationLocks.getOrPut(pid) { Mutex() }.withLock {
             val result = safeApiCall {
                 apiService.manipulateTracks(ManipulateTrack(op, pid, trackIds, imme))
             }

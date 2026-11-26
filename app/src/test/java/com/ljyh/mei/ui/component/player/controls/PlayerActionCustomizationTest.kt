@@ -40,12 +40,15 @@ class PlayerActionCustomizationTest {
     @Test fun selectedPanelsAndDisabledSharingKeepStableToolbarSlots() {
         var selected by mutableStateOf<PlayerAction?>(null)
         var canShare by mutableStateOf(false)
-        val actions = listOf(PlayerAction.QUEUE, PlayerAction.COMMENTS, PlayerAction.SHARE)
+        var isMusicFree by mutableStateOf(false)
+        val actions = listOf(PlayerAction.QUEUE, PlayerAction.COMMENTS, PlayerAction.SHARE,
+            PlayerAction.DOWNLOAD, PlayerAction.ADD_TO_PLAYLIST)
         TabletContentTestActivity.content = {
             MaterialTheme {
                 Column(Modifier.width(320.dp)) {
                     PlayerActionRow(actions, PlayMode.REPEAT_MODE_ALL, null, selected, true, canShare,
-                        onAction = { selected = if (selected == it) null else it }, foreground = Color.White)
+                        onAction = { selected = if (selected == it) null else it }, foreground = Color.White,
+                        isMusicFree = isMusicFree)
                 }
             }
         }
@@ -60,6 +63,12 @@ class PlayerActionCustomizationTest {
             compose.runOnIdle { canShare = true }
             compose.onNodeWithContentDescription("分享").assertIsEnabled()
             assertEquals(bounds, compose.onNodeWithContentDescription("分享").fetchSemanticsNode().boundsInRoot)
+            compose.onNodeWithContentDescription("下载").assertIsEnabled()
+            compose.runOnIdle { isMusicFree = true; canShare = false }
+            compose.onNodeWithContentDescription("查看评论").assertIsNotEnabled()
+            compose.onNodeWithContentDescription("下载").assertIsNotEnabled()
+            compose.onNodeWithContentDescription("添加到歌单").assertIsNotEnabled()
+            compose.onNodeWithContentDescription("播放队列").assertIsEnabled()
             compose.onNodeWithContentDescription("歌词显示").assertDoesNotExist()
         } finally {
             activity.pause().stop().destroy()

@@ -1,5 +1,6 @@
 package com.ljyh.mei.ui.model
 
+import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.ui.component.player.overlay.PlayerPanel
 import com.ljyh.mei.ui.component.player.overlay.nextPlayerPanel
 import org.junit.Assert.*
@@ -49,5 +50,17 @@ class PlayerActionProfileTest {
         assertFalse(PlayerAction.DOWNLOAD.isAvailable(hasSong = false, canShare = false))
         assertFalse(PlayerAction.COMMENTS.isAvailable(hasSong = false, canShare = false))
         assertTrue(PlayerAction.SLEEP_TIMER.isAvailable(hasSong = false, canShare = false))
+    }
+
+    @Test fun musicFreeMetadataCannotRunNeteaseCommandsFromTheMenu() {
+        val catalogue = MediaMetadata(5, "Song", "", emptyList(), 0, MediaMetadata.Album(2, "Album"))
+        val plugin = catalogue.copy(id = -5, neteaseId = 0L)
+        val neteaseActions = listOf(MoreAction.ADD_TO_PLAYLIST, MoreAction.COMMENT, MoreAction.DOWNLOAD, MoreAction.SHARE)
+        for (action in neteaseActions.map { requireNotNull(it.playerAction) }) {
+            assertTrue(action.isAvailable(catalogue))
+            assertFalse(action.isAvailable(plugin))
+        }
+        assertTrue(PlayerAction.SONG_INFO.isAvailable(plugin))
+        assertTrue(PlayerAction.QUEUE.isAvailable(plugin))
     }
 }

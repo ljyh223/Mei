@@ -185,6 +185,8 @@ class MediaUriProvider @Inject constructor(
     suspend fun externalDetails(ids: List<String>): List<com.ljyh.mei.data.model.domain.MediaMetadata> =
         ids.mapNotNull { musicFree.trackFor(it)?.metadata() }
 
+    internal fun retainMusicFreeQueue(ids: Collection<String>) = musicFree.retainQueuedTracks(ids)
+
     private suspend fun target(mediaId: String): MusicTrack? {
         val song = apiService.getSongDetail(GetSongDetails(mediaId)).songs.firstOrNull { it.id.toString() == mediaId } ?: return null
         return MusicTrack(TrackId("netease", mediaId), song.name,

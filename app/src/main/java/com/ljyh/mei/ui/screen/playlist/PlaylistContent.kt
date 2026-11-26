@@ -50,6 +50,7 @@ import com.ljyh.mei.ui.component.layout.LocalPageHorizontalSafePadding
 import com.ljyh.mei.ui.component.layout.LocalPageStartInset
 import com.ljyh.mei.ui.component.layout.meiPageHorizontalPadding
 import com.ljyh.mei.ui.component.menu.MeiDetailMoreButton
+import com.ljyh.mei.ui.component.menu.MeiDetailMoreButtonStyle
 import com.ljyh.mei.ui.component.menu.MeiMenuItem
 import com.ljyh.mei.ui.component.player.overlay.OverlayState
 import com.ljyh.mei.ui.component.shimmer.SkeletonShimmerHost
@@ -190,7 +191,7 @@ internal fun PlaylistContent(
                                         shape = RoundedCornerShape(12.dp),
                                     )
                                 },
-                                more = { PlaylistMoreButton(state, actions, includeHeaderActions = true) },
+                                more = { PlaylistMoreButton(state, actions, overArtwork = true) },
                             )
                         } else if (customHeader != null) {
                             customHeader(titleModifier)
@@ -262,7 +263,7 @@ private fun LandscapeLikedPlaylistArtwork(state: PlaylistUiState, modifier: Modi
 private fun PlaylistMoreButton(
     state: PlaylistUiState,
     actions: PlaylistActions,
-    includeHeaderActions: Boolean = false,
+    overArtwork: Boolean = false,
 ) {
     if (state.isLoading) return
     val playlist = state.uiData
@@ -277,7 +278,8 @@ private fun PlaylistMoreButton(
                 actions.onPlaylistSearchActiveChange(active)
             }
         },
-        additionalItems = if (includeHeaderActions && state.playlistId > 0L) { dismiss ->
+        style = if (overArtwork) MeiDetailMoreButtonStyle.Artwork else MeiDetailMoreButtonStyle.Toolbar,
+        additionalItems = if (overArtwork && state.playlistId > 0L) { dismiss ->
             MeiMenuItem(state.headerActionLabel, state.headerActionIcon) {
                 dismiss()
                 actions.onHeaderAction()
