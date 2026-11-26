@@ -72,7 +72,7 @@ import com.ljyh.mei.constants.RepeatModeKey
 import com.ljyh.mei.constants.UsbExclusivePlaybackKey
 import com.ljyh.mei.data.model.domain.MediaMetadata
 import com.ljyh.mei.data.model.domain.SongEntity
-import com.ljyh.mei.data.model.domain.createPlaceholder
+import com.ljyh.mei.data.model.domain.toMediaMetadata
 import com.ljyh.mei.data.model.domain.toMediaItem
 import com.ljyh.mei.data.model.room.Song
 import com.ljyh.mei.data.network.api.ApiService
@@ -96,14 +96,10 @@ import com.ljyh.mei.playback.log.PlaybackLogRepository
 import com.ljyh.mei.playback.lyrics.DesktopLyricsController
 import com.ljyh.mei.playback.lyrics.ColorOsLyricsPublisher
 import com.ljyh.mei.playback.lyrics.PlaybackLyricsController
+import com.ljyh.mei.playback.queue.QueueMetadataResolver
 import com.ljyh.mei.playback.queue.PlaybackQueueManager
-import com.ljyh.mei.playback.queue.PlaybackQueueSnapshot
 import com.ljyh.mei.playback.queue.PlaybackQueueSnapshotCodec
-import com.ljyh.mei.playback.queue.QueueEntrySnapshot
 import com.ljyh.mei.playback.queue.QueueSource
-import com.ljyh.mei.playback.queue.queueEntryId
-import com.ljyh.mei.playback.queue.queueSource
-import com.ljyh.mei.playback.queue.withQueueEntry
 import com.ljyh.mei.playback.sleep.SleepDetectionController
 import com.ljyh.mei.playback.sleep.SleepTimer
 import com.ljyh.mei.playback.source.CacheManager
@@ -215,7 +211,6 @@ class MusicService : MediaLibraryService(),
     private val binder = MusicBinder()
 
     lateinit var queueManager: PlaybackQueueManager
-    var queueTitle: String? = null
     var loopPlaybackEnabled: Boolean = true
         private set
 
@@ -460,9 +455,28 @@ class MusicService : MediaLibraryService(),
 
 
         // The manager must exist before restored items publish timeline events.
-        queueManager = PlaybackQueueManager(player, apiService, weApiService, scope,
-            externalDetails = { ids -> mediaUriProvider.externalDetails(ids).map { it.toMediaItem() } },
-            loopPlaybackEnabled = { loopPlaybackEnabled })
+        queueManager = PlaybackQueueManager(
+            player = player,
+            metadataResolver = QueueMetadataResolver(
+                catalogueDetails = { ids -> apiService.getSongDetail(
+                    com.ljyh.mei.data.model.api.GetSongDetails(c = ids.joinToString(",")),
+                ).songs.map { it.toMediaItem() } },
+                localDetails = { ids -> ids.mapNotNull { id ->
+                    val song = songRepository.getSong("local_$id").firstOrNull()
+                        ?: songRepository.getSong(id).firstOrNull()
+                    song?.takeIf { it.sourceType == com.ljyh.mei.data.model.room.SourceType.LOCAL || it.id.startsWith("local_") }
+                        ?.toMediaMetadata()?.toMediaItem()
+                } },
+                externalDetails = { ids -> mediaUriProvider.externalDetails(ids).map { it.toMediaItem() } },
+            ),
+            fmRecommendations = {
+                val response = weApiService.getRadio(mapOf())
+                if (response.code == 200) response.data.map { it.toMediaMetadata().toMediaItem() } else emptyList()
+            },
+            scope = scope,
+            loopPlaybackEnabled = { loopPlaybackEnabled },
+            onQueueChanged = { scheduleQueueSave() },
+        )
         val restoreJob = restorePlayerState()
         scope.launch {
             // Restore the saved single-repeat mode before preference updates can persist a new one.
@@ -491,37 +505,21 @@ class MusicService : MediaLibraryService(),
             val preferences = context.dataStore.data.firstOrNull() ?: return@launch
             val snapshot = PlaybackQueueSnapshotCodec.decode(preferences[LastPlaybackQueueKey])
             // A user action made while the service was starting takes precedence over the snapshot.
-            val playerWasEmpty = player.mediaItemCount == 0
-            if (playerWasEmpty && snapshot != null) {
-                queueManager.isFmMode = snapshot.isFmMode
-                val items = snapshot.ids.mapIndexed { index, id ->
-                    val item = if (index == snapshot.currentIndex && snapshot.currentSong != null) {
-                        snapshot.currentSong.toMediaItem()
-                    } else {
-                        createPlaceholder(id)
-                    }
-                    val entry = snapshot.entries?.getOrNull(index)
-                    item.withQueueEntry(entry?.source, entry?.entryId ?: java.util.UUID.randomUUID().toString())
-                }
-                player.setMediaItems(items, snapshot.currentIndex, snapshot.positionMs)
-                player.playWhenReady = false
-                player.prepare()
-                currentMediaMetadata.value = player.currentMetadata
-            }
-
-            if (playerWasEmpty) {
-                val savedShuffleMode = !queueManager.isFmMode && (preferences[IsShuffleModeKey] ?: false)
+            if (queueManager.canRestore) {
+                val fm = snapshot?.isFmMode ?: false
+                val savedShuffleMode = !fm && (snapshot?.shuffleEnabled ?: preferences[IsShuffleModeKey] ?: false)
                 val savedRepeatMode = playbackRepeatMode(
                     loopPlayback = preferences.loopPlaybackEnabled(),
-                    currentRepeatMode = preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL,
-                    isFmMode = queueManager.isFmMode,
+                    currentRepeatMode = snapshot?.repeatMode ?: preferences[RepeatModeKey] ?: Player.REPEAT_MODE_ALL,
+                    isFmMode = fm,
                 )
-                player.repeatMode = savedRepeatMode
-                player.shuffleModeEnabled = savedShuffleMode
-                queueManager.setShuffleModeEnabled(savedShuffleMode)
-                Timber.tag("MusicService").d(
-                    "Restored queue: ${snapshot?.ids?.size ?: 0}, FM: ${queueManager.isFmMode}, shuffle: $savedShuffleMode, repeat: $savedRepeatMode"
-                )
+                if (snapshot != null) {
+                    queueManager.restore(snapshot, savedShuffleMode, savedRepeatMode)
+                    currentMediaMetadata.value = player.currentMetadata
+                } else {
+                    player.repeatMode = savedRepeatMode
+                    queueManager.setShuffleModeEnabled(savedShuffleMode)
+                }
             }
         } catch (e: CancellationException) {
             throw e
@@ -542,18 +540,7 @@ class MusicService : MediaLibraryService(),
     }
 
     private suspend fun savePlaybackQueue() {
-        val snapshot = if (player.mediaItemCount > 0 && player.currentMediaItemIndex >= 0) {
-            PlaybackQueueSnapshot(
-                ids = player.mediaItems.map(MediaItem::mediaId),
-                entries = player.mediaItems.map { item ->
-                    QueueEntrySnapshot(item.queueEntryId ?: java.util.UUID.randomUUID().toString(), item.queueSource)
-                },
-                currentIndex = player.currentMediaItemIndex,
-                positionMs = player.currentPosition.coerceAtLeast(0L),
-                currentSong = snapshotCurrentSong(),
-                isFmMode = queueManager.isFmMode,
-            )
-        } else null
+        val snapshot = queueManager.captureSnapshot(snapshotCurrentSong())
         try {
             context.dataStore.edit { preferences ->
                 if (snapshot == null) preferences.remove(LastPlaybackQueueKey)
@@ -611,7 +598,8 @@ class MusicService : MediaLibraryService(),
                 nextArtworkPreload = url?.let { preloadImage(this, it) }
             }
         }
-        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY,
+                Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED, Player.EVENT_REPEAT_MODE_CHANGED)) {
             currentMediaMetadata.value = player.currentMetadata
             scheduleQueueSave()
         }
@@ -689,15 +677,11 @@ class MusicService : MediaLibraryService(),
     }
 
     fun playNext(items: List<MediaItem>, source: QueueSource? = null) {
-        scope.launch {
-            queueManager.playNext(items, source)
-        }
+        queueManager.playNext(items, source)
     }
 
     fun addToQueue(items: List<MediaItem>, source: QueueSource? = null) {
-        scope.launch {
-            queueManager.addToQueue(items, source)
-        }
+        queueManager.addToQueue(items, source)
     }
 
     fun setShuffleModeEnabled(isShuffle: Boolean) {
@@ -982,31 +966,6 @@ class MusicService : MediaLibraryService(),
         if (playbackState == Player.STATE_READY && player.playerError == null) {
             consecutiveFailedItems = 0
         }
-    }
-
-    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
-            reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
-            checkFmModeLoadMore()
-        }
-    }
-
-    private fun checkFmModeLoadMore() {
-        if (!queueManager.isFmMode) return
-
-        val current = player.currentMediaItemIndex
-        val total = player.mediaItemCount
-        val threshold = 3 // 剩余少于3首时加载
-
-        if (total - current <= threshold) {
-            scope.launch {
-                queueManager.fetchAndAppendFmRecommendations()
-            }
-        }
-    }
-
-    fun isFmMode(): Boolean {
-        return queueManager.isFmMode
     }
 
     companion object {

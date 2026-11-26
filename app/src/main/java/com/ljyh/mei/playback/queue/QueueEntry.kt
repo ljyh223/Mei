@@ -51,6 +51,7 @@ data class QueueSource(
 }
 
 /** Keep identity and source on the MediaItem so Media3 moves them with each queue occurrence. */
+private const val MEDIA_KIND_KEY = "mei.queue.media_kind"
 private const val ENTRY_ID_KEY = "mei.queue.entry_id"
 private const val SOURCE_TYPE_KEY = "mei.queue.source_type"
 private const val SOURCE_ID_KEY = "mei.queue.source_id"
@@ -68,12 +69,27 @@ val MediaItem.queueSource: QueueSource?
         return QueueSource(type, extras.getString(SOURCE_ID_KEY), extras.getString(SOURCE_TITLE_KEY))
     }
 
+/** Media catalogue identity is independent of where an item was added from. */
+@Serializable
+enum class QueueMediaKind { NETEASE, LOCAL, MUSIC_FREE }
+
+val MediaItem.queueMediaKind: QueueMediaKind
+    get() = mediaMetadata.extras?.getString(MEDIA_KIND_KEY)
+        ?.let { value -> QueueMediaKind.entries.firstOrNull { it.name == value } }
+        ?: when {
+            queueSource?.type == QueueSource.Type.LOCAL -> QueueMediaKind.LOCAL
+            mediaId.toLongOrNull()?.let { it < 0 } == true -> QueueMediaKind.MUSIC_FREE
+            else -> QueueMediaKind.NETEASE
+        }
+
 fun MediaItem.withQueueEntry(
     source: QueueSource?,
     entryId: String = UUID.randomUUID().toString(),
+    mediaKind: QueueMediaKind = if (source?.type == QueueSource.Type.LOCAL) QueueMediaKind.LOCAL else queueMediaKind,
 ): MediaItem {
     val extras = Bundle(mediaMetadata.extras ?: Bundle())
     extras.putString(ENTRY_ID_KEY, entryId)
+    extras.putString(MEDIA_KIND_KEY, mediaKind.name)
     if (source == null) {
         extras.remove(SOURCE_TYPE_KEY)
         extras.remove(SOURCE_ID_KEY)

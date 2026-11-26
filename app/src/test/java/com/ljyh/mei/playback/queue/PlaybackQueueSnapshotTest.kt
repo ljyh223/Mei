@@ -195,4 +195,42 @@ class PlaybackQueueSnapshotTest {
         assertNull(MediaShareLink.song(requireNotNull(restored.currentSong)))
     }
 
+    @Test
+    fun shuffleOccurrenceOrderModesAndMediaKindsRoundTrip() {
+        val snapshot = PlaybackQueueSnapshot(
+            ids = listOf("1", "1", "-2"),
+            entries = listOf(
+                QueueEntrySnapshot("local", mediaKind = QueueMediaKind.LOCAL),
+                QueueEntrySnapshot("cloud", mediaKind = QueueMediaKind.NETEASE),
+                QueueEntrySnapshot("plugin", mediaKind = QueueMediaKind.MUSIC_FREE),
+            ),
+            shuffleEntryIds = listOf("plugin", "local", "cloud"),
+            shuffleEnabled = true,
+            repeatMode = 2,
+        )
+        assertEquals(snapshot, PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(snapshot)))
+    }
+
+    @Test
+    fun invalidShuffleOrdersAreDiscardedWithoutLosingThePlaylist() {
+        val original = PlaybackQueueSnapshot(
+            ids = listOf("1", "2"),
+            entries = listOf(QueueEntrySnapshot("a"), QueueEntrySnapshot("b")),
+        )
+        for (order in listOf(emptyList(), listOf("a", "a"), listOf("a", "missing"))) {
+            val decoded = PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(original.copy(shuffleEntryIds = order)))
+            assertEquals(original, decoded)
+        }
+        val withoutEntries = PlaybackQueueSnapshot(listOf("1"), shuffleEntryIds = listOf("a"))
+        assertEquals(withoutEntries.copy(shuffleEntryIds = null), PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(withoutEntries)))
+    }
+
+    @Test
+    fun duplicateOccurrenceIdsAreRejectedAndInvalidRepeatModeIsIgnored() {
+        val duplicate = PlaybackQueueSnapshot(listOf("1", "1"), entries = listOf(QueueEntrySnapshot("a"), QueueEntrySnapshot("a")))
+        assertNull(PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(duplicate)))
+        val invalidMode = PlaybackQueueSnapshot(listOf("1"), repeatMode = 999)
+        assertEquals(invalidMode.copy(repeatMode = null), PlaybackQueueSnapshotCodec.decode(PlaybackQueueSnapshotCodec.encode(invalidMode)))
+    }
+
 }

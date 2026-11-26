@@ -145,7 +145,7 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 
 | 区域 | 修改入口 |
 | --- | --- |
-| 队列与来源、恢复快照 | `playback/queue/` |
+| 队列与来源、恢复快照 | `playback/queue/`；[播放队列](playback-queue.md) |
 | 网易云播放日志、计时与后台重试 | `playback/log/`、`data/network/netease/`；[播放日志](playback-logging.md) |
 | 外接键盘媒体键与控制器播放权限 | `MainActivity`、`playback/MediaKeyboardControls.kt`、`MediaControllerCommands.kt`；[键盘媒体控制](keyboard-media-controls.md) |
 | 音频地址、本地／缓存与备用音源解析 | `playback/source/`、`data/repository/PlayerRepository.kt` |
@@ -156,6 +156,8 @@ Room 的实体在 `data/model/room/`，DAO 在 `di/dao/`，数据库声明与迁
 | 下载准备与后台执行 | 页面任务持有者 → `download/DownloadManager.kt` → `DownloadWorker` |
 
 循环播放偏好由 `MusicService` 持有并实时同步，未保存时默认开启；`PlaybackRepeatMode.kt` 统一新队列、恢复队列和切换模式的循环规则，保留单曲循环与 FM 的专用行为。手机、平板及 mini player 的下一首可用状态订阅 `PlayerConnection.canSkipNext`，并在播放器事件批次完成后更新，避免随机顺序变化后停留在旧状态。
+
+`PlaybackQueueManager` 统一处理替换、插队、追加、移除、拖动及模式切换，Media3 保留唯一的活动队列；`PlayerConnection` 转发只读队列状态和按队列项标识执行的命令。队列面板订阅期间才构建按实际播放顺序排列的展示列表。FM 与资料加载按队列会话取消并校验版本；快照保存随机遍历顺序，元数据按网易云、本地和 MusicFree 分别恢复。详见 [播放队列](playback-queue.md)。
 
 手机与平板播放器从共享 `PlayerHost` 绑定当前播放状态与弹层；平板展示独立位于 `ui/tablet/player/`，具体入口、视觉复用和恢复边界见 [平板播放器](tablet-player.md)。
 
@@ -205,6 +207,7 @@ USB Rust 工程位于 `app/src/main/rust/mei-usb-core/`；C++ 原生入口在 `a
 | 协作与当前 UI 约束 | [AGENTS.md](../AGENTS.md) |
 | 平板外层与页面接入 | [tablet-ui.md](tablet-ui.md) |
 | 平板全屏播放器、共享状态与面板 | [tablet-player.md](tablet-player.md) |
+| 播放队列、随机顺序与恢复 | [playback-queue.md](playback-queue.md) |
 | 底部／侧边功能弹层、关闭与返回 | [adaptive-sheets.md](adaptive-sheets.md) |
 | mini → 全屏容器展开 | [研究与原型](research/player-container-expansion.md)；手机竖屏、手机横屏、平板及纹理流体背景已接入，待设备验收 |
 | 音乐库、歌手与专辑的平板内容边界 | [tablet-content-pages.md](tablet-content-pages.md) |

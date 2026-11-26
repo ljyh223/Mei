@@ -17,10 +17,18 @@ internal data class PlaybackQueueSnapshot(
     val isFmMode: Boolean = false,
     /** Null in snapshots written before per-song sources were introduced. */
     val entries: List<QueueEntrySnapshot>? = null,
+    /** Native traversal order, using occurrence IDs rather than possibly duplicate song IDs. */
+    val shuffleEntryIds: List<String>? = null,
+    val shuffleEnabled: Boolean? = null,
+    val repeatMode: Int? = null,
 )
 
 @Serializable
-internal data class QueueEntrySnapshot(val entryId: String, val source: QueueSource? = null)
+internal data class QueueEntrySnapshot(
+    val entryId: String,
+    val source: QueueSource? = null,
+    val mediaKind: QueueMediaKind? = null,
+)
 
 internal object PlaybackQueueSnapshotCodec {
     private val json = Json {
@@ -39,14 +47,24 @@ internal object PlaybackQueueSnapshotCodec {
                     snapshot.currentIndex in snapshot.ids.indices &&
                     snapshot.positionMs >= 0L &&
                     (snapshot.entries == null || (snapshot.entries.size == snapshot.ids.size &&
-                        snapshot.entries.all { it.entryId.isNotBlank() })) &&
+                        snapshot.entries.all { it.entryId.isNotBlank() } &&
+                        snapshot.entries.map { it.entryId }.distinct().size == snapshot.entries.size)) &&
                     (snapshot.currentSong == null ||
                         snapshot.currentSong.id.toString() == snapshot.ids[snapshot.currentIndex])
             }
             ?.let { snapshot ->
+                // A corrupt optional shuffle order must not discard an otherwise usable queue.
+                val order = snapshot.shuffleEntryIds?.takeIf { ids ->
+                    val entries = snapshot.entries ?: return@takeIf false
+                    ids.size == entries.size && ids.toSet() == entries.map { it.entryId }.toSet()
+                }
+                snapshot.copy(shuffleEntryIds = order, repeatMode = snapshot.repeatMode?.takeIf { it in 0..2 })
+            }
+            ?.let { snapshot ->
                 // Older local queue snapshots have only an internal numeric song ID.
                 // Without an explicitly saved catalogue ID, do not turn it into a public link.
-                val local = snapshot.entries?.getOrNull(snapshot.currentIndex)?.source?.type == QueueSource.Type.LOCAL
+                val entry = snapshot.entries?.getOrNull(snapshot.currentIndex)
+                val local = entry?.mediaKind == QueueMediaKind.LOCAL || entry?.source?.type == QueueSource.Type.LOCAL
                 val song = snapshot.currentSong
                 if (local && song != null &&
                     (json.parseToJsonElement(requireNotNull(value)).jsonObject["currentSong"] as? JsonObject)
